@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Capybara Coffee — GBP Review Manager
 
-## Getting Started
+Next.js app for managing Google Business Profile reviews across 7 Capybara Coffee locations in Thailand.
 
-First, run the development server:
+## Tech stack
+
+- **Next.js 14** (App Router)
+- **TypeScript**
+- **Tailwind CSS** + **shadcn/ui**
+- **next-auth** (Google OAuth)
+- **Vercel** (hosting)
+
+## Setup
+
+### 1. Environment variables
+
+Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **GOOGLE_CLIENT_ID** / **GOOGLE_CLIENT_SECRET** — From [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials (project: **Capybara Google Review**, credential: **Capybara Reviews**).
+- **NEXTAUTH_SECRET** — Generate with: `openssl rand -base64 32`
+- **NEXTAUTH_URL** — `http://localhost:3000` in dev; your Vercel URL in production
+- **ALLOWED_GOOGLE_EMAILS** — Optional comma‑separated whitelist of exact emails allowed to sign in (e.g. `leo@capybaracoffeethailand.com,bookings@capybaracoffeethailand.com`).
+- **ALLOWED_GOOGLE_DOMAIN** — Optional domain‑wide allow rule (e.g. `capybaracoffeethailand.com`). Evaluated in addition to `ALLOWED_GOOGLE_EMAILS`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Google OAuth redirect URIs
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+In the Google Cloud OAuth client, add:
 
-## Learn More
+- **Dev:** `http://localhost:3000/api/auth/callback/google`
+- **Prod:** `https://<your-vercel-domain>/api/auth/callback/google`
 
-To learn more about Next.js, take a look at the following resources:
+Scopes must include: `https://www.googleapis.com/auth/business.manage`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Install and run
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000), sign in with Google (e.g. leo.lecee@gmail.com), then use **Sync reviews** and reply from the dashboard.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — Start dev server
+- `npm run build` — Production build
+- `npm run start` — Start production server
+- `npm run lint` — Run ESLint
+
+## App structure
+
+- **`/`** — Login (Sign in with Google)
+- **`/dashboard`** — Protected; sync unreplied reviews, view by 5★ / 4★ / Needs attention, send replies (single or bulk)
+
+API routes use the session access token server-side only:
+
+- `GET /api/reviews/sync` — Fetch all unreplied reviews from the 7 locations (with pagination)
+- `PUT /api/reviews/reply` — Send one reply (body: `locationName`, `reviewId`, `comment`)
