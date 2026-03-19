@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ReviewWithLocation } from "@/types/review";
+import {
+  REPLY_CATEGORIES,
+  type ReplyCategory,
+  type ReplyCategoryId,
+  type ReplyRatingBucket,
+} from "@/lib/constants";
 import { StarIcon, SendIcon, Loader2Icon, ExternalLinkIcon } from "lucide-react";
 
 const STAR_RATING: Record<string, number> = {
@@ -58,6 +64,10 @@ interface ReviewCardProps {
   total?: number;
   /** Called when expand/collapse changes (for virtual list height measurement). */
   onExpandChange?: (expanded: boolean) => void;
+  /** Optional template category identifier (for 4★ / 5★ auto-replies). */
+  categoryId?: ReplyCategoryId;
+  /** Optional handler when user selects a different template category. */
+  onCategoryChange?: (category: ReplyCategoryId) => void;
 }
 
 export function ReviewCard({
@@ -69,6 +79,8 @@ export function ReviewCard({
   position,
   total,
   onExpandChange,
+  categoryId,
+  onCategoryChange,
 }: ReviewCardProps) {
   const [sending, setSending] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -76,8 +88,11 @@ export function ReviewCard({
   const isLong = text.length > TRUNCATE_LEN;
 
   const toggleExpanded = () => {
-    setExpanded((e) => !e);
-    onExpandChange?.(!expanded);
+    setExpanded((prev) => {
+      const next = !prev;
+      onExpandChange?.(next);
+      return next;
+    });
   };
 
   const handleSend = async () => {
@@ -99,7 +114,18 @@ export function ReviewCard({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error((data as { error?: string }).error ?? "Failed to send reply");
+        const message = (data as { error?: string }).error ?? "Failed to send reply";
+        if (res.status === 401) {
+          toast.error("Session expired. Please sign in again.");
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem("capybara-dashboard-state");
+          }
+          await import("next-auth/react").then(({ signOut }) =>
+            signOut({ callbackUrl: "/" })
+          );
+          return;
+        }
+        toast.error(message);
         return;
       }
       toast.success("Reply sent");
@@ -112,6 +138,34 @@ export function ReviewCard({
   };
 
   const initial = review.reviewer?.displayName?.[0]?.toUpperCase() ?? "?";
+  const [categories, setCategories] = useState<ReplyCategory[]>(REPLY_CATEGORIES);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("capybara-reply-categories-v1");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as ReplyCategory[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setCategories(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const numericRating: ReplyRatingBucket | 0 =
+    (STAR_RATING[review.starRating] ?? 0) === 4 || (STAR_RATING[review.starRating] ?? 0) === 5
+      ? ((STAR_RATING[review.starRating] as ReplyRatingBucket) ?? 0)
+      : 0;
+
+  const availableCategories =
+    numericRating === 4 || numericRating === 5
+      ? categories.filter((c) => c.ratings.includes(numericRating))
+      : [];
+
+  const showCategorySelector =
+    (variant === "success" || variant === "amber") && availableCategories.length > 0;
 
   return (
     <Card className="overflow-hidden">
@@ -172,6 +226,22 @@ export function ReviewCard({
           </div>
         </div>
         <div className="space-y-2">
+          {showCategorySelector && onCategoryChange && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground">Template theme</span>
+              <select
+                className="h-7 rounded-md border border-border bg-background px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={categoryId ?? "generic"}
+                onChange={(e) => onCategoryChange(e.target.value as ReplyCategoryId)}
+              >
+                {availableCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Textarea
             placeholder={variant === "attention" ? "Write a custom reply…" : undefined}
             value={comment}
@@ -183,7 +253,7 @@ export function ReviewCard({
             size="sm"
             onClick={handleSend}
             disabled={sending || !comment.trim()}
-            className="rounded-md gap-1.5"
+            className="rounded-md gap-1.5 transition-transform hover:translate-y-0.5 hover:shadow-sm"
           >
             {sending ? (
               <Loader2Icon className="size-4 animate-spin" />

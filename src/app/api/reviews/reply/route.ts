@@ -1,45 +1,15 @@
 import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
+import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
 import { REVIEWS_BASE } from "@/lib/constants";
-
-async function getFirstAccountId(accessToken: string): Promise<string> {
-  const res = await fetch(
-    "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Accounts API error: ${res.status} ${err}`);
-  }
-  const data = (await res.json()) as {
-    accounts?: { name?: string | null; accountName?: string | null }[];
-  };
-  const accounts = data.accounts ?? [];
-  if (accounts.length === 0) {
-    throw new Error("No Business Profile accounts found for this Google user.");
-  }
-  if (accounts.length > 1) {
-    const names = accounts
-      .map((a) => a.accountName || a.name || "unknown")
-      .slice(0, 3)
-      .join(", ");
-    throw new Error(
-      `Multiple Business Profile accounts found (${names}). This app currently supports one account per user.`
-    );
-  }
-  const name = accounts[0].name;
-  if (!name || !name.startsWith("accounts/")) {
-    throw new Error("Unexpected account format returned by Business Profile API.");
-  }
-  return name.replace("accounts/", "");
-}
+import { getPreferredAccountId } from "@/lib/google-business";
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
-  const accessToken = (session as { accessToken?: string } | null)?.accessToken;
-  if (!accessToken) {
+  const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
+  const accessToken = (token as { accessToken?: string } | null)?.accessToken;
+  if (!accessToken || !session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -58,7 +28,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const accountId = await getFirstAccountId(accessToken);
+    const accountId = await getPreferredAccountId(accessToken);
     const url = `${REVIEWS_BASE}/accounts/${accountId}/${locationName}/reviews/${reviewId}/reply`;
     const res = await fetch(url, {
       method: "PUT",
@@ -71,23 +41,18 @@ export async function PUT(request: Request) {
 
     if (!res.ok) {
       const err = await res.text();
-      return Response.json(
-        { error: `Reply failed: ${res.status} ${err}` },
-        { status: res.status >= 500 ? 502 : 400 }
-      );
+      const status = res.status >= 500 ? 502 : 400;
+      const message =
+        res.status === 401
+          ? "Unauthorized with Google Business Profile API."
+          : `Reply failed with status ${res.status}.`;
+      console.error("[reply] upstream error", { status: res.status, body: err });
+      return Response.json({ error: message }, { status });
     }
-
-    console.log(
-      "[reply]",
-      JSON.stringify({
-        userEmail: session?.user?.email ?? null,
-        locationName,
-        reviewId,
-      })
-    );
 
     return Response.json({ success: true });
   } catch (e) {
+    console.error("[reply] handler error", e);
     const message = e instanceof Error ? e.message : "Reply failed";
     return Response.json({ error: message }, { status: 500 });
   }

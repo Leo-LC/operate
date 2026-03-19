@@ -1,78 +1,11 @@
 import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
+import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
-import {
-  EXCLUDED_LOCATION_IDS,
-  LOCATION_NAMES,
-  LOCATIONS_BASE,
-  REVIEWS_BASE,
-} from "@/lib/constants";
+import { LOCATION_NAMES, REVIEWS_BASE } from "@/lib/constants";
+import { fetchAllLocations, getPreferredAccountId } from "@/lib/google-business";
 import type { Review, Location } from "@/types/review";
 import type { ReviewWithLocation } from "@/types/review";
-
-async function getFirstAccountId(accessToken: string): Promise<string> {
-  const res = await fetch(
-    "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Accounts API error: ${res.status} ${err}`);
-  }
-  const data = (await res.json()) as {
-    accounts?: { name?: string | null; accountName?: string | null }[];
-  };
-  const accounts = data.accounts ?? [];
-  if (accounts.length === 0) {
-    throw new Error("No Business Profile accounts found for this Google user.");
-  }
-  if (accounts.length > 1) {
-    const names = accounts
-      .map((a) => a.accountName || a.name || "unknown")
-      .slice(0, 3)
-      .join(", ");
-    throw new Error(
-      `Multiple Business Profile accounts found (${names}). This app currently supports one account per user.`
-    );
-  }
-  const name = accounts[0].name;
-  if (!name || !name.startsWith("accounts/")) {
-    throw new Error("Unexpected account format returned by Business Profile API.");
-  }
-  return name.replace("accounts/", "");
-}
-
-async function fetchAllLocations(
-  accessToken: string,
-  accountId: string
-): Promise<Location[]> {
-  const LOCATIONS_URL = `${LOCATIONS_BASE}/accounts/${accountId}/locations?readMask=name,title,storefrontAddress,metadata&pageSize=100`;
-  const locations: Location[] = [];
-  let pageToken: string | undefined;
-
-  do {
-    const url = pageToken ? `${LOCATIONS_URL}&pageToken=${pageToken}` : LOCATIONS_URL;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Locations API error: ${res.status} ${err}`);
-    }
-    const data = (await res.json()) as {
-      locations?: Location[];
-      nextPageToken?: string;
-    };
-    if (data.locations) locations.push(...data.locations);
-    pageToken = data.nextPageToken;
-  } while (pageToken);
-
-  return locations.filter((loc) => {
-    const id = loc.name?.replace(/^accounts\/[^/]+\//, "") ?? "";
-    return !EXCLUDED_LOCATION_IDS.has(id);
-  });
-}
 
 async function fetchUnrepliedReviewsForLocation(
   accessToken: string,
@@ -118,30 +51,67 @@ async function fetchUnrepliedReviewsForLocation(
   return out;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  const accessToken = (session as { accessToken?: string } | null)?.accessToken;
-  if (!accessToken) {
+  const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
+  const accessToken = (token as { accessToken?: string } | null)?.accessToken;
+  if (!accessToken || !session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const accountId = await getFirstAccountId(accessToken);
-    const locations = await fetchAllLocations(accessToken, accountId);
-    const allUnreplied: ReviewWithLocation[] = [];
+    const accountId = await getPreferredAccountId(accessToken);
+    const url = new URL(request.url);
+    const raw = url.searchParams.get("locations");
+    const selectedIds =
+      raw && raw.length > 0
+        ? raw
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : null;
 
-    for (const loc of locations) {
-      const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
-      const title = LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
-      const placeId = loc.metadata?.placeId;
-      const reviews = await fetchUnrepliedReviewsForLocation(
-        accessToken,
-        accountId,
-        shortName,
-        title,
-        placeId
+    const locations = await fetchAllLocations(accessToken, accountId);
+    const filteredLocations =
+      selectedIds && selectedIds.length > 0
+        ? locations.filter((loc) => {
+            const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+            return selectedIds.includes(shortName);
+          })
+        : locations;
+
+    const allUnreplied: ReviewWithLocation[] = [];
+    const concurrency = 4;
+
+    for (let i = 0; i < filteredLocations.length; i += concurrency) {
+      const batch = filteredLocations.slice(i, i + concurrency);
+      const results = await Promise.all(
+        batch.map(async (loc) => {
+          const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+          const title = LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
+          const placeId = loc.metadata?.placeId;
+          try {
+            const reviews = await fetchUnrepliedReviewsForLocation(
+              accessToken,
+              accountId,
+              shortName,
+              title,
+              placeId
+            );
+            return reviews;
+          } catch (e) {
+            console.error(
+              "[sync] failed to fetch reviews for location",
+              shortName,
+              e instanceof Error ? e.message : e
+            );
+            return [] as ReviewWithLocation[];
+          }
+        })
       );
-      allUnreplied.push(...reviews);
+      for (const list of results) {
+        allUnreplied.push(...list);
+      }
     }
 
     return Response.json({ reviews: allUnreplied });
@@ -150,3 +120,4 @@ export async function GET() {
     return Response.json({ error: message }, { status: 500 });
   }
 }
+

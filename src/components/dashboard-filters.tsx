@@ -1,14 +1,17 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { AllNoneToggle } from "@/components/all-none-toggle";
 
 const RATING_OPTIONS = [
   { id: "5", label: "5 stars", value: "five" as const },
   { id: "4", label: "4 stars", value: "four" as const },
-  { id: "1-3", label: "Needs attention (1–3★)", value: "attention" as const },
+  { id: "3", label: "3 stars", value: "three" as const },
+  { id: "2", label: "2 stars", value: "two" as const },
+  { id: "1", label: "1 star", value: "one" as const },
 ] as const;
 
-export type RatingFilterValue = "five" | "four" | "attention";
+export type RatingFilterValue = "five" | "four" | "three" | "two" | "one";
 
 export interface DashboardFiltersState {
   locations: Set<string>;
@@ -60,27 +63,17 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
     <div className={cn("flex flex-col gap-6", className)}>
       {locations.length > 0 && (
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium">Location</span>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={selectAllLocations}
-              className="text-muted-foreground hover:text-foreground text-xs underline"
-            >
-              All
-            </button>
-            <span className="text-muted-foreground text-xs">/</span>
-            <button
-              type="button"
-              onClick={clearAllLocations}
-              className="text-muted-foreground hover:text-foreground text-xs underline"
-            >
-              None
-            </button>
-          </div>
+        <div className="mb-1">
+          <span className="block text-sm font-medium">Location</span>
+          <AllNoneToggle
+            className="mt-1"
+            allSelected={filters.locations.size === locations.length}
+            noneSelected={filters.locations.size === 0}
+            onSelectAll={selectAllLocations}
+            onSelectNone={clearAllLocations}
+          />
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1.5 mt-1">
           {locations.map((loc) => (
             <button
               key={loc.id}
@@ -91,8 +84,8 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
               className={cn(
                 "filter-item w-full rounded-md border px-2.5 py-2 text-left text-sm transition-colors",
                 locationChecked(loc.id)
-                  ? "border-transparent bg-muted text-foreground"
-                  : "border-border/40 text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground"
+                  ? "border-border/60 bg-muted text-foreground hover:bg-muted/70"
+                  : "border-border/30 text-muted-foreground hover:border-border/60 hover:bg-muted/40 hover:text-foreground"
               )}
             >
               {loc.title}
@@ -102,27 +95,17 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
       </div>
       )}
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium">Rating</span>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={selectAllRatings}
-              className="text-muted-foreground hover:text-foreground text-xs underline"
-            >
-              All
-            </button>
-            <span className="text-muted-foreground text-xs">/</span>
-            <button
-              type="button"
-              onClick={clearAllRatings}
-              className="text-muted-foreground hover:text-foreground text-xs underline"
-            >
-              None
-            </button>
-          </div>
+        <div className="mb-1">
+          <span className="block text-sm font-medium">Rating</span>
+          <AllNoneToggle
+            className="mt-1"
+            allSelected={filters.ratings.size === RATING_OPTIONS.length}
+            noneSelected={filters.ratings.size === 0}
+            onSelectAll={selectAllRatings}
+            onSelectNone={clearAllRatings}
+          />
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1.5 mt-1">
           {RATING_OPTIONS.map(({ id, label, value }) => (
             <button
               key={id}
@@ -133,8 +116,8 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
               className={cn(
                 "filter-item w-full rounded-md border px-2.5 py-2 text-left text-sm transition-colors",
                 ratingChecked(value)
-                  ? "border-transparent bg-muted text-foreground"
-                  : "border-border/40 text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground"
+                  ? "border-border/60 bg-muted text-foreground hover:bg-muted/70"
+                  : "border-border/30 text-muted-foreground hover:border-border/60 hover:bg-muted/40 hover:text-foreground"
               )}
             >
               {label}
@@ -165,7 +148,9 @@ export function filterReviewsByLocationAndRating<T extends { locationName: strin
     if (filters.ratings.size === 0) return true;
     if (n === 5 && filters.ratings.has("five")) return true;
     if (n === 4 && filters.ratings.has("four")) return true;
-    if (n >= 1 && n <= 3 && filters.ratings.has("attention")) return true;
+    if (n === 3 && filters.ratings.has("three")) return true;
+    if (n === 2 && filters.ratings.has("two")) return true;
+    if (n === 1 && filters.ratings.has("one")) return true;
     return false;
   });
 }

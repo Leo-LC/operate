@@ -35,7 +35,7 @@ function getRoleForEmail(email: string | null | undefined): "owner" | "staff" {
   return "staff";
 }
 
-async function refreshGoogleAccessToken(token: any) {
+async function refreshGoogleAccessToken(token: import("next-auth/jwt").JWT) {
   try {
     if (!token.refreshToken) return token;
     const params = new URLSearchParams({
@@ -126,7 +126,6 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session as { accessToken?: string }).accessToken = token.accessToken as string;
         (session.user as any).role = (token as any).role ?? getRoleForEmail(session.user.email);
       }
       return session;
@@ -144,7 +143,6 @@ export const authOptions: NextAuthOptions = {
 
 declare module "next-auth" {
   interface Session {
-    accessToken?: string;
     user: {
       name?: string | null;
       email?: string | null;

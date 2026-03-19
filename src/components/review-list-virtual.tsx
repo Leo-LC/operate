@@ -4,6 +4,7 @@ import { useRef, useState, useLayoutEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { ReviewWithLocation } from "@/types/review";
 import { ReviewCard } from "@/components/review-card";
+import type { ReplyCategoryId } from "@/lib/constants";
 
 const ROW_HEIGHT_ESTIMATE = 280;
 const OVERSCAN = 5;
@@ -18,9 +19,12 @@ interface ReviewListVirtualProps {
   onCommentChange: (reviewId: string, comment: string) => void;
   onReplySent: (reviewId: string) => void;
   variant: Variant;
-  defaultTemplate: string;
   /** When showing a mixed list (e.g. all ratings), pass per-review variant. */
   getVariant?: (review: ReviewWithLocation) => Variant;
+  /** Optional: get current template category per review (4★ / 5★ only). */
+  getCategory?: (reviewId: string) => ReplyCategoryId;
+  /** Optional: change template category per review (4★ / 5★ only). */
+  onCategoryChange?: (reviewId: string, category: ReplyCategoryId) => void;
 }
 
 export function ReviewListVirtual({
@@ -30,6 +34,8 @@ export function ReviewListVirtual({
   onReplySent,
   variant,
   getVariant,
+  getCategory,
+  onCategoryChange,
 }: ReviewListVirtualProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -98,6 +104,12 @@ export function ReviewListVirtual({
                   variant={getVariant ? getVariant(r) : variant}
                   position={virtualRow.index + 1}
                   total={reviews.length}
+                  categoryId={getCategory?.(r.reviewId)}
+                  onCategoryChange={
+                    onCategoryChange
+                      ? (category) => onCategoryChange(r.reviewId, category)
+                      : undefined
+                  }
                 />
               </div>
             </div>

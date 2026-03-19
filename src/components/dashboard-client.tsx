@@ -17,7 +17,18 @@ import {
 } from "@/components/dashboard-filters";
 import { ReviewListVirtual } from "@/components/review-list-virtual";
 import { SyncButton } from "@/components/sync-button";
-import { REPLY_TEMPLATE_5, REPLY_TEMPLATE_4 } from "@/lib/constants";
+import {
+  DEFAULT_RATING_RULES,
+  DEFAULT_REPLY_CATEGORY_ID,
+  LOCATION_NAMES,
+  REPLY_TEMPLATES,
+  type Rating,
+  type RatingRule,
+  type ReplyCategoryId,
+  type ReplyTemplateMap,
+  pickRandomTemplate,
+} from "@/lib/constants";
+import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
 import { LogOutIcon, Loader2Icon, SlidersHorizontalIcon, SettingsIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -35,17 +46,43 @@ function starNum(r: ReviewWithLocation): number {
   return STAR_RATINGS[r.starRating as keyof typeof STAR_RATINGS] ?? 0;
 }
 
+function readSavedLocationIds(storageKey: string): string[] | null {
+  if (typeof window === "undefined") return null;
+  const tryKey = (key: string): string[] | null => {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      const arr = JSON.parse(raw) as string[];
+      if (!Array.isArray(arr) || arr.length === 0) return null;
+      const ids = arr.filter((x) => typeof x === "string" && x.trim().length > 0);
+      return ids.length > 0 ? ids : null;
+    } catch {
+      return null;
+    }
+  };
+  const scoped = tryKey(storageKey);
+  if (scoped) return scoped;
+  if (storageKey !== "capybara-selected-locations") {
+    return tryKey("capybara-selected-locations");
+  }
+  return null;
+}
+
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
   const four: ReviewWithLocation[] = [];
-  const needsAttention: ReviewWithLocation[] = [];
+  const three: ReviewWithLocation[] = [];
+  const two: ReviewWithLocation[] = [];
+  const one: ReviewWithLocation[] = [];
   for (const r of reviews) {
     const n = starNum(r);
     if (n === 5) five.push(r);
     else if (n === 4) four.push(r);
-    else needsAttention.push(r);
+    else if (n === 3) three.push(r);
+    else if (n === 2) two.push(r);
+    else if (n === 1) one.push(r);
   }
-  return { five, four, needsAttention };
+  return { five, four, three, two, one };
 }
 
 interface DashboardClientProps {
@@ -55,6 +92,9 @@ interface DashboardClientProps {
 export function DashboardClient({ user }: DashboardClientProps) {
   const [reviews, setReviews] = useState<ReviewWithLocation[]>([]);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyCategories, setReplyCategories] = useState<Record<string, ReplyCategoryId>>({});
+  const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
+  const [templateConfig, setTemplateConfig] = useState<ReplyTemplateMap>(REPLY_TEMPLATES);
   const [filters, setFilters] = useState<DashboardFiltersState>(() => getDefaultFilters());
   const [syncing, setSyncing] = useState(false);
   const [bulkSending, setBulkSending] = useState(false);
@@ -65,6 +105,44 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const LIMIT_OPTIONS = [50, 100] as const;
+
+  const RATING_RULES_KEY = "capybara-rating-rules-v1";
+  const TEMPLATE_CONFIG_KEY = "capybara-template-config-v1";
+  const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
+  const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
+
+  const [catalogLocations, setCatalogLocations] = useState<LocationOption[]>([]);
+  const [selectionRevision, setSelectionRevision] = useState(0);
+
+  useEffect(() => {
+    const onFocus = () => setSelectionRevision((n) => n + 1);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.email) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/locations");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          locations?: { id: string; title: string }[];
+        };
+        if (cancelled) return;
+        const list = (data.locations ?? []).filter(
+          (l) => typeof l.id === "string" && l.id.length > 0
+        );
+        setCatalogLocations(list.map((l) => ({ id: l.id, title: l.title })));
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email]);
 
   useEffect(() => {
     let frame: number;
@@ -96,11 +174,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
     if (typeof window === "undefined") return;
     if (reviews.length > 0) return;
     try {
-      const raw = window.localStorage.getItem("capybara-dashboard-state");
+      const raw = window.localStorage.getItem(DASHBOARD_STATE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as {
         reviews: ReviewWithLocation[];
         replyDrafts: Record<string, string>;
+        replyCategories?: Record<string, ReplyCategoryId>;
         timestamp: number;
       };
       const maxAgeMs = 30 * 60 * 1000;
@@ -108,14 +187,39 @@ export function DashboardClient({ user }: DashboardClientProps) {
       if (!Array.isArray(parsed.reviews) || parsed.reviews.length === 0) return;
       setReviews(parsed.reviews);
       setReplyDrafts(parsed.replyDrafts ?? {});
-      const locationIds = Array.from(
-        new Set(parsed.reviews.map((r) => r.locationName))
-      );
-      setFilters((prev) => ({ ...prev, locations: new Set(locationIds) }));
+      setReplyCategories(parsed.replyCategories ?? {});
+      const fromReviews = Array.from(new Set(parsed.reviews.map((r) => r.locationName)));
+      const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
+      const nextLoc =
+        saved && saved.length > 0 ? new Set(saved) : new Set(fromReviews);
+      setFilters((prev) => ({ ...prev, locations: nextLoc }));
     } catch {
       // ignore bad data
     }
-  }, [reviews.length, setFilters]);
+  }, [reviews.length, setFilters, DASHBOARD_STATE_KEY, SELECTED_LOCATIONS_KEY]);
+
+  // Hydrate rating rules and template overrides from config screen
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const rawRules = window.localStorage.getItem(RATING_RULES_KEY);
+      if (rawRules) {
+        const parsed = JSON.parse(rawRules) as Record<Rating, RatingRule>;
+        setRatingRules((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const rawTemplates = window.localStorage.getItem(TEMPLATE_CONFIG_KEY);
+      if (rawTemplates) {
+        const parsed = JSON.parse(rawTemplates) as ReplyTemplateMap;
+        setTemplateConfig((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleSynced = useCallback((data: ReviewWithLocation[]) => {
     const sorted = [...data].sort((a, b) => {
@@ -124,25 +228,45 @@ export function DashboardClient({ user }: DashboardClientProps) {
       return bTime - aTime;
     });
     setReviews(sorted);
-    const initial: Record<string, string> = {};
+    const initialDrafts: Record<string, string> = {};
+    const initialCategories: Record<string, ReplyCategoryId> = {};
     for (const r of sorted) {
       const n = starNum(r);
-      initial[r.reviewId] = n === 5 ? REPLY_TEMPLATE_5 : n === 4 ? REPLY_TEMPLATE_4 : "";
+      if (n === 5 || n === 4) {
+        const rule = ratingRules[n as Rating];
+        if (rule?.mode === "template") {
+          initialDrafts[r.reviewId] = pickRandomTemplate(
+            n as 4 | 5,
+            DEFAULT_REPLY_CATEGORY_ID,
+            templateConfig
+          );
+          initialCategories[r.reviewId] = DEFAULT_REPLY_CATEGORY_ID;
+        } else {
+          initialDrafts[r.reviewId] = "";
+        }
+      } else {
+        initialDrafts[r.reviewId] = "";
+      }
     }
-    setReplyDrafts(initial);
-    const locationIds = Array.from(new Set(sorted.map((r) => r.locationName)));
-    setFilters((prev) => ({ ...prev, locations: new Set(locationIds) }));
+    setReplyDrafts(initialDrafts);
+    setReplyCategories(initialCategories);
+    const fromReviews = Array.from(new Set(sorted.map((r) => r.locationName)));
+    const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
+    const nextLoc =
+      saved && saved.length > 0 ? new Set(saved) : new Set(fromReviews);
+    setFilters((prev) => ({ ...prev, locations: nextLoc }));
     if (typeof window !== "undefined") {
       window.localStorage.setItem(
-        "capybara-dashboard-state",
+        DASHBOARD_STATE_KEY,
         JSON.stringify({
           reviews: sorted,
-          replyDrafts: initial,
+          replyDrafts: initialDrafts,
+          replyCategories: initialCategories,
           timestamp: Date.now(),
         })
       );
     }
-  }, [setFilters]);
+  }, [ratingRules, templateConfig, setFilters, DASHBOARD_STATE_KEY, SELECTED_LOCATIONS_KEY]);
 
   const handleReplySent = useCallback((reviewId: string) => {
     setReviews((prev) => prev.filter((r) => r.reviewId !== reviewId));
@@ -153,25 +277,34 @@ export function DashboardClient({ user }: DashboardClientProps) {
     });
   }, []);
 
-  // Persist whenever reviews or drafts change (e.g. after sending replies)
+  // Persist drafts/categories with a small debounce to avoid excessive writes
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (reviews.length === 0) return;
-    window.localStorage.setItem(
-      "capybara-dashboard-state",
-      JSON.stringify({
-        reviews,
-        replyDrafts,
-        timestamp: Date.now(),
-      })
-    );
-  }, [reviews, replyDrafts]);
+    const handle = window.setTimeout(() => {
+      window.localStorage.setItem(
+        DASHBOARD_STATE_KEY,
+        JSON.stringify({
+          reviews,
+          replyDrafts,
+          replyCategories,
+          timestamp: Date.now(),
+        })
+      );
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [reviews, replyDrafts, replyCategories, DASHBOARD_STATE_KEY]);
 
   const setDraft = useCallback((reviewId: string, comment: string) => {
     setReplyDrafts((prev) => ({ ...prev, [reviewId]: comment }));
   }, []);
 
-  const uniqueLocations = useMemo((): LocationOption[] => {
+  const setCategory = useCallback((reviewId: string, category: ReplyCategoryId) => {
+    setReplyCategories((prev) => ({ ...prev, [reviewId]: category }));
+  }, []);
+
+  /** Locations from reviews only (for merging titles) */
+  const locationsFromReviews = useMemo((): LocationOption[] => {
     const seen = new Set<string>();
     const out: LocationOption[] = [];
     for (const r of reviews) {
@@ -182,6 +315,46 @@ export function DashboardClient({ user }: DashboardClientProps) {
     }
     return out;
   }, [reviews]);
+
+  /**
+   * Sidebar: show every location saved in Config, even with zero unreplied reviews,
+   * plus any review-only locations not in that list.
+   */
+  const filterLocationOptions = useMemo((): LocationOption[] => {
+    const catalogMap = new Map(catalogLocations.map((l) => [l.id, l.title]));
+    const reviewMap = new Map(locationsFromReviews.map((l) => [l.id, l.title]));
+
+    const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
+
+    const titleFor = (id: string) =>
+      catalogMap.get(id) ??
+      reviewMap.get(id) ??
+      LOCATION_NAMES[id] ??
+      id;
+
+    if (saved && saved.length > 0) {
+      const out: LocationOption[] = [];
+      const seen = new Set<string>();
+      for (const id of saved) {
+        out.push({ id, title: titleFor(id) });
+        seen.add(id);
+      }
+      for (const loc of locationsFromReviews) {
+        if (!seen.has(loc.id)) {
+          out.push(loc);
+          seen.add(loc.id);
+        }
+      }
+      return out;
+    }
+
+    return locationsFromReviews;
+  }, [
+    catalogLocations,
+    locationsFromReviews,
+    SELECTED_LOCATIONS_KEY,
+    selectionRevision,
+  ]);
 
   const filteredByLocation = useMemo(() => {
     if (filters.locations.size === 0) return [];
@@ -199,16 +372,18 @@ export function DashboardClient({ user }: DashboardClientProps) {
     [filteredByLocation, sortOrder]
   );
 
-  const { five, four, needsAttention } = useMemo(
+  const { five, four, three, two, one } = useMemo(
     () => partitionReviews(chronologicalList),
     [chronologicalList]
   );
 
   const fiveFiltered = filters.ratings.has("five") ? five : [];
   const fourFiltered = filters.ratings.has("four") ? four : [];
-  const attentionFiltered = filters.ratings.has("attention") ? needsAttention : [];
+  const threeFiltered = filters.ratings.has("three") ? three : [];
+  const twoFiltered = filters.ratings.has("two") ? two : [];
+  const oneFiltered = filters.ratings.has("one") ? one : [];
 
-  const allRatingsMode = filters.ratings.size === 3;
+  const allRatingsMode = filters.ratings.size === 5;
   const singleRatingMode = filters.ratings.size === 1;
 
   const applyLimit = useCallback(
@@ -231,14 +406,17 @@ export function DashboardClient({ user }: DashboardClientProps) {
     [displayedChronological]
   );
   const attentionInDisplay = useMemo(
-    () => displayedChronological.filter((r) => starNum(r) >= 1 && starNum(r) <= 3),
+    () => displayedChronological.filter((r) => {
+      const n = starNum(r);
+      return n >= 1 && n <= 3;
+    }),
     [displayedChronological]
   );
 
   const fiveDisplayed = singleRatingMode ? applyLimit(fiveFiltered) : fiveInDisplay;
   const fourDisplayed = singleRatingMode ? applyLimit(fourFiltered) : fourInDisplay;
   const attentionDisplayed = singleRatingMode
-    ? applyLimit(attentionFiltered)
+    ? applyLimit([...threeFiltered, ...twoFiltered, ...oneFiltered])
     : attentionInDisplay;
 
   const attentionWithRepliesInDisplay = useMemo(
@@ -256,13 +434,26 @@ export function DashboardClient({ user }: DashboardClientProps) {
       const r = displayedChronological.find((x) => x.reviewId === reviewId);
       if (!r) return "";
       const n = starNum(r);
-      return n === 5 ? REPLY_TEMPLATE_5 : n === 4 ? REPLY_TEMPLATE_4 : "";
+      if (n === 5 || n === 4) {
+        const category = replyCategories[r.reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
+        const rule = ratingRules[n as Rating];
+        if (rule?.mode === "template") {
+          return pickRandomTemplate(n as 4 | 5, category, templateConfig);
+        }
+        return "";
+      }
+      return "";
     },
-    [replyDrafts, displayedChronological]
+    [replyDrafts, replyCategories, ratingRules, templateConfig, displayedChronological]
   );
 
   const hasAnyFiltered =
-    fiveFiltered.length + fourFiltered.length + attentionFiltered.length > 0;
+    fiveFiltered.length +
+      fourFiltered.length +
+      threeFiltered.length +
+      twoFiltered.length +
+      oneFiltered.length >
+    0;
 
 
   const handleBulkSend = useCallback(
@@ -328,9 +519,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
     total === 0 ? "🥳" : total <= 25 ? "🙂" : total <= 150 ? "😅" : "😬";
 
   const filtersSidebar = (
-    <div className="flex w-56 shrink-0 flex-col px-4 py-6">
+    <div className="flex w-56 shrink-0 flex-col px-4 pt-6 pb-10">
       <h2 className="mb-3 text-sm font-medium">Filters</h2>
-      <DashboardFilters filters={filters} onChange={setFilters} locations={uniqueLocations} />
+      <DashboardFilters filters={filters} onChange={setFilters} locations={filterLocationOptions} />
     </div>
   );
 
@@ -343,32 +534,17 @@ export function DashboardClient({ user }: DashboardClientProps) {
             <span className="text-muted-foreground hidden text-sm sm:inline">GBP Review Manager</span>
           </Link>
           <nav className="flex items-center gap-2">
-            <Link href="/dashboard">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="gap-1.5 rounded-full px-3 text-xs sm:text-sm transition-colors hover:bg-muted/80"
-                aria-current="page"
-              >
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/dashboard/config">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 rounded-full px-3 text-xs sm:text-sm transition-colors hover:bg-muted/70"
-              >
-                <SettingsIcon className="size-4" />
-                Config
-              </Button>
-            </Link>
             <ThemeToggle />
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs">
-                {user?.email?.[0]?.toUpperCase() ?? "?"}
-              </AvatarFallback>
-            </Avatar>
+            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-2 py-1">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="text-[10px]">
+                  {user?.email?.[0]?.toUpperCase() ?? "?"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="max-w-[160px] truncate text-[11px] text-muted-foreground">
+                {user?.email ?? "unknown"}
+              </span>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -380,6 +556,48 @@ export function DashboardClient({ user }: DashboardClientProps) {
             </Button>
           </nav>
         </div>
+        {/* Secondary navbar */}
+        <div className="border-t border-border bg-background/95">
+          <div className="mx-auto flex h-9 max-w-6xl items-center gap-2 px-4 text-xs">
+            <Link href="/dashboard">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 rounded-full px-3 text-xs"
+                aria-current="page"
+              >
+                Dashboard
+              </Button>
+            </Link>
+            <Link href="/dashboard/config">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 rounded-full px-3 text-xs"
+              >
+                Reply templates
+              </Button>
+            </Link>
+            <Link href="/dashboard/config?tab=rules">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 rounded-full px-3 text-xs"
+              >
+                Rating rules
+              </Button>
+            </Link>
+            <Link href="/dashboard/config?tab=locations">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 rounded-full px-3 text-xs"
+              >
+                Locations
+              </Button>
+            </Link>
+          </div>
+        </div>
       </header>
 
       <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-6xl flex-1">
@@ -390,8 +608,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
           </aside>
         )}
 
-        <main className="min-w-0 flex-1 px-4 py-6">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <main className="min-w-0 flex-1 px-4 pt-6 pb-32">
+          <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               {/* Mobile filters: only show after sync */}
               {total > 0 && (
@@ -408,7 +626,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                 <SheetContent side="left" className="w-[280px]">
                   <div className="py-4">
                     <h2 className="mb-4 text-sm font-medium">Filters</h2>
-                    <DashboardFilters filters={filters} onChange={setFilters} locations={uniqueLocations} />
+                    <DashboardFilters filters={filters} onChange={setFilters} locations={filterLocationOptions} />
                   </div>
                 </SheetContent>
               </Sheet>
@@ -436,10 +654,24 @@ export function DashboardClient({ user }: DashboardClientProps) {
                   </span>
                   <span className="dashboard-stat-sep" aria-hidden />
                   <span className="dashboard-stat-item" data-variant="attention">
-                    1–3★ <strong>{needsAttention.length.toLocaleString()}</strong>
+                    3★ <strong>{three.length.toLocaleString()}</strong>
+                  </span>
+                  <span className="dashboard-stat-sep" aria-hidden />
+                  <span className="dashboard-stat-item" data-variant="attention">
+                    2★ <strong>{two.length.toLocaleString()}</strong>
+                  </span>
+                  <span className="dashboard-stat-sep" aria-hidden />
+                  <span className="dashboard-stat-item" data-variant="attention">
+                    1★ <strong>{one.length.toLocaleString()}</strong>
                   </span>
                 </div>
-                <SyncButton onSynced={handleSynced} syncing={syncing} setSyncing={setSyncing} size="sm" />
+                <SyncButton
+                  onSynced={handleSynced}
+                  syncing={syncing}
+                  setSyncing={setSyncing}
+                  size="sm"
+                  userEmail={user?.email}
+                />
               </div>
 
               {bulkSending && bulkProgress && (
@@ -503,7 +735,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                       </div>
                       {allRatingsMode && (
                         <div className="flex flex-wrap items-center gap-2">
-                          {fiveInDisplay.length > 0 && (
+                          {fiveInDisplay.length > 0 && ratingRules[5]?.allowBulk && (
                             <Button
                               onClick={() => handleBulkSend(fiveInDisplay)}
                               disabled={bulkSending}
@@ -513,7 +745,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               Send all {fiveInDisplay.length} (5★)
                             </Button>
                           )}
-                          {fourInDisplay.length > 0 && (
+                          {fourInDisplay.length > 0 && ratingRules[4]?.allowBulk && (
                             <Button
                               onClick={() => handleBulkSend(fourInDisplay)}
                               disabled={bulkSending}
@@ -533,7 +765,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           </Button>
                         </div>
                       )}
-                      {singleRatingMode && filters.ratings.has("five") && fiveDisplayed.length > 0 && (
+                      {singleRatingMode &&
+                        filters.ratings.has("five") &&
+                        fiveDisplayed.length > 0 &&
+                        ratingRules[5]?.allowBulk && (
                         <Button
                           onClick={() => handleBulkSend(fiveDisplayed)}
                           disabled={bulkSending}
@@ -543,7 +778,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           Send all {fiveDisplayed.length} replies
                         </Button>
                       )}
-                      {singleRatingMode && filters.ratings.has("four") && fourDisplayed.length > 0 && (
+                      {singleRatingMode &&
+                        filters.ratings.has("four") &&
+                        fourDisplayed.length > 0 &&
+                        ratingRules[4]?.allowBulk && (
                         <Button
                           onClick={() => handleBulkSend(fourDisplayed)}
                           disabled={bulkSending}
@@ -553,7 +791,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           Send all {fourDisplayed.length} replies
                         </Button>
                       )}
-                      {singleRatingMode && filters.ratings.has("attention") && (
+                        {singleRatingMode &&
+                          (filters.ratings.has("one") ||
+                            filters.ratings.has("two") ||
+                            filters.ratings.has("three")) && (
                         <Button
                           onClick={() => handleBulkSend(attentionWithRepliesInDisplay)}
                           disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
@@ -572,7 +813,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
                         onCommentChange={setDraft}
                         onReplySent={handleReplySent}
                         variant="success"
-                        defaultTemplate={REPLY_TEMPLATE_5}
                         getVariant={(r) =>
                           starNum(r) === 5
                             ? "success"
@@ -580,6 +820,17 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               ? "amber"
                               : "attention"
                         }
+                        getCategory={(id) => replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID}
+                        onCategoryChange={(id, category) => {
+                          setCategory(id, category);
+                          const review = displayedChronological.find((r) => r.reviewId === id);
+                          if (!review) return;
+                          const n = starNum(review);
+                          if (n === 5 || n === 4) {
+                            const nextTemplate = pickRandomTemplate(n as 4 | 5, category);
+                            setDraft(id, nextTemplate);
+                          }
+                        }}
                       />
                     ) : (
                       <>
@@ -587,11 +838,26 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           <section className="space-y-4" aria-label="5 star reviews">
                             <ReviewListVirtual
                               reviews={fiveDisplayed}
-                              getComment={(id) => replyDrafts[id] ?? REPLY_TEMPLATE_5}
+                              getComment={(id) => {
+                                const existing = replyDrafts[id];
+                                if (existing != null && existing !== "") return existing;
+                                const category =
+                                  replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
+                                return pickRandomTemplate(5, category);
+                              }}
                               onCommentChange={setDraft}
                               onReplySent={handleReplySent}
                               variant="success"
-                              defaultTemplate={REPLY_TEMPLATE_5}
+                              getCategory={(id) =>
+                                replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID
+                              }
+                              onCategoryChange={(id, category) => {
+                                setCategory(id, category);
+                                const review = fiveDisplayed.find((r) => r.reviewId === id);
+                                if (!review) return;
+                                const nextTemplate = pickRandomTemplate(5, category);
+                                setDraft(id, nextTemplate);
+                              }}
                             />
                           </section>
                         )}
@@ -599,15 +865,33 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           <section className="space-y-4" aria-label="4 star reviews">
                             <ReviewListVirtual
                               reviews={fourDisplayed}
-                              getComment={(id) => replyDrafts[id] ?? REPLY_TEMPLATE_4}
+                              getComment={(id) => {
+                                const existing = replyDrafts[id];
+                                if (existing != null && existing !== "") return existing;
+                                const category =
+                                  replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
+                                return pickRandomTemplate(4, category);
+                              }}
                               onCommentChange={setDraft}
                               onReplySent={handleReplySent}
                               variant="amber"
-                              defaultTemplate={REPLY_TEMPLATE_4}
+                              getCategory={(id) =>
+                                replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID
+                              }
+                              onCategoryChange={(id, category) => {
+                                setCategory(id, category);
+                                const review = fourDisplayed.find((r) => r.reviewId === id);
+                                if (!review) return;
+                                const nextTemplate = pickRandomTemplate(4, category);
+                                setDraft(id, nextTemplate);
+                              }}
                             />
                           </section>
                         )}
-                        {attentionFiltered.length > 0 && filters.ratings.has("attention") && (
+                        {(threeFiltered.length + twoFiltered.length + oneFiltered.length > 0) &&
+                          (filters.ratings.has("one") ||
+                            filters.ratings.has("two") ||
+                            filters.ratings.has("three")) && (
                           <section className="space-y-4" aria-label="1-3 star reviews">
                             <ReviewListVirtual
                               reviews={attentionDisplayed}
@@ -615,7 +899,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               onCommentChange={setDraft}
                               onReplySent={handleReplySent}
                               variant="attention"
-                              defaultTemplate=""
                             />
                           </section>
                         )}
@@ -652,7 +935,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
                     </p>
                   </div>
                 )}
-                <SyncButton onSynced={handleSynced} syncing={syncing} setSyncing={setSyncing} />
+                <SyncButton
+                  onSynced={handleSynced}
+                  syncing={syncing}
+                  setSyncing={setSyncing}
+                  userEmail={user?.email}
+                />
               </CardContent>
             </Card>
           )}
