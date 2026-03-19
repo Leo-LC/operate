@@ -551,9 +551,26 @@ export function ConfigClient({ user }: ConfigClientProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-col gap-4 md:flex-row items-start">
-                  <div className="w-full md:w-48 pt-1">
+                <div className="grid items-start gap-4 md:grid-cols-[12rem_1px_minmax(0,1fr)]">
+                  <div className="w-full">
                     <p className="mb-2 text-xs font-medium text-muted-foreground">Themes</p>
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Choose the theme used for your 4★ and 5★ template sets.
+                    </p>
+                  </div>
+                  <div
+                    className="hidden md:block w-px self-stretch bg-border"
+                    aria-hidden="true"
+                  />
+                  <div className="w-full">
+                    <Label className="text-sm">5★ templates</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      These are used for 5-star reviews when &quot;Use templates&quot; is enabled
+                      for 5 stars.
+                    </p>
+                  </div>
+
+                  <div className="w-full space-y-1.5">
                     <div className="flex flex-col gap-1.5">
                       {categories.map((cat) => (
                         <button
@@ -585,15 +602,12 @@ export function ConfigClient({ user }: ConfigClientProps) {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 space-y-4">
+                  <div
+                    className="h-px w-full bg-border/80 my-1 md:my-0 md:h-auto md:w-0 md:self-stretch md:border-l md:border-border"
+                    aria-hidden="true"
+                  />
+                  <div className="flex-1 space-y-4 md:pl-4">
                     <div className="space-y-2">
-                      <div className="mb-2 space-y-1">
-                        <Label className="text-sm">5★ templates</Label>
-                        <p className="text-xs text-muted-foreground">
-                          These are used for 5-star reviews when &quot;Use templates&quot; is enabled
-                          for 5 stars.
-                        </p>
-                      </div>
                       <div className="space-y-2">
                         {(templateConfig[5]?.[activeCategoryId] ?? []).map((t, idx) => (
                           <div key={idx} className="flex items-center gap-2">
