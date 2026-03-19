@@ -21,8 +21,10 @@ import {
   DEFAULT_RATING_RULES,
   DEFAULT_REPLY_CATEGORY_ID,
   LOCATION_NAMES,
+  REPLY_CATEGORIES,
   REPLY_TEMPLATES,
   type Rating,
+  type ReplyCategory,
   type RatingRule,
   type ReplyCategoryId,
   type ReplyTemplateMap,
@@ -95,19 +97,23 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const [replyCategories, setReplyCategories] = useState<Record<string, ReplyCategoryId>>({});
   const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
   const [templateConfig, setTemplateConfig] = useState<ReplyTemplateMap>(REPLY_TEMPLATES);
+  const [sharedCategories, setSharedCategories] = useState<ReplyCategory[]>(REPLY_CATEGORIES);
+  const [sharedConfigVersion, setSharedConfigVersion] = useState<number>(0);
   const [filters, setFilters] = useState<DashboardFiltersState>(() => getDefaultFilters());
   const [syncing, setSyncing] = useState(false);
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+  const [bulkConfirm, setBulkConfirm] = useState<{
+    list: ReviewWithLocation[];
+    label: string;
+  } | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [displayLimit, setDisplayLimit] = useState<number | null>(null);
   const [animatedTotal, setAnimatedTotal] = useState(0);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
-  const LIMIT_OPTIONS = [50, 100] as const;
+  const LIMIT_OPTIONS = [10, 25, 50, 100] as const;
 
-  const RATING_RULES_KEY = "capybara-rating-rules-v1";
-  const TEMPLATE_CONFIG_KEY = "capybara-template-config-v1";
   const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
 
@@ -181,6 +187,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
         replyDrafts: Record<string, string>;
         replyCategories?: Record<string, ReplyCategoryId>;
         timestamp: number;
+        configVersion?: number;
       };
       const maxAgeMs = 30 * 60 * 1000;
       if (!parsed.timestamp || Date.now() - parsed.timestamp > maxAgeMs) return;
@@ -198,28 +205,87 @@ export function DashboardClient({ user }: DashboardClientProps) {
     }
   }, [reviews.length, setFilters, DASHBOARD_STATE_KEY, SELECTED_LOCATIONS_KEY]);
 
-  // Hydrate rating rules and template overrides from config screen
+  // Hydrate shared config (templates/rules/categories) from server
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/config/shared");
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          templates?: ReplyTemplateMap;
+          rules?: Record<Rating, RatingRule>;
+          categories?: ReplyCategory[];
+          updatedAt?: number;
+        };
+        if (cancelled) return;
+        if (data.templates) setTemplateConfig(data.templates);
+        if (data.rules) setRatingRules(data.rules);
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setSharedCategories(data.categories);
+        }
+        if (typeof data.updatedAt === "number") {
+          setSharedConfigVersion(data.updatedAt);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // If shared config changed since cached state, refresh auto-generated drafts.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (reviews.length === 0) return;
+    if (!sharedConfigVersion) return;
     try {
-      const rawRules = window.localStorage.getItem(RATING_RULES_KEY);
-      if (rawRules) {
-        const parsed = JSON.parse(rawRules) as Record<Rating, RatingRule>;
-        setRatingRules((prev) => ({ ...prev, ...parsed }));
+      const raw = window.localStorage.getItem(DASHBOARD_STATE_KEY);
+      const parsed = raw
+        ? (JSON.parse(raw) as { configVersion?: number; replyCategories?: Record<string, ReplyCategoryId> })
+        : null;
+      if (parsed?.configVersion === sharedConfigVersion) return;
+
+      const nextDrafts: Record<string, string> = {};
+      for (const r of reviews) {
+        const n = starNum(r);
+        if (n === 5 || n === 4) {
+          const rule = ratingRules[n as Rating];
+          if (rule?.mode === "template") {
+            const category = replyCategories[r.reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
+            nextDrafts[r.reviewId] = pickRandomTemplate(n as 4 | 5, category, templateConfig);
+          } else {
+            nextDrafts[r.reviewId] = replyDrafts[r.reviewId] ?? "";
+          }
+        } else {
+          nextDrafts[r.reviewId] = replyDrafts[r.reviewId] ?? "";
+        }
       }
+      setReplyDrafts(nextDrafts);
+      window.localStorage.setItem(
+        DASHBOARD_STATE_KEY,
+        JSON.stringify({
+          reviews,
+          replyDrafts: nextDrafts,
+          replyCategories,
+          timestamp: Date.now(),
+          configVersion: sharedConfigVersion,
+        })
+      );
     } catch {
       // ignore
     }
-    try {
-      const rawTemplates = window.localStorage.getItem(TEMPLATE_CONFIG_KEY);
-      if (rawTemplates) {
-        const parsed = JSON.parse(rawTemplates) as ReplyTemplateMap;
-        setTemplateConfig((prev) => ({ ...prev, ...parsed }));
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
+  }, [
+    DASHBOARD_STATE_KEY,
+    replyCategories,
+    replyDrafts,
+    reviews,
+    ratingRules,
+    sharedConfigVersion,
+    templateConfig,
+  ]);
 
   const handleSynced = useCallback((data: ReviewWithLocation[]) => {
     const sorted = [...data].sort((a, b) => {
@@ -263,10 +329,18 @@ export function DashboardClient({ user }: DashboardClientProps) {
           replyDrafts: initialDrafts,
           replyCategories: initialCategories,
           timestamp: Date.now(),
+          configVersion: sharedConfigVersion,
         })
       );
     }
-  }, [ratingRules, templateConfig, setFilters, DASHBOARD_STATE_KEY, SELECTED_LOCATIONS_KEY]);
+  }, [
+    ratingRules,
+    templateConfig,
+    setFilters,
+    DASHBOARD_STATE_KEY,
+    SELECTED_LOCATIONS_KEY,
+    sharedConfigVersion,
+  ]);
 
   const handleReplySent = useCallback((reviewId: string) => {
     setReviews((prev) => prev.filter((r) => r.reviewId !== reviewId));
@@ -289,11 +363,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
           replyDrafts,
           replyCategories,
           timestamp: Date.now(),
+          configVersion: sharedConfigVersion,
         })
       );
     }, 400);
     return () => window.clearTimeout(handle);
-  }, [reviews, replyDrafts, replyCategories, DASHBOARD_STATE_KEY]);
+  }, [reviews, replyDrafts, replyCategories, DASHBOARD_STATE_KEY, sharedConfigVersion]);
 
   const setDraft = useCallback((reviewId: string, comment: string) => {
     setReplyDrafts((prev) => ({ ...prev, [reviewId]: comment }));
@@ -302,6 +377,16 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const setCategory = useCallback((reviewId: string, category: ReplyCategoryId) => {
     setReplyCategories((prev) => ({ ...prev, [reviewId]: category }));
   }, []);
+
+  const shuffleTemplateForReview = useCallback((reviewId: string) => {
+    const review = reviews.find((r) => r.reviewId === reviewId);
+    if (!review) return;
+    const n = starNum(review);
+    if (n !== 4 && n !== 5) return;
+    const category = replyCategories[reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
+    const nextTemplate = pickRandomTemplate(n as 4 | 5, category, templateConfig);
+    setDraft(reviewId, nextTemplate);
+  }, [reviews, replyCategories, templateConfig, setDraft]);
 
   /** Locations from reviews only (for merging titles) */
   const locationsFromReviews = useMemo((): LocationOption[] => {
@@ -458,17 +543,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
   const handleBulkSend = useCallback(
     async (list: ReviewWithLocation[]) => {
-      if (typeof window !== "undefined") {
-        const count = list.length;
-        if (
-          count === 0 ||
-          !window.confirm(
-            `Send bulk replies to ${count} review${count === 1 ? "" : "s"}?`
-          )
-        ) {
-          return;
-        }
-      }
+      const count = list.length;
+      if (count === 0) return;
       setBulkSending(true);
       setBulkProgress({ current: 0, total: list.length });
       let done = 0;
@@ -514,6 +590,11 @@ export function DashboardClient({ user }: DashboardClientProps) {
     },
     [handleReplySent, replyDrafts]
   );
+
+  const openBulkConfirm = useCallback((list: ReviewWithLocation[], label: string) => {
+    if (bulkSending || list.length === 0) return;
+    setBulkConfirm({ list, label });
+  }, [bulkSending]);
 
   const moodEmoji =
     total === 0 ? "🥳" : total <= 25 ? "🙂" : total <= 150 ? "😅" : "😬";
@@ -674,16 +755,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
                 />
               </div>
 
-              {bulkSending && bulkProgress && (
-                <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
-                  <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
-                  <span>
-                    Sending reply {bulkProgress.current} of {bulkProgress.total}…
-                  </span>
-                  <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="max-w-[120px]" />
-                </div>
-              )}
-
               <div className="space-y-6">
                 {hasAnyFiltered ? (
                   <>
@@ -712,32 +783,27 @@ export function DashboardClient({ user }: DashboardClientProps) {
                       <span className="text-muted-foreground text-sm">
                         Limit:
                       </span>
-                      <div className="flex gap-1">
-                        <Button
-                          variant={displayLimit === null ? "secondary" : "ghost"}
-                          size="sm"
-                          className="rounded-md h-8"
-                          onClick={() => setDisplayLimit(null)}
-                        >
-                          All
-                        </Button>
+                      <select
+                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                        value={displayLimit == null ? "all" : String(displayLimit)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setDisplayLimit(value === "all" ? null : Number(value));
+                        }}
+                        aria-label="Select review display limit"
+                      >
                         {LIMIT_OPTIONS.map((n) => (
-                          <Button
-                            key={n}
-                            variant={displayLimit === n ? "secondary" : "ghost"}
-                            size="sm"
-                            className="rounded-md h-8"
-                            onClick={() => setDisplayLimit(n)}
-                          >
+                          <option key={n} value={n}>
                             {n}
-                          </Button>
+                          </option>
                         ))}
-                      </div>
+                        <option value="all">All</option>
+                      </select>
                       {allRatingsMode && (
                         <div className="flex flex-wrap items-center gap-2">
                           {fiveInDisplay.length > 0 && ratingRules[5]?.allowBulk && (
                             <Button
-                              onClick={() => handleBulkSend(fiveInDisplay)}
+                              onClick={() => openBulkConfirm(fiveInDisplay, "5★")}
                               disabled={bulkSending}
                               size="sm"
                               className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
@@ -747,7 +813,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           )}
                           {fourInDisplay.length > 0 && ratingRules[4]?.allowBulk && (
                             <Button
-                              onClick={() => handleBulkSend(fourInDisplay)}
+                              onClick={() => openBulkConfirm(fourInDisplay, "4★")}
                               disabled={bulkSending}
                               size="sm"
                               className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
@@ -756,10 +822,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
                             </Button>
                           )}
                           <Button
-                            onClick={() => handleBulkSend(attentionWithRepliesInDisplay)}
+                            onClick={() =>
+                              openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")
+                            }
                             disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
                             size="sm"
-                            className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 18%, transparent)] text-[var(--destructive)] hover:opacity-95 disabled:opacity-50"
+                            className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
                           >
                             Send all {attentionWithRepliesInDisplay.length} (1–3★)
                           </Button>
@@ -770,7 +838,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                         fiveDisplayed.length > 0 &&
                         ratingRules[5]?.allowBulk && (
                         <Button
-                          onClick={() => handleBulkSend(fiveDisplayed)}
+                          onClick={() => openBulkConfirm(fiveDisplayed, "5★")}
                           disabled={bulkSending}
                           size="sm"
                           className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
@@ -783,7 +851,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                         fourDisplayed.length > 0 &&
                         ratingRules[4]?.allowBulk && (
                         <Button
-                          onClick={() => handleBulkSend(fourDisplayed)}
+                          onClick={() => openBulkConfirm(fourDisplayed, "4★")}
                           disabled={bulkSending}
                           size="sm"
                           className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
@@ -796,10 +864,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
                             filters.ratings.has("two") ||
                             filters.ratings.has("three")) && (
                         <Button
-                          onClick={() => handleBulkSend(attentionWithRepliesInDisplay)}
+                          onClick={() =>
+                            openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")
+                          }
                           disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
                           size="sm"
-                          className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 18%, transparent)] text-[var(--destructive)] hover:opacity-95 disabled:opacity-50"
+                          className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
                         >
                           Send all {attentionWithRepliesInDisplay.length} replies
                         </Button>
@@ -831,6 +901,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
                             setDraft(id, nextTemplate);
                           }
                         }}
+                        onShuffleTemplate={shuffleTemplateForReview}
+                        categories={sharedCategories}
                       />
                     ) : (
                       <>
@@ -858,6 +930,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 const nextTemplate = pickRandomTemplate(5, category);
                                 setDraft(id, nextTemplate);
                               }}
+                              onShuffleTemplate={shuffleTemplateForReview}
+                              categories={sharedCategories}
                             />
                           </section>
                         )}
@@ -885,6 +959,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 const nextTemplate = pickRandomTemplate(4, category);
                                 setDraft(id, nextTemplate);
                               }}
+                              onShuffleTemplate={shuffleTemplateForReview}
+                              categories={sharedCategories}
                             />
                           </section>
                         )}
@@ -959,6 +1035,62 @@ export function DashboardClient({ user }: DashboardClientProps) {
         >
           <ArrowUpIcon className="size-5" />
         </Button>
+      )}
+
+      {bulkConfirm && !bulkSending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
+            <h2 className="mb-1 text-sm font-semibold">Send bulk replies?</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              You are about to send replies to{" "}
+              <span className="font-medium text-foreground">
+                {bulkConfirm.list.length} review{bulkConfirm.list.length === 1 ? "" : "s"}
+              </span>{" "}
+              ({bulkConfirm.label}).
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
+                onClick={() => setBulkConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
+                onClick={async () => {
+                  const payload = bulkConfirm;
+                  setBulkConfirm(null);
+                  await handleBulkSend(payload.list);
+                }}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkSending && bulkProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-background p-4 shadow-xl">
+            <div className="flex items-center gap-2">
+              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Sending replies…</h2>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sending reply {bulkProgress.current} of {bulkProgress.total}. Please keep this window
+              open.
+            </p>
+            <Progress
+              value={(bulkProgress.current / bulkProgress.total) * 100}
+              className="mt-3"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

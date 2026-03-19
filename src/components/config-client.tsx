@@ -28,7 +28,7 @@ import {
   pickRandomTemplate,
 } from "@/lib/constants";
 import { AllNoneToggle } from "@/components/all-none-toggle";
-import { selectedLocationsStorageKey } from "@/lib/storage-keys";
+import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/storage-keys";
 
 interface ConfigClientProps {
   user: Session["user"] | null;
@@ -65,11 +65,10 @@ export function ConfigClient({ user }: ConfigClientProps) {
   const [categories, setCategories] = useState<ReplyCategory[]>(REPLY_CATEGORIES);
   const [activeCategoryId, setActiveCategoryId] = useState<ReplyCategoryId>("generic");
   const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
+  const [sharedConfigLoading, setSharedConfigLoading] = useState(true);
 
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
-  const TEMPLATE_CONFIG_KEY = "capybara-template-config-v1";
-  const TEMPLATE_CATEGORIES_KEY = "capybara-reply-categories-v1";
-  const RATING_RULES_KEY = "capybara-rating-rules-v1";
+  const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -103,42 +102,39 @@ export function ConfigClient({ user }: ConfigClientProps) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(TEMPLATE_CONFIG_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as ReplyTemplateMap;
-        setTemplateConfig((prev) => ({
-          ...prev,
-          ...parsed,
-        }));
-      }
-    } catch {
-      // ignore
-    }
-    try {
-      const rawRules = window.localStorage.getItem(RATING_RULES_KEY);
-      if (rawRules) {
-        const parsed = JSON.parse(rawRules) as Record<Rating, RatingRule>;
-        setRatingRules((prev) => ({ ...prev, ...parsed }));
-      }
-    } catch {
-      // ignore
-    }
-    try {
-      const rawCats = window.localStorage.getItem(TEMPLATE_CATEGORIES_KEY);
-      if (rawCats) {
-        const parsed = JSON.parse(rawCats) as ReplyCategory[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCategories(parsed);
-          if (!parsed.some((c) => c.id === activeCategoryId)) {
-            setActiveCategoryId(parsed[0]?.id ?? "generic");
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/config/shared");
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const message = (data as { error?: string }).error ?? "Failed to load shared settings";
+          if (!cancelled) toast.error(message);
+          return;
+        }
+        const data = (await res.json()) as {
+          templates?: ReplyTemplateMap;
+          rules?: Record<Rating, RatingRule>;
+          categories?: ReplyCategory[];
+        };
+        if (cancelled) return;
+        if (data.templates) setTemplateConfig(data.templates);
+        if (data.rules) setRatingRules(data.rules);
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+          if (!data.categories.some((c) => c.id === activeCategoryId)) {
+            setActiveCategoryId(data.categories[0]?.id ?? "generic");
           }
         }
+      } catch {
+        if (!cancelled) toast.error("Failed to load shared settings");
+      } finally {
+        if (!cancelled) setSharedConfigLoading(false);
       }
-    } catch {
-      // ignore
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -270,7 +266,7 @@ export function ConfigClient({ user }: ConfigClientProps) {
           }
         }
         window.localStorage.setItem(
-          "capybara-dashboard-state",
+          DASHBOARD_STATE_KEY,
           JSON.stringify({
             reviews: sorted,
             replyDrafts: drafts,
@@ -382,24 +378,61 @@ export function ConfigClient({ user }: ConfigClientProps) {
   };
 
   const saveTemplates = () => {
-    if (!isOwner || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(TEMPLATE_CONFIG_KEY, JSON.stringify(templateConfig));
-      window.localStorage.setItem(TEMPLATE_CATEGORIES_KEY, JSON.stringify(categories));
-      toast.success("Reply templates saved in this browser.");
-    } catch {
-      toast.error("Failed to save templates in this browser.");
-    }
+    if (!isOwner) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/config/shared", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templates: templateConfig,
+            rules: ratingRules,
+            categories,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const message = (data as { error?: string }).error ?? "Failed to save templates";
+          toast.error(message);
+          return;
+        }
+        toast.success("Reply templates saved for all users.");
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(DASHBOARD_STATE_KEY);
+        }
+      } catch {
+        toast.error("Failed to save templates.");
+      }
+    })();
   };
 
   const saveRules = () => {
-    if (!isOwner || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(RATING_RULES_KEY, JSON.stringify(ratingRules));
-      toast.success("Rating rules saved in this browser.");
-    } catch {
-      toast.error("Failed to save rating rules in this browser.");
-    }
+    if (!isOwner) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/config/shared", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templates: templateConfig,
+            rules: ratingRules,
+            categories,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const message = (data as { error?: string }).error ?? "Failed to save rating rules";
+          toast.error(message);
+          return;
+        }
+        toast.success("Rating rules saved for all users.");
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(DASHBOARD_STATE_KEY);
+        }
+      } catch {
+        toast.error("Failed to save rating rules.");
+      }
+    })();
   };
 
   const addCategory = () => {
@@ -708,7 +741,7 @@ export function ConfigClient({ user }: ConfigClientProps) {
                     size="sm"
                     className="rounded-lg px-3 text-xs"
                     onClick={saveTemplates}
-                    disabled={!isOwner}
+                    disabled={!isOwner || sharedConfigLoading}
                   >
                     Save templates
                   </Button>
@@ -798,7 +831,7 @@ export function ConfigClient({ user }: ConfigClientProps) {
                     size="sm"
                     className="rounded-lg px-3 text-xs"
                     onClick={saveRules}
-                    disabled={!isOwner}
+                    disabled={!isOwner || sharedConfigLoading}
                   >
                     Save rules
                   </Button>

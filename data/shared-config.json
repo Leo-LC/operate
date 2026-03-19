@@ -1,0 +1,101 @@
+{
+  "templates": {
+    "4": {
+      "generic": [
+        "Thank you for your 4-star review! We appreciate your feedback. If there's anything we can improve for a 5-star experience next time, feel free to reach out at contact@capybaracoffeethailand.com 🙏",
+        "Thanks a lot for the 4 stars! We're glad you had a good experience and we’re always trying to improve—if you have suggestions, we’d love to hear them. 🤎",
+        "We really appreciate your 4-star rating. Knowing what you enjoyed (and what we can do better) helps us keep improving. Thank you for visiting us. ☕️",
+        "Thank you for taking the time to leave a 4-star review! We hope your next visit can be a full 5-star experience. Feel free to share any ideas with us. 🙏",
+        "Thanks for the 4 stars! We're happy you had a nice time and we’re always working on the little details to make every visit even better. 🌟"
+      ],
+      "staff": [
+        "Thank you for your 4-star review and for mentioning our staff. We’re happy to hear they helped make your visit enjoyable and we’ll keep doing our best for next time. 🤎"
+      ],
+      "animal_care": [
+        "Thank you for the 4 stars and for your kind words about the animals. Their care is very important to us, and we appreciate that you took the time to notice and share that. 🐹🌿"
+      ],
+      "environment": [
+        "Thanks for your 4-star review and your comments about the environment and atmosphere. We’re glad you enjoyed it and we’ll keep improving to reach that 5-star feeling. ✨"
+      ]
+    },
+    "5": {
+      "generic": [
+        "Thank you so much for your 5-star review! We're really glad you enjoyed your visit and hope to welcome you back again soon. 🫶",
+        "Wow, 5 stars! That means a lot to us. Thank you for taking the time to share your experience and we hope to see you again soon. 🌟",
+        "Thank you for the wonderful 5-star rating! It makes our day to know you had a great time here with us. 🤎",
+        "We really appreciate your 5-star review! Thanks for choosing us and we hope your next visit is just as good (or even better!). 🙏",
+        "Huge thanks for the 5 stars! We're thrilled you enjoyed your time with us and we’d love to welcome you back anytime. 🐹☕️"
+      ],
+      "staff": [
+        "Thank you for the 5-star review and for mentioning our staff! We’re very proud of our team and it means a lot when guests notice their effort and kindness. 🤎"
+      ],
+      "animal_care": [
+        "Thank you so much for the 5 stars and for noticing how we care for the animals. Their wellbeing is our top priority, so your feedback really means a lot to us. 🐹🌿"
+      ],
+      "environment": [
+        "Thank you for the 5-star review and your kind words about the space and atmosphere. We’re happy you felt comfortable here and hope to welcome you back soon. ✨"
+      ]
+    }
+  },
+  "rules": {
+    "1": {
+      "mode": "custom",
+      "allowBulk": false
+    },
+    "2": {
+      "mode": "custom",
+      "allowBulk": false
+    },
+    "3": {
+      "mode": "custom",
+      "allowBulk": false
+    },
+    "4": {
+      "mode": "template",
+      "allowBulk": true
+    },
+    "5": {
+      "mode": "template",
+      "allowBulk": true
+    }
+  },
+  "categories": [
+    {
+      "id": "generic",
+      "label": "Generic",
+      "description": "Safe, all-purpose thank you message.",
+      "ratings": [
+        4,
+        5
+      ]
+    },
+    {
+      "id": "staff",
+      "label": "Staff & service",
+      "description": "When guests mention friendly or helpful staff.",
+      "ratings": [
+        4,
+        5
+      ]
+    },
+    {
+      "id": "animal_care",
+      "label": "Animal care & welfare",
+      "description": "When guests comment about the animals and their care.",
+      "ratings": [
+        4,
+        5
+      ]
+    },
+    {
+      "id": "environment",
+      "label": "Environment & atmosphere",
+      "description": "When guests talk about space, vibe, or cleanliness.",
+      "ratings": [
+        4,
+        5
+      ]
+    }
+  ],
+  "updatedAt": 1773903858903
+}

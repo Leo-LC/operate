@@ -4,7 +4,7 @@ import { useRef, useState, useLayoutEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { ReviewWithLocation } from "@/types/review";
 import { ReviewCard } from "@/components/review-card";
-import type { ReplyCategoryId } from "@/lib/constants";
+import type { ReplyCategory, ReplyCategoryId } from "@/lib/constants";
 
 const ROW_HEIGHT_ESTIMATE = 280;
 const OVERSCAN = 5;
@@ -25,6 +25,10 @@ interface ReviewListVirtualProps {
   getCategory?: (reviewId: string) => ReplyCategoryId;
   /** Optional: change template category per review (4★ / 5★ only). */
   onCategoryChange?: (reviewId: string, category: ReplyCategoryId) => void;
+  /** Optional: shuffle current template for a review (4★ / 5★ only). */
+  onShuffleTemplate?: (reviewId: string) => void;
+  /** Shared reply categories loaded at app-level config. */
+  categories?: ReplyCategory[];
 }
 
 export function ReviewListVirtual({
@@ -36,6 +40,8 @@ export function ReviewListVirtual({
   getVariant,
   getCategory,
   onCategoryChange,
+  onShuffleTemplate,
+  categories,
 }: ReviewListVirtualProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -110,6 +116,10 @@ export function ReviewListVirtual({
                       ? (category) => onCategoryChange(r.reviewId, category)
                       : undefined
                   }
+                  onShuffleTemplate={
+                    onShuffleTemplate ? () => onShuffleTemplate(r.reviewId) : undefined
+                  }
+                  categories={categories}
                 />
               </div>
             </div>

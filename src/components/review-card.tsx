@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   type ReplyCategoryId,
   type ReplyRatingBucket,
 } from "@/lib/constants";
-import { StarIcon, SendIcon, Loader2Icon, ExternalLinkIcon } from "lucide-react";
+import { StarIcon, SendIcon, Loader2Icon, ExternalLinkIcon, ShuffleIcon } from "lucide-react";
 
 const STAR_RATING: Record<string, number> = {
   ONE: 1,
@@ -68,6 +68,10 @@ interface ReviewCardProps {
   categoryId?: ReplyCategoryId;
   /** Optional handler when user selects a different template category. */
   onCategoryChange?: (category: ReplyCategoryId) => void;
+  /** Optional handler to cycle another template in the current theme. */
+  onShuffleTemplate?: () => void;
+  /** Shared categories loaded at app level. */
+  categories?: ReplyCategory[];
 }
 
 export function ReviewCard({
@@ -81,6 +85,8 @@ export function ReviewCard({
   onExpandChange,
   categoryId,
   onCategoryChange,
+  onShuffleTemplate,
+  categories = REPLY_CATEGORIES,
 }: ReviewCardProps) {
   const [sending, setSending] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -138,22 +144,6 @@ export function ReviewCard({
   };
 
   const initial = review.reviewer?.displayName?.[0]?.toUpperCase() ?? "?";
-  const [categories, setCategories] = useState<ReplyCategory[]>(REPLY_CATEGORIES);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem("capybara-reply-categories-v1");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as ReplyCategory[];
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setCategories(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const numericRating: ReplyRatingBucket | 0 =
     (STAR_RATING[review.starRating] ?? 0) === 4 || (STAR_RATING[review.starRating] ?? 0) === 5
       ? ((STAR_RATING[review.starRating] as ReplyRatingBucket) ?? 0)
@@ -229,17 +219,32 @@ export function ReviewCard({
           {showCategorySelector && onCategoryChange && (
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">Template theme</span>
-              <select
-                className="h-7 rounded-md border border-border bg-background px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={categoryId ?? "generic"}
-                onChange={(e) => onCategoryChange(e.target.value as ReplyCategoryId)}
-              >
-                {availableCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1.5">
+                {onShuffleTemplate && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 rounded-md px-2 text-xs"
+                    onClick={onShuffleTemplate}
+                    title="Shuffle template in current theme"
+                    aria-label="Shuffle template"
+                  >
+                    <ShuffleIcon className="size-3.5" />
+                  </Button>
+                )}
+                <select
+                  className="h-7 rounded-md border border-border bg-background px-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={categoryId ?? "generic"}
+                  onChange={(e) => onCategoryChange(e.target.value as ReplyCategoryId)}
+                >
+                  {availableCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
           <Textarea
