@@ -7,12 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { Session } from "next-auth";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LogOutIcon, Loader2Icon, Trash2Icon } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { ReviewWithLocation } from "@/types/review";
 import {
@@ -32,11 +29,12 @@ import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/sto
 
 interface ConfigClientProps {
   user: Session["user"] | null;
+  initialSection?: "templates" | "rules" | "locations";
 }
 
-export function ConfigClient({ user }: ConfigClientProps) {
+export function ConfigClient({ user, initialSection = "templates" }: ConfigClientProps) {
   const [activeSection, setActiveSection] = useState<"templates" | "rules" | "locations">(
-    "templates"
+    initialSection
   );
   const [locations, setLocations] = useState<
     { id: string; title: string; locality: string | null }[]
@@ -70,14 +68,6 @@ export function ConfigClient({ user }: ConfigClientProps) {
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
   const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const tab = searchParams?.get("tab");
-    if (tab === "rules" || tab === "locations" || tab === "templates") {
-      setActiveSection(tab);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     // Ensure template textareas are correctly sized on first render / theme switch.
@@ -99,7 +89,7 @@ export function ConfigClient({ user }: ConfigClientProps) {
     } catch {
       // ignore
     }
-  }, []);
+  }, [SELECTED_LOCATIONS_KEY]);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,7 +125,7 @@ export function ConfigClient({ user }: ConfigClientProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeCategoryId]);
 
   useEffect(() => {
     if (activeSection !== "locations") return;
@@ -486,90 +476,8 @@ export function ConfigClient({ user }: ConfigClientProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-lg font-semibold tracking-tight">Capybara Coffee</span>
-            <span className="text-muted-foreground hidden text-sm sm:inline">GBP Review Manager</span>
-          </Link>
-          <nav className="flex items-center gap-2">
-            <ThemeToggle />
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-2 py-1">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-[10px]">
-                  {user?.email?.[0]?.toUpperCase() ?? "?"}
-                </AvatarFallback>
-              </Avatar>
-              <span className="max-w-[160px] truncate text-[11px] text-muted-foreground">
-                {user?.email ?? "unknown"}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="gap-1.5 rounded-full px-3 text-xs sm:text-sm transition-colors hover:bg-muted/70 hover:shadow-sm"
-              disabled={syncingFromConfig}
-            >
-              <LogOutIcon className="size-4" />
-              Sign out
-            </Button>
-          </nav>
-        </div>
-        {/* Secondary navbar */}
-        <div className="border-t border-border bg-background/95">
-          <div className="mx-auto flex h-9 max-w-6xl items-center gap-2 px-4 text-xs">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 rounded-full px-3 text-xs"
-              onClick={() => router.push("/dashboard")}
-              disabled={syncingFromConfig}
-            >
-              Dashboard
-            </Button>
-            <Button
-              size="sm"
-              variant={activeSection === "templates" ? "secondary" : "ghost"}
-              className="h-7 rounded-full px-3 text-xs"
-              onClick={() => {
-                setActiveSection("templates");
-                router.push("/dashboard/config?tab=templates");
-              }}
-              disabled={syncingFromConfig}
-            >
-              Reply templates
-            </Button>
-            <Button
-              size="sm"
-              variant={activeSection === "rules" ? "secondary" : "ghost"}
-              className="h-7 rounded-full px-3 text-xs"
-              onClick={() => {
-                setActiveSection("rules");
-                router.push("/dashboard/config?tab=rules");
-              }}
-              disabled={syncingFromConfig}
-            >
-              Rating rules
-            </Button>
-            <Button
-              size="sm"
-              variant={activeSection === "locations" ? "secondary" : "ghost"}
-              className="h-7 rounded-full px-3 text-xs"
-              onClick={() => {
-                setActiveSection("locations");
-                router.push("/dashboard/config?tab=locations");
-              }}
-              disabled={syncingFromConfig}
-            >
-              Locations
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-6">
+    <>
+      <main className="w-full py-2">
         {activeSection === "templates" ? (
           <section
             aria-label="Reply templates"
@@ -952,7 +860,7 @@ export function ConfigClient({ user }: ConfigClientProps) {
           </div>
         </div>
       )}
-      {deleteConfirm && isOwner && !syncingFromConfig && (
+      {deleteConfirm && isOwner && !syncingFromConfig && deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
             <h2 className="mb-1 text-sm font-semibold">Delete this template?</h2>
@@ -1063,6 +971,6 @@ export function ConfigClient({ user }: ConfigClientProps) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

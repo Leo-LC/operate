@@ -12,96 +12,95 @@ export default async function Home() {
   if (session) redirect("/dashboard");
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 pt-6">
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
+      <header className="flex items-center justify-between rounded-2xl border border-border/70 bg-sidebar/80 px-4 py-3 shadow-sm backdrop-blur sm:px-5">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-semibold tracking-tight">Capybara Coffee</span>
-          <span className="text-sm text-muted-foreground">GBP Review Manager</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground">
+            CC
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-tight sm:text-base">Capybara Coffee</span>
+            <span className="text-[11px] text-muted-foreground sm:text-xs">GBP Review Manager</span>
+          </div>
         </div>
-        <ThemeToggle />
-      </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+        </div>
+      </header>
 
-      <div className="mx-auto w-full max-w-3xl px-4 pb-12 pt-8 md:pt-12">
-        <section className="space-y-5">
-          <div className="space-y-4">
-            <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">
-              Internal Review Operations
+      <main className="mt-8 space-y-12">
+        <section className="space-y-7 text-center">
+          <div className="flex justify-center">
+            <Badge
+              variant="secondary"
+              className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/60 px-3 py-1 text-[11px] font-medium shadow-sm backdrop-blur"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.25)]" />
+              Review operations workspace
             </Badge>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Manage Google reviews faster and more consistently.
+          </div>
+          <div className="mx-auto max-w-2xl space-y-4">
+            <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
+              Smoothly manage every Google review in one place.
             </h1>
-            <p className="text-base text-muted-foreground">
-              Sync unreplied reviews across selected locations, draft better responses with reusable
-              templates, and keep your reply workflow organized in one place.
+            <p className="mx-auto max-w-xl text-sm text-muted-foreground sm:text-base">
+              Capybara Coffee&apos;s internal console for syncing unreplied reviews, applying templates,
+              and keeping responses on-brand across all locations.
             </p>
           </div>
-
-          <div className="grid items-stretch gap-4 md:grid-cols-[3fr_2fr]">
-            <div className="h-full w-full">
-              <LoginCard />
-            </div>
-            <Card className="h-full border-border/70 bg-card/50 shadow-sm">
-              <CardContent className="flex h-full flex-col">
-                <p className="mb-3 text-sm font-medium text-foreground">Quick start</p>
-                <div className="grid gap-1.5 text-sm text-muted-foreground">
-                  <div className="rounded-md py-2 transition-colors duration-150 hover:bg-muted/30">
-                    <p className="font-medium text-foreground">1. Sign in</p>
-                    <p className="text-xs">Use your approved Google account.</p>
-                  </div>
-                  <div className="rounded-md py-2 transition-colors duration-150 hover:bg-muted/30">
-                    <p className="font-medium text-foreground">2. Select locations</p>
-                    <p className="text-xs">Choose which locations to include for sync.</p>
-                  </div>
-                  <div className="rounded-md py-2 transition-colors duration-150 hover:bg-muted/30">
-                    <p className="font-medium text-foreground">3. Reply efficiently</p>
-                    <p className="text-xs">Use templates and rating rules to respond faster.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="pt-2">
-            <p className="mb-3 text-sm font-medium text-foreground">Why teams use this</p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Card className="border-border/70 bg-card/70">
-                <CardHeader className="pb-2">
-                  <RefreshCwIcon className="size-4 text-muted-foreground" />
-                  <CardTitle className="text-sm">Sync Reviews</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-xs text-muted-foreground">
-                  Pull latest unreplied reviews from your Google Business Profile locations.
-                </CardContent>
-              </Card>
-              <Card className="border-border/70 bg-card/70">
-                <CardHeader className="pb-2">
-                  <MessageSquareReplyIcon className="size-4 text-muted-foreground" />
-                  <CardTitle className="text-sm">Reply Faster</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-xs text-muted-foreground">
-                  Use template categories and rating rules to reduce repetitive manual typing.
-                </CardContent>
-              </Card>
-              <Card className="border-border/70 bg-card/70">
-                <CardHeader className="pb-2">
-                  <CheckCircle2Icon className="size-4 text-muted-foreground" />
-                  <CardTitle className="text-sm">Stay In Control</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 text-xs text-muted-foreground">
-                  Choose included locations and keep your review workflow focused and consistent.
-                </CardContent>
-              </Card>
-            </div>
+          <div className="mx-auto w-full max-w-2xl">
+            <LoginCard />
           </div>
         </section>
-      </div>
 
-      <div className="border-t border-border/60">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3 text-xs text-muted-foreground">
-          <span>Capybara Coffee GBP Review Manager</span>
-          <span>Secure internal access</span>
-        </div>
-      </div>
-    </main>
+        <section className="space-y-3">
+          <p className="text-center text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Why this console exists
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-border/70 bg-card/80 shadow-sm">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm">Sync reviews</CardTitle>
+                  <p className="text-xs font-normal text-muted-foreground">
+                    Pull unreplied reviews across all chosen locations into a single queue.
+                  </p>
+                </div>
+                <RefreshCwIcon className="mt-0.5 size-4 text-muted-foreground" />
+              </CardHeader>
+            </Card>
+            <Card className="border-border/70 bg-card/80 shadow-sm">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm">Reply faster</CardTitle>
+                  <p className="text-xs font-normal text-muted-foreground">
+                    Apply rating-aware templates and keep your team aligned on tone.
+                  </p>
+                </div>
+                <MessageSquareReplyIcon className="mt-0.5 size-4 text-muted-foreground" />
+              </CardHeader>
+            </Card>
+            <Card className="border-border/70 bg-card/80 shadow-sm">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm">Stay in control</CardTitle>
+                  <p className="text-xs font-normal text-muted-foreground">
+                    Choose which locations sync, then track what&apos;s been replied to and why.
+                  </p>
+                </div>
+                <CheckCircle2Icon className="mt-0.5 size-4 text-muted-foreground" />
+              </CardHeader>
+            </Card>
+          </div>
+        </section>
+
+        <footer className="flex flex-col gap-2 border-t border-border/70 pt-4 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>Capybara Coffee · Internal GBP Review Manager</span>
+          <span className="text-[10px]">
+            Deployed on Vercel · Data platform by Supabase · Private workspace
+          </span>
+        </footer>
+      </main>
+    </div>
   );
 }

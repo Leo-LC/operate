@@ -1,4 +1,5 @@
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 
 const secret = process.env.NEXTAUTH_SECRET;
@@ -126,7 +127,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).role = (token as any).role ?? getRoleForEmail(session.user.email);
+        const jwtToken = token as JWT;
+        const sessionWithRole = session as Session;
+        sessionWithRole.user.role = jwtToken.role ?? getRoleForEmail(session.user.email);
       }
       return session;
     },

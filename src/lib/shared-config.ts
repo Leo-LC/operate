@@ -1,5 +1,3 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import {
   DEFAULT_RATING_RULES,
   REPLY_CATEGORIES,
@@ -9,6 +7,7 @@ import {
   type ReplyCategory,
   type ReplyTemplateMap,
 } from "@/lib/constants";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 export interface SharedConfig {
   templates: ReplyTemplateMap;
@@ -16,9 +15,6 @@ export interface SharedConfig {
   categories: ReplyCategory[];
   updatedAt: number;
 }
-
-const dataDir = path.join(process.cwd(), "data");
-const configPath = path.join(dataDir, "shared-config.json");
 
 const defaultSharedConfig: SharedConfig = {
   templates: REPLY_TEMPLATES,
@@ -29,8 +25,32 @@ const defaultSharedConfig: SharedConfig = {
 
 export async function readSharedConfig(): Promise<SharedConfig> {
   try {
-    const raw = await fs.readFile(configPath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<SharedConfig>;
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("shared_config")
+      .select("templates, rules, categories, updated_at")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to read shared_config from Supabase:", error);
+      return defaultSharedConfig;
+    }
+
+    if (!data) {
+      return defaultSharedConfig;
+    }
+
+    const parsed = {
+      templates: data.templates,
+      rules: data.rules,
+      categories: data.categories,
+      updatedAt: data.updated_at
+        ? new Date(data.updated_at as string).getTime()
+        : 0,
+    } as Partial<SharedConfig>;
+
     return {
       templates: (parsed.templates ?? REPLY_TEMPLATES) as ReplyTemplateMap,
       rules: (parsed.rules ?? DEFAULT_RATING_RULES) as Record<Rating, RatingRule>,
@@ -46,7 +66,23 @@ export async function readSharedConfig(): Promise<SharedConfig> {
 }
 
 export async function writeSharedConfig(config: SharedConfig): Promise<void> {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+  const supabase = getSupabaseServerClient();
+
+  const payload = {
+    templates: config.templates,
+    rules: config.rules,
+    categories: config.categories,
+    updated_at: new Date(config.updatedAt || Date.now()).toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("shared_config")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to write shared_config to Supabase:", error);
+    throw error;
+  }
 }
 

@@ -72,7 +72,7 @@ export function SyncButton({
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
-      let selectedIds = await loadSelectedLocationIds(userEmail);
+      const selectedIds = await loadSelectedLocationIds(userEmail);
 
       // First-time: no stored selection, open in-app picker modal instead of window.prompt.
       if (!selectedIds || selectedIds.length === 0) {
@@ -157,7 +157,12 @@ export function SyncButton({
 
   return (
     <>
-      <Button onClick={handleSync} disabled={syncing} size={size} className="gap-2 rounded-md">
+      <Button
+        onClick={handleSync}
+        disabled={syncing}
+        size={size}
+        className="gap-2 rounded-md"
+      >
         {syncing ? (
           <>
             <Loader2Icon className="size-4 animate-spin" />

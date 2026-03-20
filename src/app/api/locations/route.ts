@@ -1,13 +1,16 @@
 import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
-import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
 import { LOCATION_NAMES } from "@/lib/constants";
 import { fetchAllLocations, getPreferredAccountId } from "@/lib/google-business";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    // Cast Request into the shape expected by getToken without using `any`
+    req: request as unknown as Parameters<typeof getToken>[0]["req"],
+    secret: process.env.NEXTAUTH_SECRET,
+  });
   const accessToken = (token as { accessToken?: string } | null)?.accessToken;
   if (!accessToken || !session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

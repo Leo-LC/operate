@@ -7,7 +7,7 @@ import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
 
 export function LoginCard() {
   return (
-    <Card className="h-full w-full border-border bg-card shadow-xl ring-1 ring-border/60 backdrop-blur">
+    <Card className="h-full w-full border-border/70 bg-card shadow-lg backdrop-blur">
       <CardHeader className="space-y-2 text-center">
         <div className="mx-auto inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground">
           <ShieldCheckIcon className="size-3.5" />
@@ -23,7 +23,7 @@ export function LoginCard() {
       <CardContent className="flex flex-col gap-4">
         <Button
           size="lg"
-          className="group w-full gap-2"
+          className="group w-full gap-2 bg-white text-black hover:bg-white/90"
           onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
         >
           Sign in with Google

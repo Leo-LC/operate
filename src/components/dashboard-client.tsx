@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import Link from "next/link";
-import { signOut } from "next-auth/react";
 import type { Session } from "next-auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,8 +30,7 @@ import {
 } from "@/lib/constants";
 import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
-import { LogOutIcon, Loader2Icon, SlidersHorizontalIcon, SettingsIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Loader2Icon, SlidersHorizontalIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const STAR_RATINGS = {
@@ -166,7 +163,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [reviews.length]);
+  }, [reviews.length, animatedTotal]);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(typeof window !== "undefined" && window.scrollY > 400);
@@ -599,98 +596,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const moodEmoji =
     total === 0 ? "🥳" : total <= 25 ? "🙂" : total <= 150 ? "😅" : "😬";
 
-  const filtersSidebar = (
-    <div className="flex w-56 shrink-0 flex-col px-4 pt-6 pb-10">
-      <h2 className="mb-3 text-sm font-medium">Filters</h2>
-      <DashboardFilters filters={filters} onChange={setFilters} locations={filterLocationOptions} />
-    </div>
-  );
-
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-lg font-semibold tracking-tight">Capybara Coffee</span>
-            <span className="text-muted-foreground hidden text-sm sm:inline">GBP Review Manager</span>
-          </Link>
-          <nav className="flex items-center gap-2">
-            <ThemeToggle />
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-2 py-1">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-[10px]">
-                  {user?.email?.[0]?.toUpperCase() ?? "?"}
-                </AvatarFallback>
-              </Avatar>
-              <span className="max-w-[160px] truncate text-[11px] text-muted-foreground">
-                {user?.email ?? "unknown"}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="gap-1.5 rounded-full px-3 text-xs sm:text-sm transition-colors hover:bg-muted/70"
-            >
-              <LogOutIcon className="size-4" />
-              Sign out
-            </Button>
-          </nav>
-        </div>
-        {/* Secondary navbar */}
-        <div className="border-t border-border bg-background/95">
-          <div className="mx-auto flex h-9 max-w-6xl items-center gap-2 px-4 text-xs">
-            <Link href="/dashboard">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-7 rounded-full px-3 text-xs"
-                aria-current="page"
-              >
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/dashboard/config">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 rounded-full px-3 text-xs"
-              >
-                Reply templates
-              </Button>
-            </Link>
-            <Link href="/dashboard/config?tab=rules">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 rounded-full px-3 text-xs"
-              >
-                Rating rules
-              </Button>
-            </Link>
-            <Link href="/dashboard/config?tab=locations">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 rounded-full px-3 text-xs"
-              >
-                Locations
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-6xl flex-1">
-        {/* Desktop sidebar: sticky under navbar, only after sync */}
-        {total > 0 && (
-          <aside className="dashboard-sidebar hidden border-r border-border md:block">
-            {filtersSidebar}
-          </aside>
-        )}
-
-        <main className="min-w-0 flex-1 px-4 pt-6 pb-32">
-          <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <>
+          <div className="mb-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               {/* Mobile filters: only show after sync */}
               {total > 0 && (
@@ -716,8 +624,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
           </div>
 
           {total > 0 && (
-            <>
-              <div className="dashboard-stats-wrapper rounded-lg border border-border bg-card px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-4 grid gap-x-5 gap-y-3 md:grid-cols-[260px_minmax(0,1fr)]">
+              {/* Row 1: stats spans full width */}
+              <div className="dashboard-stats-wrapper flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm md:col-span-2">
                 <div className="dashboard-stats">
                   <span className="dashboard-stat-item">
                     <span aria-hidden className="text-lg">
@@ -755,127 +664,139 @@ export function DashboardClient({ user }: DashboardClientProps) {
                 />
               </div>
 
+              {/* Row 2: labels/controls headers aligned */}
+              <div className="hidden md:flex md:items-center">
+                <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Filters
+                </h2>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-muted-foreground text-sm">
+                    Reply to{" "}
+                    {allRatingsMode
+                      ? displayedChronological.length
+                      : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length}{" "}
+                    reviews
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-md border-border bg-card text-foreground hover:bg-card/80"
+                    onClick={() =>
+                      setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
+                    }
+                  >
+                    <ArrowUpDownIcon className="size-4" />
+                    <span className="text-xs">
+                      {sortOrder === "desc" ? "Newest first" : "Oldest first"}
+                    </span>
+                  </Button>
+                  <span className="text-muted-foreground text-sm">Limit:</span>
+                  <select
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                    value={displayLimit == null ? "all" : String(displayLimit)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setDisplayLimit(value === "all" ? null : Number(value));
+                    }}
+                    aria-label="Select review display limit"
+                  >
+                    {LIMIT_OPTIONS.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                    <option value="all">All</option>
+                  </select>
+                </div>
+                {allRatingsMode && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {fiveInDisplay.length > 0 && ratingRules[5]?.allowBulk && (
+                      <Button
+                        onClick={() => openBulkConfirm(fiveInDisplay, "5★")}
+                        disabled={bulkSending}
+                        size="sm"
+                        className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
+                      >
+                        Send all {fiveInDisplay.length} (5★)
+                      </Button>
+                    )}
+                    {fourInDisplay.length > 0 && ratingRules[4]?.allowBulk && (
+                      <Button
+                        onClick={() => openBulkConfirm(fourInDisplay, "4★")}
+                        disabled={bulkSending}
+                        size="sm"
+                        className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
+                      >
+                        Send all {fourInDisplay.length} (4★)
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
+                      disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
+                      size="sm"
+                      className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
+                    >
+                      Send all {attentionWithRepliesInDisplay.length} (1–3★)
+                    </Button>
+                  </div>
+                )}
+                {singleRatingMode &&
+                  filters.ratings.has("five") &&
+                  fiveDisplayed.length > 0 &&
+                  ratingRules[5]?.allowBulk && (
+                    <Button
+                      onClick={() => openBulkConfirm(fiveDisplayed, "5★")}
+                      disabled={bulkSending}
+                      size="sm"
+                      className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
+                    >
+                      Send all {fiveDisplayed.length} replies
+                    </Button>
+                  )}
+                {singleRatingMode &&
+                  filters.ratings.has("four") &&
+                  fourDisplayed.length > 0 &&
+                  ratingRules[4]?.allowBulk && (
+                    <Button
+                      onClick={() => openBulkConfirm(fourDisplayed, "4★")}
+                      disabled={bulkSending}
+                      size="sm"
+                      className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
+                    >
+                      Send all {fourDisplayed.length} replies
+                    </Button>
+                  )}
+                {singleRatingMode &&
+                  (filters.ratings.has("one") ||
+                    filters.ratings.has("two") ||
+                    filters.ratings.has("three")) && (
+                    <Button
+                      onClick={() => openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
+                      disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
+                      size="sm"
+                      className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
+                    >
+                      Send all {attentionWithRepliesInDisplay.length} replies
+                    </Button>
+                  )}
+              </div>
+
+              {/* Row 3: actual filter panel + reviews content */}
+              <aside className="space-y-3">
+                <div className="rounded-lg border border-border bg-card/60 px-3 py-3">
+                  <DashboardFilters
+                    filters={filters}
+                    onChange={setFilters}
+                    locations={filterLocationOptions}
+                  />
+                </div>
+              </aside>
               <div className="space-y-6">
                 {hasAnyFiltered ? (
                   <>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-muted-foreground text-sm">
-                        Reply to{" "}
-                        {allRatingsMode
-                          ? displayedChronological.length
-                          : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length}{" "}
-                        reviews
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 rounded-md h-8"
-                        onClick={() =>
-                          setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
-                        }
-                      >
-                        <ArrowUpDownIcon className="size-4" />
-                        <span className="text-xs">
-                          {sortOrder === "desc" ? "Newest first" : "Oldest first"}
-                        </span>
-                      </Button>
-                      <span className="text-muted-foreground text-sm">
-                        Limit:
-                      </span>
-                      <select
-                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                        value={displayLimit == null ? "all" : String(displayLimit)}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setDisplayLimit(value === "all" ? null : Number(value));
-                        }}
-                        aria-label="Select review display limit"
-                      >
-                        {LIMIT_OPTIONS.map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                        <option value="all">All</option>
-                      </select>
-                      {allRatingsMode && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {fiveInDisplay.length > 0 && ratingRules[5]?.allowBulk && (
-                            <Button
-                              onClick={() => openBulkConfirm(fiveInDisplay, "5★")}
-                              disabled={bulkSending}
-                              size="sm"
-                              className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
-                            >
-                              Send all {fiveInDisplay.length} (5★)
-                            </Button>
-                          )}
-                          {fourInDisplay.length > 0 && ratingRules[4]?.allowBulk && (
-                            <Button
-                              onClick={() => openBulkConfirm(fourInDisplay, "4★")}
-                              disabled={bulkSending}
-                              size="sm"
-                              className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
-                            >
-                              Send all {fourInDisplay.length} (4★)
-                            </Button>
-                          )}
-                          <Button
-                            onClick={() =>
-                              openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")
-                            }
-                            disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
-                            size="sm"
-                            className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
-                          >
-                            Send all {attentionWithRepliesInDisplay.length} (1–3★)
-                          </Button>
-                        </div>
-                      )}
-                      {singleRatingMode &&
-                        filters.ratings.has("five") &&
-                        fiveDisplayed.length > 0 &&
-                        ratingRules[5]?.allowBulk && (
-                        <Button
-                          onClick={() => openBulkConfirm(fiveDisplayed, "5★")}
-                          disabled={bulkSending}
-                          size="sm"
-                          className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
-                        >
-                          Send all {fiveDisplayed.length} replies
-                        </Button>
-                      )}
-                      {singleRatingMode &&
-                        filters.ratings.has("four") &&
-                        fourDisplayed.length > 0 &&
-                        ratingRules[4]?.allowBulk && (
-                        <Button
-                          onClick={() => openBulkConfirm(fourDisplayed, "4★")}
-                          disabled={bulkSending}
-                          size="sm"
-                          className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
-                        >
-                          Send all {fourDisplayed.length} replies
-                        </Button>
-                      )}
-                        {singleRatingMode &&
-                          (filters.ratings.has("one") ||
-                            filters.ratings.has("two") ||
-                            filters.ratings.has("three")) && (
-                        <Button
-                          onClick={() =>
-                            openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")
-                          }
-                          disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
-                          size="sm"
-                          className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
-                        >
-                          Send all {attentionWithRepliesInDisplay.length} replies
-                        </Button>
-                      )}
-                    </div>
-
                     {allRatingsMode ? (
                       <ReviewListVirtual
                         reviews={displayedChronological}
@@ -913,8 +834,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               getComment={(id) => {
                                 const existing = replyDrafts[id];
                                 if (existing != null && existing !== "") return existing;
-                                const category =
-                                  replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
+                                const category = replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
                                 return pickRandomTemplate(5, category);
                               }}
                               onCommentChange={setDraft}
@@ -942,8 +862,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               getComment={(id) => {
                                 const existing = replyDrafts[id];
                                 if (existing != null && existing !== "") return existing;
-                                const category =
-                                  replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
+                                const category = replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
                                 return pickRandomTemplate(4, category);
                               }}
                               onCommentChange={setDraft}
@@ -968,16 +887,16 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           (filters.ratings.has("one") ||
                             filters.ratings.has("two") ||
                             filters.ratings.has("three")) && (
-                          <section className="space-y-4" aria-label="1-3 star reviews">
-                            <ReviewListVirtual
-                              reviews={attentionDisplayed}
-                              getComment={(id) => replyDrafts[id] ?? ""}
-                              onCommentChange={setDraft}
-                              onReplySent={handleReplySent}
-                              variant="attention"
-                            />
-                          </section>
-                        )}
+                            <section className="space-y-4" aria-label="1-3 star reviews">
+                              <ReviewListVirtual
+                                reviews={attentionDisplayed}
+                                getComment={(id) => replyDrafts[id] ?? ""}
+                                onCommentChange={setDraft}
+                                onReplySent={handleReplySent}
+                                variant="attention"
+                              />
+                            </section>
+                          )}
                       </>
                     )}
                   </>
@@ -987,7 +906,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                   </p>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {total === 0 && (
@@ -1020,78 +939,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
               </CardContent>
             </Card>
           )}
-        </main>
-      </div>
-      {/* Bottom fade when there are reviews */}
-      {total > 0 && <div className="dashboard-list-fade" aria-hidden />}
-      {/* Scroll to top */}
-      {showScrollTop && (
-        <Button
-          variant="secondary"
-          size="icon"
-          className="fixed bottom-6 right-6 z-20 h-10 w-10 rounded-full shadow-lg transition-opacity hover:opacity-90"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="Scroll to top"
-        >
-          <ArrowUpIcon className="size-5" />
-        </Button>
-      )}
-
-      {bulkConfirm && !bulkSending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Send bulk replies?</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              You are about to send replies to{" "}
-              <span className="font-medium text-foreground">
-                {bulkConfirm.list.length} review{bulkConfirm.list.length === 1 ? "" : "s"}
-              </span>{" "}
-              ({bulkConfirm.label}).
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => setBulkConfirm(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={async () => {
-                  const payload = bulkConfirm;
-                  setBulkConfirm(null);
-                  await handleBulkSend(payload.list);
-                }}
-              >
-                Continue
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {bulkSending && bulkProgress && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-background p-4 shadow-xl">
-            <div className="flex items-center gap-2">
-              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Sending replies…</h2>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Sending reply {bulkProgress.current} of {bulkProgress.total}. Please keep this window
-              open.
-            </p>
-            <Progress
-              value={(bulkProgress.current / bulkProgress.total) * 100}
-              className="mt-3"
-            />
-          </div>
-        </div>
-      )}
-    </div>
+        </>
   );
 }
