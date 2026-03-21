@@ -5,7 +5,6 @@ import type { Session } from "next-auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import {
   DashboardFilters,
@@ -403,6 +402,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
    * plus any review-only locations not in that list.
    */
   const filterLocationOptions = useMemo((): LocationOption[] => {
+    // Bump when window regains focus so we re-read localStorage-backed location prefs
+    void selectionRevision;
     const catalogMap = new Map(catalogLocations.map((l) => [l.id, l.title]));
     const reviewMap = new Map(locationsFromReviews.map((l) => [l.id, l.title]));
 
@@ -431,12 +432,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
     }
 
     return locationsFromReviews;
-  }, [
-    catalogLocations,
-    locationsFromReviews,
-    SELECTED_LOCATIONS_KEY,
-    selectionRevision,
-  ]);
+  }, [catalogLocations, locationsFromReviews, SELECTED_LOCATIONS_KEY, selectionRevision]);
 
   const filteredByLocation = useMemo(() => {
     if (filters.locations.size === 0) return [];
@@ -939,6 +935,76 @@ export function DashboardClient({ user }: DashboardClientProps) {
               </CardContent>
             </Card>
           )}
+
+      {total > 0 && <div className="dashboard-list-fade" aria-hidden />}
+
+      {showScrollTop && (
+        <Button
+          variant="secondary"
+          size="icon"
+          className="fixed bottom-6 right-6 z-20 h-10 w-10 rounded-full shadow-lg transition-opacity hover:opacity-90"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Scroll to top"
+        >
+          <ArrowUpIcon className="size-5" />
+        </Button>
+      )}
+
+      {bulkConfirm && !bulkSending && bulkConfirm.list.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
+            <h2 className="mb-1 text-sm font-semibold">Send bulk replies?</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              You are about to send replies to{" "}
+              <span className="font-medium text-foreground">
+                {bulkConfirm.list.length} review{bulkConfirm.list.length === 1 ? "" : "s"}
+              </span>{" "}
+              ({bulkConfirm.label}).
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
+                onClick={() => setBulkConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
+                onClick={async () => {
+                  const payload = bulkConfirm;
+                  setBulkConfirm(null);
+                  await handleBulkSend(payload.list);
+                }}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkSending && bulkProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-background p-4 shadow-xl">
+            <div className="flex items-center gap-2">
+              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Sending replies…</h2>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sending reply {bulkProgress.current} of {bulkProgress.total}. Please keep this window
+              open.
+            </p>
+            <Progress
+              value={(bulkProgress.current / bulkProgress.total) * 100}
+              className="mt-3"
+            />
+          </div>
+        </div>
+      )}
         </>
   );
 }

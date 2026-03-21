@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,9 +32,7 @@ interface ConfigClientProps {
 }
 
 export function ConfigClient({ user, initialSection = "templates" }: ConfigClientProps) {
-  const [activeSection, setActiveSection] = useState<"templates" | "rules" | "locations">(
-    initialSection
-  );
+  const activeSection = initialSection;
   const [locations, setLocations] = useState<
     { id: string; title: string; locality: string | null }[]
   >([]);
@@ -179,17 +176,6 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     });
   };
 
-  const saveLocations = () => {
-    if (typeof window === "undefined") return;
-    const arr = Array.from(selectedIds);
-    try {
-      window.localStorage.setItem(SELECTED_LOCATIONS_KEY, JSON.stringify(arr));
-      toast.success("Preferred locations saved. Future syncs will use this selection.");
-    } catch {
-      toast.error("Failed to save locations in this browser.");
-    }
-  };
-
   const performSaveAndSync = () => {
     if (typeof window === "undefined") return;
     const ids = Array.from(selectedIds);
@@ -295,21 +281,6 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
       const byRating = prev[rating] ?? {};
       const arr = [...(byRating[categoryId] ?? [])];
       arr[index] = value;
-      return {
-        ...prev,
-        [rating]: {
-          ...byRating,
-          [categoryId]: arr,
-        },
-      };
-    });
-  };
-
-  const handleAddTemplate = (rating: 4 | 5, categoryId: ReplyCategoryId) => {
-    setTemplateConfig((prev) => {
-      const byRating = prev[rating] ?? {};
-      const arr = [...(byRating[categoryId] ?? [])];
-      arr.push("");
       return {
         ...prev,
         [rating]: {

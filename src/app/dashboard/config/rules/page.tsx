@@ -6,7 +6,7 @@ import { ConfigClient } from "@/components/config-client";
 export default async function RulesConfigPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/");
-  if ((session.user as any).role !== "owner") {
+  if (session.user?.role !== "owner") {
     redirect("/dashboard");
   }
 
