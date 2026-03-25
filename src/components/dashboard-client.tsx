@@ -508,7 +508,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const getCommentForMixedList = useCallback(
     (reviewId: string) => {
       const d = replyDrafts[reviewId];
-      if (d != null && d !== "") return d;
+      // Treat an empty string as a valid user draft. Otherwise clearing the
+      // template would immediately fall back to the auto template.
+      if (d != null) return d;
       const r = displayedChronological.find((x) => x.reviewId === reviewId);
       if (!r) return "";
       const n = starNum(r);
@@ -829,7 +831,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               reviews={fiveDisplayed}
                               getComment={(id) => {
                                 const existing = replyDrafts[id];
-                                if (existing != null && existing !== "") return existing;
+                                // Treat `""` as a valid saved draft (user cleared the template).
+                                if (existing != null) return existing;
                                 const category = replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
                                 return pickRandomTemplate(5, category);
                               }}
@@ -857,7 +860,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
                               reviews={fourDisplayed}
                               getComment={(id) => {
                                 const existing = replyDrafts[id];
-                                if (existing != null && existing !== "") return existing;
+                                // Treat `""` as a valid saved draft (user cleared the template).
+                                if (existing != null) return existing;
                                 const category = replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
                                 return pickRandomTemplate(4, category);
                               }}
