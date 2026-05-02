@@ -6,9 +6,11 @@ import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UsersIcon, LayoutGridIcon, BarChart2Icon, ReceiptIcon, LogOutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 
 interface DashboardShellProps {
   email: string;
+  role?: "owner" | "staff";
   children: React.ReactNode;
 }
 
@@ -21,8 +23,10 @@ function navItemClass(active: boolean): string {
   ].join(" ");
 }
 
-export function DashboardShell({ email, children }: DashboardShellProps) {
+export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const pathname = usePathname();
+  const permissions = derivePermissionsFromRole(role);
+  const canSeeReviews = hasModuleAccess(permissions, "reviews");
 
   const isDashboard = pathname === "/dashboard";
   const isTemplates = pathname.startsWith("/dashboard/config/templates");
@@ -60,54 +64,62 @@ export function DashboardShell({ email, children }: DashboardShellProps) {
       <div className="flex flex-1 pt-12">
         <aside className="group sticky top-12 hidden h-[calc(100vh-3rem)] w-14 flex-col items-center overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out hover:w-48 md:flex">
           <div className="mt-3 flex w-full flex-col items-center gap-1 px-1">
-            <Link href="/dashboard" className={navItemClass(isDashboard)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                <UsersIcon
-                  className={`h-4 w-4 transition-colors ${
-                    isDashboard ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-              <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
-                Dashboard
-              </span>
-            </Link>
-            <Link href="/dashboard/config/templates" className={navItemClass(isTemplates)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                <LayoutGridIcon
-                  className={`h-4 w-4 transition-colors ${
-                    isTemplates ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-              <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
-                Templates
-              </span>
-            </Link>
-            <Link href="/dashboard/config/rules" className={navItemClass(isRules)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                <BarChart2Icon
-                  className={`h-4 w-4 transition-colors ${
-                    isRules ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-              <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
-                Rating rules
-              </span>
-            </Link>
-            <Link href="/dashboard/config/locations" className={navItemClass(isLocations)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                <ReceiptIcon
-                  className={`h-4 w-4 transition-colors ${
-                    isLocations ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-              <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
-                Locations
-              </span>
-            </Link>
+            {canSeeReviews && (
+              <Link href="/dashboard" className={navItemClass(isDashboard)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <UsersIcon
+                    className={`h-4 w-4 transition-colors ${
+                      isDashboard ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
+                <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
+                  Dashboard
+                </span>
+              </Link>
+            )}
+            {canSeeReviews && (
+              <Link href="/dashboard/config/templates" className={navItemClass(isTemplates)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <LayoutGridIcon
+                    className={`h-4 w-4 transition-colors ${
+                      isTemplates ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
+                <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
+                  Templates
+                </span>
+              </Link>
+            )}
+            {canSeeReviews && (
+              <Link href="/dashboard/config/rules" className={navItemClass(isRules)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <BarChart2Icon
+                    className={`h-4 w-4 transition-colors ${
+                      isRules ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
+                <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
+                  Rating rules
+                </span>
+              </Link>
+            )}
+            {canSeeReviews && (
+              <Link href="/dashboard/config/locations" className={navItemClass(isLocations)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <ReceiptIcon
+                    className={`h-4 w-4 transition-colors ${
+                      isLocations ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
+                <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
+                  Locations
+                </span>
+              </Link>
+            )}
           </div>
         </aside>
 

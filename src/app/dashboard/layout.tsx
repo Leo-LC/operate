@@ -13,6 +13,7 @@ export default async function DashboardLayout({
   if (!session) redirect("/");
 
   const email = session.user?.email ?? "unknown";
+  const role = session.user?.role;
 
-  return <DashboardShell email={email}>{children}</DashboardShell>;
+  return <DashboardShell email={email} role={role}>{children}</DashboardShell>;
 }
