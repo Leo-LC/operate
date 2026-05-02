@@ -20,12 +20,13 @@ import {
 } from "@/lib/constants";
 import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
-import { SlidersHorizontalIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
+import { SlidersHorizontalIcon, ArrowUpIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
 import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
 import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
 import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
+import { ReviewsControlsBar } from "@/modules/reviews/components/ReviewsControlsBar";
 
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
@@ -55,8 +56,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const [displayLimit, setDisplayLimit] = useState<number | null>(null);
   const [animatedTotal, setAnimatedTotal] = useState(0);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-
-  const LIMIT_OPTIONS = [10, 25, 50, 100] as const;
 
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
 
@@ -379,119 +378,29 @@ export function DashboardClient({ user }: DashboardClientProps) {
                   Filters
                 </h2>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-muted-foreground text-sm">
-                    Reply to{" "}
-                    {allRatingsMode
-                      ? displayedChronological.length
-                      : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length}{" "}
-                    reviews
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 rounded-md border-border bg-card text-foreground hover:bg-card/80"
-                    onClick={() =>
-                      setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
-                    }
-                  >
-                    <ArrowUpDownIcon className="size-4" />
-                    <span className="text-xs">
-                      {sortOrder === "desc" ? "Newest first" : "Oldest first"}
-                    </span>
-                  </Button>
-                  <span className="text-muted-foreground text-sm">Limit:</span>
-                  <select
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                    value={displayLimit == null ? "all" : String(displayLimit)}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setDisplayLimit(value === "all" ? null : Number(value));
-                    }}
-                    aria-label="Select review display limit"
-                  >
-                    {LIMIT_OPTIONS.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                    <option value="all">All</option>
-                  </select>
-                </div>
-                {allRatingsMode && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {fiveInDisplay.length > 0 && ratingRules[5]?.allowBulk && (
-                      <Button
-                        onClick={() => openBulkConfirm(fiveInDisplay, "5★")}
-                        disabled={bulkSending}
-                        size="sm"
-                        className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
-                      >
-                        Send all {fiveInDisplay.length} (5★)
-                      </Button>
-                    )}
-                    {fourInDisplay.length > 0 && ratingRules[4]?.allowBulk && (
-                      <Button
-                        onClick={() => openBulkConfirm(fourInDisplay, "4★")}
-                        disabled={bulkSending}
-                        size="sm"
-                        className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
-                      >
-                        Send all {fourInDisplay.length} (4★)
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() => openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
-                      disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
-                    >
-                      Send all {attentionWithRepliesInDisplay.length} (1–3★)
-                    </Button>
-                  </div>
-                )}
-                {singleRatingMode &&
-                  filters.ratings.has("five") &&
-                  fiveDisplayed.length > 0 &&
-                  ratingRules[5]?.allowBulk && (
-                    <Button
-                      onClick={() => openBulkConfirm(fiveDisplayed, "5★")}
-                      disabled={bulkSending}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
-                    >
-                      Send all {fiveDisplayed.length} replies
-                    </Button>
-                  )}
-                {singleRatingMode &&
-                  filters.ratings.has("four") &&
-                  fourDisplayed.length > 0 &&
-                  ratingRules[4]?.allowBulk && (
-                    <Button
-                      onClick={() => openBulkConfirm(fourDisplayed, "4★")}
-                      disabled={bulkSending}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
-                    >
-                      Send all {fourDisplayed.length} replies
-                    </Button>
-                  )}
-                {singleRatingMode &&
-                  (filters.ratings.has("one") ||
-                    filters.ratings.has("two") ||
-                    filters.ratings.has("three")) && (
-                    <Button
-                      onClick={() => openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
-                      disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
-                    >
-                      Send all {attentionWithRepliesInDisplay.length} replies
-                    </Button>
-                  )}
-              </div>
+              <ReviewsControlsBar
+                displayCount={
+                  allRatingsMode
+                    ? displayedChronological.length
+                    : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length
+                }
+                sortOrder={sortOrder}
+                onSortToggle={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+                displayLimit={displayLimit}
+                onLimitChange={setDisplayLimit}
+                allRatingsMode={allRatingsMode}
+                singleRatingMode={singleRatingMode}
+                bulkSending={bulkSending}
+                fiveAllowBulk={!!ratingRules[5]?.allowBulk}
+                fourAllowBulk={!!ratingRules[4]?.allowBulk}
+                activeRatings={filters.ratings}
+                fiveInDisplay={fiveInDisplay}
+                fourInDisplay={fourInDisplay}
+                attentionWithRepliesInDisplay={attentionWithRepliesInDisplay}
+                fiveDisplayed={fiveDisplayed}
+                fourDisplayed={fourDisplayed}
+                onBulkConfirm={openBulkConfirm}
+              />
 
               {/* Row 3: actual filter panel + reviews content */}
               <aside className="space-y-3">
