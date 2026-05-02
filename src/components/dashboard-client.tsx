@@ -15,56 +15,17 @@ import {
 import { ReviewListVirtual } from "@/components/review-list-virtual";
 import { SyncButton } from "@/components/sync-button";
 import {
-  DEFAULT_RATING_RULES,
   DEFAULT_REPLY_CATEGORY_ID,
   LOCATION_NAMES,
-  REPLY_CATEGORIES,
-  REPLY_TEMPLATES,
   type Rating,
-  type ReplyCategory,
-  type RatingRule,
-  type ReplyCategoryId,
-  type ReplyTemplateMap,
   pickRandomTemplate,
 } from "@/lib/constants";
-import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/storage-keys";
+import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
 import { Loader2Icon, SlidersHorizontalIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-const STAR_RATINGS = {
-  ONE: 1,
-  TWO: 2,
-  THREE: 3,
-  FOUR: 4,
-  FIVE: 5,
-} as const;
-
-function starNum(r: ReviewWithLocation): number {
-  return STAR_RATINGS[r.starRating as keyof typeof STAR_RATINGS] ?? 0;
-}
-
-function readSavedLocationIds(storageKey: string): string[] | null {
-  if (typeof window === "undefined") return null;
-  const tryKey = (key: string): string[] | null => {
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return null;
-      const arr = JSON.parse(raw) as string[];
-      if (!Array.isArray(arr) || arr.length === 0) return null;
-      const ids = arr.filter((x) => typeof x === "string" && x.trim().length > 0);
-      return ids.length > 0 ? ids : null;
-    } catch {
-      return null;
-    }
-  };
-  const scoped = tryKey(storageKey);
-  if (scoped) return scoped;
-  if (storageKey !== "capybara-selected-locations") {
-    return tryKey("capybara-selected-locations");
-  }
-  return null;
-}
+import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
+import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
 
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
@@ -88,13 +49,6 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ user }: DashboardClientProps) {
-  const [reviews, setReviews] = useState<ReviewWithLocation[]>([]);
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [replyCategories, setReplyCategories] = useState<Record<string, ReplyCategoryId>>({});
-  const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
-  const [templateConfig, setTemplateConfig] = useState<ReplyTemplateMap>(REPLY_TEMPLATES);
-  const [sharedCategories, setSharedCategories] = useState<ReplyCategory[]>(REPLY_CATEGORIES);
-  const [sharedConfigVersion, setSharedConfigVersion] = useState<number>(0);
   const [filters, setFilters] = useState<DashboardFiltersState>(() => getDefaultFilters());
   const [syncing, setSyncing] = useState(false);
   const [bulkSending, setBulkSending] = useState(false);
@@ -110,11 +64,33 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
   const LIMIT_OPTIONS = [10, 25, 50, 100] as const;
 
-  const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
 
   const [catalogLocations, setCatalogLocations] = useState<LocationOption[]>([]);
   const [selectionRevision, setSelectionRevision] = useState(0);
+
+  const { ratingRules, templateConfig, sharedCategories, sharedConfigVersion } = useReplyConfig();
+
+  const handleLocationsReady = useCallback((locations: Set<string>) => {
+    setFilters((prev) => ({ ...prev, locations }));
+  }, []);
+
+  const {
+    reviews,
+    replyDrafts,
+    replyCategories,
+    handleSynced,
+    handleReplySent,
+    setDraft,
+    setCategory,
+    shuffleTemplateForReview,
+  } = useReviews({
+    email: user?.email,
+    ratingRules,
+    templateConfig,
+    sharedConfigVersion,
+    onLocationsReady: handleLocationsReady,
+  });
 
   useEffect(() => {
     const onFocus = () => setSelectionRevision((n) => n + 1);
@@ -170,219 +146,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  // Hydrate from localStorage so syncing isn't required every time you return
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (reviews.length > 0) return;
-    try {
-      const raw = window.localStorage.getItem(DASHBOARD_STATE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as {
-        reviews: ReviewWithLocation[];
-        replyDrafts: Record<string, string>;
-        replyCategories?: Record<string, ReplyCategoryId>;
-        timestamp: number;
-        configVersion?: number;
-      };
-      const maxAgeMs = 30 * 60 * 1000;
-      if (!parsed.timestamp || Date.now() - parsed.timestamp > maxAgeMs) return;
-      if (!Array.isArray(parsed.reviews) || parsed.reviews.length === 0) return;
-      setReviews(parsed.reviews);
-      setReplyDrafts(parsed.replyDrafts ?? {});
-      setReplyCategories(parsed.replyCategories ?? {});
-      const fromReviews = Array.from(new Set(parsed.reviews.map((r) => r.locationName)));
-      const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
-      const nextLoc =
-        saved && saved.length > 0 ? new Set(saved) : new Set(fromReviews);
-      setFilters((prev) => ({ ...prev, locations: nextLoc }));
-    } catch {
-      // ignore bad data
-    }
-  }, [reviews.length, setFilters, DASHBOARD_STATE_KEY, SELECTED_LOCATIONS_KEY]);
-
-  // Hydrate shared config (templates/rules/categories) from server
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/config/shared");
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          templates?: ReplyTemplateMap;
-          rules?: Record<Rating, RatingRule>;
-          categories?: ReplyCategory[];
-          updatedAt?: number;
-        };
-        if (cancelled) return;
-        if (data.templates) setTemplateConfig(data.templates);
-        if (data.rules) setRatingRules(data.rules);
-        if (Array.isArray(data.categories) && data.categories.length > 0) {
-          setSharedCategories(data.categories);
-        }
-        if (typeof data.updatedAt === "number") {
-          setSharedConfigVersion(data.updatedAt);
-        }
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // If shared config changed since cached state, refresh auto-generated drafts.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (reviews.length === 0) return;
-    if (!sharedConfigVersion) return;
-    try {
-      const raw = window.localStorage.getItem(DASHBOARD_STATE_KEY);
-      const parsed = raw
-        ? (JSON.parse(raw) as { configVersion?: number; replyCategories?: Record<string, ReplyCategoryId> })
-        : null;
-      if (parsed?.configVersion === sharedConfigVersion) return;
-
-      const nextDrafts: Record<string, string> = {};
-      for (const r of reviews) {
-        const n = starNum(r);
-        if (n === 5 || n === 4) {
-          const rule = ratingRules[n as Rating];
-          if (rule?.mode === "template") {
-            const category = replyCategories[r.reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
-            nextDrafts[r.reviewId] = pickRandomTemplate(n as 4 | 5, category, templateConfig);
-          } else {
-            nextDrafts[r.reviewId] = replyDrafts[r.reviewId] ?? "";
-          }
-        } else {
-          nextDrafts[r.reviewId] = replyDrafts[r.reviewId] ?? "";
-        }
-      }
-      setReplyDrafts(nextDrafts);
-      window.localStorage.setItem(
-        DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          reviews,
-          replyDrafts: nextDrafts,
-          replyCategories,
-          timestamp: Date.now(),
-          configVersion: sharedConfigVersion,
-        })
-      );
-    } catch {
-      // ignore
-    }
-  }, [
-    DASHBOARD_STATE_KEY,
-    replyCategories,
-    replyDrafts,
-    reviews,
-    ratingRules,
-    sharedConfigVersion,
-    templateConfig,
-  ]);
-
-  const handleSynced = useCallback((data: ReviewWithLocation[]) => {
-    const sorted = [...data].sort((a, b) => {
-      const aTime = a.createTime ? Date.parse(a.createTime as string) : 0;
-      const bTime = b.createTime ? Date.parse(b.createTime as string) : 0;
-      return bTime - aTime;
-    });
-    setReviews(sorted);
-    const initialDrafts: Record<string, string> = {};
-    const initialCategories: Record<string, ReplyCategoryId> = {};
-    for (const r of sorted) {
-      const n = starNum(r);
-      if (n === 5 || n === 4) {
-        const rule = ratingRules[n as Rating];
-        if (rule?.mode === "template") {
-          initialDrafts[r.reviewId] = pickRandomTemplate(
-            n as 4 | 5,
-            DEFAULT_REPLY_CATEGORY_ID,
-            templateConfig
-          );
-          initialCategories[r.reviewId] = DEFAULT_REPLY_CATEGORY_ID;
-        } else {
-          initialDrafts[r.reviewId] = "";
-        }
-      } else {
-        initialDrafts[r.reviewId] = "";
-      }
-    }
-    setReplyDrafts(initialDrafts);
-    setReplyCategories(initialCategories);
-    const fromReviews = Array.from(new Set(sorted.map((r) => r.locationName)));
-    const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
-    const nextLoc =
-      saved && saved.length > 0 ? new Set(saved) : new Set(fromReviews);
-    setFilters((prev) => ({ ...prev, locations: nextLoc }));
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          reviews: sorted,
-          replyDrafts: initialDrafts,
-          replyCategories: initialCategories,
-          timestamp: Date.now(),
-          configVersion: sharedConfigVersion,
-        })
-      );
-    }
-  }, [
-    ratingRules,
-    templateConfig,
-    setFilters,
-    DASHBOARD_STATE_KEY,
-    SELECTED_LOCATIONS_KEY,
-    sharedConfigVersion,
-  ]);
-
-  const handleReplySent = useCallback((reviewId: string) => {
-    setReviews((prev) => prev.filter((r) => r.reviewId !== reviewId));
-    setReplyDrafts((prev) => {
-      const next = { ...prev };
-      delete next[reviewId];
-      return next;
-    });
-  }, []);
-
-  // Persist drafts/categories with a small debounce to avoid excessive writes
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (reviews.length === 0) return;
-    const handle = window.setTimeout(() => {
-      window.localStorage.setItem(
-        DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          reviews,
-          replyDrafts,
-          replyCategories,
-          timestamp: Date.now(),
-          configVersion: sharedConfigVersion,
-        })
-      );
-    }, 400);
-    return () => window.clearTimeout(handle);
-  }, [reviews, replyDrafts, replyCategories, DASHBOARD_STATE_KEY, sharedConfigVersion]);
-
-  const setDraft = useCallback((reviewId: string, comment: string) => {
-    setReplyDrafts((prev) => ({ ...prev, [reviewId]: comment }));
-  }, []);
-
-  const setCategory = useCallback((reviewId: string, category: ReplyCategoryId) => {
-    setReplyCategories((prev) => ({ ...prev, [reviewId]: category }));
-  }, []);
-
-  const shuffleTemplateForReview = useCallback((reviewId: string) => {
-    const review = reviews.find((r) => r.reviewId === reviewId);
-    if (!review) return;
-    const n = starNum(review);
-    if (n !== 4 && n !== 5) return;
-    const category = replyCategories[reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
-    const nextTemplate = pickRandomTemplate(n as 4 | 5, category, templateConfig);
-    setDraft(reviewId, nextTemplate);
-  }, [reviews, replyCategories, templateConfig, setDraft]);
 
   /** Locations from reviews only (for merging titles) */
   const locationsFromReviews = useMemo((): LocationOption[] => {
