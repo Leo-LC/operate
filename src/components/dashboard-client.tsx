@@ -2,10 +2,8 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Session } from "next-auth";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
   DashboardFilters,
   getDefaultFilters,
@@ -22,10 +20,12 @@ import {
 } from "@/lib/constants";
 import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
-import { Loader2Icon, SlidersHorizontalIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
+import { SlidersHorizontalIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
 import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
+import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
+import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
 
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
@@ -51,12 +51,6 @@ interface DashboardClientProps {
 export function DashboardClient({ user }: DashboardClientProps) {
   const [filters, setFilters] = useState<DashboardFiltersState>(() => getDefaultFilters());
   const [syncing, setSyncing] = useState(false);
-  const [bulkSending, setBulkSending] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
-  const [bulkConfirm, setBulkConfirm] = useState<{
-    list: ReviewWithLocation[];
-    label: string;
-  } | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [displayLimit, setDisplayLimit] = useState<number | null>(null);
   const [animatedTotal, setAnimatedTotal] = useState(0);
@@ -91,6 +85,15 @@ export function DashboardClient({ user }: DashboardClientProps) {
     sharedConfigVersion,
     onLocationsReady: handleLocationsReady,
   });
+
+  const {
+    bulkSending,
+    bulkProgress,
+    bulkConfirm,
+    openBulkConfirm,
+    cancelBulkConfirm,
+    handleBulkSend,
+  } = useBulkSend({ replyDrafts, onReplySent: handleReplySent });
 
   useEffect(() => {
     const onFocus = () => setSelectionRevision((n) => n + 1);
@@ -298,61 +301,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
       oneFiltered.length >
     0;
 
-
-  const handleBulkSend = useCallback(
-    async (list: ReviewWithLocation[]) => {
-      const count = list.length;
-      if (count === 0) return;
-      setBulkSending(true);
-      setBulkProgress({ current: 0, total: list.length });
-      let done = 0;
-      const failed: string[] = [];
-      for (const r of list) {
-        const comment = replyDrafts[r.reviewId]?.trim();
-        setBulkProgress({ current: done + 1, total: list.length });
-        if (!comment) {
-          failed.push(r.reviewId);
-          toast.error(`Empty reply for review ${r.reviewId}`);
-          done += 1;
-          continue;
-        }
-        try {
-          const res = await fetch("/api/reviews/reply", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              locationName: r.locationName,
-              reviewId: r.reviewId,
-              comment,
-            }),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            failed.push(r.reviewId);
-            toast.error(`Failed: ${(err as { error?: string }).error ?? res.statusText}`);
-          } else {
-            toast.success("Reply sent");
-            handleReplySent(r.reviewId);
-          }
-        } catch (e) {
-          failed.push(r.reviewId);
-          toast.error(e instanceof Error ? e.message : "Request failed");
-        }
-        done += 1;
-      }
-      setBulkProgress(null);
-      setBulkSending(false);
-      if (failed.length > 0) {
-        toast.error(`${failed.length} reply(ies) failed. Others were sent.`);
-      }
-    },
-    [handleReplySent, replyDrafts]
-  );
-
-  const openBulkConfirm = useCallback((list: ReviewWithLocation[], label: string) => {
-    if (bulkSending || list.length === 0) return;
-    setBulkConfirm({ list, label });
-  }, [bulkSending]);
 
   const moodEmoji =
     total === 0 ? "🥳" : total <= 25 ? "🙂" : total <= 150 ? "😅" : "😬";
@@ -717,61 +665,16 @@ export function DashboardClient({ user }: DashboardClientProps) {
         </Button>
       )}
 
-      {bulkConfirm && !bulkSending && bulkConfirm.list.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Send bulk replies?</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              You are about to send replies to{" "}
-              <span className="font-medium text-foreground">
-                {bulkConfirm.list.length} review{bulkConfirm.list.length === 1 ? "" : "s"}
-              </span>{" "}
-              ({bulkConfirm.label}).
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => setBulkConfirm(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={async () => {
-                  const payload = bulkConfirm;
-                  setBulkConfirm(null);
-                  await handleBulkSend(payload.list);
-                }}
-              >
-                Continue
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {bulkSending && bulkProgress && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-background p-4 shadow-xl">
-            <div className="flex items-center gap-2">
-              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Sending replies…</h2>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Sending reply {bulkProgress.current} of {bulkProgress.total}. Please keep this window
-              open.
-            </p>
-            <Progress
-              value={(bulkProgress.current / bulkProgress.total) * 100}
-              className="mt-3"
-            />
-          </div>
-        </div>
-      )}
+      <BulkReplyPanel
+        bulkConfirm={bulkConfirm}
+        bulkSending={bulkSending}
+        bulkProgress={bulkProgress}
+        onCancel={cancelBulkConfirm}
+        onConfirm={(list) => {
+          cancelBulkConfirm();
+          void handleBulkSend(list);
+        }}
+      />
         </>
   );
 }
