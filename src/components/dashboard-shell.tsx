@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { UsersIcon, LayoutGridIcon, BarChart2Icon, ReceiptIcon, LogOutIcon, ShieldIcon, FileTextIcon } from "lucide-react";
+import { UsersIcon, LayoutGridIcon, BarChart2Icon, ReceiptIcon, LogOutIcon, ShieldIcon, FileTextIcon, PawPrintIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 
@@ -30,12 +30,14 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
   const canSeeAdmin = hasModuleAccess(permissions, "admin");
   const canSeeDocuments = hasModuleAccess(permissions, "documents");
+  const canSeeAnimals = hasModuleAccess(permissions, "animals");
 
   const isDashboard = pathname === "/dashboard";
   const isTemplates = pathname.startsWith("/dashboard/config/templates");
   const isRules = pathname.startsWith("/dashboard/config/rules");
   const isLocations = pathname.startsWith("/dashboard/config/locations");
   const isDocuments = pathname.startsWith("/dashboard/documents");
+  const isAnimals = pathname.startsWith("/dashboard/animals");
   const isAdmin = pathname.startsWith("/dashboard/admin");
 
   return (
@@ -122,6 +124,20 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
                 </div>
                 <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
                   Locations
+                </span>
+              </Link>
+            )}
+            {canSeeAnimals && (
+              <Link href="/dashboard/animals" className={navItemClass(isAnimals)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <PawPrintIcon
+                    className={`h-4 w-4 transition-colors ${
+                      isAnimals ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
+                <span className="overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
+                  Animals
                 </span>
               </Link>
             )}
