@@ -1,6 +1,7 @@
 import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+import { getSupabaseServerClient } from "./supabase-server";
 
 const secret = process.env.NEXTAUTH_SECRET;
 if (!secret || secret.length < 1) {
@@ -34,6 +35,29 @@ function getRoleForEmail(email: string | null | undefined): "owner" | "staff" {
     return "owner";
   }
   return "staff";
+}
+
+/**
+ * Looks up a user in the platform DB by email and returns their session role.
+ * Returns null if the user is not in the DB yet — caller falls back to env-var role.
+ * Fails silently so a DB outage never blocks sign-in.
+ */
+async function getDbRoleForEmail(
+  email: string,
+): Promise<{ role: "owner" | "staff"; userId: string } | null> {
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, global_role")
+      .eq("email", email.toLowerCase())
+      .single();
+    if (error || !data) return null;
+    const role = data.global_role === "owner" || data.global_role === "admin" ? "owner" : "staff";
+    return { role, userId: data.id as string };
+  } catch {
+    return null;
+  }
 }
 
 async function refreshGoogleAccessToken(token: import("next-auth/jwt").JWT) {
@@ -113,7 +137,12 @@ export const authOptions: NextAuthOptions = {
         token.accessTokenExpires = account.expires_at
           ? account.expires_at * 1000
           : Date.now() + 60 * 60 * 1000;
-        token.role = getRoleForEmail(token.email as string | undefined);
+
+        // DB role takes priority; fall back to env-var role for users not yet in the platform DB
+        const dbUser = await getDbRoleForEmail(token.email as string ?? "");
+        token.role = dbUser?.role ?? getRoleForEmail(token.email as string | undefined);
+        token.userId = dbUser?.userId;
+
         return token;
       }
 
@@ -130,6 +159,7 @@ export const authOptions: NextAuthOptions = {
         const jwtToken = token as JWT;
         const sessionWithRole = session as Session;
         sessionWithRole.user.role = jwtToken.role ?? getRoleForEmail(session.user.email);
+        sessionWithRole.user.userId = jwtToken.userId;
       }
       return session;
     },
@@ -151,6 +181,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       role?: "owner" | "staff";
+      userId?: string; // platform DB user id, present once the user exists in the users table
     };
   }
 }
@@ -161,6 +192,7 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     accessTokenExpires?: number;
     role?: "owner" | "staff";
+    userId?: string;
     error?: "RefreshAccessTokenError";
   }
 }

@@ -2,10 +2,8 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Session } from "next-auth";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
   DashboardFilters,
   getDefaultFilters,
@@ -15,56 +13,20 @@ import {
 import { ReviewListVirtual } from "@/components/review-list-virtual";
 import { SyncButton } from "@/components/sync-button";
 import {
-  DEFAULT_RATING_RULES,
   DEFAULT_REPLY_CATEGORY_ID,
   LOCATION_NAMES,
-  REPLY_CATEGORIES,
-  REPLY_TEMPLATES,
   type Rating,
-  type ReplyCategory,
-  type RatingRule,
-  type ReplyCategoryId,
-  type ReplyTemplateMap,
   pickRandomTemplate,
 } from "@/lib/constants";
-import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/storage-keys";
+import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
-import { Loader2Icon, SlidersHorizontalIcon, ArrowUpIcon, ArrowUpDownIcon } from "lucide-react";
+import { SlidersHorizontalIcon, ArrowUpIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-const STAR_RATINGS = {
-  ONE: 1,
-  TWO: 2,
-  THREE: 3,
-  FOUR: 4,
-  FIVE: 5,
-} as const;
-
-function starNum(r: ReviewWithLocation): number {
-  return STAR_RATINGS[r.starRating as keyof typeof STAR_RATINGS] ?? 0;
-}
-
-function readSavedLocationIds(storageKey: string): string[] | null {
-  if (typeof window === "undefined") return null;
-  const tryKey = (key: string): string[] | null => {
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return null;
-      const arr = JSON.parse(raw) as string[];
-      if (!Array.isArray(arr) || arr.length === 0) return null;
-      const ids = arr.filter((x) => typeof x === "string" && x.trim().length > 0);
-      return ids.length > 0 ? ids : null;
-    } catch {
-      return null;
-    }
-  };
-  const scoped = tryKey(storageKey);
-  if (scoped) return scoped;
-  if (storageKey !== "capybara-selected-locations") {
-    return tryKey("capybara-selected-locations");
-  }
-  return null;
-}
+import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
+import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
+import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
+import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
+import { ReviewsControlsBar } from "@/modules/reviews/components/ReviewsControlsBar";
 
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
@@ -88,33 +50,49 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ user }: DashboardClientProps) {
-  const [reviews, setReviews] = useState<ReviewWithLocation[]>([]);
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [replyCategories, setReplyCategories] = useState<Record<string, ReplyCategoryId>>({});
-  const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
-  const [templateConfig, setTemplateConfig] = useState<ReplyTemplateMap>(REPLY_TEMPLATES);
-  const [sharedCategories, setSharedCategories] = useState<ReplyCategory[]>(REPLY_CATEGORIES);
-  const [sharedConfigVersion, setSharedConfigVersion] = useState<number>(0);
   const [filters, setFilters] = useState<DashboardFiltersState>(() => getDefaultFilters());
   const [syncing, setSyncing] = useState(false);
-  const [bulkSending, setBulkSending] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
-  const [bulkConfirm, setBulkConfirm] = useState<{
-    list: ReviewWithLocation[];
-    label: string;
-  } | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [displayLimit, setDisplayLimit] = useState<number | null>(null);
   const [animatedTotal, setAnimatedTotal] = useState(0);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
-  const LIMIT_OPTIONS = [10, 25, 50, 100] as const;
-
-  const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
 
   const [catalogLocations, setCatalogLocations] = useState<LocationOption[]>([]);
   const [selectionRevision, setSelectionRevision] = useState(0);
+
+  const { ratingRules, templateConfig, sharedCategories, sharedConfigVersion } = useReplyConfig();
+
+  const handleLocationsReady = useCallback((locations: Set<string>) => {
+    setFilters((prev) => ({ ...prev, locations }));
+  }, []);
+
+  const {
+    reviews,
+    replyDrafts,
+    replyCategories,
+    handleSynced,
+    handleReplySent,
+    setDraft,
+    setCategory,
+    shuffleTemplateForReview,
+  } = useReviews({
+    email: user?.email,
+    ratingRules,
+    templateConfig,
+    sharedConfigVersion,
+    onLocationsReady: handleLocationsReady,
+  });
+
+  const {
+    bulkSending,
+    bulkProgress,
+    bulkConfirm,
+    openBulkConfirm,
+    cancelBulkConfirm,
+    handleBulkSend,
+  } = useBulkSend({ replyDrafts, onReplySent: handleReplySent });
 
   useEffect(() => {
     const onFocus = () => setSelectionRevision((n) => n + 1);
@@ -170,219 +148,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  // Hydrate from localStorage so syncing isn't required every time you return
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (reviews.length > 0) return;
-    try {
-      const raw = window.localStorage.getItem(DASHBOARD_STATE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as {
-        reviews: ReviewWithLocation[];
-        replyDrafts: Record<string, string>;
-        replyCategories?: Record<string, ReplyCategoryId>;
-        timestamp: number;
-        configVersion?: number;
-      };
-      const maxAgeMs = 30 * 60 * 1000;
-      if (!parsed.timestamp || Date.now() - parsed.timestamp > maxAgeMs) return;
-      if (!Array.isArray(parsed.reviews) || parsed.reviews.length === 0) return;
-      setReviews(parsed.reviews);
-      setReplyDrafts(parsed.replyDrafts ?? {});
-      setReplyCategories(parsed.replyCategories ?? {});
-      const fromReviews = Array.from(new Set(parsed.reviews.map((r) => r.locationName)));
-      const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
-      const nextLoc =
-        saved && saved.length > 0 ? new Set(saved) : new Set(fromReviews);
-      setFilters((prev) => ({ ...prev, locations: nextLoc }));
-    } catch {
-      // ignore bad data
-    }
-  }, [reviews.length, setFilters, DASHBOARD_STATE_KEY, SELECTED_LOCATIONS_KEY]);
-
-  // Hydrate shared config (templates/rules/categories) from server
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/config/shared");
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          templates?: ReplyTemplateMap;
-          rules?: Record<Rating, RatingRule>;
-          categories?: ReplyCategory[];
-          updatedAt?: number;
-        };
-        if (cancelled) return;
-        if (data.templates) setTemplateConfig(data.templates);
-        if (data.rules) setRatingRules(data.rules);
-        if (Array.isArray(data.categories) && data.categories.length > 0) {
-          setSharedCategories(data.categories);
-        }
-        if (typeof data.updatedAt === "number") {
-          setSharedConfigVersion(data.updatedAt);
-        }
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // If shared config changed since cached state, refresh auto-generated drafts.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (reviews.length === 0) return;
-    if (!sharedConfigVersion) return;
-    try {
-      const raw = window.localStorage.getItem(DASHBOARD_STATE_KEY);
-      const parsed = raw
-        ? (JSON.parse(raw) as { configVersion?: number; replyCategories?: Record<string, ReplyCategoryId> })
-        : null;
-      if (parsed?.configVersion === sharedConfigVersion) return;
-
-      const nextDrafts: Record<string, string> = {};
-      for (const r of reviews) {
-        const n = starNum(r);
-        if (n === 5 || n === 4) {
-          const rule = ratingRules[n as Rating];
-          if (rule?.mode === "template") {
-            const category = replyCategories[r.reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
-            nextDrafts[r.reviewId] = pickRandomTemplate(n as 4 | 5, category, templateConfig);
-          } else {
-            nextDrafts[r.reviewId] = replyDrafts[r.reviewId] ?? "";
-          }
-        } else {
-          nextDrafts[r.reviewId] = replyDrafts[r.reviewId] ?? "";
-        }
-      }
-      setReplyDrafts(nextDrafts);
-      window.localStorage.setItem(
-        DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          reviews,
-          replyDrafts: nextDrafts,
-          replyCategories,
-          timestamp: Date.now(),
-          configVersion: sharedConfigVersion,
-        })
-      );
-    } catch {
-      // ignore
-    }
-  }, [
-    DASHBOARD_STATE_KEY,
-    replyCategories,
-    replyDrafts,
-    reviews,
-    ratingRules,
-    sharedConfigVersion,
-    templateConfig,
-  ]);
-
-  const handleSynced = useCallback((data: ReviewWithLocation[]) => {
-    const sorted = [...data].sort((a, b) => {
-      const aTime = a.createTime ? Date.parse(a.createTime as string) : 0;
-      const bTime = b.createTime ? Date.parse(b.createTime as string) : 0;
-      return bTime - aTime;
-    });
-    setReviews(sorted);
-    const initialDrafts: Record<string, string> = {};
-    const initialCategories: Record<string, ReplyCategoryId> = {};
-    for (const r of sorted) {
-      const n = starNum(r);
-      if (n === 5 || n === 4) {
-        const rule = ratingRules[n as Rating];
-        if (rule?.mode === "template") {
-          initialDrafts[r.reviewId] = pickRandomTemplate(
-            n as 4 | 5,
-            DEFAULT_REPLY_CATEGORY_ID,
-            templateConfig
-          );
-          initialCategories[r.reviewId] = DEFAULT_REPLY_CATEGORY_ID;
-        } else {
-          initialDrafts[r.reviewId] = "";
-        }
-      } else {
-        initialDrafts[r.reviewId] = "";
-      }
-    }
-    setReplyDrafts(initialDrafts);
-    setReplyCategories(initialCategories);
-    const fromReviews = Array.from(new Set(sorted.map((r) => r.locationName)));
-    const saved = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
-    const nextLoc =
-      saved && saved.length > 0 ? new Set(saved) : new Set(fromReviews);
-    setFilters((prev) => ({ ...prev, locations: nextLoc }));
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          reviews: sorted,
-          replyDrafts: initialDrafts,
-          replyCategories: initialCategories,
-          timestamp: Date.now(),
-          configVersion: sharedConfigVersion,
-        })
-      );
-    }
-  }, [
-    ratingRules,
-    templateConfig,
-    setFilters,
-    DASHBOARD_STATE_KEY,
-    SELECTED_LOCATIONS_KEY,
-    sharedConfigVersion,
-  ]);
-
-  const handleReplySent = useCallback((reviewId: string) => {
-    setReviews((prev) => prev.filter((r) => r.reviewId !== reviewId));
-    setReplyDrafts((prev) => {
-      const next = { ...prev };
-      delete next[reviewId];
-      return next;
-    });
-  }, []);
-
-  // Persist drafts/categories with a small debounce to avoid excessive writes
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (reviews.length === 0) return;
-    const handle = window.setTimeout(() => {
-      window.localStorage.setItem(
-        DASHBOARD_STATE_KEY,
-        JSON.stringify({
-          reviews,
-          replyDrafts,
-          replyCategories,
-          timestamp: Date.now(),
-          configVersion: sharedConfigVersion,
-        })
-      );
-    }, 400);
-    return () => window.clearTimeout(handle);
-  }, [reviews, replyDrafts, replyCategories, DASHBOARD_STATE_KEY, sharedConfigVersion]);
-
-  const setDraft = useCallback((reviewId: string, comment: string) => {
-    setReplyDrafts((prev) => ({ ...prev, [reviewId]: comment }));
-  }, []);
-
-  const setCategory = useCallback((reviewId: string, category: ReplyCategoryId) => {
-    setReplyCategories((prev) => ({ ...prev, [reviewId]: category }));
-  }, []);
-
-  const shuffleTemplateForReview = useCallback((reviewId: string) => {
-    const review = reviews.find((r) => r.reviewId === reviewId);
-    if (!review) return;
-    const n = starNum(review);
-    if (n !== 4 && n !== 5) return;
-    const category = replyCategories[reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
-    const nextTemplate = pickRandomTemplate(n as 4 | 5, category, templateConfig);
-    setDraft(reviewId, nextTemplate);
-  }, [reviews, replyCategories, templateConfig, setDraft]);
 
   /** Locations from reviews only (for merging titles) */
   const locationsFromReviews = useMemo((): LocationOption[] => {
@@ -536,61 +301,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
     0;
 
 
-  const handleBulkSend = useCallback(
-    async (list: ReviewWithLocation[]) => {
-      const count = list.length;
-      if (count === 0) return;
-      setBulkSending(true);
-      setBulkProgress({ current: 0, total: list.length });
-      let done = 0;
-      const failed: string[] = [];
-      for (const r of list) {
-        const comment = replyDrafts[r.reviewId]?.trim();
-        setBulkProgress({ current: done + 1, total: list.length });
-        if (!comment) {
-          failed.push(r.reviewId);
-          toast.error(`Empty reply for review ${r.reviewId}`);
-          done += 1;
-          continue;
-        }
-        try {
-          const res = await fetch("/api/reviews/reply", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              locationName: r.locationName,
-              reviewId: r.reviewId,
-              comment,
-            }),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            failed.push(r.reviewId);
-            toast.error(`Failed: ${(err as { error?: string }).error ?? res.statusText}`);
-          } else {
-            toast.success("Reply sent");
-            handleReplySent(r.reviewId);
-          }
-        } catch (e) {
-          failed.push(r.reviewId);
-          toast.error(e instanceof Error ? e.message : "Request failed");
-        }
-        done += 1;
-      }
-      setBulkProgress(null);
-      setBulkSending(false);
-      if (failed.length > 0) {
-        toast.error(`${failed.length} reply(ies) failed. Others were sent.`);
-      }
-    },
-    [handleReplySent, replyDrafts]
-  );
-
-  const openBulkConfirm = useCallback((list: ReviewWithLocation[], label: string) => {
-    if (bulkSending || list.length === 0) return;
-    setBulkConfirm({ list, label });
-  }, [bulkSending]);
-
   const moodEmoji =
     total === 0 ? "🥳" : total <= 25 ? "🙂" : total <= 150 ? "😅" : "😬";
 
@@ -668,119 +378,29 @@ export function DashboardClient({ user }: DashboardClientProps) {
                   Filters
                 </h2>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-muted-foreground text-sm">
-                    Reply to{" "}
-                    {allRatingsMode
-                      ? displayedChronological.length
-                      : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length}{" "}
-                    reviews
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 rounded-md border-border bg-card text-foreground hover:bg-card/80"
-                    onClick={() =>
-                      setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
-                    }
-                  >
-                    <ArrowUpDownIcon className="size-4" />
-                    <span className="text-xs">
-                      {sortOrder === "desc" ? "Newest first" : "Oldest first"}
-                    </span>
-                  </Button>
-                  <span className="text-muted-foreground text-sm">Limit:</span>
-                  <select
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                    value={displayLimit == null ? "all" : String(displayLimit)}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setDisplayLimit(value === "all" ? null : Number(value));
-                    }}
-                    aria-label="Select review display limit"
-                  >
-                    {LIMIT_OPTIONS.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                    <option value="all">All</option>
-                  </select>
-                </div>
-                {allRatingsMode && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {fiveInDisplay.length > 0 && ratingRules[5]?.allowBulk && (
-                      <Button
-                        onClick={() => openBulkConfirm(fiveInDisplay, "5★")}
-                        disabled={bulkSending}
-                        size="sm"
-                        className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
-                      >
-                        Send all {fiveInDisplay.length} (5★)
-                      </Button>
-                    )}
-                    {fourInDisplay.length > 0 && ratingRules[4]?.allowBulk && (
-                      <Button
-                        onClick={() => openBulkConfirm(fourInDisplay, "4★")}
-                        disabled={bulkSending}
-                        size="sm"
-                        className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
-                      >
-                        Send all {fourInDisplay.length} (4★)
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() => openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
-                      disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
-                    >
-                      Send all {attentionWithRepliesInDisplay.length} (1–3★)
-                    </Button>
-                  </div>
-                )}
-                {singleRatingMode &&
-                  filters.ratings.has("five") &&
-                  fiveDisplayed.length > 0 &&
-                  ratingRules[5]?.allowBulk && (
-                    <Button
-                      onClick={() => openBulkConfirm(fiveDisplayed, "5★")}
-                      disabled={bulkSending}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
-                    >
-                      Send all {fiveDisplayed.length} replies
-                    </Button>
-                  )}
-                {singleRatingMode &&
-                  filters.ratings.has("four") &&
-                  fourDisplayed.length > 0 &&
-                  ratingRules[4]?.allowBulk && (
-                    <Button
-                      onClick={() => openBulkConfirm(fourDisplayed, "4★")}
-                      disabled={bulkSending}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
-                    >
-                      Send all {fourDisplayed.length} replies
-                    </Button>
-                  )}
-                {singleRatingMode &&
-                  (filters.ratings.has("one") ||
-                    filters.ratings.has("two") ||
-                    filters.ratings.has("three")) && (
-                    <Button
-                      onClick={() => openBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
-                      disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
-                      size="sm"
-                      className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
-                    >
-                      Send all {attentionWithRepliesInDisplay.length} replies
-                    </Button>
-                  )}
-              </div>
+              <ReviewsControlsBar
+                displayCount={
+                  allRatingsMode
+                    ? displayedChronological.length
+                    : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length
+                }
+                sortOrder={sortOrder}
+                onSortToggle={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+                displayLimit={displayLimit}
+                onLimitChange={setDisplayLimit}
+                allRatingsMode={allRatingsMode}
+                singleRatingMode={singleRatingMode}
+                bulkSending={bulkSending}
+                fiveAllowBulk={!!ratingRules[5]?.allowBulk}
+                fourAllowBulk={!!ratingRules[4]?.allowBulk}
+                activeRatings={filters.ratings}
+                fiveInDisplay={fiveInDisplay}
+                fourInDisplay={fourInDisplay}
+                attentionWithRepliesInDisplay={attentionWithRepliesInDisplay}
+                fiveDisplayed={fiveDisplayed}
+                fourDisplayed={fourDisplayed}
+                onBulkConfirm={openBulkConfirm}
+              />
 
               {/* Row 3: actual filter panel + reviews content */}
               <aside className="space-y-3">
@@ -954,61 +574,16 @@ export function DashboardClient({ user }: DashboardClientProps) {
         </Button>
       )}
 
-      {bulkConfirm && !bulkSending && bulkConfirm.list.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Send bulk replies?</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              You are about to send replies to{" "}
-              <span className="font-medium text-foreground">
-                {bulkConfirm.list.length} review{bulkConfirm.list.length === 1 ? "" : "s"}
-              </span>{" "}
-              ({bulkConfirm.label}).
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => setBulkConfirm(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={async () => {
-                  const payload = bulkConfirm;
-                  setBulkConfirm(null);
-                  await handleBulkSend(payload.list);
-                }}
-              >
-                Continue
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {bulkSending && bulkProgress && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-background p-4 shadow-xl">
-            <div className="flex items-center gap-2">
-              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Sending replies…</h2>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Sending reply {bulkProgress.current} of {bulkProgress.total}. Please keep this window
-              open.
-            </p>
-            <Progress
-              value={(bulkProgress.current / bulkProgress.total) * 100}
-              className="mt-3"
-            />
-          </div>
-        </div>
-      )}
+      <BulkReplyPanel
+        bulkConfirm={bulkConfirm}
+        bulkSending={bulkSending}
+        bulkProgress={bulkProgress}
+        onCancel={cancelBulkConfirm}
+        onConfirm={(list) => {
+          cancelBulkConfirm();
+          void handleBulkSend(list);
+        }}
+      />
         </>
   );
 }
