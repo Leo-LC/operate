@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon } from "lucide-react";
+import { PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon, DownloadIcon } from "lucide-react";
 import {
   computeStatus,
   DOCUMENT_TYPE_LABELS,
@@ -194,10 +194,18 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
             </p>
           )}
         </div>
-        <Button size="sm" onClick={openAdd} className="gap-1.5">
-          <PlusIcon className="size-4" />
-          Add document
-        </Button>
+        <div className="flex items-center gap-2">
+          <a href="/api/documents/export" download>
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <DownloadIcon className="size-4" />
+              Export CSV
+            </Button>
+          </a>
+          <Button size="sm" onClick={openAdd} className="gap-1.5">
+            <PlusIcon className="size-4" />
+            Add document
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

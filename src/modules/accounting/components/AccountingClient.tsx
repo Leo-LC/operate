@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, XIcon, TrashIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, XIcon, TrashIcon, DownloadIcon } from "lucide-react";
 import {
   EMPTY_ENTRY,
   toFormState,
@@ -242,6 +242,12 @@ export function AccountingClient({ locations }: AccountingClientProps) {
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
           <span className="text-xs text-muted-foreground">{filled}/{days} days filled</span>
+          <a href={`/api/accounting/export?month=${monthStr}`} download>
+            <Button size="sm" variant="outline" className="gap-1.5 h-8">
+              <DownloadIcon className="size-3.5" />
+              CSV
+            </Button>
+          </a>
         </div>
       </div>
 

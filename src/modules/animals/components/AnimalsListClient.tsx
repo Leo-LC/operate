@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon } from "lucide-react";
 import {
   STATUS_CLASSES,
   STATUS_LABELS,
@@ -113,10 +113,18 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             </p>
           )}
         </div>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)} className="gap-1.5">
-          <PlusIcon className="size-4" />
-          Add animal
-        </Button>
+        <div className="flex items-center gap-2">
+          <a href="/api/animals/export" download>
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <DownloadIcon className="size-4" />
+              Export CSV
+            </Button>
+          </a>
+          <Button size="sm" onClick={() => setShowForm((v) => !v)} className="gap-1.5">
+            <PlusIcon className="size-4" />
+            Add animal
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
