@@ -3,13 +3,10 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { ConfigClient } from "@/components/config-client";
 
-export default async function RulesConfigPage() {
+export default async function ReviewsTemplatesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/");
-  if (session.user?.role !== "owner") {
-    redirect("/dashboard");
-  }
+  if (session.user?.role !== "owner") redirect("/dashboard/reviews");
 
-  return <ConfigClient user={session.user ?? null} initialSection="rules" />;
+  return <ConfigClient user={session.user ?? null} initialSection="templates" />;
 }
-
