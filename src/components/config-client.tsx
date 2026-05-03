@@ -251,9 +251,9 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           })
         );
         toast.success(
-          `Synced ${sorted.length} unreplied review${sorted.length === 1 ? "" : "s"}. Redirecting to dashboard…`
+          `Synced ${sorted.length} unreplied review${sorted.length === 1 ? "" : "s"}. Redirecting…`
         );
-        router.push("/dashboard");
+        router.push("/dashboard/reviews/inbox");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Sync failed");
         setSyncingFromConfig(false);
