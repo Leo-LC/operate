@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
+import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import type { AnimalStatus, AnimalSex } from "@/modules/animals/types";
 
 const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
@@ -9,6 +10,7 @@ const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const locationId = searchParams.get("location_id");
@@ -41,6 +43,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: {
     name: string;

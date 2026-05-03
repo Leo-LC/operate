@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 
 const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 
@@ -16,6 +17,7 @@ function esc(v: string | null | undefined): string {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
