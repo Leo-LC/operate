@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, XIcon, TrashIcon, DownloadIcon } from "lucide-react";
+import { AccountingChart } from "@/modules/accounting/components/AccountingChart";
 import {
   EMPTY_ENTRY,
   toFormState,
@@ -251,22 +252,30 @@ export function AccountingClient({ locations }: AccountingClientProps) {
         </div>
       </div>
 
-      {/* Monthly summary cards */}
-      {filled > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: "Sales net", value: fmt(totals.salesNet) },
-            { label: "Sales inc. VAT", value: fmt(totals.salesIncVat) },
-            { label: "Expenses", value: fmt(totals.expTot) },
-            { label: "HR total", value: fmt(totals.hr) },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-              <p className="text-lg font-semibold">{value}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* KPI row */}
+      {filled > 0 && (() => {
+        const netProfit = totals.salesNet - totals.expTot - totals.hr - fixedCost;
+        const margin = totals.salesNet > 0 ? (netProfit / totals.salesNet) * 100 : 0;
+        const kpis = [
+          { label: "Sales net", value: fmt(totals.salesNet), highlight: false },
+          { label: "Expenses", value: fmt(totals.expTot + totals.hr + fixedCost), highlight: false },
+          { label: "Net profit", value: fmt(netProfit), highlight: true, positive: netProfit >= 0 },
+          { label: "Net margin", value: `${margin.toFixed(1)}%`, highlight: true, positive: margin >= 0 },
+        ];
+        return (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {kpis.map(({ label, value, highlight, positive }) => (
+              <div key={label} className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                <p className={`text-lg font-semibold ${highlight ? (positive ? "text-green-600 dark:text-green-400" : "text-destructive") : ""}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Daily bar chart */}
+      {filled > 2 && <AccountingChart entries={entries} year={year} month={month} />}
 
       {/* Day table */}
       <div className="rounded-lg border border-border overflow-x-auto">

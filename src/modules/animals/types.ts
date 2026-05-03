@@ -33,6 +33,9 @@ export interface Animal {
   arrival_date: string | null;
   microchip_id: string | null;
   notes: string | null;
+  last_vaccination_date: string | null;
+  next_vaccination_date: string | null;
+  vaccination_passport: boolean;
   created_at: string;
   updated_at: string;
   event_count?: number;

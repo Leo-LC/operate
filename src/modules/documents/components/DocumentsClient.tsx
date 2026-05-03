@@ -2,7 +2,8 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon, DownloadIcon } from "lucide-react";
+import { PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
+import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";
 import {
   computeStatus,
   DOCUMENT_TYPE_LABELS,
@@ -59,6 +60,7 @@ interface DocumentsClientProps {
 
 export function DocumentsClient({ initialDocuments, locations }: DocumentsClientProps) {
   const [documents, setDocuments] = useState(initialDocuments);
+  const [view, setView] = useState<"table" | "calendar">("table");
   const [statusFilter, setStatusFilter] = useState<"" | DocumentStatus>("");
   const [locationFilter, setLocationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -195,6 +197,22 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           )}
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setView("table")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs ${view === "table" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
+            >
+              <ListIcon className="size-3.5" /> Table
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("calendar")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs border-l border-border ${view === "calendar" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
+            >
+              <CalendarIcon className="size-3.5" /> Calendar
+            </button>
+          </div>
           <a href="/api/documents/export" download>
             <Button size="sm" variant="outline" className="gap-1.5">
               <DownloadIcon className="size-4" />
@@ -245,8 +263,11 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
         </span>
       </div>
 
+      {/* Calendar view */}
+      {view === "calendar" && <DocumentsCalendar documents={documents} />}
+
       {/* Table */}
-      {displayed.length === 0 ? (
+      {view === "table" && (displayed.length === 0 ? (
         <div className="rounded-lg border border-border py-12 text-center text-sm text-muted-foreground">
           No documents found. Add one to get started.
         </div>
@@ -335,7 +356,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
             </tbody>
           </table>
         </div>
-      )}
+      ))}
 
       {/* Add / Edit form modal */}
       {showForm && (

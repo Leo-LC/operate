@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon } from "lucide-react";
+import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
 import {
   STATUS_CLASSES,
   STATUS_LABELS,
@@ -12,6 +12,7 @@ import {
   type AnimalSex,
 } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
+import { VaccinationCalendar } from "@/modules/animals/components/VaccinationCalendar";
 
 const ALL_STATUSES: AnimalStatus[] = [
   "active", "observation", "quarantine", "sick", "transferred", "retired", "deceased", "archived",
@@ -27,6 +28,9 @@ interface FormState {
   arrival_date: string;
   microchip_id: string;
   notes: string;
+  last_vaccination_date: string;
+  next_vaccination_date: string;
+  vaccination_passport: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -39,6 +43,9 @@ const EMPTY_FORM: FormState = {
   arrival_date: "",
   microchip_id: "",
   notes: "",
+  last_vaccination_date: "",
+  next_vaccination_date: "",
+  vaccination_passport: false,
 };
 
 interface AnimalsListClientProps {
@@ -49,6 +56,7 @@ interface AnimalsListClientProps {
 export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClientProps) {
   const router = useRouter();
   const [animals, setAnimals] = useState(initialAnimals);
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [statusFilter, setStatusFilter] = useState<"" | AnimalStatus>("");
   const [locationFilter, setLocationFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -84,6 +92,9 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           arrival_date: form.arrival_date || null,
           microchip_id: form.microchip_id || null,
           notes: form.notes || null,
+          last_vaccination_date: form.last_vaccination_date || null,
+          next_vaccination_date: form.next_vaccination_date || null,
+          vaccination_passport: form.vaccination_passport,
         }),
       });
       if (!res.ok) {
@@ -114,6 +125,22 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           )}
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs ${view === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
+            >
+              <ListIcon className="size-3.5" /> List
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("calendar")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs border-l border-border ${view === "calendar" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
+            >
+              <CalendarIcon className="size-3.5" /> Vaccines
+            </button>
+          </div>
           <a href="/api/animals/export" download>
             <Button size="sm" variant="outline" className="gap-1.5">
               <DownloadIcon className="size-4" />
@@ -208,6 +235,21 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               <label className="text-xs font-medium text-muted-foreground">Microchip / ID</label>
               <input value={form.microchip_id} onChange={(e) => setForm((f) => ({ ...f, microchip_id: e.target.value }))} className="h-8 rounded-md border border-input bg-background px-2 text-sm" placeholder="Optional" />
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
+              <input type="date" value={form.last_vaccination_date} onChange={(e) => setForm((f) => ({ ...f, last_vaccination_date: e.target.value }))} className="h-8 rounded-md border border-input bg-background px-2 text-sm" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
+              <input type="date" value={form.next_vaccination_date} onChange={(e) => setForm((f) => ({ ...f, next_vaccination_date: e.target.value }))} className="h-8 rounded-md border border-input bg-background px-2 text-sm" />
+            </div>
+            <div className="flex flex-col gap-1 justify-end">
+              <label className="text-xs font-medium text-muted-foreground">Vacc. passport</label>
+              <div className="flex items-center h-8 gap-2">
+                <input type="checkbox" id="vacc_passport" checked={form.vaccination_passport} onChange={(e) => setForm((f) => ({ ...f, vaccination_passport: e.target.checked }))} className="size-4 rounded" />
+                <label htmlFor="vacc_passport" className="text-sm text-muted-foreground">Has passport</label>
+              </div>
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-muted-foreground">Notes</label>
@@ -220,52 +262,57 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         </form>
       )}
 
+      {/* Vaccination calendar view */}
+      {view === "calendar" && <VaccinationCalendar animals={animals} />}
+
       {/* List */}
-      {displayed.length === 0 ? (
-        <div className="rounded-lg border border-border py-12 text-center text-sm text-muted-foreground">
-          No animals found. Add one to get started.
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
-              <tr>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Species</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Location</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Sex</th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {displayed.map((animal) => (
-                <tr
-                  key={animal.id}
-                  className="hover:bg-muted/20 transition-colors cursor-pointer"
-                  onClick={() => router.push(`/dashboard/animals/${animal.id}`)}
-                >
-                  <td className="px-4 py-2.5 font-medium">{animal.name}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs capitalize">{animal.species}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[animal.status]}`}>
-                      {STATUS_LABELS[animal.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                    {animal.location_name ?? <span className="text-muted-foreground/40">—</span>}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs capitalize">
-                    {animal.sex ?? <span className="text-muted-foreground/40">—</span>}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <ChevronRightIcon className="size-4 text-muted-foreground inline" />
-                  </td>
+      {view === "list" && (
+        displayed.length === 0 ? (
+          <div className="rounded-lg border border-border py-12 text-center text-sm text-muted-foreground">
+            No animals found. Add one to get started.
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Species</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Location</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Sex</th>
+                  <th className="px-4 py-2.5" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {displayed.map((animal) => (
+                  <tr
+                    key={animal.id}
+                    className="hover:bg-muted/20 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/dashboard/animals/${animal.id}`)}
+                  >
+                    <td className="px-4 py-2.5 font-medium">{animal.name}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs capitalize">{animal.species}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[animal.status]}`}>
+                        {STATUS_LABELS[animal.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                      {animal.location_name ?? <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs capitalize">
+                      {animal.sex ?? <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <ChevronRightIcon className="size-4 text-muted-foreground inline" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
     </div>
   );

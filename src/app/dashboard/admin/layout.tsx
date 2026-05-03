@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="flex gap-1">
           {[
             { href: "/dashboard/admin/users", label: "Users" },
+            { href: "/dashboard/admin/employees", label: "Employees" },
             { href: "/dashboard/admin/locations", label: "Locations" },
             { href: "/dashboard/admin/audit-logs", label: "Audit Logs" },
           ].map(({ href, label }) => (
