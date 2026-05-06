@@ -12,14 +12,23 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   let body: {
     title?: string;
+    thai_form_name?: string | null;
     document_type?: DocumentType;
     status?: DocumentStatus;
+    code?: string | null;
+    category?: string | null;
+    authority?: string | null;
+    frequency?: string | null;
     location_id?: string | null;
+    is_relevant?: boolean;
+    has_document?: boolean;
     drive_url?: string | null;
     issued_at?: string | null;
     expires_at?: string | null;
+    reminder_days_override?: number | null;
     responsible_person?: string | null;
     notes?: string | null;
+    shop_notes?: string | null;
     last_checked_at?: string | null;
   };
   try {
@@ -30,11 +39,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   const allowedKeys = [
-    "title", "document_type", "status", "location_id", "drive_url",
-    "issued_at", "expires_at", "responsible_person", "notes", "last_checked_at",
+    "title", "thai_form_name", "document_type", "status", "code", "category",
+    "authority", "frequency", "location_id", "is_relevant", "has_document",
+    "drive_url", "issued_at", "expires_at", "reminder_days_override",
+    "responsible_person", "notes", "shop_notes", "last_checked_at",
   ] as const;
   for (const key of allowedKeys) {
-    if (key in body) updates[key] = body[key];
+    if (key in body) updates[key] = body[key as keyof typeof body];
   }
 
   const supabase = getSupabaseServerClient();

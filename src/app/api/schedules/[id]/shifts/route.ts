@@ -56,8 +56,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
   if (delErr) return Response.json({ error: delErr.message }, { status: 500 });
 
-  if (body.shifts.length > 0) {
-    const rows = body.shifts.map((s) => ({
+  // Filter out OFF shifts (no start_time) — only persist actual working shifts
+  const activeShifts = body.shifts.filter((s) => s.start_time !== null && s.start_time !== "");
+  if (activeShifts.length > 0) {
+    const rows = activeShifts.map((s) => ({
       schedule_id: params.id,
       employee_id: s.employee_id,
       shift_date: s.shift_date,

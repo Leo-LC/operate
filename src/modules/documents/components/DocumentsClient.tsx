@@ -2,55 +2,64 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
+import {
+  PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon,
+  DownloadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
+} from "lucide-react";
 import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";
 import {
-  computeStatus,
-  DOCUMENT_TYPE_LABELS,
-  STATUS_CLASSES,
-  STATUS_LABELS,
-  type Document,
-  type DocumentStatus,
-  type DocumentType,
+  computeStatus, daysUntilExpiry,
+  DOCUMENT_TYPE_LABELS, STATUS_CLASSES, STATUS_LABELS,
+  type Document, type DocumentStatus, type DocumentType,
 } from "@/modules/documents/types";
+import { ALL_CATEGORIES, CATEGORY_ORDER } from "@/modules/documents/masterList";
 import type { AdminLocation } from "@/modules/admin/types";
+
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const ALL_TYPES: DocumentType[] = [
   "permit", "license", "certificate", "contract", "insurance", "health", "legal", "hr", "other",
 ];
+
 const STATUS_FILTERS: Array<{ value: "" | DocumentStatus; label: string }> = [
-  { value: "", label: "All" },
+  { value: "", label: "All statuses" },
   { value: "expired", label: "Expired" },
   { value: "expiring", label: "Expiring soon" },
   { value: "missing", label: "Missing" },
   { value: "to_review", label: "To review" },
   { value: "valid", label: "Valid" },
   { value: "archived", label: "Archived" },
-  { value: "replaced", label: "Replaced" },
 ];
+
+// ─── types ────────────────────────────────────────────────────────────────────
 
 interface FormState {
   title: string;
+  thai_form_name: string;
+  code: string;
+  category: string;
+  authority: string;
+  frequency: string;
   document_type: DocumentType;
-  status: DocumentStatus;
   location_id: string;
-  drive_url: string;
+  is_relevant: boolean;
+  has_document: boolean;
+  status: DocumentStatus;
+  responsible_person: string;
   issued_at: string;
   expires_at: string;
-  responsible_person: string;
+  reminder_days_override: string;
+  drive_url: string;
   notes: string;
+  shop_notes: string;
 }
 
 const EMPTY_FORM: FormState = {
-  title: "",
-  document_type: "other",
-  status: "valid",
-  location_id: "",
-  drive_url: "",
-  issued_at: "",
-  expires_at: "",
-  responsible_person: "",
-  notes: "",
+  title: "", thai_form_name: "", code: "", category: "", authority: "",
+  frequency: "", document_type: "other", location_id: "",
+  is_relevant: true, has_document: false, status: "missing",
+  responsible_person: "", issued_at: "", expires_at: "",
+  reminder_days_override: "", drive_url: "", notes: "", shop_notes: "",
 };
 
 interface DocumentsClientProps {
@@ -58,38 +67,87 @@ interface DocumentsClientProps {
   locations: AdminLocation[];
 }
 
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function ExpiryCell({ expires_at }: { expires_at: string | null }) {
+  if (!expires_at) return <span className="text-muted-foreground/40">—</span>;
+  const days = daysUntilExpiry(expires_at);
+  if (days === null) return <span className="text-muted-foreground/40">—</span>;
+  if (days < 0) {
+    return <span className="text-[var(--destructive)] font-medium">{-days}d overdue</span>;
+  }
+  if (days === 0) return <span className="text-[var(--destructive)] font-medium">Today</span>;
+  if (days <= 30) return <span className="text-amber-600 font-medium">In {days}d</span>;
+  return <span className="text-muted-foreground">{new Date(expires_at).toLocaleDateString()}</span>;
+}
+
+function HasDocBadge({ has_document }: { has_document: boolean }) {
+  if (has_document) {
+    return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-[color-mix(in_oklch,var(--success)_12%,transparent)] text-[var(--success)]">Yes</span>;
+  }
+  return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">—</span>;
+}
+
+// ─── main component ───────────────────────────────────────────────────────────
+
 export function DocumentsClient({ initialDocuments, locations }: DocumentsClientProps) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [view, setView] = useState<"table" | "calendar">("table");
   const [statusFilter, setStatusFilter] = useState<"" | DocumentStatus>("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [relevanceFilter, setRelevanceFilter] = useState<"" | "relevant" | "not_relevant">("");
+  const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
+  // ── derived stats ────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    let total = 0, missing = 0, expiring = 0, expired = 0, valid = 0, notRelevant = 0;
+    for (const d of documents) {
+      total++;
+      if (!d.is_relevant) { notRelevant++; continue; }
+      const s = computeStatus(d);
+      if (s === "expired") expired++;
+      else if (s === "expiring") expiring++;
+      else if (s === "missing") missing++;
+      else if (s === "valid") valid++;
+    }
+    return { total, missing, expiring, expired, valid, notRelevant };
+  }, [documents]);
+
+  // ── filtered view ────────────────────────────────────────────────────────
   const displayed = useMemo(() => {
+    const q = search.toLowerCase();
     return documents.filter((d) => {
+      if (relevanceFilter === "relevant" && !d.is_relevant) return false;
+      if (relevanceFilter === "not_relevant" && d.is_relevant) return false;
       const effectiveStatus = computeStatus(d);
       if (statusFilter && effectiveStatus !== statusFilter) return false;
       if (locationFilter && d.location_id !== locationFilter) return false;
-      if (typeFilter && d.document_type !== typeFilter) return false;
+      if (categoryFilter && d.category !== categoryFilter) return false;
+      if (q) {
+        const haystack = `${d.title} ${d.code ?? ""} ${d.responsible_person ?? ""} ${d.thai_form_name ?? ""}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
-  }, [documents, statusFilter, locationFilter, typeFilter]);
+  }, [documents, statusFilter, locationFilter, categoryFilter, relevanceFilter, search]);
 
-  const counts = useMemo(() => {
-    const c = { expired: 0, expiring: 0, missing: 0 };
-    for (const d of documents) {
-      const s = computeStatus(d);
-      if (s === "expired") c.expired++;
-      else if (s === "expiring") c.expiring++;
-      else if (s === "missing") c.missing++;
+  const groupedDisplayed = useMemo(() => {
+    const groups: Record<string, typeof displayed> = {};
+    for (const d of displayed) {
+      const cat = d.category ?? "Other";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(d);
     }
-    return c;
-  }, [documents]);
+    return CATEGORY_ORDER.filter((c) => groups[c]).map((c) => ({ category: c, docs: groups[c] }));
+  }, [displayed]);
 
+  // ── form helpers ─────────────────────────────────────────────────────────
   function openAdd() {
     setEditingId(null);
     setForm(EMPTY_FORM);
@@ -100,14 +158,23 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
     setEditingId(doc.id);
     setForm({
       title: doc.title,
+      thai_form_name: doc.thai_form_name ?? "",
+      code: doc.code ?? "",
+      category: doc.category ?? "",
+      authority: doc.authority ?? "",
+      frequency: doc.frequency ?? "",
       document_type: doc.document_type,
-      status: doc.status,
       location_id: doc.location_id ?? "",
-      drive_url: doc.drive_url ?? "",
+      is_relevant: doc.is_relevant,
+      has_document: doc.has_document,
+      status: doc.status,
+      responsible_person: doc.responsible_person ?? "",
       issued_at: doc.issued_at ?? "",
       expires_at: doc.expires_at ?? "",
-      responsible_person: doc.responsible_person ?? "",
+      reminder_days_override: doc.reminder_days_override != null ? String(doc.reminder_days_override) : "",
+      drive_url: doc.drive_url ?? "",
       notes: doc.notes ?? "",
+      shop_notes: doc.shop_notes ?? "",
     });
     setShowForm(true);
   }
@@ -118,19 +185,29 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
     setForm(EMPTY_FORM);
   }
 
+  // ── submit ───────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     const payload = {
       title: form.title,
+      thai_form_name: form.thai_form_name || null,
+      code: form.code || null,
+      category: form.category || null,
+      authority: form.authority || null,
+      frequency: form.frequency || null,
       document_type: form.document_type,
       status: form.status,
       location_id: form.location_id || null,
+      is_relevant: form.is_relevant,
+      has_document: form.has_document,
       drive_url: form.drive_url || null,
       issued_at: form.issued_at || null,
       expires_at: form.expires_at || null,
+      reminder_days_override: form.reminder_days_override ? Number(form.reminder_days_override) : null,
       responsible_person: form.responsible_person || null,
       notes: form.notes || null,
+      shop_notes: form.shop_notes || null,
     };
     try {
       const url = editingId ? `/api/documents/${editingId}` : "/api/documents";
@@ -180,23 +257,40 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
     toast.success("Marked as checked");
   }
 
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/documents/sync", { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Sync failed");
+        return;
+      }
+      const result = await res.json() as { created: number; skipped: number };
+      if (result.created === 0) {
+        toast.success("Checklist up to date — no new rows needed");
+      } else {
+        toast.success(`Synced: ${result.created} new document rows created`);
+        // Reload page data
+        window.location.reload();
+      }
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  // ── render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-lg font-semibold">Documents</h1>
-          {(counts.expired > 0 || counts.expiring > 0 || counts.missing > 0) && (
-            <p className="text-xs text-muted-foreground">
-              {counts.expired > 0 && <span className="text-[var(--destructive)] font-medium">{counts.expired} expired</span>}
-              {counts.expired > 0 && (counts.expiring > 0 || counts.missing > 0) && <span className="mx-1">·</span>}
-              {counts.expiring > 0 && <span className="text-amber-600 font-medium">{counts.expiring} expiring soon</span>}
-              {counts.expiring > 0 && counts.missing > 0 && <span className="mx-1">·</span>}
-              {counts.missing > 0 && <span className="text-muted-foreground">{counts.missing} missing</span>}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Track required documents, expiry dates, and compliance status by location.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex rounded-md border border-border overflow-hidden">
             <button
               type="button"
@@ -213,6 +307,16 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
               <CalendarIcon className="size-3.5" /> Calendar
             </button>
           </div>
+          <Button
+            size="sm" variant="outline"
+            onClick={() => void handleSync()}
+            disabled={syncing}
+            className="gap-1.5"
+            title="Generate missing checklist rows for all active locations"
+          >
+            <RefreshCwIcon className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing…" : "Sync checklist"}
+          </Button>
           <a href="/api/documents/export" download>
             <Button size="sm" variant="outline" className="gap-1.5">
               <DownloadIcon className="size-4" />
@@ -226,8 +330,45 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
         </div>
       </div>
 
+      {/* Summary cards */}
+      {documents.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Total tracked</p>
+            <p className="text-xl font-bold">{stats.total}</p>
+          </div>
+          <div className={`rounded-lg border p-3 ${stats.missing > 0 ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/30"}`}>
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Missing</p>
+            <p className={`text-xl font-bold ${stats.missing > 0 ? "text-[var(--destructive)]" : ""}`}>{stats.missing}</p>
+          </div>
+          <div className={`rounded-lg border p-3 ${stats.expiring > 0 ? "border-amber-500/30 bg-amber-500/5" : "border-border bg-muted/30"}`}>
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Expiring soon</p>
+            <p className={`text-xl font-bold ${stats.expiring > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{stats.expiring}</p>
+          </div>
+          <div className={`rounded-lg border p-3 ${stats.expired > 0 ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/30"}`}>
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Expired</p>
+            <p className={`text-xl font-bold ${stats.expired > 0 ? "text-[var(--destructive)]" : ""}`}>{stats.expired}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Valid</p>
+            <p className="text-xl font-bold">{stats.valid}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <p className="text-[11px] font-medium text-muted-foreground mb-1">Not relevant</p>
+            <p className="text-xl font-bold text-muted-foreground">{stats.notRelevant}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search documents…"
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs w-44"
+        />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)}
@@ -243,20 +384,28 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
           <option value="">All locations</option>
-          <option value="__none">Org-wide (no location)</option>
           {locations.map((l) => (
             <option key={l.id} value={l.id}>{l.name}</option>
           ))}
         </select>
         <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
           className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
-          <option value="">All types</option>
-          {ALL_TYPES.map((t) => (
-            <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
+          <option value="">All categories</option>
+          {ALL_CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
           ))}
+        </select>
+        <select
+          value={relevanceFilter}
+          onChange={(e) => setRelevanceFilter(e.target.value as "" | "relevant" | "not_relevant")}
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+        >
+          <option value="">All relevance</option>
+          <option value="relevant">Relevant only</option>
+          <option value="not_relevant">Not relevant</option>
         </select>
         <span className="ml-auto self-center text-xs text-muted-foreground">
           {displayed.length} document{displayed.length !== 1 ? "s" : ""}
@@ -264,217 +413,408 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       </div>
 
       {/* Calendar view */}
-      {view === "calendar" && <DocumentsCalendar documents={documents} />}
+      {view === "calendar" && (
+        <DocumentsCalendar documents={displayed} onEdit={openEdit} />
+      )}
 
-      {/* Table */}
-      {view === "table" && (displayed.length === 0 ? (
-        <div className="rounded-lg border border-border py-12 text-center text-sm text-muted-foreground">
-          No documents found. Add one to get started.
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
-              <tr>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Title</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Type</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Location</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Expires</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Responsible</th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {displayed.map((doc) => {
-                const effectiveStatus = computeStatus(doc);
-                return (
-                  <tr key={doc.id} className="hover:bg-muted/20 transition-colors group">
-                    <td className="px-4 py-2.5 font-medium">
-                      <div className="flex items-center gap-2">
-                        {doc.title}
-                        {doc.drive_url && (
-                          <a
-                            href={doc.drive_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground/60 hover:text-foreground transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <ExternalLinkIcon className="size-3.5" />
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                      {DOCUMENT_TYPE_LABELS[doc.document_type]}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[effectiveStatus]}`}>
-                        {STATUS_LABELS[effectiveStatus]}
+      {/* Table view */}
+      {view === "table" && (
+        documents.length === 0 ? (
+          <div className="rounded-lg border border-border py-12 text-center">
+            <p className="text-sm font-medium text-foreground mb-1">No documents yet</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Start by syncing the master checklist to all locations.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => void handleSync()} disabled={syncing} className="gap-1.5">
+              <RefreshCwIcon className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Sync master checklist to all locations"}
+            </Button>
+          </div>
+        ) : displayed.length === 0 ? (
+          <div className="rounded-lg border border-border py-10 text-center text-sm text-muted-foreground">
+            No documents match these filters.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {groupedDisplayed.map(({ category, docs }) => {
+              const attentionCount = docs.filter((d) => {
+                if (!d.is_relevant) return false;
+                const s = computeStatus(d);
+                return s === "missing" || s === "expired" || s === "expiring";
+              }).length;
+              return (
+                <div key={category} className="rounded-lg border border-border overflow-x-auto">
+                  <div className="flex items-center gap-2 bg-muted/40 px-4 py-2 border-b border-border">
+                    <span className="text-xs font-semibold text-foreground">{category}</span>
+                    <span className="text-xs text-muted-foreground">{docs.length}</span>
+                    {attentionCount > 0 && (
+                      <span className="ml-auto inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        {attentionCount} need attention
                       </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                      {doc.location_name ?? <span className="text-muted-foreground/40">Org-wide</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {doc.expires_at
-                        ? new Date(doc.expires_at).toLocaleDateString()
-                        : <span className="text-muted-foreground/40">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {doc.responsible_person ?? <span className="text-muted-foreground/40">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => void handleMarkChecked(doc)}
-                          className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border/60 hover:bg-muted transition-colors"
-                          title="Mark as checked today"
-                        >
-                          Checked
-                        </button>
-                        <button
-                          onClick={() => openEdit(doc)}
-                          className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                          title="Edit"
-                        >
-                          <PencilIcon className="size-3.5" />
-                        </button>
-                        <button
-                          onClick={() => void handleDelete(doc.id)}
-                          className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
-                          title="Delete"
-                        >
-                          <TrashIcon className="size-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ))}
+                    )}
+                  </div>
+                  <table className="w-full text-sm min-w-[900px]">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/20">
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Code</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Document</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Authority</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Freq.</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Location</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Has doc</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Status</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Expiry / due</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Responsible</th>
+                        <th className="px-4 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {docs.map((doc) => {
+                        const effectiveStatus = computeStatus(doc);
+                        const notRelevant = !doc.is_relevant;
+                        const urgent = !notRelevant && (effectiveStatus === "missing" || effectiveStatus === "expired");
+                        return (
+                          <tr
+                            key={doc.id}
+                            className={[
+                              "hover:bg-muted/20 transition-colors group",
+                              urgent ? "bg-red-50/30 dark:bg-red-950/10" : "",
+                              notRelevant ? "opacity-50" : "",
+                            ].filter(Boolean).join(" ")}
+                          >
+                            {/* Code */}
+                            <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                              {doc.code ?? <span className="text-muted-foreground/30">—</span>}
+                            </td>
+                            {/* Document + Thai form */}
+                            <td className="px-4 py-2.5">
+                              <div className="flex flex-col gap-0.5 min-w-[160px]">
+                                <div className="flex items-center gap-1.5 font-medium text-sm leading-none">
+                                  {doc.title}
+                                  {doc.drive_url && (
+                                    <a
+                                      href={doc.drive_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-muted-foreground/60 hover:text-foreground shrink-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Open in Drive"
+                                    >
+                                      <ExternalLinkIcon className="size-3" />
+                                    </a>
+                                  )}
+                                </div>
+                                {doc.thai_form_name && (
+                                  <span className="text-[11px] text-muted-foreground/70 leading-none">{doc.thai_form_name}</span>
+                                )}
+                              </div>
+                            </td>
+                            {/* Authority */}
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap max-w-[140px] truncate">
+                              {doc.authority ?? <span className="text-muted-foreground/30">—</span>}
+                            </td>
+                            {/* Frequency */}
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                              {doc.frequency ?? <span className="text-muted-foreground/30">—</span>}
+                            </td>
+                            {/* Location */}
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                              {doc.location_name ?? <span className="text-muted-foreground/40">Org-wide</span>}
+                            </td>
+                            {/* Has document */}
+                            <td className="px-4 py-2.5">
+                              <HasDocBadge has_document={doc.has_document} />
+                            </td>
+                            {/* Status */}
+                            <td className="px-4 py-2.5">
+                              {notRelevant ? (
+                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground/60">
+                                  Not relevant
+                                </span>
+                              ) : (
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[effectiveStatus]}`}>
+                                  {STATUS_LABELS[effectiveStatus]}
+                                </span>
+                              )}
+                            </td>
+                            {/* Expiry */}
+                            <td className="px-4 py-2.5 text-xs whitespace-nowrap">
+                              <ExpiryCell expires_at={doc.expires_at} />
+                            </td>
+                            {/* Responsible */}
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                              {doc.responsible_person ?? <span className="text-muted-foreground/30">—</span>}
+                            </td>
+                            {/* Actions */}
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => void handleMarkChecked(doc)}
+                                  className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border/60 hover:bg-muted transition-colors whitespace-nowrap"
+                                  title="Mark as checked today"
+                                >
+                                  Checked
+                                </button>
+                                <button
+                                  onClick={() => openEdit(doc)}
+                                  className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                  title="Edit"
+                                >
+                                  <PencilIcon className="size-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => void handleDelete(doc.id)}
+                                  className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="size-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
 
-      {/* Add / Edit form modal */}
+      {/* Add / Edit modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-background p-5 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold">{editingId ? "Edit document" : "Add document"}</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-background p-5 shadow-xl my-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-sm font-semibold">{editingId ? "Edit document" : "Add document"}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {editingId ? "Update this document's tracking details." : "Add a document to the compliance tracker."}
+                </p>
+              </div>
               <button onClick={closeForm} className="text-muted-foreground hover:text-foreground">
                 <XIcon className="size-4" />
               </button>
             </div>
-            <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Title *</label>
-                  <input
-                    required
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                    placeholder="e.g. Operating license — Samui"
-                  />
-                </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Type</label>
-                  <select
-                    value={form.document_type}
-                    onChange={(e) => setForm((f) => ({ ...f, document_type: e.target.value as DocumentType }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                  >
-                    {ALL_TYPES.map((t) => (
-                      <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
-                    ))}
-                  </select>
-                </div>
+            <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-5">
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as DocumentStatus }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                  >
-                    {(["valid", "missing", "to_review", "replaced", "archived"] as DocumentStatus[]).map((s) => (
-                      <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                    ))}
-                  </select>
+              {/* Section: Basic information */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Basic information</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Document name <span className="text-destructive">*</span></label>
+                    <input
+                      required
+                      value={form.title}
+                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      placeholder="e.g. Restaurant License"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Thai form name</label>
+                    <input
+                      value={form.thai_form_name}
+                      onChange={(e) => setForm((f) => ({ ...f, thai_form_name: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      placeholder="e.g. ใบอนุญาต"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Document code</label>
+                    <input
+                      value={form.code}
+                      onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm font-mono"
+                      placeholder="e.g. FOOD_LICENSE"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Category</label>
+                    <select
+                      value={form.category}
+                      onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    >
+                      <option value="">Select category</option>
+                      {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Type</label>
+                    <select
+                      value={form.document_type}
+                      onChange={(e) => setForm((f) => ({ ...f, document_type: e.target.value as DocumentType }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    >
+                      {ALL_TYPES.map((t) => (
+                        <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Authority / issuer</label>
+                    <input
+                      value={form.authority}
+                      onChange={(e) => setForm((f) => ({ ...f, authority: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      placeholder="e.g. District Office"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Frequency</label>
+                    <input
+                      value={form.frequency}
+                      onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      placeholder="e.g. Yearly, Monthly, Once"
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Location</label>
-                  <select
-                    value={form.location_id}
-                    onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                  >
-                    <option value="">Org-wide</option>
-                    {locations.map((l) => (
-                      <option key={l.id} value={l.id}>{l.name}</option>
-                    ))}
-                  </select>
+              {/* Section: Shop tracking */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Shop tracking</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Location</label>
+                    <select
+                      value={form.location_id}
+                      onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    >
+                      <option value="">Org-wide</option>
+                      {locations.map((l) => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Status</label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as DocumentStatus }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    >
+                      {(["valid", "missing", "to_review", "replaced", "archived"] as DocumentStatus[]).map((s) => (
+                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 col-span-2">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.is_relevant}
+                        onChange={(e) => setForm((f) => ({ ...f, is_relevant: e.target.checked }))}
+                        className="size-3.5 rounded"
+                      />
+                      Relevant to this location
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-4">
+                      <input
+                        type="checkbox"
+                        checked={form.has_document}
+                        onChange={(e) => setForm((f) => ({ ...f, has_document: e.target.checked }))}
+                        className="size-3.5 rounded"
+                      />
+                      We have this document
+                    </label>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Responsible person</label>
+                    <input
+                      value={form.responsible_person}
+                      onChange={(e) => setForm((f) => ({ ...f, responsible_person: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      placeholder="Name"
+                    />
+                  </div>
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Shop notes</label>
+                    <textarea
+                      value={form.shop_notes}
+                      onChange={(e) => setForm((f) => ({ ...f, shop_notes: e.target.value }))}
+                      rows={2}
+                      className="rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
+                      placeholder="Location-specific notes"
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Responsible person</label>
-                  <input
-                    value={form.responsible_person}
-                    onChange={(e) => setForm((f) => ({ ...f, responsible_person: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                    placeholder="Name"
-                  />
+              {/* Section: Dates */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Dates</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Issue date</label>
+                    <input
+                      type="date"
+                      value={form.issued_at}
+                      onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Expiry / next due</label>
+                    <input
+                      type="date"
+                      value={form.expires_at}
+                      onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Reminder days before</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.reminder_days_override}
+                      onChange={(e) => setForm((f) => ({ ...f, reminder_days_override: e.target.value }))}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      placeholder="e.g. 30"
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Issue date</label>
-                  <input
-                    type="date"
-                    value={form.issued_at}
-                    onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Expiry date</label>
-                  <input
-                    type="date"
-                    value={form.expires_at}
-                    onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                  />
-                </div>
-
-                <div className="col-span-2 flex flex-col gap-1">
+              {/* Section: Storage */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Storage</p>
+                <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Drive link</label>
                   <input
                     type="url"
                     value={form.drive_url}
                     onChange={(e) => setForm((f) => ({ ...f, drive_url: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-sm font-mono text-xs"
-                    placeholder="https://drive.google.com/..."
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs font-mono"
+                    placeholder="https://drive.google.com/…"
                   />
                 </div>
+              </div>
 
-                <div className="col-span-2 flex flex-col gap-1">
-                  <label className="text-xs font-medium text-muted-foreground">Notes</label>
+              {/* Section: Notes */}
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Notes</p>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">General notes</label>
                   <textarea
                     value={form.notes}
                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                     rows={2}
                     className="rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
-                    placeholder="Optional notes"
+                    placeholder="Optional operational notes"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="flex justify-end gap-2 pt-1 border-t border-border">
                 <Button type="button" size="sm" variant="outline" onClick={closeForm}>
                   Cancel
                 </Button>

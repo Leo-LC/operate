@@ -7,6 +7,7 @@ import { computeStatus, STATUS_CLASSES, STATUS_LABELS, type Document } from "@/m
 
 interface Props {
   documents: Document[];
+  onEdit?: (doc: Document) => void;
 }
 
 function dayColor(docs: Document[]): string {
@@ -15,7 +16,7 @@ function dayColor(docs: Document[]): string {
   return "bg-blue-400";
 }
 
-export function DocumentsCalendar({ documents }: Props) {
+export function DocumentsCalendar({ documents, onEdit }: Props) {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<Date | null>(null);
 
@@ -122,7 +123,13 @@ export function DocumentsCalendar({ documents }: Props) {
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[status]}`}>
                   {STATUS_LABELS[status]}
                 </span>
-                <span className="font-medium">{d.title}</span>
+                <button
+                  type="button"
+                  onClick={() => onEdit?.(d)}
+                  className="font-medium hover:underline text-left"
+                >
+                  {d.title}
+                </button>
                 <span className="text-muted-foreground text-xs">{d.location_name ?? ""}</span>
                 {d.drive_url && (
                   <a href={d.drive_url} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs text-muted-foreground hover:text-foreground underline">Drive ↗</a>

@@ -218,7 +218,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
           </div>
         </aside>
 
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-32">{children}</main>
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-32">{children}</main>
       </div>
     </div>
   );

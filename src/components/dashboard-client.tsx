@@ -149,6 +149,28 @@ export function DashboardClient({ user }: DashboardClientProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Auto-sync once per browser session when saved locations are already configured
+  useEffect(() => {
+    if (!user?.email) return;
+    if (typeof window === "undefined") return;
+    const SESSION_FLAG = "capybara-synced-this-session";
+    if (sessionStorage.getItem(SESSION_FLAG)) return;
+    const savedIds = readSavedLocationIds(SELECTED_LOCATIONS_KEY);
+    if (!savedIds || savedIds.length === 0) return;
+    sessionStorage.setItem(SESSION_FLAG, "1");
+    setSyncing(true);
+    const query = `?locations=${encodeURIComponent(savedIds.join(","))}`;
+    fetch(`/api/reviews/sync${query}`)
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { reviews: ReviewWithLocation[] };
+        handleSynced(data.reviews ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setSyncing(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]);
+
   /** Locations from reviews only (for merging titles) */
   const locationsFromReviews = useMemo((): LocationOption[] => {
     const seen = new Set<string>();

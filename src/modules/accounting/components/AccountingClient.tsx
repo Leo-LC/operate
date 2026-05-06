@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, XIcon, TrashIcon, DownloadIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, XIcon, TrashIcon, DownloadIcon } from "lucide-react";
 import { AccountingChart } from "@/modules/accounting/components/AccountingChart";
 import {
   EMPTY_ENTRY,
@@ -91,14 +91,31 @@ function NumInput({ label, field, form, onChange }: {
         step="0.01"
         value={form[field] as string}
         onChange={(e) => onChange(field, e.target.value)}
-        className="h-7 rounded border border-input bg-background px-2 text-xs text-right"
+        className="h-7 rounded border border-border bg-muted/30 px-2 text-xs text-right text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-border"
       />
     </div>
   );
 }
 
+const SECTION_COLORS: Record<string, string> = {
+  Sales:             "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  Payments:          "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  "Cash expenses":   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  "Bank expenses":   "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  HR:                "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+  "Cash tracking":   "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300",
+};
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground col-span-full mt-2 mb-0.5">{children}</p>;
+  const label = String(children);
+  const color = SECTION_COLORS[label] ?? "bg-muted text-muted-foreground";
+  return (
+    <div className="col-span-full mt-3 mb-1 first:mt-0">
+      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${color}`}>
+        {children}
+      </span>
+    </div>
+  );
 }
 
 interface AccountingClientProps {
@@ -299,7 +316,11 @@ export function AccountingClient({ locations }: AccountingClientProps) {
               const entry = entryMap.get(date);
               const isToday = date === today.toISOString().slice(0, 10);
               return (
-                <tr key={day} className={`hover:bg-muted/20 transition-colors group ${isToday ? "bg-muted/10" : ""}`}>
+                <tr
+                  key={day}
+                  onClick={() => openEdit(day)}
+                  className={`hover:bg-muted/20 transition-colors group cursor-pointer ${isToday ? "bg-muted/10" : ""}`}
+                >
                   <td className="px-3 py-1.5 font-medium">
                     {String(day).padStart(2, "0")}
                     {isToday && <span className="ml-1 text-[9px] text-muted-foreground">today</span>}
@@ -315,9 +336,8 @@ export function AccountingClient({ locations }: AccountingClientProps) {
                       <td className={`px-3 py-1.5 text-right font-medium ${paymentDelta(entry) < -10 ? "text-[var(--destructive)]" : paymentDelta(entry) > 10 ? "text-[var(--success)]" : ""}`}>
                         {fmtSigned(paymentDelta(entry))}
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEdit(day)} className="rounded p-0.5 text-muted-foreground hover:text-foreground"><PencilIcon className="size-3" /></button>
                           <button onClick={() => void handleDelete(entry.id)} className="rounded p-0.5 text-muted-foreground hover:text-destructive"><TrashIcon className="size-3" /></button>
                         </div>
                       </td>

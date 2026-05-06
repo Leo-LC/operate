@@ -51,5 +51,9 @@ export default async function SchedulingPage() {
     created_at: l.created_at,
   }));
 
-  return <ScheduleListClient initialSchedules={schedules} locations={locations} />;
+  return (
+    <div className="rounded-lg border border-border bg-card p-6">
+      <ScheduleListClient initialSchedules={schedules} locations={locations} />
+    </div>
+  );
 }

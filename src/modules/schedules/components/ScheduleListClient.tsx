@@ -1,10 +1,10 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, CopyIcon, TrashIcon, CalendarIcon, ChevronRightIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
 import { STATUS_LABELS, STATUS_CLASSES } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
@@ -19,6 +19,11 @@ function weekLabel(iso: string) {
   return `${format(start, "d MMM")} – ${format(addDays(start, 6), "d MMM yyyy")}`;
 }
 
+function defaultScheduleName(weekIso: string): string {
+  const start = parseISO(weekIso);
+  return `Week of ${format(start, "d MMM yyyy")}`;
+}
+
 function mondayOf(d: Date) {
   return format(startOfWeek(d, { weekStartsOn: 1 }), "yyyy-MM-dd");
 }
@@ -28,13 +33,17 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
   const [schedules, setSchedules] = useState(initialSchedules);
   const [locationFilter, setLocationFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [createName, setCreateName] = useState("");
-  const [createLocation, setCreateLocation] = useState(locations[0]?.id ?? "");
   const [createWeek, setCreateWeek] = useState(mondayOf(new Date()));
+  const [createLocation, setCreateLocation] = useState(locations[0]?.id ?? "");
+  // Name auto-fills from week; user can override
+  const [createNameOverride, setCreateNameOverride] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [printingId, setPrintingId] = useState<string | null>(null);
+
+  const createName = createNameOverride ?? defaultScheduleName(createWeek);
 
   const filtered = useMemo(
-    () => locationFilter ? schedules.filter((s) => s.location_id === locationFilter) : schedules,
+    () => (locationFilter ? schedules.filter((s) => s.location_id === locationFilter) : schedules),
     [schedules, locationFilter],
   );
 
@@ -54,11 +63,11 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
         toast.error((err as { error?: string }).error ?? "Failed to create schedule");
         return;
       }
-      const created = await res.json() as Schedule;
+      const created = (await res.json()) as Schedule;
       const loc = locations.find((l) => l.id === created.location_id);
       setSchedules((prev) => [{ ...created, location_name: loc?.name ?? null }, ...prev]);
       setShowCreate(false);
-      setCreateName("");
+      setCreateNameOverride(null);
       toast.success("Schedule created");
       router.push(`/dashboard/scheduling/${created.id}`);
     } finally {
@@ -66,6 +75,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleDuplicate(schedule: Schedule) {
     setSubmitting(true);
     try {
@@ -75,7 +85,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
         body: JSON.stringify({ name: `${schedule.name} (copy)` }),
       });
       if (!res.ok) { toast.error("Failed to duplicate"); return; }
-      const duped = await res.json() as Schedule;
+      const duped = (await res.json()) as Schedule;
       const loc = locations.find((l) => l.id === duped.location_id);
       setSchedules((prev) => [{ ...duped, location_name: loc?.name ?? null }, ...prev]);
       toast.success("Schedule duplicated");
@@ -92,10 +102,91 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     toast.success("Schedule deleted");
   }
 
+  const printSchedule = useCallback(async (schedule: Schedule) => {
+    setPrintingId(schedule.id);
+    try {
+      const res = await fetch(`/api/schedules/${schedule.id}`);
+      if (!res.ok) { toast.error("Failed to load schedule data"); return; }
+      type ShiftRow = { employee_id: string; employee_name: string | null; shift_date: string; start_time: string | null; end_time: string | null };
+      const data = (await res.json()) as { shifts: ShiftRow[]; location_name: string | null };
+      const shifts = data.shifts ?? [];
+
+      // Collect unique employees from shifts (preserving order) + build day set
+      const empMap = new Map<string, string>();
+      shifts.forEach((s) => { if (s.employee_name && !empMap.has(s.employee_id)) empMap.set(s.employee_id, s.employee_name); });
+
+      const start = parseISO(schedule.week_start_date);
+      const weekDays = Array.from({ length: 7 }).map((_, i) => {
+        const d = addDays(start, i);
+        return { iso: format(d, "yyyy-MM-dd"), label: format(d, "EEE d") };
+      });
+
+      const shiftMap = new Map<string, ShiftRow>();
+      shifts.forEach((s) => shiftMap.set(`${s.employee_id}__${s.shift_date}`, s));
+
+      const computeH = (st: string | null, et: string | null): number => {
+        if (!st || !et) return 0;
+        const [sh, sm] = st.split(":").map(Number);
+        const [eh, em] = et.split(":").map(Number);
+        const diff = eh * 60 + em - (sh * 60 + sm);
+        return diff <= 30 ? 0 : (diff - 30) / 60;
+      };
+
+      const headers = weekDays.map((d) => `<th>${d.label}</th>`).join("");
+      const rows = Array.from(empMap.entries()).map(([empId, empName]) => {
+        let total = 0;
+        const cells = weekDays.map((day) => {
+          const s = shiftMap.get(`${empId}__${day.iso}`);
+          if (!s?.start_time) return `<td class="off">—</td>`;
+          const st = s.start_time.substring(0, 5);
+          const et = (s.end_time ?? "").substring(0, 5);
+          const h = computeH(st, et);
+          total += h;
+          return `<td>${st}<br>${et}<br><span class="h">${h.toFixed(1)}h</span></td>`;
+        }).join("");
+        return `<tr><td class="name">${empName}</td>${cells}<td class="total">${total.toFixed(1)}h</td></tr>`;
+      }).join("");
+
+      const win = window.open("", "_blank", "width=1100,height=750");
+      if (!win) { toast.error("Pop-up blocked — please allow pop-ups"); return; }
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>${schedule.name}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;padding:20px;color:#111}
+  h2{margin:0 0 2px;font-size:15px;font-weight:700}
+  .sub{margin:0 0 14px;color:#666;font-size:11px}
+  table{border-collapse:collapse;width:100%}
+  th,td{border:1px solid #ddd;padding:5px 6px;text-align:center;vertical-align:middle}
+  th{background:#f5f5f5;font-weight:600;font-size:10px}
+  td.name{text-align:left;font-weight:500;min-width:110px;white-space:nowrap}
+  td.off{color:#ccc}
+  td.total{font-weight:700;background:#fafafa}
+  span.h{font-weight:600;color:#16a34a}
+  @media print{@page{margin:12mm}body{padding:0}}
+</style></head><body>
+<h2>${schedule.name}</h2>
+<p class="sub">${data.location_name ?? ""}${data.location_name ? " · " : ""}${weekLabel(schedule.week_start_date)}</p>
+<table>
+  <thead><tr><th></th>${headers}<th>Week</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<script>window.onload=function(){window.print();window.close();}<\/script>
+</body></html>`);
+      win.document.close();
+    } finally {
+      setPrintingId(null);
+    }
+  }, []);
+
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Header ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3 justify-between">
-        <h1 className="text-xl font-semibold">Schedules</h1>
+        <div>
+          <h1 className="text-xl font-semibold">Schedules</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Weekly shift plans by shop.</p>
+        </div>
         <div className="flex gap-2">
           {locations.length > 1 && (
             <select
@@ -116,20 +207,21 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
         </div>
       </div>
 
+      {/* ── Create form ─────────────────────────────────────────── */}
       {showCreate && (
         <form
           onSubmit={(e) => void handleCreate(e)}
           className="rounded-lg border border-border bg-muted/20 p-4 flex flex-wrap gap-3 items-end"
         >
-          <div className="flex flex-col gap-1 min-w-[200px]">
+          <div className="flex flex-col gap-1 min-w-[220px]">
             <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
             <input
               type="text"
               required
               value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
+              onChange={(e) => setCreateNameOverride(e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="e.g. Week 20 — Samui"
+              placeholder="e.g. Week of 5 May 2026"
             />
           </div>
           <div className="flex flex-col gap-1 min-w-[160px]">
@@ -151,26 +243,31 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               type="date"
               required
               value={createWeek}
-              onChange={(e) => setCreateWeek(e.target.value)}
+              onChange={(e) => {
+                setCreateWeek(e.target.value);
+                // Reset name override so it auto-updates with the new week
+                setCreateNameOverride(null);
+              }}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
             />
           </div>
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => { setShowCreate(false); setCreateNameOverride(null); }}>Cancel</Button>
           </div>
         </form>
       )}
 
+      {/* ── Schedules table ─────────────────────────────────────── */}
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Shop</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Week</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-2.5" />
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Shop</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Week</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-3 w-24" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -180,26 +277,49 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                 className="hover:bg-muted/20 transition-colors cursor-pointer"
                 onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}
               >
-                <td className="px-4 py-2.5 font-medium flex items-center gap-2">
-                  <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
-                  {s.name}
+                <td className="px-4 py-3 font-medium">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    {s.name}
+                  </div>
                 </td>
-                <td className="px-4 py-2.5 text-muted-foreground">{s.location_name ?? "—"}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{weekLabel(s.week_start_date)}</td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-3 text-muted-foreground">{s.location_name ?? "—"}</td>
+                <td className="px-4 py-3 text-muted-foreground">{weekLabel(s.week_start_date)}</td>
+                <td className="px-4 py-3">
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[s.status]}`}>
                     {STATUS_LABELS[s.status]}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-end gap-1">
-                    <Button size="icon" variant="ghost" className="size-7" title="Duplicate" onClick={() => void handleDuplicate(s)}>
-                      <CopyIcon className="size-3.5" />
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      title="Download as PDF"
+                      disabled={printingId === s.id}
+                      onClick={() => void printSchedule(s)}
+                    >
+                      <PrinterIcon className="size-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="size-7 text-destructive hover:text-destructive" title="Delete" onClick={() => void handleDelete(s.id, s.name)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      title="Edit schedule"
+                      onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}
+                    >
+                      <PencilIcon className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 text-destructive hover:text-destructive"
+                      title="Delete"
+                      onClick={() => void handleDelete(s.id, s.name)}
+                    >
                       <TrashIcon className="size-3.5" />
                     </Button>
-                    <ChevronRightIcon className="size-4 text-muted-foreground self-center ml-1" />
                   </div>
                 </td>
               </tr>
@@ -208,7 +328,9 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
         </table>
         {filtered.length === 0 && (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            {schedules.length === 0 ? "No schedules yet. Create your first one above." : "No schedules for this shop."}
+            {schedules.length === 0
+              ? "No schedules yet. Create your first one above."
+              : "No schedules for this shop."}
           </div>
         )}
       </div>

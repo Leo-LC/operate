@@ -24,13 +24,22 @@ export interface Document {
   location_id: string | null;
   location_name: string | null;
   title: string;
+  thai_form_name: string | null;
   document_type: DocumentType;
   status: DocumentStatus;
+  code: string | null;
+  category: string | null;
+  authority: string | null;
+  frequency: string | null;
+  is_relevant: boolean;
+  has_document: boolean;
   drive_url: string | null;
   issued_at: string | null;
   expires_at: string | null;
+  reminder_days_override: number | null;
   responsible_person: string | null;
   notes: string | null;
+  shop_notes: string | null;
   last_checked_at: string | null;
   created_by: string | null;
   created_at: string;
@@ -42,7 +51,7 @@ export type DocumentUpsert = Omit<
   "id" | "organization_id" | "location_name" | "created_at" | "updated_at" | "created_by"
 >;
 
-/** Compute display status from expires_at when status is 'valid' or 'expiring' or 'expired'. */
+/** Compute display status from expires_at when status is 'valid', 'expiring', or 'expired'. */
 export function computeStatus(doc: Pick<Document, "status" | "expires_at">): DocumentStatus {
   if (doc.status !== "valid" && doc.status !== "expiring" && doc.status !== "expired") {
     return doc.status;
@@ -56,6 +65,15 @@ export function computeStatus(doc: Pick<Document, "status" | "expires_at">): Doc
   thirtyDays.setDate(thirtyDays.getDate() + 30);
   if (expiry <= thirtyDays) return "expiring";
   return "valid";
+}
+
+/** Return days until expiry (negative = overdue). null if no expiry date. */
+export function daysUntilExpiry(expires_at: string | null): number | null {
+  if (!expires_at) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expires_at);
+  return Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {

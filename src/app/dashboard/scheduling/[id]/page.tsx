@@ -86,15 +86,17 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <Link
         href="/dashboard/scheduling"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground w-fit"
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground w-fit -mb-2"
       >
         <ChevronLeftIcon className="size-4" />
         All schedules
       </Link>
-      <ScheduleGrid schedule={schedule} initialShifts={shifts} employees={employees} />
+      <div className="rounded-lg border border-border bg-card p-6">
+        <ScheduleGrid schedule={schedule} initialShifts={shifts} employees={employees} />
+      </div>
     </div>
   );
 }

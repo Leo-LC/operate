@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon } from "lucide-react";
 import type { Employee } from "@/modules/admin/types";
 import type { AdminLocation } from "@/modules/admin/types";
 
@@ -38,11 +38,6 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-
-  function field(f: Partial<FormState>, key: keyof FormState, setter: (v: FormState) => void) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-      setter({ ...(f as FormState), [key]: e.target.value });
-  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
