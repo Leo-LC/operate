@@ -99,6 +99,17 @@
     background-color: transparent;
     color: var(--foreground);
   }
+  /* Hide browser number-input spin buttons globally */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   html {
     font-family: var(--font-sans), system-ui, sans-serif;
     scroll-behavior: smooth;
