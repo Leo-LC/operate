@@ -3,9 +3,7 @@ export type DocumentStatus =
   | "expiring"
   | "expired"
   | "missing"
-  | "to_review"
-  | "replaced"
-  | "archived";
+  | "not_relevant";
 
 export type DocumentType =
   | "permit"
@@ -51,11 +49,10 @@ export type DocumentUpsert = Omit<
   "id" | "organization_id" | "location_name" | "created_at" | "updated_at" | "created_by"
 >;
 
-/** Compute display status from expires_at when status is 'valid', 'expiring', or 'expired'. */
-export function computeStatus(doc: Pick<Document, "status" | "expires_at">): DocumentStatus {
-  if (doc.status !== "valid" && doc.status !== "expiring" && doc.status !== "expired") {
-    return doc.status;
-  }
+/** Derive status automatically from is_relevant, has_document, and expires_at. */
+export function computeStatus(doc: Pick<Document, "is_relevant" | "has_document" | "expires_at">): DocumentStatus {
+  if (!doc.is_relevant) return "not_relevant";
+  if (!doc.has_document) return "missing";
   if (!doc.expires_at) return "valid";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -93,9 +90,7 @@ export const STATUS_LABELS: Record<DocumentStatus, string> = {
   expiring: "Expiring soon",
   expired: "Expired",
   missing: "Missing",
-  to_review: "To review",
-  replaced: "Replaced",
-  archived: "Archived",
+  not_relevant: "Not relevant",
 };
 
 export const STATUS_CLASSES: Record<DocumentStatus, string> = {
@@ -107,10 +102,6 @@ export const STATUS_CLASSES: Record<DocumentStatus, string> = {
     "bg-[color-mix(in_oklch,var(--destructive)_16%,transparent)] text-[var(--destructive)]",
   missing:
     "bg-[color-mix(in_oklch,var(--destructive)_16%,transparent)] text-[var(--destructive)]",
-  to_review:
-    "bg-muted text-muted-foreground",
-  replaced:
-    "bg-muted text-muted-foreground",
-  archived:
+  not_relevant:
     "bg-muted text-muted-foreground/60",
 };

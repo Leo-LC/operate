@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { computeStatus } from "@/modules/documents/types";
+import type { DocumentStatus } from "@/modules/documents/types";
 import { salesNetTotal, expTotal, hrTotal } from "@/modules/accounting/types";
 import type { DailyEntry } from "@/modules/accounting/types";
 
@@ -41,17 +41,16 @@ export async function GET(request: Request) {
       .order("entry_date"),
   ]);
 
-  // Documents
-  const docs = (docsData ?? []) as { status: string; expires_at: string | null }[];
+  // Documents — use the persisted status from DB (computed server-side on save)
+  const docs = (docsData ?? []) as { status: DocumentStatus }[];
   const documents = docs.reduce(
     (acc, d) => {
-      const eff = computeStatus({ status: d.status as Parameters<typeof computeStatus>[0]["status"], expires_at: d.expires_at });
-      if (eff === "archived" || eff === "replaced") return acc;
+      if (d.status === "not_relevant") return acc;
       acc.total++;
-      if (eff === "valid") acc.valid++;
-      else if (eff === "expiring") acc.expiring++;
-      else if (eff === "expired") acc.expired++;
-      else if (eff === "missing" || eff === "to_review") acc.attention++;
+      if (d.status === "valid") acc.valid++;
+      else if (d.status === "expiring") acc.expiring++;
+      else if (d.status === "expired") acc.expired++;
+      else if (d.status === "missing") acc.attention++;
       return acc;
     },
     { total: 0, valid: 0, expiring: 0, expired: 0, attention: 0 },

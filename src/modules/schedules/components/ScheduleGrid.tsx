@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon } from "lucide-react";
+import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon } from "lucide-react";
 import { ShiftCell, computeShiftHours } from "@/modules/schedules/components/ShiftCell";
 import { ScheduleHeatmap } from "@/modules/schedules/components/ScheduleHeatmap";
 import type { Schedule, ScheduleShift, ShiftGrid, CellData } from "@/modules/schedules/types";
@@ -55,6 +55,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [addEmpForm, setAddEmpForm] = useState({ first_name: "", last_name: "", position: "" });
   const [addEmpBusy, setAddEmpBusy] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
@@ -205,6 +206,23 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
     win.document.close();
   }
 
+  async function handleDuplicate() {
+    setDuplicating(true);
+    try {
+      const res = await fetch(`/api/schedules/${schedule.id}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: `${localName} (copy)` }),
+      });
+      if (!res.ok) { toast.error("Failed to duplicate schedule"); return; }
+      const duped = (await res.json()) as { id: string };
+      toast.success("Schedule duplicated");
+      router.push(`/dashboard/scheduling/${duped.id}`);
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
   async function handleAddEmployee(e: React.FormEvent) {
     e.preventDefault();
     const fn = addEmpForm.first_name.trim();
@@ -294,6 +312,17 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void handleDuplicate()}
+            disabled={duplicating}
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+            title="Duplicate this schedule"
+          >
+            <CopyIcon className="size-4" />
+            Duplicate
+          </Button>
           <Button
             size="sm"
             variant="outline"

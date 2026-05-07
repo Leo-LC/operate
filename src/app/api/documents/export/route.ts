@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-import { computeStatus, daysUntilExpiry } from "@/modules/documents/types";
+import { daysUntilExpiry } from "@/modules/documents/types";
 
 const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 
@@ -55,10 +55,7 @@ export async function GET() {
   ].join(",");
 
   const lines = rows.map((r) => {
-    const status = computeStatus({
-      status: r.status as Parameters<typeof computeStatus>[0]["status"],
-      expires_at: r.expires_at,
-    });
+    const status = r.status;
     const days = daysUntilExpiry(r.expires_at);
     return [
       esc(r.code),

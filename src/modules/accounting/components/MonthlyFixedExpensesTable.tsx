@@ -16,7 +16,7 @@ const MONTH_NAMES = [
 ];
 
 function fmt(n: number) {
-  return n === 0 ? "—" : n.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return n === 0 ? "" : n.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 interface Props {
@@ -171,14 +171,15 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
       <div className="rounded-lg border border-border overflow-x-auto">
         <table className="text-xs border-collapse" style={{ tableLayout: "auto" }}>
           <thead>
-            {/* Color band */}
+            {/* Spanning section header */}
             <tr>
-              <th className="sticky left-0 z-10 border-b border-slate-500/20 py-1 w-28 min-w-[7rem] border-r border-border/20"
-                style={{ background: "var(--background)" }} />
-              {categories.map((cat) => (
-                <th key={cat.key} className="bg-slate-500/10 border-b border-slate-500/20 py-1 min-w-[5rem] border-r border-border/20" />
-              ))}
-              <th className="bg-slate-500/10 border-b border-slate-500/20 py-1 min-w-[5rem] border-r border-border/20" />
+              <th
+                colSpan={categories.length + 2}
+                className="px-3 py-1.5 text-left text-[10px] font-semibold tracking-wide border-b border-slate-500/20"
+                style={{ background: "color-mix(in oklch, var(--color-slate-500, #64748b) 12%, transparent)", color: "color-mix(in oklch, var(--color-slate-500, #64748b) 80%, var(--foreground))" }}
+              >
+                Monthly Fixed Expenses
+              </th>
             </tr>
 
             {/* Column headers — border-b-2 separates headers from first data row */}
@@ -232,7 +233,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
 
                     if (isEditing) {
                       return (
-                        <td key={cat.key} className="px-1 py-1 text-right border-r border-border/20 min-w-[5rem]">
+                        <td key={cat.key} className="px-1 h-8 text-right border-r border-border/20 min-w-[5rem]">
                           <input
                             type="number"
                             step="0.01"
@@ -244,7 +245,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
                               if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
                               if (e.key === "Escape") setEditingCell(null);
                             }}
-                            className="w-full h-6 rounded border border-ring bg-background px-1.5 text-xs text-right focus:outline-none"
+                            className="w-full h-full rounded border border-ring bg-background px-1.5 text-xs text-right focus:outline-none"
                           />
                         </td>
                       );
@@ -253,7 +254,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
                     return (
                       <td
                         key={cat.key}
-                        className="px-3 py-2 text-right tabular-nums cursor-pointer hover:bg-accent/20 hover:ring-1 hover:ring-inset hover:ring-border/60 transition-all select-none border-r border-border/20 min-w-[5rem]"
+                        className="px-3 h-8 text-right tabular-nums cursor-pointer hover:bg-accent/20 hover:ring-1 hover:ring-inset hover:ring-border/60 transition-all select-none border-r border-border/20 min-w-[5rem]"
                         onClick={() => {
                           setEditingCell({ month: monthNum, catKey: cat.key });
                           setEditValue(val === 0 ? "" : String(val));

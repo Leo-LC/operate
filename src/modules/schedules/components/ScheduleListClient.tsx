@@ -4,9 +4,8 @@ import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
-import { STATUS_LABELS, STATUS_CLASSES } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
 
 interface Props {
@@ -75,7 +74,6 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleDuplicate(schedule: Schedule) {
     setSubmitting(true);
     try {
@@ -200,7 +198,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               ))}
             </select>
           )}
-          <Button size="sm" onClick={() => setShowCreate((v) => !v)} className="gap-1.5">
+          <Button size="sm" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }} className="gap-1.5">
             <PlusIcon className="size-4" />
             New schedule
           </Button>
@@ -266,8 +264,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Shop</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Week</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 w-24" />
+              <th className="px-4 py-3 w-28" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -285,13 +282,18 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{s.location_name ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{weekLabel(s.week_start_date)}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[s.status]}`}>
-                    {STATUS_LABELS[s.status]}
-                  </span>
-                </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      title="Duplicate"
+                      disabled={submitting}
+                      onClick={() => void handleDuplicate(s)}
+                    >
+                      <CopyIcon className="size-3.5" />
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"
