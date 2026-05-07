@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from("animals")
-    .select("id, organization_id, location_id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, created_at, updated_at, locations ( name )")
+    .select("id, organization_id, location_id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, last_vaccination_date, next_vaccination_date, vaccination_passport, created_at, updated_at, locations ( name )")
     .is("deleted_at", null)
     .eq("organization_id", ORG_ID)
     .order("name");
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  type Row = { id: string; organization_id: string; location_id: string | null; name: string; species: string; sex: string | null; status: string; estimated_birth_date: string | null; arrival_date: string | null; microchip_id: string | null; notes: string | null; created_at: string; updated_at: string; locations: { name: string } | null };
+  type Row = { id: string; organization_id: string; location_id: string | null; name: string; species: string; sex: string | null; status: string; estimated_birth_date: string | null; arrival_date: string | null; microchip_id: string | null; notes: string | null; last_vaccination_date: string | null; next_vaccination_date: string | null; vaccination_passport: boolean; created_at: string; updated_at: string; locations: { name: string } | null };
   const mapped = (data as unknown as Row[]).map((a) => ({
     ...a,
     location_name: a.locations?.name ?? null,
@@ -55,6 +55,9 @@ export async function POST(request: Request) {
     arrival_date?: string | null;
     microchip_id?: string | null;
     notes?: string | null;
+    last_vaccination_date?: string | null;
+    next_vaccination_date?: string | null;
+    vaccination_passport?: boolean;
   };
   try {
     body = await request.json();
@@ -78,6 +81,9 @@ export async function POST(request: Request) {
       arrival_date: body.arrival_date ?? null,
       microchip_id: body.microchip_id ?? null,
       notes: body.notes ?? null,
+      last_vaccination_date: body.last_vaccination_date ?? null,
+      next_vaccination_date: body.next_vaccination_date ?? null,
+      vaccination_passport: body.vaccination_passport ?? false,
       created_by: session.user.userId ?? null,
     })
     .select()

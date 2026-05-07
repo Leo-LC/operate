@@ -63,6 +63,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "location_id and entry_date are required" }, { status: 400 });
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(body.entry_date)) {
+    return Response.json({ error: "entry_date must be YYYY-MM-DD" }, { status: 400 });
+  }
+
   // Convert any string-number values and strip unknown keys
   const fields = fromFormState(toFormState(body as Parameters<typeof toFormState>[0]));
 

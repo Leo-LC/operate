@@ -1,0 +1,102 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { computeStatus } from "@/modules/documents/types";
+import { salesNetTotal, expTotal, hrTotal } from "@/modules/accounting/types";
+import type { DailyEntry } from "@/modules/accounting/types";
+
+const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const now = new Date();
+  const defaultFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const defaultTo = now.toISOString().split("T")[0];
+
+  const from = searchParams.get("from") ?? defaultFrom;
+  const to = searchParams.get("to") ?? defaultTo;
+
+  const supabase = getSupabaseServerClient();
+
+  const [{ data: docsData }, { data: animalsData }, { data: entriesData }] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("status, expires_at")
+      .is("deleted_at", null)
+      .eq("organization_id", ORG_ID),
+    supabase
+      .from("animals")
+      .select("status")
+      .is("deleted_at", null)
+      .eq("organization_id", ORG_ID),
+    supabase
+      .from("daily_entries")
+      .select("*")
+      .eq("organization_id", ORG_ID)
+      .gte("entry_date", from)
+      .lte("entry_date", to)
+      .order("entry_date"),
+  ]);
+
+  // Documents
+  const docs = (docsData ?? []) as { status: string; expires_at: string | null }[];
+  const documents = docs.reduce(
+    (acc, d) => {
+      const eff = computeStatus({ status: d.status as Parameters<typeof computeStatus>[0]["status"], expires_at: d.expires_at });
+      if (eff === "archived" || eff === "replaced") return acc;
+      acc.total++;
+      if (eff === "valid") acc.valid++;
+      else if (eff === "expiring") acc.expiring++;
+      else if (eff === "expired") acc.expired++;
+      else if (eff === "missing" || eff === "to_review") acc.attention++;
+      return acc;
+    },
+    { total: 0, valid: 0, expiring: 0, expired: 0, attention: 0 },
+  );
+
+  // Animals
+  const animalRows = (animalsData ?? []) as { status: string }[];
+  const animals = animalRows.reduce(
+    (acc, a) => {
+      if (a.status === "archived") return acc;
+      acc.total++;
+      if (a.status === "active") acc.active++;
+      else if (a.status === "sick" || a.status === "quarantine" || a.status === "observation") acc.attention++;
+      return acc;
+    },
+    { total: 0, active: 0, attention: 0 },
+  );
+
+  // Accounting
+  const entries = (entriesData ?? []) as DailyEntry[];
+  const salesNet = entries.reduce((s, e) => s + salesNetTotal(e), 0);
+  const expenses = entries.reduce((s, e) => s + expTotal(e), 0);
+  const hrCosts = entries.reduce((s, e) => s + hrTotal(e), 0);
+  const totalExpenses = expenses + hrCosts;
+  const netProfit = salesNet - totalExpenses;
+  const margin = salesNet > 0 ? (netProfit / salesNet) * 100 : 0;
+
+  // Days count in range
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const daysInRange = Math.round((toDate.getTime() - fromDate.getTime()) / 86400000) + 1;
+
+  return Response.json({
+    period: { from, to },
+    documents,
+    animals,
+    accounting: {
+      salesNet,
+      expenses,
+      hrCosts,
+      totalExpenses,
+      netProfit,
+      margin,
+      daysWithEntries: entries.length,
+      daysInRange,
+    },
+  });
+}

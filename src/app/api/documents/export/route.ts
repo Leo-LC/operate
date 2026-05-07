@@ -2,11 +2,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-import { computeStatus } from "@/modules/documents/types";
+import { computeStatus, daysUntilExpiry } from "@/modules/documents/types";
 
 const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 
-function esc(v: string | null | undefined): string {
+function esc(v: string | number | boolean | null | undefined): string {
   if (v == null) return "";
   const s = String(v);
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
@@ -23,27 +23,63 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, title, document_type, status, expires_at, issued_at, responsible_person, notes, drive_url, created_at, locations ( name )")
+    .select([
+      "id", "code", "title", "thai_form_name", "category", "document_type", "authority", "frequency",
+      "is_relevant", "has_document", "status", "issued_at", "expires_at",
+      "reminder_days_override", "responsible_person", "drive_url", "notes", "shop_notes",
+      "created_at", "locations ( name )",
+    ].join(", "))
     .is("deleted_at", null)
     .eq("organization_id", ORG_ID)
-    .order("expires_at", { ascending: true, nullsFirst: false });
+    .order("category", { ascending: true })
+    .order("title", { ascending: true });
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   type Row = {
-    id: string; title: string; document_type: string; status: string; expires_at: string | null;
-    issued_at: string | null; responsible_person: string | null; notes: string | null;
-    drive_url: string | null; created_at: string; locations: { name: string } | null;
+    id: string; code: string | null; title: string; thai_form_name: string | null;
+    category: string | null; document_type: string; authority: string | null; frequency: string | null;
+    is_relevant: boolean; has_document: boolean; status: string; issued_at: string | null;
+    expires_at: string | null; reminder_days_override: number | null;
+    responsible_person: string | null; drive_url: string | null;
+    notes: string | null; shop_notes: string | null; created_at: string;
+    locations: { name: string } | null;
   };
 
   const rows = data as unknown as Row[];
-  const header = ["ID", "Title", "Type", "Status", "Location", "Issued", "Expires", "Responsible", "Drive URL", "Notes", "Created"].join(",");
+
+  const header = [
+    "Code", "Document", "Thai form", "Category", "Type", "Authority", "Frequency",
+    "Location", "Relevant", "Has document", "Status", "Issue date", "Expiry / next due",
+    "Days until expiry", "Responsible", "Drive link", "Notes", "Shop notes", "Created",
+  ].join(",");
+
   const lines = rows.map((r) => {
-    const status = computeStatus({ status: r.status as Parameters<typeof computeStatus>[0]["status"], expires_at: r.expires_at });
+    const status = computeStatus({
+      status: r.status as Parameters<typeof computeStatus>[0]["status"],
+      expires_at: r.expires_at,
+    });
+    const days = daysUntilExpiry(r.expires_at);
     return [
-      esc(r.id), esc(r.title), esc(r.document_type), esc(status),
-      esc(r.locations?.name), esc(r.issued_at), esc(r.expires_at),
-      esc(r.responsible_person), esc(r.drive_url), esc(r.notes), esc(r.created_at),
+      esc(r.code),
+      esc(r.title),
+      esc(r.thai_form_name),
+      esc(r.category),
+      esc(r.document_type),
+      esc(r.authority),
+      esc(r.frequency),
+      esc(r.locations?.name),
+      esc(r.is_relevant ? "Yes" : "No"),
+      esc(r.has_document ? "Yes" : "No"),
+      esc(status),
+      esc(r.issued_at),
+      esc(r.expires_at),
+      esc(days),
+      esc(r.responsible_person),
+      esc(r.drive_url),
+      esc(r.notes),
+      esc(r.shop_notes),
+      esc(r.created_at),
     ].join(",");
   });
 

@@ -16,6 +16,7 @@ import {
   StarIcon,
   HouseIcon,
   PinIcon,
+  LayoutDashboardIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
@@ -68,6 +69,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const canSeeSchedules = hasModuleAccess(permissions, "schedules");
   const canSeeAccounting = hasModuleAccess(permissions, "accounting");
   const canSeeReports = hasModuleAccess(permissions, "reports");
+  const canSeeOverview = role === "owner";
 
   const isHome = pathname === "/dashboard/home" || pathname === "/dashboard";
   const isReviews = pathname.startsWith("/dashboard/reviews");
@@ -77,6 +79,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const isAccounting = pathname.startsWith("/dashboard/accounting");
   const isReports = pathname.startsWith("/dashboard/reports");
   const isAdmin = pathname.startsWith("/dashboard/admin");
+  const isOverview = pathname.startsWith("/dashboard/overview");
 
   const asideClass = [
     "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
@@ -175,6 +178,15 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               </Link>
             )}
 
+            {canSeeOverview && (
+              <Link href="/dashboard/overview" className={navItemClass(isOverview, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <LayoutDashboardIcon className={`h-4 w-4 transition-colors ${isOverview ? "text-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Overview</span>
+              </Link>
+            )}
+
             {canSeeAdmin && (
               <Link href="/dashboard/admin" className={navItemClass(isAdmin, sidebarLocked)}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
@@ -206,7 +218,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
           </div>
         </aside>
 
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-4 pb-32">{children}</main>
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-32">{children}</main>
       </div>
     </div>
   );

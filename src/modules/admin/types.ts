@@ -38,6 +38,23 @@ export interface AdminLocation {
   created_at: string;
 }
 
+export interface Employee {
+  id: string;
+  organization_id: string;
+  location_id: string | null;
+  location_name: string | null;
+  first_name: string;
+  last_name: string;
+  position: string | null;
+  email: string | null;
+  phone: string | null;
+  active: boolean;
+  notes: string | null;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AuditLogEntry {
   id: string;
   user_id: string | null;

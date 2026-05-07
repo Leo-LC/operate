@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const [{ data: animal, error }, { data: events }] = await Promise.all([
     supabase
       .from("animals")
-      .select("id, organization_id, location_id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, created_at, updated_at, locations ( name )")
+      .select("id, organization_id, location_id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, last_vaccination_date, next_vaccination_date, vaccination_passport, created_at, updated_at, locations ( name )")
       .eq("id", params.id)
       .is("deleted_at", null)
       .single(),
@@ -48,6 +48,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     arrival_date?: string | null;
     microchip_id?: string | null;
     notes?: string | null;
+    last_vaccination_date?: string | null;
+    next_vaccination_date?: string | null;
+    vaccination_passport?: boolean;
   };
   try {
     body = await request.json();
@@ -56,7 +59,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  const allowed = ["name","species","sex","status","location_id","estimated_birth_date","arrival_date","microchip_id","notes"] as const;
+  const allowed = ["name","species","sex","status","location_id","estimated_birth_date","arrival_date","microchip_id","notes","last_vaccination_date","next_vaccination_date","vaccination_passport"] as const;
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];
   }
