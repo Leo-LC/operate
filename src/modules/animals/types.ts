@@ -81,6 +81,9 @@ export const STATUS_CLASSES: Record<AnimalStatus, string> = {
     "bg-muted text-muted-foreground/50",
 };
 
+export const ANIMAL_SPECIES = ["Capybara", "Meerkat"] as const;
+export type AnimalSpecies = typeof ANIMAL_SPECIES[number];
+
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   health_check: "Health check",
   vet_visit: "Vet visit",

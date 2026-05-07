@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ChevronDownIcon } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -214,18 +215,14 @@ function Controls({
         </Button>
       ))}
       <div className="flex items-center gap-1 ml-1">
-        <input
-          type="date"
+        <DateInput
           value={from}
           onChange={(e) => onFromChange(e.target.value)}
-          className="h-8 rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
         />
         <span className="text-xs text-muted-foreground">–</span>
-        <input
-          type="date"
+        <DateInput
           value={to}
           onChange={(e) => onToChange(e.target.value)}
-          className="h-8 rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
         />
       </div>
       {locations.length > 0 && (

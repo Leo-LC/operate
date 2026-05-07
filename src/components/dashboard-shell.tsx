@@ -16,6 +16,7 @@ import {
   StarIcon,
   HouseIcon,
   PinIcon,
+  UsersIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
@@ -68,6 +69,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const canSeeSchedules = hasModuleAccess(permissions, "schedules");
   const canSeeAccounting = hasModuleAccess(permissions, "accounting");
   const canSeeReports = hasModuleAccess(permissions, "reports");
+  const canSeeContacts = hasModuleAccess(permissions, "contacts");
   const isHome = pathname === "/dashboard/home" || pathname === "/dashboard";
   const isReviews = pathname.startsWith("/dashboard/reviews");
   const isScheduling = pathname.startsWith("/dashboard/scheduling");
@@ -75,6 +77,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const isAnimals = pathname.startsWith("/dashboard/animals");
   const isAccounting = pathname.startsWith("/dashboard/accounting");
   const isReports = pathname.startsWith("/dashboard/reports");
+  const isContacts = pathname.startsWith("/dashboard/contacts");
   const isAdmin = pathname.startsWith("/dashboard/admin");
 
   const asideClass = [
@@ -117,7 +120,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
                 <HouseIcon className={`h-4 w-4 transition-colors ${isHome ? "text-foreground" : "text-muted-foreground"}`} />
               </div>
-              <span className={labelClass(sidebarLocked)}>Home</span>
+              <span className={labelClass(sidebarLocked)}>Overview</span>
             </Link>
 
             {canSeeReviews && (
@@ -174,6 +177,15 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               </Link>
             )}
 
+
+            {canSeeContacts && (
+              <Link href="/dashboard/contacts" className={navItemClass(isContacts, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <UsersIcon className={`h-4 w-4 transition-colors ${isContacts ? "text-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Contacts</span>
+              </Link>
+            )}
 
             {canSeeAdmin && (
               <Link href="/dashboard/admin" className={navItemClass(isAdmin, sidebarLocked)}>

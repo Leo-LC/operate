@@ -32,5 +32,11 @@ export default async function AdminUsersPage() {
     })),
   }));
 
-  return <UsersListClient initialUsers={users} />;
+  const { data: locationsData } = await supabase
+    .from("locations")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name");
+
+  return <UsersListClient initialUsers={users} allLocations={locationsData ?? []} />;
 }

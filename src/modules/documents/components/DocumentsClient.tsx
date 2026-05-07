@@ -8,6 +8,7 @@ import {
   DownloadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
 } from "lucide-react";
 import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";
+import { DateInput } from "@/components/ui/date-input";
 import {
   computeStatus, daysUntilExpiry,
   DOCUMENT_TYPE_LABELS, STATUS_CLASSES, STATUS_LABELS,
@@ -584,8 +585,10 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Document info</p>
-                  {!isOwner && (
+                  {!isOwner ? (
                     <span className="text-[10px] text-muted-foreground/60 italic">— managed centrally</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/60 italic">— name/code changes apply to all locations</span>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -725,20 +728,16 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Issue date</label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={form.issued_at}
                       onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Expiry / next due</label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={form.expires_at}
                       onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">

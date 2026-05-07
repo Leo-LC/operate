@@ -30,7 +30,7 @@ function Stars({ rating }: { rating: string }) {
       {[1, 2, 3, 4, 5].map((i) => (
         <StarIcon
           key={i}
-          className={`size-4 ${i <= n ? "fill-[var(--amber)] text-[var(--amber)]" : "text-muted-foreground/40"}`}
+          className={`size-4 ${i <= n ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`}
           aria-hidden
         />
       ))}
@@ -206,7 +206,7 @@ export function ReviewCard({
                   <button
                     type="button"
                     onClick={toggleExpanded}
-                    className="mt-0.5 text-primary text-sm underline-offset-2 hover:underline"
+                    className="mt-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {expanded ? "Show less" : "Show more"}
                   </button>

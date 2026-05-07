@@ -15,12 +15,14 @@ import {
 import {
   EVENT_TYPE_CLASSES,
   EVENT_TYPE_LABELS,
+  ANIMAL_SPECIES,
   type Animal,
   type AnimalEvent,
   type AnimalSex,
   type EventType,
 } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
+import { DateInput } from "@/components/ui/date-input";
 
 const ALL_EVENT_TYPES: EventType[] = [
   "health_check", "vet_visit", "vaccine", "transfer", "feeding_note", "incident", "note", "other",
@@ -64,15 +66,18 @@ interface AnimalDetailClientProps {
   animal: Animal;
   initialEvents: AnimalEvent[];
   locations: AdminLocation[];
+  isOwner?: boolean;
 }
 
-export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locations }: AnimalDetailClientProps) {
+export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locations, isOwner = false }: AnimalDetailClientProps) {
   const router = useRouter();
   const [animal, setAnimal] = useState(initialAnimal);
   const [events, setEvents] = useState(initialEvents);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Animal>>({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState({
     event_type: "note" as EventType,
@@ -162,10 +167,15 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
   }
 
   async function handleDelete() {
-    const res = await fetch(`/api/animals/${animal.id}`, { method: "DELETE" });
-    if (!res.ok) { toast.error("Delete failed"); return; }
-    toast.success(`${animal.name} deleted`);
-    router.push("/dashboard/animals");
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/animals/${animal.id}`, { method: "DELETE" });
+      if (!res.ok) { toast.error("Delete failed"); return; }
+      toast.success(`${animal.name} deleted`);
+      router.push("/dashboard/animals");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const vaccStatus = getVaccineStatus(animal.next_vaccination_date);
@@ -200,11 +210,16 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Species</label>
-                <input
+                <select
                   value={editForm.species ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, species: e.target.value }))}
                   className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
-                />
+                >
+                  <option value="">— select —</option>
+                  {ANIMAL_SPECIES.map((s) => (
+                    <option key={s} value={s.toLowerCase()}>{s}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Sex</label>
@@ -238,11 +253,9 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Est. birth date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={editForm.estimated_birth_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, estimated_birth_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 />
               </div>
             </div>
@@ -254,20 +267,16 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={editForm.last_vaccination_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, last_vaccination_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={editForm.next_vaccination_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, next_vaccination_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5 justify-end">
@@ -300,22 +309,51 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
 
           {/* Form actions */}
           <div className="flex items-center justify-between pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60 gap-1.5"
-              onClick={() => void handleDelete()}
-            >
-              <TrashIcon className="size-3.5" />
-              Delete animal
-            </Button>
+            {isOwner ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60 gap-1.5"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <TrashIcon className="size-3.5" />
+                Delete animal
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground/60">Only admins can delete animals</span>
+            )}
             <div className="flex gap-2">
               <Button type="button" size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
               <Button type="submit" size="sm" disabled={savingEdit}>{savingEdit ? "Saving…" : "Save changes"}</Button>
             </div>
           </div>
         </form>
+
+        {/* Delete confirmation modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
+              <h2 className="text-base font-semibold mb-1">Delete {animal.name}?</h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                This cannot be undone. The animal record and all associated events will be permanently removed.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => void handleDelete()}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -483,12 +521,10 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-muted-foreground">Date</label>
-                <input
-                  type="date"
+                <DateInput
                   required
                   value={eventForm.event_date}
                   onChange={(e) => setEventForm((f) => ({ ...f, event_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1 flex flex-col gap-1">

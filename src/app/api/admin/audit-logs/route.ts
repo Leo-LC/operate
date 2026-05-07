@@ -39,3 +39,23 @@ export async function GET(request: Request) {
 
   return Response.json(mapped);
 }
+
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+
+  const { searchParams } = new URL(request.url);
+  const before = searchParams.get("before"); // YYYY-MM-DD
+  if (!before) return Response.json({ error: "Missing ?before= parameter" }, { status: 400 });
+
+  const supabase = getSupabaseServerClient();
+  const { error, count } = await supabase
+    .from("audit_logs")
+    .delete({ count: "exact" })
+    .lt("created_at", new Date(before).toISOString());
+
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  return Response.json({ deleted: count ?? 0 });
+}

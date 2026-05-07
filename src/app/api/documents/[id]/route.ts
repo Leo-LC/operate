@@ -46,12 +46,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (key in body) updates[key] = body[key as keyof typeof body];
   }
 
-  // Auto-compute status from is_relevant, has_document, expires_at.
-  // Fetch current values for any fields not included in this patch.
+  // Fetch current document for status computation and cascade detection.
   const supabase = getSupabaseServerClient();
   const { data: current } = await supabase
     .from("documents")
-    .select("is_relevant, has_document, expires_at")
+    .select("is_relevant, has_document, expires_at, code, title, organization_id")
     .eq("id", params.id)
     .single();
   if (current) {
@@ -70,6 +69,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .single();
 
   if (error || !data) return Response.json({ error: "Document not found or update failed" }, { status: 404 });
+
+  // Cascade title/code changes to all org documents with the same original code (owner only).
+  const titleChanged = "title" in updates && current?.title && updates.title !== current.title;
+  const codeChanged = "code" in updates && current?.code && updates.code !== current.code;
+  if ((titleChanged || codeChanged) && current?.code && current.organization_id && session.user.role === "owner") {
+    const cascadeUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (titleChanged) cascadeUpdates.title = updates.title;
+    if (codeChanged) cascadeUpdates.code = updates.code;
+    await supabase
+      .from("documents")
+      .update(cascadeUpdates)
+      .eq("organization_id", current.organization_id)
+      .eq("code", current.code)
+      .neq("id", params.id)   // skip the already-updated doc
+      .is("deleted_at", null);
+  }
 
   await writeAuditLog({
     userId: session.user.userId ?? null,

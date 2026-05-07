@@ -134,7 +134,7 @@ function Cell({
 
   if (isEditing) {
     return (
-      <td className={`px-1 h-8 text-right ${CELL_BORDER} ${extraClass}`}>
+      <td className={`px-3 h-8 text-right ${CELL_BORDER} ${extraClass}`}>
         <input
           ref={inputRef}
           type="number"
@@ -144,7 +144,7 @@ function Cell({
           onChange={(e) => onEditChange(e.target.value)}
           onBlur={onEditCommit}
           onKeyDown={onEditKeyDown}
-          className="w-full h-full rounded border border-ring bg-background px-1.5 text-xs text-right focus:outline-none"
+          className="w-full h-full rounded border border-ring bg-background px-0.5 text-xs text-right focus:outline-none"
         />
       </td>
     );

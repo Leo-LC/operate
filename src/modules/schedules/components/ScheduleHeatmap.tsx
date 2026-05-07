@@ -56,13 +56,18 @@ function countAtSlot(
 
 // Inline styles for colors — NOT Tailwind classes — so they render regardless of
 // which source files are included in the Tailwind content config.
-// Monochrome blue gradient: 0 = near-white, 4+ = dark navy.
+// Monochrome blue gradient: 0 = transparent (shows background), 4+ = dark navy.
+const CELL_BORDER: React.CSSProperties = {
+  border: "1px solid rgba(148,163,184,0.28)",
+  boxSizing: "border-box",
+};
+
 function cellStyle(count: number): React.CSSProperties {
-  if (count === 0) return { backgroundColor: "#eef2ff", color: "#c7d2fe" };
-  if (count === 1) return { backgroundColor: "#bfdbfe", color: "#1e40af" };
-  if (count === 2) return { backgroundColor: "#60a5fa", color: "#ffffff" };
-  if (count === 3) return { backgroundColor: "#2563eb", color: "#ffffff" };
-  return               { backgroundColor: "#1e3a8a", color: "#bfdbfe" };
+  if (count === 0) return { backgroundColor: "transparent", color: "transparent", ...CELL_BORDER };
+  if (count === 1) return { backgroundColor: "#bfdbfe", color: "#1e40af", ...CELL_BORDER };
+  if (count === 2) return { backgroundColor: "#60a5fa", color: "#ffffff", ...CELL_BORDER };
+  if (count === 3) return { backgroundColor: "#2563eb", color: "#ffffff", ...CELL_BORDER };
+  return               { backgroundColor: "#1e3a8a", color: "#bfdbfe", ...CELL_BORDER };
 }
 
 const DAY_LABEL_STYLE: React.CSSProperties = {

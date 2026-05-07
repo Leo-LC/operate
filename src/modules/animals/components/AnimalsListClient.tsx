@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 import {
   type Animal,
   type AnimalSex,
+  ANIMAL_SPECIES,
 } from "@/modules/animals/types";
 import { VaccinationCalendar } from "@/modules/animals/components/VaccinationCalendar";
 import type { AdminLocation } from "@/modules/admin/types";
@@ -223,8 +225,9 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                   className={`h-8 rounded-md border bg-background px-2 text-sm ${formErrors.species ? "border-destructive" : "border-input"}`}
                 >
                   <option value="">— select —</option>
-                  <option value="capybara">Capybara</option>
-                  <option value="meerkat">Meerkat</option>
+                  {ANIMAL_SPECIES.map((s) => (
+                    <option key={s} value={s.toLowerCase()}>{s}</option>
+                  ))}
                 </select>
                 {formErrors.species && <p className="text-[11px] text-destructive">{formErrors.species}</p>}
               </div>
@@ -242,11 +245,9 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Est. birth date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.estimated_birth_date}
                   onChange={(e) => setForm((f) => ({ ...f, estimated_birth_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
             </div>
@@ -279,20 +280,16 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.last_vaccination_date}
                   onChange={(e) => setForm((f) => ({ ...f, last_vaccination_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.next_vaccination_date}
                   onChange={(e) => setForm((f) => ({ ...f, next_vaccination_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5 justify-end">

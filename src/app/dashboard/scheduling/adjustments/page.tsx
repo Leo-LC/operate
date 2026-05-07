@@ -3,6 +3,7 @@
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { DateInput } from "@/components/ui/date-input";
 
 interface Adjustment {
   id: string;
@@ -71,7 +72,7 @@ export default function AdjustmentsPage() {
             </option>
           ))}
         </select>
-        <input type="date" className="rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
+        <DateInput value={date} onChange={(e) => setDate(e.target.value)} />
         <select className="rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={type} onChange={(e) => setType(e.target.value as "overtime" | "missed_undertime")}>
           <option value="overtime">Overtime</option>
           <option value="missed_undertime">Missed/Undertime</option>

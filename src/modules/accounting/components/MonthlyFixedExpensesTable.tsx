@@ -233,7 +233,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
 
                     if (isEditing) {
                       return (
-                        <td key={cat.key} className="px-1 h-8 text-right border-r border-border/20 min-w-[5rem]">
+                        <td key={cat.key} className="px-3 h-8 text-right border-r border-border/20 min-w-[5rem]">
                           <input
                             type="number"
                             step="0.01"
@@ -245,7 +245,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
                               if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
                               if (e.key === "Escape") setEditingCell(null);
                             }}
-                            className="w-full h-full rounded border border-ring bg-background px-1.5 text-xs text-right focus:outline-none"
+                            className="w-full h-full rounded border border-ring bg-background px-0.5 text-xs text-right focus:outline-none"
                           />
                         </td>
                       );
