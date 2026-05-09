@@ -3,12 +3,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "./EmployeeForm";
 
 interface Props {
-  initialEmployees: Employee[];
   locations: AdminLocation[];
 }
 
@@ -49,19 +48,10 @@ function WorkPermitBadge({ expiresAt }: { expiresAt: string | null }) {
   );
 }
 
-export function EmployeesListClient({ initialEmployees, locations }: Props) {
+export function EmployeesListClient({ locations }: Props) {
   const router = useRouter();
-  const [employees, setEmployees] = useState(initialEmployees);
-
-  const fetchEmployees = useCallback(async () => {
-    const res = await fetch("/api/admin/employees");
-    if (res.ok) {
-      const data = await res.json() as Employee[];
-      if (Array.isArray(data)) setEmployees(data);
-    }
-  }, []);
-
-  useEffect(() => { void fetchEmployees(); }, [fetchEmployees]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formLocIds, setFormLocIds] = useState<Set<string>>(new Set());
@@ -74,6 +64,25 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string; isArchived: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+
+  const fetchEmployees = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/employees", { cache: "no-store" });
+      if (!res.ok) {
+        toast.error("Failed to load employees");
+        return;
+      }
+      const data: unknown = await res.json();
+      if (Array.isArray(data)) setEmployees(data as Employee[]);
+    } catch {
+      toast.error("Failed to load employees");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void fetchEmployees(); }, [fetchEmployees]);
 
   function resetAddForm() {
     setForm(EMPTY_FORM);
@@ -243,104 +252,110 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
         />
       )}
 
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            <tr>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Position</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Nationality</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Work Permit</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Locations</th>
-              <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Contact</th>
-              <th className="px-4 py-2.5" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {employees.map((emp) =>
-              editingId === emp.id ? (
-                <tr key={emp.id}>
-                  <td colSpan={7} className="px-4 py-3">
-                    <EmployeeForm
-                      form={editForm}
-                      locIds={editLocIds}
-                      primaryLoc={editPrimaryLoc}
-                      locations={locations}
-                      submitting={submitting}
-                      onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
-                      onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, setEditPrimaryLoc, id, editPrimaryLoc)}
-                      onSetPrimary={setEditPrimaryLoc}
-                      onSubmit={(e) => void handleEdit(e)}
-                      onCancel={() => setEditingId(null)}
-                      submitLabel="Save"
-                    />
-                  </td>
-                </tr>
-              ) : (
-                <tr key={emp.id} className={`transition-colors ${emp.archived_at ? "opacity-60 bg-muted/10" : "hover:bg-muted/20"}`}>
-                  <td className="px-4 py-2.5 font-medium">
-                    {emp.first_name} {emp.last_name}
-                    {emp.archived_at && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Archived</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.position ?? "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.nationality ?? "—"}</td>
-                  <td className="px-4 py-2.5 text-xs">
-                    {emp.work_permit_expires_at
-                      ? <WorkPermitBadge expiresAt={emp.work_permit_expires_at} />
-                      : <span className="text-muted-foreground/50">—</span>
-                    }
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                    {(emp.employee_locations && emp.employee_locations.length > 0)
-                      ? emp.employee_locations.map((el) => (
-                          <span key={el.location_id} className="inline-block mr-1">
-                            {el.location_name}{el.is_primary ? " ★" : ""}
-                          </span>
-                        ))
-                      : (emp.location_name ?? <span className="text-muted-foreground/50">—</span>)
-                    }
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                    {emp.email && <div>{emp.email}</div>}
-                    {emp.phone && <div>{emp.phone}</div>}
-                    {!emp.email && !emp.phone && "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="size-7" onClick={() => startEdit(emp)} title="Edit">
-                        <PencilIcon className="size-3.5" />
-                      </Button>
-                      <Button
-                        size="icon" variant="ghost"
-                        className="size-7 text-muted-foreground hover:text-foreground"
-                        title={emp.archived_at ? "Unarchive" : "Archive"}
-                        onClick={() => setArchiveTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}`, isArchived: !!emp.archived_at })}
-                      >
-                        {emp.archived_at ? <ArchiveRestoreIcon className="size-3.5" /> : <ArchiveIcon className="size-3.5" />}
-                      </Button>
-                      <Button
-                        size="icon" variant="ghost"
-                        className="size-7 text-destructive hover:text-destructive"
-                        title="Delete permanently"
-                        onClick={() => setDeleteTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
-                      >
-                        <Trash2Icon className="size-3.5" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-        {employees.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">No employees yet.</div>
-        )}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+          <Loader2Icon className="size-4 animate-spin mr-2" />
+          Loading…
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Position</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Nationality</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Work Permit</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Locations</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Contact</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {employees.map((emp) =>
+                editingId === emp.id ? (
+                  <tr key={emp.id}>
+                    <td colSpan={7} className="px-4 py-3">
+                      <EmployeeForm
+                        form={editForm}
+                        locIds={editLocIds}
+                        primaryLoc={editPrimaryLoc}
+                        locations={locations}
+                        submitting={submitting}
+                        onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
+                        onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, setEditPrimaryLoc, id, editPrimaryLoc)}
+                        onSetPrimary={setEditPrimaryLoc}
+                        onSubmit={(e) => void handleEdit(e)}
+                        onCancel={() => setEditingId(null)}
+                        submitLabel="Save"
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={emp.id} className={`transition-colors ${emp.archived_at ? "opacity-60 bg-muted/10" : "hover:bg-muted/20"}`}>
+                    <td className="px-4 py-2.5 font-medium">
+                      {emp.first_name} {emp.last_name}
+                      {emp.archived_at && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Archived</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.position ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.nationality ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-xs">
+                      {emp.work_permit_expires_at
+                        ? <WorkPermitBadge expiresAt={emp.work_permit_expires_at} />
+                        : <span className="text-muted-foreground/50">—</span>
+                      }
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                      {(emp.employee_locations && emp.employee_locations.length > 0)
+                        ? emp.employee_locations.map((el) => (
+                            <span key={el.location_id} className="inline-block mr-1">
+                              {el.location_name}{el.is_primary ? " ★" : ""}
+                            </span>
+                          ))
+                        : (emp.location_name ?? <span className="text-muted-foreground/50">—</span>)
+                      }
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                      {emp.email && <div>{emp.email}</div>}
+                      {emp.phone && <div>{emp.phone}</div>}
+                      {!emp.email && !emp.phone && "—"}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" className="size-7" onClick={() => startEdit(emp)} title="Edit">
+                          <PencilIcon className="size-3.5" />
+                        </Button>
+                        <Button
+                          size="icon" variant="ghost"
+                          className="size-7 text-muted-foreground hover:text-foreground"
+                          title={emp.archived_at ? "Unarchive" : "Archive"}
+                          onClick={() => setArchiveTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}`, isArchived: !!emp.archived_at })}
+                        >
+                          {emp.archived_at ? <ArchiveRestoreIcon className="size-3.5" /> : <ArchiveIcon className="size-3.5" />}
+                        </Button>
+                        <Button
+                          size="icon" variant="ghost"
+                          className="size-7 text-destructive hover:text-destructive"
+                          title="Delete permanently"
+                          onClick={() => setDeleteTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+          {employees.length === 0 && (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">No employees yet.</div>
+          )}
+        </div>
+      )}
 
-      {/* Archive / Unarchive modal */}
       {archiveTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
@@ -354,9 +369,7 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
               }
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setArchiveTarget(null)} disabled={actionBusy}>
-                Cancel
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => setArchiveTarget(null)} disabled={actionBusy}>Cancel</Button>
               <Button size="sm" onClick={() => void executeArchiveToggle()} disabled={actionBusy}>
                 {actionBusy ? "Saving…" : archiveTarget.isArchived ? "Unarchive" : "Archive"}
               </Button>
@@ -365,7 +378,6 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
         </div>
       )}
 
-      {/* Delete modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
@@ -374,9 +386,7 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
               Permanently delete <span className="font-medium text-foreground">{deleteTarget.name}</span>? This cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={actionBusy}>
-                Cancel
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={actionBusy}>Cancel</Button>
               <Button variant="destructive" size="sm" onClick={() => void executeDelete()} disabled={actionBusy}>
                 {actionBusy ? "Deleting…" : "Delete"}
               </Button>
