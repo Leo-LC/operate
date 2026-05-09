@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,16 @@ interface UsersListClientProps {
 export function UsersListClient({ initialUsers, allLocations = [] }: UsersListClientProps) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
+
+  const fetchUsers = useCallback(async () => {
+    const res = await fetch("/api/admin/users");
+    if (res.ok) {
+      const data = await res.json() as AdminUser[];
+      if (Array.isArray(data)) setUsers(data);
+    }
+  }, []);
+
+  useEffect(() => { void fetchUsers(); }, [fetchUsers]);
   const [showForm, setShowForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -99,17 +109,8 @@ export function UsersListClient({ initialUsers, allLocations = [] }: UsersListCl
         })
       ));
 
-      setUsers((prev) => [...prev, {
-        ...newUser,
-        module_access: Array.from(selectedModules).map((k) => ({ id: "", module_key: k as import("@/core/permissions/types").ModuleKey, can_read: true, can_write: true, granted_at: "" })),
-        location_access: Array.from(selectedLocations).map((id) => ({
-          id: "",
-          location_id: id,
-          location_name: allLocations.find((l) => l.id === id)?.name ?? id,
-          granted_at: "",
-        })),
-      }]);
       resetForm();
+      await fetchUsers();
       router.refresh();
       toast.success("User added");
     } finally {

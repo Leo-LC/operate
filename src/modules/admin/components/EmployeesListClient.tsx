@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,16 @@ function WorkPermitBadge({ expiresAt }: { expiresAt: string | null }) {
 export function EmployeesListClient({ initialEmployees, locations }: Props) {
   const router = useRouter();
   const [employees, setEmployees] = useState(initialEmployees);
+
+  const fetchEmployees = useCallback(async () => {
+    const res = await fetch("/api/admin/employees");
+    if (res.ok) {
+      const data = await res.json() as Employee[];
+      if (Array.isArray(data)) setEmployees(data);
+    }
+  }, []);
+
+  useEffect(() => { void fetchEmployees(); }, [fetchEmployees]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formLocIds, setFormLocIds] = useState<Set<string>>(new Set());
@@ -122,24 +132,8 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
         toast.error((err as { error?: string }).error ?? "Failed to add employee");
         return;
       }
-      const created = await res.json() as Employee;
-      const empLocs = Array.from(formLocIds).map((lid) => ({
-        id: "",
-        location_id: lid,
-        location_name: locations.find((l) => l.id === lid)?.name ?? lid,
-        is_primary: lid === formPrimaryLoc,
-      }));
-      setEmployees((prev) => [...prev, {
-        ...created,
-        location_name: locations.find((l) => l.id === formPrimaryLoc)?.name ?? null,
-        employee_locations: empLocs,
-        nationality: form.nationality || null,
-        national_id: form.national_id || null,
-        work_permit_number: form.work_permit_number || null,
-        work_permit_expires_at: form.work_permit_expires_at || null,
-        archived_at: null,
-      }]);
       resetAddForm();
+      await fetchEmployees();
       router.refresh();
       toast.success("Employee added");
     } finally {
@@ -177,19 +171,8 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
         toast.error((err as { error?: string }).error ?? "Failed to update employee");
         return;
       }
-      const updated = await res.json() as Employee;
-      const empLocs = Array.from(editLocIds).map((lid) => ({
-        id: "",
-        location_id: lid,
-        location_name: locations.find((l) => l.id === lid)?.name ?? lid,
-        is_primary: lid === editPrimaryLoc,
-      }));
-      setEmployees((prev) => prev.map((em) =>
-        em.id === editingId
-          ? { ...updated, location_name: locations.find((l) => l.id === editPrimaryLoc)?.name ?? null, employee_locations: empLocs }
-          : em
-      ));
       setEditingId(null);
+      await fetchEmployees();
       router.refresh();
       toast.success("Employee updated");
     } finally {
@@ -210,12 +193,8 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
         }),
       });
       if (!res.ok) { toast.error("Failed to update employee"); return; }
-      setEmployees((prev) => prev.map((em) =>
-        em.id === archiveTarget.id
-          ? { ...em, archived_at: archiveTarget.isArchived ? null : new Date().toISOString(), active: archiveTarget.isArchived }
-          : em
-      ));
       setArchiveTarget(null);
+      await fetchEmployees();
       router.refresh();
       toast.success(archiveTarget.isArchived ? "Employee unarchived" : "Employee archived");
     } finally {
@@ -229,8 +208,8 @@ export function EmployeesListClient({ initialEmployees, locations }: Props) {
     try {
       const res = await fetch(`/api/admin/employees/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok) { toast.error("Failed to delete employee"); return; }
-      setEmployees((prev) => prev.filter((em) => em.id !== deleteTarget.id));
       setDeleteTarget(null);
+      await fetchEmployees();
       router.refresh();
       toast.success("Employee deleted");
     } finally {
