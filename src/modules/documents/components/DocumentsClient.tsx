@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon,
+  PlusIcon, ExternalLinkIcon, TrashIcon, XIcon,
   DownloadIcon, UploadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
 } from "lucide-react";
 import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";

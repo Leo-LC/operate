@@ -43,7 +43,6 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [editValue, setEditValue] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
   const monthName = new Date(year, month - 1, 1).toLocaleDateString("en", { month: "long", year: "numeric" });
 
   const loadData = useCallback(async () => {

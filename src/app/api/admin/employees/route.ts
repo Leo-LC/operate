@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       user_id: emp.user_id ?? null,
       created_at: emp.created_at,
       updated_at: emp.updated_at,
-      employee_locations: (emp.employee_locations ?? []).map((el) => ({
+      employee_locations: ((emp.employee_locations ?? []) as ELRow[]).map((el) => ({
         id: el.id,
         location_id: el.location_id,
         location_name: el.locations?.name ?? el.location_id,

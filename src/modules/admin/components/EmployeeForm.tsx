@@ -244,7 +244,7 @@ export function EmployeeForm({
             })}
           </div>
           {locIds.size > 0 && !primaryLoc && (
-            <p className="mt-1 text-[11px] text-muted-foreground">Click "set primary" on a location to mark it as the main one.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Click &quot;set primary&quot; on a location to mark it as the main one.</p>
           )}
         </div>
       )}

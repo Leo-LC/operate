@@ -232,7 +232,7 @@ export default function SchedulingEmployeesPage() {
           </table>
           {atLocation.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No employees at this location yet. Click "Manage employees" to assign some.
+              No employees at this location yet. Click &quot;Manage employees&quot; to assign some.
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, Trash2Icon, XIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import type { Contact, ContactType } from "@/modules/contacts/types";
 import { CONTACT_TYPES, CONTACT_TYPE_LABELS } from "@/modules/contacts/types";
 
