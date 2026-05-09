@@ -61,6 +61,8 @@ export interface Employee {
   phone: string | null;
   active: boolean;
   notes: string | null;
+  base_salary_monthly: number | null;
+  has_thai_bank_account: boolean;
   archived_at: string | null;
   user_id: string | null;
   created_at: string;

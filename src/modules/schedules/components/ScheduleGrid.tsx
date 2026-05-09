@@ -52,9 +52,6 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   const [nameInput, setNameInput] = useState(schedule.name);
   const [clipboard, setClipboard] = useState<CellData | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [addEmpForm, setAddEmpForm] = useState({ first_name: "", last_name: "", position: "" });
-  const [addEmpBusy, setAddEmpBusy] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
 
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -244,37 +241,6 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
     }
   }
 
-  async function handleAddEmployee(e: React.FormEvent) {
-    e.preventDefault();
-    const fn = addEmpForm.first_name.trim();
-    const ln = addEmpForm.last_name.trim();
-    if (!fn || !ln) return;
-    setAddEmpBusy(true);
-    try {
-      const res = await fetch("/api/admin/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: fn,
-          last_name: ln,
-          position: addEmpForm.position.trim() || undefined,
-          location_id: schedule.location_id,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error((err as { error?: string }).error ?? "Failed to add employee");
-        return;
-      }
-      toast.success("Employee added — refreshing…");
-      setShowAddEmployee(false);
-      setAddEmpForm({ first_name: "", last_name: "", position: "" });
-      router.refresh();
-    } finally {
-      setAddEmpBusy(false);
-    }
-  }
-
   useEffect(() => {
     return () => {
       if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
@@ -354,15 +320,13 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
             <PrinterIcon className="size-4" />
             PDF
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowAddEmployee((v) => !v)}
-            className="gap-1.5"
+          <a
+            href={`/dashboard/scheduling/employees?location_id=${schedule.location_id}`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <UserPlusIcon className="size-4" />
-            Add employee
-          </Button>
+            Manage employees
+          </a>
           {saveState === "saved" ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-green-600 dark:text-green-400 font-medium rounded-md bg-green-500/8 dark:bg-green-400/8 border border-green-500/20 dark:border-green-400/20">
               <CheckIcon className="size-4" />
@@ -383,71 +347,20 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
         </div>
       </div>
 
-      {/* ── Add employee inline form ────────────────────────────── */}
-      {showAddEmployee && (
-        <form
-          onSubmit={(e) => void handleAddEmployee(e)}
-          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-wrap gap-3 items-end"
-        >
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">First name</label>
-            <input
-              required
-              autoFocus
-              value={addEmpForm.first_name}
-              onChange={(e) => setAddEmpForm((p) => ({ ...p, first_name: e.target.value }))}
-              className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="First"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Last name</label>
-            <input
-              required
-              value={addEmpForm.last_name}
-              onChange={(e) => setAddEmpForm((p) => ({ ...p, last_name: e.target.value }))}
-              className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="Last"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Position</label>
-            <input
-              value={addEmpForm.position}
-              onChange={(e) => setAddEmpForm((p) => ({ ...p, position: e.target.value }))}
-              className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="e.g. Barista"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={addEmpBusy}>
-              {addEmpBusy ? "Adding…" : "Add"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => { setShowAddEmployee(false); setAddEmpForm({ first_name: "", last_name: "", position: "" }); }}
-            >
-              Cancel
-            </Button>
-          </div>
-          <p className="w-full text-xs text-muted-foreground -mt-1">
-            Employee will be assigned to {schedule.location_name ?? "this shop"}.
-          </p>
-        </form>
-      )}
-
       {/* ── No employees state ──────────────────────────────────── */}
-      {employees.length === 0 && !showAddEmployee && (
-        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">
-            No employees assigned to this shop yet.
+      {employees.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center space-y-3">
+          <p className="font-medium text-foreground text-sm">No employees assigned to this shop yet</p>
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+            Browse all organisation employees or create a new one with full details including salary, nationality, and work permit.
           </p>
-          <Button size="sm" variant="outline" onClick={() => setShowAddEmployee(true)} className="gap-1.5">
+          <a
+            href={`/dashboard/scheduling/employees?location_id=${schedule.location_id}`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
             <UserPlusIcon className="size-4" />
-            Add first employee
-          </Button>
+            Manage employees for this shop
+          </a>
         </div>
       )}
 

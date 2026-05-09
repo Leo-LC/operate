@@ -110,6 +110,7 @@ export function UsersListClient({ initialUsers, allLocations = [] }: UsersListCl
         })),
       }]);
       resetForm();
+      router.refresh();
       toast.success("User added");
     } finally {
       setSubmitting(false);

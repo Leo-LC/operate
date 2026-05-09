@@ -17,6 +17,8 @@ import {
   HouseIcon,
   PinIcon,
   UsersIcon,
+  ClockIcon,
+  BanknoteIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
@@ -70,6 +72,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const canSeeAccounting = hasModuleAccess(permissions, "accounting");
   const canSeeReports = hasModuleAccess(permissions, "reports");
   const canSeeContacts = hasModuleAccess(permissions, "contacts");
+  const canSeeAttendance = hasModuleAccess(permissions, "attendance");
+  const canSeePayments = hasModuleAccess(permissions, "payments");
   const isHome = pathname === "/dashboard/home" || pathname === "/dashboard";
   const isReviews = pathname.startsWith("/dashboard/reviews");
   const isScheduling = pathname.startsWith("/dashboard/scheduling");
@@ -78,6 +82,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const isAccounting = pathname.startsWith("/dashboard/accounting");
   const isReports = pathname.startsWith("/dashboard/reports");
   const isContacts = pathname.startsWith("/dashboard/contacts");
+  const isAttendance = pathname.startsWith("/dashboard/attendance");
+  const isPayments = pathname.startsWith("/dashboard/payments");
   const isAdmin = pathname.startsWith("/dashboard/admin");
 
   const asideClass = [
@@ -184,6 +190,24 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
                   <UsersIcon className={`h-4 w-4 transition-colors ${isContacts ? "text-foreground" : "text-muted-foreground"}`} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Contacts</span>
+              </Link>
+            )}
+
+            {canSeeAttendance && (
+              <Link href="/dashboard/attendance" className={navItemClass(isAttendance, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <ClockIcon className={`h-4 w-4 transition-colors ${isAttendance ? "text-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Attendance</span>
+              </Link>
+            )}
+
+            {canSeePayments && (
+              <Link href="/dashboard/payments" className={navItemClass(isPayments, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <BanknoteIcon className={`h-4 w-4 transition-colors ${isPayments ? "text-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Payments</span>
               </Link>
             )}
 

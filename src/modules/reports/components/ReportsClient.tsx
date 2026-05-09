@@ -103,7 +103,7 @@ function ShopSelector({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-background text-xs font-medium hover:bg-muted/40 transition-colors"
+        className="flex items-center justify-between gap-2 h-8 min-w-[120px] px-3 rounded-md border border-border bg-background text-xs font-medium hover:bg-muted/40 transition-colors"
       >
         {label}
         <ChevronDownIcon className="size-3.5 text-muted-foreground" />
@@ -550,7 +550,7 @@ export function ReportsClient() {
   }, [from, to, selectedShops]);
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 p-6 w-full">
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-foreground">Reports</h1>

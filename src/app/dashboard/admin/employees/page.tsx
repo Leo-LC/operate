@@ -20,7 +20,8 @@ export default async function AdminEmployeesPage() {
       .select(`
         id, organization_id, location_id, first_name, last_name, position,
         nationality, national_id, work_permit_number, work_permit_expires_at,
-        email, phone, active, notes, user_id, archived_at, created_at, updated_at,
+        email, phone, active, notes, base_salary_monthly, has_thai_bank_account,
+        user_id, archived_at, created_at, updated_at,
         locations ( name ),
         employee_locations ( id, location_id, is_primary, locations ( name ) )
       `)
@@ -42,8 +43,9 @@ export default async function AdminEmployeesPage() {
     nationality: string | null; national_id: string | null;
     work_permit_number: string | null; work_permit_expires_at: string | null;
     email: string | null; phone: string | null; active: boolean;
-    notes: string | null; archived_at: string | null; user_id: string | null;
-    created_at: string; updated_at: string;
+    notes: string | null; base_salary_monthly: number | null;
+    has_thai_bank_account: boolean; archived_at: string | null;
+    user_id: string | null; created_at: string; updated_at: string;
     locations: { name: string } | null;
     employee_locations: ELRow[] | null;
   };
@@ -64,6 +66,8 @@ export default async function AdminEmployeesPage() {
     phone: e.phone ?? null,
     active: e.active,
     notes: e.notes ?? null,
+    base_salary_monthly: e.base_salary_monthly ?? null,
+    has_thai_bank_account: e.has_thai_bank_account ?? false,
     archived_at: e.archived_at ?? null,
     user_id: e.user_id ?? null,
     created_at: e.created_at,

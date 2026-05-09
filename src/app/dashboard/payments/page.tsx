@@ -1,0 +1,60 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { PaymentsClient } from "@/modules/payments/components/PaymentsClient";
+import type { AdminLocation } from "@/modules/admin/types";
+
+const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+
+export default async function PaymentsPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/");
+
+  const supabase = getSupabaseServerClient();
+  const isOwner = session.user.role === "owner";
+
+  let locationIds: string[] | null = null;
+  if (!isOwner && session.user.userId) {
+    const { data: access } = await supabase
+      .from("user_location_access")
+      .select("location_id")
+      .eq("user_id", session.user.userId);
+    locationIds = (access ?? []).map((r: { location_id: string }) => r.location_id);
+  }
+
+  let locQuery = supabase
+    .from("locations")
+    .select("id, name, slug, external_id, is_active, created_at")
+    .eq("organization_id", ORG_ID)
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  if (locationIds !== null) {
+    if (locationIds.length === 0) {
+      return (
+        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+          You don&apos;t have access to any location yet. Ask your admin.
+        </div>
+      );
+    }
+    locQuery = locQuery.in("id", locationIds);
+  }
+
+  const { data: locData } = await locQuery;
+
+  const locations: AdminLocation[] = (locData ?? []).map((l) => ({
+    id: l.id,
+    name: l.name,
+    slug: l.slug,
+    external_id: l.external_id ?? null,
+    is_active: l.is_active,
+    created_at: l.created_at,
+  }));
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-6">
+      <PaymentsClient initialLocations={locations} />
+    </div>
+  );
+}

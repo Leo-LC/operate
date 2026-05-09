@@ -1,11 +1,11 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon,
-  DownloadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
+  DownloadIcon, UploadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
 } from "lucide-react";
 import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";
 import { DateInput } from "@/components/ui/date-input";
@@ -102,6 +102,8 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // ── derived stats ────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -267,6 +269,33 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
     }
   }
 
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/documents/import", { method: "POST", body: fd });
+      const result = await res.json() as { inserted?: number; skipped?: number; errors?: string[]; error?: string };
+      if (!res.ok) {
+        toast.error(result.error ?? "Import failed");
+        return;
+      }
+      const { inserted = 0, skipped = 0, errors: rowErrors = [] } = result;
+      if (rowErrors.length > 0) {
+        toast.warning(`Imported ${inserted} rows. ${rowErrors.length} row(s) had errors — check console.`);
+        console.warn("Import row errors:", rowErrors);
+      } else {
+        toast.success(`Imported ${inserted} row(s), skipped ${skipped} duplicate(s)`);
+      }
+      if (inserted > 0) window.location.reload();
+    } finally {
+      setImporting(false);
+    }
+  }
+
   // ── render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-5">
@@ -311,6 +340,27 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
               Export CSV
             </Button>
           </a>
+          <a href="/api/documents/template" download>
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <DownloadIcon className="size-4" />
+              Import template
+            </Button>
+          </a>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv"
+            className="sr-only"
+            onChange={(e) => void handleImport(e)}
+          />
+          <Button
+            size="sm" variant="outline" className="gap-1.5"
+            disabled={importing}
+            onClick={() => importInputRef.current?.click()}
+          >
+            <UploadIcon className="size-4" />
+            {importing ? "Importing…" : "Import CSV"}
+          </Button>
           <Button size="sm" onClick={openAdd} className="gap-1.5">
             <PlusIcon className="size-4" />
             Add document

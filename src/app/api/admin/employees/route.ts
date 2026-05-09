@@ -19,7 +19,8 @@ export async function GET(request: Request) {
     .select(`
       id, organization_id, location_id, first_name, last_name, position,
       nationality, national_id, work_permit_number, work_permit_expires_at,
-      email, phone, active, notes, user_id, archived_at, created_at, updated_at,
+      email, phone, active, notes, base_salary_monthly, has_thai_bank_account,
+      user_id, archived_at, created_at, updated_at,
       locations ( name ),
       employee_locations ( id, location_id, is_primary, locations ( name ) )
     `)
@@ -51,6 +52,8 @@ export async function POST(request: Request) {
     email?: string;
     phone?: string;
     notes?: string;
+    base_salary_monthly?: number;
+    has_thai_bank_account?: boolean;
     user_id?: string;
     location_ids?: string[];
     primary_location_id?: string;
@@ -85,6 +88,8 @@ export async function POST(request: Request) {
       email: body.email?.trim().toLowerCase() ?? null,
       phone: body.phone?.trim() ?? null,
       notes: body.notes?.trim() ?? null,
+      base_salary_monthly: body.base_salary_monthly ?? null,
+      has_thai_bank_account: body.has_thai_bank_account ?? false,
       user_id: body.user_id ?? null,
     })
     .select()

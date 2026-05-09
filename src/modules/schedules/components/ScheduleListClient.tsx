@@ -241,47 +241,57 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
       {showCreate && (
         <form
           onSubmit={(e) => void handleCreate(e)}
-          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-wrap gap-3 items-end"
+          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-3"
         >
-          <div className="flex flex-col gap-1 min-w-[220px]">
-            <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
-            <input
-              type="text"
-              required
-              value={createName}
-              onChange={(e) => setCreateNameOverride(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="e.g. Week of 5 May 2026"
-            />
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex flex-col gap-1 min-w-[220px]">
+              <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
+              <input
+                type="text"
+                required
+                value={createName}
+                onChange={(e) => setCreateNameOverride(e.target.value)}
+                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                placeholder="e.g. Week of 5 May 2026"
+              />
+            </div>
+            <div className="flex flex-col gap-1 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground">Shop</label>
+              <select
+                value={createLocation}
+                onChange={(e) => setCreateLocation(e.target.value)}
+                required
+                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground">Week starting (Monday)</label>
+              <DateInput
+                required
+                value={createWeek}
+                onChange={(e) => {
+                  setCreateWeek(e.target.value);
+                  // Reset name override so it auto-updates with the new week
+                  setCreateNameOverride(null);
+                }}
+              />
+            </div>
           </div>
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-muted-foreground">Shop</label>
-            <select
-              value={createLocation}
-              onChange={(e) => setCreateLocation(e.target.value)}
-              required
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          <div className="flex items-center justify-between w-full pt-1 border-t border-border/40 mt-0.5">
+            <button
+              type="button"
+              onClick={() => { setShowCreate(false); setCreateNameOverride(null); }}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-muted-foreground">Week starting (Monday)</label>
-            <DateInput
-              required
-              value={createWeek}
-              onChange={(e) => {
-                setCreateWeek(e.target.value);
-                // Reset name override so it auto-updates with the new week
-                setCreateNameOverride(null);
-              }}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => { setShowCreate(false); setCreateNameOverride(null); }}>Cancel</Button>
+              Cancel
+            </button>
+            <Button type="submit" size="sm" disabled={submitting} className="gap-1.5">
+              {submitting ? "Creating…" : "Create schedule"}
+            </Button>
           </div>
         </form>
       )}

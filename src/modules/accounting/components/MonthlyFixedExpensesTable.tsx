@@ -233,7 +233,8 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
 
                     if (isEditing) {
                       return (
-                        <td key={cat.key} className="px-3 h-8 text-right border-r border-border/20 min-w-[5rem]">
+                        <td key={cat.key} className="px-3 h-8 text-right text-xs tabular-nums border-r border-border/20 min-w-[5rem] relative">
+                          <span aria-hidden="true" className="invisible">{fmt(val)}</span>
                           <input
                             type="number"
                             step="0.01"
@@ -243,9 +244,23 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
                             onBlur={() => void commitEdit()}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") { e.preventDefault(); void commitEdit(); }
-                              if (e.key === "Escape") setEditingCell(null);
+                              if (e.key === "Escape") { setEditingCell(null); }
+                              if (e.key === "Tab") {
+                                e.preventDefault();
+                                const idx = categories.findIndex((c) => c.key === cat.key);
+                                const dir = e.shiftKey ? -1 : 1;
+                                const nextIdx = idx + dir;
+                                void commitEdit();
+                                if (nextIdx >= 0 && nextIdx < categories.length) {
+                                  const nextCat = categories[nextIdx];
+                                  const existing = rowMap.get(monthNum);
+                                  const nextVal = existing ? (existing.category_values?.[nextCat.key] ?? 0) : 0;
+                                  setEditingCell({ month: monthNum, catKey: nextCat.key });
+                                  setEditValue(nextVal === 0 ? "" : String(nextVal));
+                                }
+                              }
                             }}
-                            className="w-full h-full rounded border border-ring bg-background px-0.5 text-xs text-right focus:outline-none"
+                            className="absolute inset-0 px-2 h-full w-full border border-ring bg-background text-xs text-right focus:outline-none"
                           />
                         </td>
                       );
@@ -254,7 +269,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
                     return (
                       <td
                         key={cat.key}
-                        className="px-3 h-8 text-right tabular-nums cursor-pointer hover:bg-accent/20 hover:ring-1 hover:ring-inset hover:ring-border/60 transition-all select-none border-r border-border/20 min-w-[5rem]"
+                        className="px-3 h-8 text-right tabular-nums cursor-pointer hover:bg-accent/20 hover:outline hover:outline-1 hover:outline-border/60 hover:[outline-offset:-1px] transition-colors select-none border-r border-border/20 min-w-[5rem]"
                         onClick={() => {
                           setEditingCell({ month: monthNum, catKey: cat.key });
                           setEditValue(val === 0 ? "" : String(val));
