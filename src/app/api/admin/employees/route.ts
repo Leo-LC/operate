@@ -33,7 +33,43 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  return Response.json(data ?? []);
+  type ELRow = { id: string; location_id: string; is_primary: boolean; locations: { name: string } | null };
+  type EmpRow = typeof data extends (infer T)[] | null ? T : never;
+
+  const mapped = (data ?? []).map((e) => {
+    const emp = e as unknown as EmpRow & { locations: { name: string } | null; employee_locations: ELRow[] | null };
+    return {
+      id: emp.id,
+      organization_id: emp.organization_id,
+      location_id: emp.location_id ?? null,
+      location_name: emp.locations?.name ?? null,
+      first_name: emp.first_name,
+      last_name: emp.last_name,
+      position: emp.position ?? null,
+      nationality: emp.nationality ?? null,
+      national_id: emp.national_id ?? null,
+      work_permit_number: emp.work_permit_number ?? null,
+      work_permit_expires_at: emp.work_permit_expires_at ?? null,
+      email: emp.email ?? null,
+      phone: emp.phone ?? null,
+      active: emp.active,
+      notes: emp.notes ?? null,
+      base_salary_monthly: emp.base_salary_monthly ?? null,
+      has_thai_bank_account: emp.has_thai_bank_account ?? false,
+      archived_at: emp.archived_at ?? null,
+      user_id: emp.user_id ?? null,
+      created_at: emp.created_at,
+      updated_at: emp.updated_at,
+      employee_locations: (emp.employee_locations ?? []).map((el) => ({
+        id: el.id,
+        location_id: el.location_id,
+        location_name: el.locations?.name ?? el.location_id,
+        is_primary: el.is_primary,
+      })),
+    };
+  });
+
+  return Response.json(mapped);
 }
 
 export async function POST(request: Request) {
