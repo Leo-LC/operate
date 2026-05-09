@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon } from "lucide-react";
+import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon } from "lucide-react";
 import { ShiftCell, computeShiftHours } from "@/modules/schedules/components/ShiftCell";
 import { ScheduleHeatmap } from "@/modules/schedules/components/ScheduleHeatmap";
 import type { Schedule, ScheduleShift, ShiftGrid, CellData } from "@/modules/schedules/types";
@@ -52,9 +52,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   const [nameInput, setNameInput] = useState(schedule.name);
   const [clipboard, setClipboard] = useState<CellData | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [addEmpForm, setAddEmpForm] = useState({ first_name: "", last_name: "", position: "" });
-  const [addEmpBusy, setAddEmpBusy] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
@@ -161,16 +159,17 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
     const weekRange = `${format(parseISO(schedule.week_start_date), "d MMM")} – ${format(addDays(parseISO(schedule.week_start_date), 6), "d MMM yyyy")}`;
     const headers = weekDaysRef.current.map((d) => `<th>${d.label}</th>`).join("");
-    const rows = employeesRef.current.map((emp) => {
+    const rows = employeesRef.current.map((emp, rowIdx) => {
       let total = 0;
       const cells = weekDaysRef.current.map((day) => {
         const cell = gridRef.current[cellKey(emp.id, day.iso)] ?? EMPTY_CELL;
         if (!cell.start_time) return `<td class="off">—</td>`;
         const h = computeShiftHours(cell.start_time, cell.end_time, DEFAULT_BREAK_MINUTES);
         total += h;
-        return `<td>${cell.start_time}<br>${cell.end_time}<br><span class="h">${h.toFixed(1)}h</span></td>`;
+        return `<td class="shift"><span class="time">${cell.start_time} – ${cell.end_time}</span><span class="hrs">${h.toFixed(1)}h</span></td>`;
       }).join("");
-      return `<tr>
+      const rowClass = rowIdx % 2 === 0 ? "" : ' class="alt"';
+      return `<tr${rowClass}>
         <td class="name">${emp.first_name} ${emp.last_name}${emp.position ? `<br><small>${emp.position}</small>` : ""}</td>
         ${cells}
         <td class="total">${total.toFixed(1)}h</td>
@@ -180,59 +179,65 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>${localName}</title>
 <style>
-  *{box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;padding:20px;color:#111}
-  h2{margin:0 0 2px;font-size:15px;font-weight:700}
-  .sub{margin:0 0 14px;color:#666;font-size:11px}
-  table{border-collapse:collapse;width:100%}
-  th,td{border:1px solid #ddd;padding:5px 6px;text-align:center;vertical-align:middle}
-  th{background:#f5f5f5;font-weight:600;font-size:10px}
-  td.name{text-align:left;font-weight:500;min-width:110px;white-space:nowrap}
-  td.name small{color:#888;font-size:9px;display:block}
-  td.off{color:#ccc}
-  td.total{font-weight:700;background:#fafafa}
-  span.h{font-weight:600;color:#16a34a}
-  @media print{@page{margin:12mm}body{padding:0}}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11px;color:#1a1a1a;background:#fff}
+  .accent{height:5px;background:#1e3a8a;width:100%}
+  .header{padding:16px 24px 12px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #e5e7eb}
+  .header-left h1{font-size:16px;font-weight:700;color:#111;margin-bottom:3px}
+  .header-left .meta{font-size:11px;color:#6b7280}
+  .header-right{text-align:right;font-size:10px;color:#9ca3af}
+  .content{padding:16px 24px}
+  table{border-collapse:collapse;width:100%;table-layout:fixed}
+  col.name-col{width:140px}
+  col.day-col{width:auto}
+  col.total-col{width:64px}
+  th{background:#1e3a8a;color:#fff;font-weight:600;font-size:10px;padding:7px 8px;text-align:center;letter-spacing:0.3px}
+  th.name-th{text-align:left;padding-left:10px}
+  td{padding:6px 8px;text-align:center;vertical-align:middle;border-bottom:1px solid #f0f0f0;font-size:10.5px}
+  tr.alt td{background:#f8fafc}
+  td.name{text-align:left;font-weight:600;padding-left:10px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  td.name small{color:#9ca3af;font-size:9px;display:block;font-weight:400}
+  td.off{color:#d1d5db;font-size:13px}
+  td.shift{line-height:1}
+  td.shift .time{display:block;color:#374151;font-weight:500}
+  td.shift .hrs{display:block;color:#16a34a;font-weight:700;font-size:10px;margin-top:2px}
+  td.total{font-weight:700;color:#1e3a8a;background:#eff6ff!important;border-left:2px solid #bfdbfe}
+  @media print{@page{margin:8mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.accent{-webkit-print-color-adjust:exact}}
 </style></head><body>
-<h2>${localName}</h2>
-<p class="sub">${schedule.location_name ?? ""}${schedule.location_name ? " · " : ""}${weekRange}</p>
+<div class="accent"></div>
+<div class="header">
+  <div class="header-left">
+    <h1>${localName}</h1>
+    <div class="meta">${schedule.location_name ? `${schedule.location_name} &nbsp;·&nbsp; ` : ""}${weekRange}</div>
+  </div>
+  <div class="header-right">Capybara Coffee<br>Internal Schedule</div>
+</div>
+<div class="content">
 <table>
-  <thead><tr><th></th>${headers}<th>Week</th></tr></thead>
+  <colgroup><col class="name-col">${weekDaysRef.current.map(() => '<col class="day-col">').join("")}<col class="total-col"></colgroup>
+  <thead><tr><th class="name-th">Employee</th>${headers}<th>Week</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
-<script>window.onload=function(){window.print();window.close();}<\/script>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
 </body></html>`);
     win.document.close();
   }
 
-  async function handleAddEmployee(e: React.FormEvent) {
-    e.preventDefault();
-    const fn = addEmpForm.first_name.trim();
-    const ln = addEmpForm.last_name.trim();
-    if (!fn || !ln) return;
-    setAddEmpBusy(true);
+  async function handleDuplicate() {
+    setDuplicating(true);
     try {
-      const res = await fetch("/api/admin/employees", {
+      const res = await fetch(`/api/schedules/${schedule.id}/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: fn,
-          last_name: ln,
-          position: addEmpForm.position.trim() || undefined,
-          location_id: schedule.location_id,
-        }),
+        body: JSON.stringify({ name: `${localName} (copy)` }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error((err as { error?: string }).error ?? "Failed to add employee");
-        return;
-      }
-      toast.success("Employee added — refreshing…");
-      setShowAddEmployee(false);
-      setAddEmpForm({ first_name: "", last_name: "", position: "" });
-      router.refresh();
+      if (!res.ok) { toast.error("Failed to duplicate schedule"); return; }
+      const duped = (await res.json()) as { id: string };
+      toast.success("Schedule duplicated");
+      router.push(`/dashboard/scheduling/${duped.id}`);
     } finally {
-      setAddEmpBusy(false);
+      setDuplicating(false);
     }
   }
 
@@ -297,6 +302,17 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
           <Button
             size="sm"
             variant="outline"
+            onClick={() => void handleDuplicate()}
+            disabled={duplicating}
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+            title="Duplicate this schedule"
+          >
+            <CopyIcon className="size-4" />
+            Duplicate
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={printSchedule}
             className="gap-1.5 text-muted-foreground hover:text-foreground"
             title="Download as PDF"
@@ -304,15 +320,13 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
             <PrinterIcon className="size-4" />
             PDF
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowAddEmployee((v) => !v)}
-            className="gap-1.5"
+          <a
+            href={`/dashboard/scheduling/employees?location_id=${schedule.location_id}`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <UserPlusIcon className="size-4" />
-            Add employee
-          </Button>
+            Manage employees
+          </a>
           {saveState === "saved" ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-green-600 dark:text-green-400 font-medium rounded-md bg-green-500/8 dark:bg-green-400/8 border border-green-500/20 dark:border-green-400/20">
               <CheckIcon className="size-4" />
@@ -333,71 +347,20 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
         </div>
       </div>
 
-      {/* ── Add employee inline form ────────────────────────────── */}
-      {showAddEmployee && (
-        <form
-          onSubmit={(e) => void handleAddEmployee(e)}
-          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-wrap gap-3 items-end"
-        >
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">First name</label>
-            <input
-              required
-              autoFocus
-              value={addEmpForm.first_name}
-              onChange={(e) => setAddEmpForm((p) => ({ ...p, first_name: e.target.value }))}
-              className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="First"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Last name</label>
-            <input
-              required
-              value={addEmpForm.last_name}
-              onChange={(e) => setAddEmpForm((p) => ({ ...p, last_name: e.target.value }))}
-              className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="Last"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Position</label>
-            <input
-              value={addEmpForm.position}
-              onChange={(e) => setAddEmpForm((p) => ({ ...p, position: e.target.value }))}
-              className="h-8 w-32 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="e.g. Barista"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={addEmpBusy}>
-              {addEmpBusy ? "Adding…" : "Add"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => { setShowAddEmployee(false); setAddEmpForm({ first_name: "", last_name: "", position: "" }); }}
-            >
-              Cancel
-            </Button>
-          </div>
-          <p className="w-full text-xs text-muted-foreground -mt-1">
-            Employee will be assigned to {schedule.location_name ?? "this shop"}.
-          </p>
-        </form>
-      )}
-
       {/* ── No employees state ──────────────────────────────────── */}
-      {employees.length === 0 && !showAddEmployee && (
-        <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">
-            No employees assigned to this shop yet.
+      {employees.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center space-y-3">
+          <p className="font-medium text-foreground text-sm">No employees assigned to this shop yet</p>
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+            Browse all organisation employees or create a new one with full details including salary, nationality, and work permit.
           </p>
-          <Button size="sm" variant="outline" onClick={() => setShowAddEmployee(true)} className="gap-1.5">
+          <a
+            href={`/dashboard/scheduling/employees?location_id=${schedule.location_id}`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
             <UserPlusIcon className="size-4" />
-            Add first employee
-          </Button>
+            Manage employees for this shop
+          </a>
         </div>
       )}
 

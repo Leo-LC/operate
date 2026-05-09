@@ -13,21 +13,17 @@ import {
   XIcon,
 } from "lucide-react";
 import {
-  STATUS_CLASSES,
-  STATUS_LABELS,
   EVENT_TYPE_CLASSES,
   EVENT_TYPE_LABELS,
+  ANIMAL_SPECIES,
   type Animal,
   type AnimalEvent,
-  type AnimalStatus,
   type AnimalSex,
   type EventType,
 } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
+import { DateInput } from "@/components/ui/date-input";
 
-const ALL_STATUSES: AnimalStatus[] = [
-  "active", "observation", "quarantine", "sick", "transferred", "retired", "deceased", "archived",
-];
 const ALL_EVENT_TYPES: EventType[] = [
   "health_check", "vet_visit", "vaccine", "transfer", "feeding_note", "incident", "note", "other",
 ];
@@ -70,15 +66,18 @@ interface AnimalDetailClientProps {
   animal: Animal;
   initialEvents: AnimalEvent[];
   locations: AdminLocation[];
+  isOwner?: boolean;
 }
 
-export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locations }: AnimalDetailClientProps) {
+export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locations, isOwner = false }: AnimalDetailClientProps) {
   const router = useRouter();
   const [animal, setAnimal] = useState(initialAnimal);
   const [events, setEvents] = useState(initialEvents);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Animal>>({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState({
     event_type: "note" as EventType,
@@ -93,11 +92,8 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
       name: animal.name,
       species: animal.species,
       sex: animal.sex,
-      status: animal.status,
       location_id: animal.location_id ?? undefined,
       estimated_birth_date: animal.estimated_birth_date ?? undefined,
-      arrival_date: animal.arrival_date ?? undefined,
-      microchip_id: animal.microchip_id ?? undefined,
       notes: animal.notes ?? undefined,
       last_vaccination_date: animal.last_vaccination_date ?? undefined,
       next_vaccination_date: animal.next_vaccination_date ?? undefined,
@@ -171,10 +167,15 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
   }
 
   async function handleDelete() {
-    const res = await fetch(`/api/animals/${animal.id}`, { method: "DELETE" });
-    if (!res.ok) { toast.error("Delete failed"); return; }
-    toast.success(`${animal.name} deleted`);
-    router.push("/dashboard/animals");
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/animals/${animal.id}`, { method: "DELETE" });
+      if (!res.ok) { toast.error("Delete failed"); return; }
+      toast.success(`${animal.name} deleted`);
+      router.push("/dashboard/animals");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const vaccStatus = getVaccineStatus(animal.next_vaccination_date);
@@ -195,7 +196,7 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
           {/* Basic information */}
           <div className="rounded-lg border border-border bg-card p-5">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Basic information</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Name <span className="text-destructive">*</span>
@@ -209,20 +210,15 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Species</label>
-                <input
+                <select
                   value={editForm.species ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, species: e.target.value }))}
                   className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Status</label>
-                <select
-                  value={editForm.status ?? "active"}
-                  onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as AnimalStatus }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 >
-                  {ALL_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                  <option value="">— select —</option>
+                  {ANIMAL_SPECIES.map((s) => (
+                    <option key={s} value={s.toLowerCase()}>{s}</option>
+                  ))}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -240,9 +236,9 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
             </div>
           </div>
 
-          {/* Location & identity */}
+          {/* Location */}
           <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Location & identity</h2>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Location</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Location</label>
@@ -256,37 +252,10 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Microchip / ID</label>
-                <input
-                  value={editForm.microchip_id ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, microchip_id: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
-                  placeholder="Optional"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Dates</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Arrival date</label>
-                <input
-                  type="date"
-                  value={editForm.arrival_date ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, arrival_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Est. birth date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={editForm.estimated_birth_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, estimated_birth_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 />
               </div>
             </div>
@@ -298,20 +267,16 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={editForm.last_vaccination_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, last_vaccination_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={editForm.next_vaccination_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, next_vaccination_date: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5 justify-end">
@@ -344,22 +309,51 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
 
           {/* Form actions */}
           <div className="flex items-center justify-between pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60 gap-1.5"
-              onClick={() => void handleDelete()}
-            >
-              <TrashIcon className="size-3.5" />
-              Delete animal
-            </Button>
+            {isOwner ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60 gap-1.5"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <TrashIcon className="size-3.5" />
+                Delete animal
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground/60">Only admins can delete animals</span>
+            )}
             <div className="flex gap-2">
               <Button type="button" size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
               <Button type="submit" size="sm" disabled={savingEdit}>{savingEdit ? "Saving…" : "Save changes"}</Button>
             </div>
           </div>
         </form>
+
+        {/* Delete confirmation modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
+              <h2 className="text-base font-semibold mb-1">Delete {animal.name}?</h2>
+              <p className="text-sm text-muted-foreground mb-5">
+                This cannot be undone. The animal record and all associated events will be permanently removed.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => void handleDelete()}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -380,12 +374,7 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
         </Button>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight">{animal.name}</h1>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSES[animal.status]}`}>
-                {STATUS_LABELS[animal.status]}
-              </span>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight">{animal.name}</h1>
             <p className="mt-1.5 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
               <span className="capitalize">{animal.species}</span>
               <span className="text-muted-foreground/30">·</span>
@@ -393,12 +382,6 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
                 <MapPinIcon className="size-3.5 shrink-0" />
                 {animal.location_name ?? <span className="italic">No location</span>}
               </span>
-              {animal.microchip_id && (
-                <>
-                  <span className="text-muted-foreground/30">·</span>
-                  <span>ID: {animal.microchip_id}</span>
-                </>
-              )}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -415,7 +398,7 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <p className="text-[11px] font-medium text-muted-foreground mb-1">Species</p>
           <p className="text-sm font-semibold capitalize">{animal.species}</p>
@@ -431,14 +414,6 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           <p className="text-[11px] font-medium text-muted-foreground mb-1">Sex</p>
           <p className="text-sm font-semibold capitalize">{animal.sex ?? "Unknown"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-[11px] font-medium text-muted-foreground mb-1">Microchip / ID</p>
-          {animal.microchip_id ? (
-            <p className="text-sm font-semibold font-mono">{animal.microchip_id}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground/60 italic">Not recorded</p>
-          )}
         </div>
       </div>
 
@@ -481,12 +456,9 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
             [
               { label: "Name", value: animal.name },
               { label: "Species", value: animal.species, className: "capitalize" },
-              { label: "Status", value: STATUS_LABELS[animal.status] },
               { label: "Sex", value: animal.sex ? animal.sex.charAt(0).toUpperCase() + animal.sex.slice(1) : null, empty: "Unknown" },
               { label: "Location", value: animal.location_name, empty: "No location assigned" },
-              { label: "Arrival date", value: fmtDate(animal.arrival_date), empty: "Not recorded" },
               { label: "Est. birth date", value: fmtDate(animal.estimated_birth_date), empty: "Not recorded" },
-              { label: "Microchip / ID", value: animal.microchip_id, empty: "Not recorded" },
             ] as Array<{ label: string; value: string | null; empty?: string; className?: string }>
           ).map(({ label, value, empty, className }) => (
             <div key={label}>
@@ -549,12 +521,10 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-muted-foreground">Date</label>
-                <input
-                  type="date"
+                <DateInput
                   required
                   value={eventForm.event_date}
                   onChange={(e) => setEventForm((f) => ({ ...f, event_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1 flex flex-col gap-1">

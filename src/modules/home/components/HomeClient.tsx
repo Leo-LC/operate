@@ -20,6 +20,7 @@ interface HomeClientProps {
   role?: "owner" | "staff";
   docsAlert: number;
   animalsAlert: number;
+  snippets?: Partial<Record<ModuleKey, string>>;
 }
 
 interface ModuleCard {
@@ -28,8 +29,8 @@ interface ModuleCard {
   description: string;
   href: string;
   icon: React.ElementType;
-  color: string;       // tailwind bg class for icon container
-  iconColor: string;   // tailwind text class for icon
+  color: string;
+  iconColor: string;
 }
 
 const ALL_MODULES: ModuleCard[] = [
@@ -98,7 +99,7 @@ const ALL_MODULES: ModuleCard[] = [
   },
 ];
 
-export function HomeClient({ name, role, docsAlert, animalsAlert }: HomeClientProps) {
+export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} }: HomeClientProps) {
   const permissions = derivePermissionsFromRole(role);
   const firstName = name.split(" ")[0];
   const today = new Date().toLocaleDateString("en-US", {
@@ -127,10 +128,9 @@ export function HomeClient({ name, role, docsAlert, animalsAlert }: HomeClientPr
           <p className="mt-1.5 text-sm text-muted-foreground">
             {totalAlerts > 0
               ? `You have ${totalAlerts} item${totalAlerts !== 1 ? "s" : ""} that need your attention.`
-              : "Everything looks good — pick a module to get started."}
+              : "Everything looks good — here's your overview."}
           </p>
         </div>
-        {/* Decorative background shape */}
         <div
           aria-hidden
           className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-primary/5 blur-2xl"
@@ -165,6 +165,7 @@ export function HomeClient({ name, role, docsAlert, animalsAlert }: HomeClientPr
           {visibleModules.map((mod) => {
             const Icon = mod.icon;
             const alert = alerts[mod.key];
+            const snippet = snippets[mod.key];
             return (
               <Link key={mod.key} href={mod.href} className="group">
                 <div
@@ -201,6 +202,10 @@ export function HomeClient({ name, role, docsAlert, animalsAlert }: HomeClientPr
                     {alert ? (
                       <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                         {alert.label} →
+                      </span>
+                    ) : snippet ? (
+                      <span className="text-xs font-medium text-foreground/70 group-hover:text-foreground transition-colors">
+                        {snippet}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">

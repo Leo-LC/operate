@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
 import {
-  STATUS_CLASSES,
-  STATUS_LABELS,
   type Animal,
   type AnimalSex,
+  ANIMAL_SPECIES,
 } from "@/modules/animals/types";
+import { VaccinationCalendar } from "@/modules/animals/components/VaccinationCalendar";
 import type { AdminLocation } from "@/modules/admin/types";
 
 interface FormState {
@@ -26,7 +27,7 @@ interface FormState {
 
 const EMPTY_FORM: FormState = {
   name: "",
-  species: "capybara",
+  species: "",
   sex: "",
   location_id: "",
   estimated_birth_date: "",
@@ -45,9 +46,11 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   const router = useRouter();
   const [animals, setAnimals] = useState(initialAnimals);
   const [view, setView] = useState<"list" | "calendar">("list");
+  const [vaccineView, setVaccineView] = useState<"list" | "calendar">("list");
   const [locationFilter, setLocationFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState<{ species?: string; location_id?: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
   const displayed = useMemo(() => {
@@ -57,17 +60,17 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
     });
   }, [animals, locationFilter]);
 
-  const urgentCount = useMemo(() =>
-    animals.filter((a) => a.status === "sick" || a.status === "quarantine").length,
-  [animals]);
-
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const activeCount = animals.filter((a) => a.status === "active").length;
   const vaccineDueCount = animals.filter((a) => a.next_vaccination_date && a.next_vaccination_date <= in30).length;
   const missingLocationCount = animals.filter((a) => !a.location_id).length;
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
+    const errors: { species?: string; location_id?: string } = {};
+    if (!form.species) errors.species = "Species is required";
+    if (!form.location_id) errors.location_id = "Location is required";
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
+    setFormErrors({});
     setSubmitting(true);
     try {
       const res = await fetch("/api/animals", {
@@ -75,7 +78,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
-          species: form.species || "capybara",
+          species: form.species,
           sex: form.sex || null,
           status: "active",
           location_id: form.location_id || null,
@@ -108,11 +111,6 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-lg font-semibold">Animals</h1>
-          {urgentCount > 0 && (
-            <p className="text-xs text-[var(--destructive)] font-medium">
-              {urgentCount} animal{urgentCount !== 1 ? "s" : ""} need attention
-            </p>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-md border border-border overflow-hidden">
@@ -134,7 +132,13 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           <a href="/api/animals/export" download>
             <Button size="sm" variant="outline" className="gap-1.5">
               <DownloadIcon className="size-4" />
-              Export CSV
+              CSV
+            </Button>
+          </a>
+          <a href="/api/animals/export/pdf" target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <DownloadIcon className="size-4" />
+              PDF
             </Button>
           </a>
           <Button size="sm" onClick={() => setShowForm((v) => !v)} className="gap-1.5">
@@ -146,20 +150,16 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
       {/* Summary stats */}
       {animals.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-border bg-muted/30 p-3">
             <p className="text-[11px] font-medium text-muted-foreground mb-1">Total</p>
             <p className="text-xl font-bold">{animals.length}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Active</p>
-            <p className="text-xl font-bold">{activeCount}</p>
           </div>
           <div className={`rounded-lg border p-3 ${vaccineDueCount > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-muted/30"}`}>
             <p className="text-[11px] font-medium text-muted-foreground mb-1">Vaccines due</p>
             <p className={`text-xl font-bold ${vaccineDueCount > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{vaccineDueCount}</p>
           </div>
-          <div className={`rounded-lg border p-3 ${missingLocationCount > 0 ? "border-border bg-muted/30" : "border-border bg-muted/30"}`}>
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
             <p className="text-[11px] font-medium text-muted-foreground mb-1">No location</p>
             <p className="text-xl font-bold">{missingLocationCount}</p>
           </div>
@@ -216,15 +216,20 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Species</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Species <span className="text-destructive">*</span>
+                </label>
                 <select
                   value={form.species}
-                  onChange={(e) => setForm((f) => ({ ...f, species: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  onChange={(e) => { setForm((f) => ({ ...f, species: e.target.value })); setFormErrors((prev) => ({ ...prev, species: undefined })); }}
+                  className={`h-8 rounded-md border bg-background px-2 text-sm ${formErrors.species ? "border-destructive" : "border-input"}`}
                 >
-                  <option value="capybara">Capybara</option>
-                  <option value="meerkat">Meerkat</option>
+                  <option value="">— select —</option>
+                  {ANIMAL_SPECIES.map((s) => (
+                    <option key={s} value={s.toLowerCase()}>{s}</option>
+                  ))}
                 </select>
+                {formErrors.species && <p className="text-[11px] text-destructive">{formErrors.species}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Sex</label>
@@ -240,30 +245,31 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Est. birth date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.estimated_birth_date}
                   onChange={(e) => setForm((f) => ({ ...f, estimated_birth_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
             </div>
           </div>
 
-          {/* Location & identity */}
+          {/* Location */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Location & identity</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Location</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Location</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Location <span className="text-destructive">*</span>
+                </label>
                 <select
                   value={form.location_id}
-                  onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  onChange={(e) => { setForm((f) => ({ ...f, location_id: e.target.value })); setFormErrors((prev) => ({ ...prev, location_id: undefined })); }}
+                  className={`h-8 rounded-md border bg-background px-2 text-sm ${formErrors.location_id ? "border-destructive" : "border-input"}`}
                 >
-                  <option value="">No location</option>
+                  <option value="">— select location —</option>
                   {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
+                {formErrors.location_id && <p className="text-[11px] text-destructive">{formErrors.location_id}</p>}
               </div>
             </div>
           </div>
@@ -274,20 +280,16 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.last_vaccination_date}
                   onChange={(e) => setForm((f) => ({ ...f, last_vaccination_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.next_vaccination_date}
                   onChange={(e) => setForm((f) => ({ ...f, next_vaccination_date: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                 />
               </div>
               <div className="flex flex-col gap-1.5 justify-end">
@@ -325,8 +327,32 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         </form>
       )}
 
-      {/* Vaccination urgency list */}
-      {view === "calendar" && <VaccinationUrgencyList animals={animals} locations={locations} />}
+      {/* Vaccines view with List / Calendar sub-toggle */}
+      {view === "calendar" && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setVaccineView("list")}
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs ${vaccineView === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
+              >
+                <ListIcon className="size-3.5" /> List
+              </button>
+              <button
+                type="button"
+                onClick={() => setVaccineView("calendar")}
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs border-l border-border ${vaccineView === "calendar" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
+              >
+                <CalendarIcon className="size-3.5" /> Calendar
+              </button>
+            </div>
+          </div>
+          {vaccineView === "list"
+            ? <VaccinationUrgencyList animals={displayed} locations={locations} />
+            : <VaccinationCalendar animals={displayed} />}
+        </div>
+      )}
 
       {/* List */}
       {view === "list" && (
@@ -341,7 +367,6 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Sex</th>
                   <th className="px-4 py-3" />
@@ -356,11 +381,6 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                   >
                     <td className="px-4 py-3 font-medium">{animal.name}</td>
                     <td className="px-4 py-3 text-muted-foreground text-xs capitalize">{animal.species}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[animal.status]}`}>
-                        {STATUS_LABELS[animal.status]}
-                      </span>
-                    </td>
                     <td className="px-4 py-3 text-xs">
                       {animal.location_name ?? <span className="text-muted-foreground/50 italic">No location</span>}
                     </td>

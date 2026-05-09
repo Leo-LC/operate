@@ -1,272 +1,607 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { FileTextIcon, PawPrintIcon, CalculatorIcon, CalendarDaysIcon, AlertTriangleIcon, CheckCircle2Icon, TrendingUpIcon, TrendingDownIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
+import { Button } from "@/components/ui/button";
 
-function fmt(n: number) {
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface ShopAgg {
+  locationId: string;
+  locationName: string;
+  revenue: number;
+  expenses: number;
+  hrCosts: number;
+  netProfit: number;
+  margin: number;
+  drinks: number;
+  tickets: number;
+  snacks: number;
+  goodies: number;
+  surcharge: number;
+  cash: number;
+  scan: number;
+  creditCard: number;
+}
+
+interface AccountingData {
+  period: { from: string; to: string };
+  locations: { id: string; name: string }[];
+  overview: ShopAgg;
+  byShop: ShopAgg[];
+}
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+
+function fmtN(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-function fmtB(n: number) {
-  return `฿ ${fmt(n)}`;
+function fmtPct(n: number) {
+  return `${n.toFixed(1)}%`;
 }
 
-type Summary = {
-  period: { from: string; to: string };
-  documents: { total: number; valid: number; expiring: number; expired: number; attention: number };
-  animals: { total: number; active: number; attention: number };
-  accounting: {
-    salesNet: number; expenses: number; hrCosts: number; totalExpenses: number;
-    netProfit: number; margin: number; daysWithEntries: number; daysInRange: number;
-  };
-};
+// ── Date helpers ─────────────────────────────────────────────────────────────
 
-function todayIso() { return new Date().toISOString().split("T")[0]; }
-function firstOfMonth() {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`;
+function today() { return new Date().toISOString().slice(0, 10); }
+function monthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
-function offsetDate(base: Date, days: number) {
-  const d = new Date(base);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+function weekStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay() + 1);
+  return d.toISOString().slice(0, 10);
 }
-function firstOfLastMonth() {
-  const n = new Date();
-  const d = new Date(n.getFullYear(), n.getMonth() - 1, 1);
-  return d.toISOString().split("T")[0];
+function lastMonthRange(): [string, string] {
+  const d = new Date();
+  const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
+  const m = d.getMonth() === 0 ? 12 : d.getMonth();
+  const from = `${y}-${String(m).padStart(2, "0")}-01`;
+  const to = new Date(y, m, 0).toISOString().slice(0, 10);
+  return [from, to];
 }
-function lastOfLastMonth() {
-  const n = new Date();
-  const d = new Date(n.getFullYear(), n.getMonth(), 0);
-  return d.toISOString().split("T")[0];
-}
-function firstOfQuarter() {
-  const n = new Date();
-  const q = Math.floor(n.getMonth() / 3);
-  return `${n.getFullYear()}-${String(q * 3 + 1).padStart(2, "0")}-01`;
+function quarterStart() {
+  const d = new Date();
+  const q = Math.floor(d.getMonth() / 3);
+  return `${d.getFullYear()}-${String(q * 3 + 1).padStart(2, "0")}-01`;
 }
 
-const QUICK_PERIODS = [
-  { label: "Today",      from: () => todayIso(),      to: () => todayIso() },
-  { label: "This week",  from: () => { const n = new Date(); return offsetDate(n, -n.getDay()); }, to: () => todayIso() },
-  { label: "This month", from: firstOfMonth,           to: todayIso },
-  { label: "Last month", from: firstOfLastMonth,       to: lastOfLastMonth },
-  { label: "This quarter", from: firstOfQuarter,       to: todayIso },
-];
+// ── Shop Selector ────────────────────────────────────────────────────────────
+
+function ShopSelector({
+  locations,
+  selected,
+  onChange,
+}: {
+  locations: { id: string; name: string }[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const allSelected = selected.length === locations.length;
+
+  function toggle(id: string) {
+    onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
+  }
+
+  function toggleAll() {
+    onChange(allSelected ? [] : locations.map((l) => l.id));
+  }
+
+  const label = allSelected
+    ? "All shops"
+    : selected.length === 0
+    ? "No shops"
+    : selected.length === 1
+    ? locations.find((l) => l.id === selected[0])?.name ?? "1 shop"
+    : `${selected.length} shops`;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-between gap-2 h-8 min-w-[120px] px-3 rounded-md border border-border bg-background text-xs font-medium hover:bg-muted/40 transition-colors"
+      >
+        {label}
+        <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-9 z-20 min-w-[160px] rounded-lg border border-border bg-popover shadow-lg p-1.5 flex flex-col gap-0.5">
+            <label className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent/40 cursor-pointer text-xs font-medium">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="rounded"
+              />
+              All shops
+            </label>
+            <div className="h-px bg-border/50 my-1" />
+            {locations.map((loc) => (
+              <label
+                key={loc.id}
+                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent/40 cursor-pointer text-xs"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(loc.id)}
+                  onChange={() => toggle(loc.id)}
+                  className="rounded"
+                />
+                {loc.name}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── KPI Card ─────────────────────────────────────────────────────────────────
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  color = "default",
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  color?: "default" | "green" | "red" | "blue";
+}) {
+  const valueColor =
+    color === "green"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : color === "red"
+      ? "text-destructive"
+      : color === "blue"
+      ? "text-blue-600 dark:text-blue-400"
+      : "text-foreground";
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1">
+      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
+      <p className={`text-2xl font-bold tabular-nums ${valueColor}`}>{value}</p>
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+// ── Controls bar ─────────────────────────────────────────────────────────────
+
+function Controls({
+  from,
+  to,
+  onFromChange,
+  onToChange,
+  locations,
+  selectedShops,
+  onShopsChange,
+}: {
+  from: string;
+  to: string;
+  onFromChange: (v: string) => void;
+  onToChange: (v: string) => void;
+  locations: { id: string; name: string }[];
+  selectedShops: string[];
+  onShopsChange: (ids: string[]) => void;
+}) {
+  const quickBtns: Array<{ label: string; fn: () => void }> = [
+    { label: "Today", fn: () => { onFromChange(today()); onToChange(today()); } },
+    { label: "This week", fn: () => { onFromChange(weekStart()); onToChange(today()); } },
+    { label: "This month", fn: () => { onFromChange(monthStart()); onToChange(today()); } },
+    {
+      label: "Last month",
+      fn: () => {
+        const [f, t] = lastMonthRange();
+        onFromChange(f);
+        onToChange(t);
+      },
+    },
+    { label: "This quarter", fn: () => { onFromChange(quarterStart()); onToChange(today()); } },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {quickBtns.map((b) => (
+        <Button key={b.label} variant="outline" size="sm" className="h-8 text-xs" onClick={b.fn}>
+          {b.label}
+        </Button>
+      ))}
+      <div className="flex items-center gap-1 ml-1">
+        <DateInput
+          value={from}
+          onChange={(e) => onFromChange(e.target.value)}
+        />
+        <span className="text-xs text-muted-foreground">–</span>
+        <DateInput
+          value={to}
+          onChange={(e) => onToChange(e.target.value)}
+        />
+      </div>
+      {locations.length > 0 && (
+        <ShopSelector locations={locations} selected={selectedShops} onChange={onShopsChange} />
+      )}
+    </div>
+  );
+}
+
+// ── Operations Tab ────────────────────────────────────────────────────────────
+
+function OperationsView({ data }: { data: AccountingData }) {
+  const { overview: o, byShop } = data;
+  const totalPayments = o.cash + o.scan + o.creditCard;
+
+  function pct(n: number) {
+    return totalPayments > 0 ? fmtPct((n / totalPayments) * 100) : "—";
+  }
+
+  const sortedShops = [...byShop].sort((a, b) => b.revenue - a.revenue);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* KPI Banner */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard label="Total Revenue" value={`฿${fmtN(o.revenue)}`} />
+        <KpiCard label="Total Expenses" value={`฿${fmtN(o.expenses + o.hrCosts)}`} color="red" />
+        <KpiCard
+          label="Net Profit"
+          value={`฿${fmtN(o.netProfit)}`}
+          color={o.netProfit >= 0 ? "green" : "red"}
+        />
+        <KpiCard
+          label="Net Margin"
+          value={fmtPct(o.margin)}
+          color={o.margin >= 20 ? "green" : o.margin >= 0 ? "default" : "red"}
+        />
+      </div>
+
+      {/* Revenue by category */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-emerald-500/[0.08]">
+          <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Revenue by category</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="text-xs w-full border-collapse">
+            <thead className="bg-muted/30">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Category</th>
+                {sortedShops.map((s) => (
+                  <th key={s.locationId} className="px-4 py-2 text-right font-medium text-muted-foreground whitespace-nowrap">
+                    {s.locationName}
+                  </th>
+                ))}
+                <th className="px-4 py-2 text-right font-semibold text-foreground">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {[
+                { key: "drinks" as const, label: "Drinks" },
+                { key: "tickets" as const, label: "Tickets" },
+                { key: "snacks" as const, label: "Snacks" },
+                { key: "goodies" as const, label: "Goodies" },
+                { key: "surcharge" as const, label: "Card surcharge" },
+              ].map(({ key, label }) => (
+                <tr key={key} className="hover:bg-muted/10 transition-colors">
+                  <td className="px-4 py-2 text-muted-foreground">{label}</td>
+                  {sortedShops.map((s) => (
+                    <td key={s.locationId} className="px-4 py-2 text-right tabular-nums">
+                      {s[key] > 0 ? fmtN(s[key]) : <span className="text-muted-foreground/30">—</span>}
+                    </td>
+                  ))}
+                  <td className="px-4 py-2 text-right tabular-nums font-medium">
+                    {fmtN(sortedShops.reduce((sum, s) => sum + s[key], 0))}
+                  </td>
+                </tr>
+              ))}
+              <tr className="bg-muted/20 font-semibold border-t-2 border-border">
+                <td className="px-4 py-2">Total revenue</td>
+                {sortedShops.map((s) => (
+                  <td key={s.locationId} className="px-4 py-2 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {fmtN(s.revenue)}
+                  </td>
+                ))}
+                <td className="px-4 py-2 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {fmtN(o.revenue)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Payment method split */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-blue-500/[0.08]">
+          <h3 className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Payment methods</h3>
+        </div>
+        <div className="p-4 grid grid-cols-3 gap-4">
+          {[
+            { label: "Cash", value: o.cash },
+            { label: "Scan / QR", value: o.scan },
+            { label: "Credit card", value: o.creditCard },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-lg font-bold tabular-nums">฿{fmtN(value)}</p>
+              <p className="text-xs text-muted-foreground">{pct(value)} of payments</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Expenses + HR */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-amber-500/[0.08]">
+          <h3 className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Expenses &amp; HR</h3>
+        </div>
+        <div className="p-4 grid grid-cols-3 gap-4">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs text-muted-foreground">Expenses</p>
+            <p className="text-lg font-bold tabular-nums text-destructive">฿{fmtN(o.expenses)}</p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="text-xs text-muted-foreground">HR costs</p>
+            <p className="text-lg font-bold tabular-nums text-destructive">฿{fmtN(o.hrCosts)}</p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="text-xs text-muted-foreground">Grand total costs</p>
+            <p className="text-lg font-bold tabular-nums text-destructive">฿{fmtN(o.expenses + o.hrCosts)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-shop comparison */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-slate-500/[0.08]">
+          <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-400 uppercase tracking-wide">Per-shop comparison</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="text-xs w-full border-collapse">
+            <thead className="bg-muted/30">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Shop</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Revenue</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Expenses</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">HR</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Net Profit</th>
+                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Margin</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {sortedShops.map((s) => (
+                <tr key={s.locationId} className="hover:bg-muted/10 transition-colors">
+                  <td className="px-4 py-2 font-medium">{s.locationName}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">฿{fmtN(s.revenue)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(s.expenses)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(s.hrCosts)}</td>
+                  <td className={`px-4 py-2 text-right tabular-nums font-medium ${s.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    ฿{fmtN(s.netProfit)}
+                  </td>
+                  <td className={`px-4 py-2 text-right tabular-nums ${s.margin >= 20 ? "text-emerald-600 dark:text-emerald-400" : s.margin >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
+                    {fmtPct(s.margin)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CEO View ──────────────────────────────────────────────────────────────────
+
+function CeoView({ data }: { data: AccountingData }) {
+  const { overview: o, byShop } = data;
+
+  const sortedShops = [...byShop].sort((a, b) => b.revenue - a.revenue);
+  const maxRevenue = Math.max(...sortedShops.map((s) => s.revenue), 1);
+  const top = sortedShops[0];
+  const bottom = sortedShops[sortedShops.length - 1];
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* 3 large KPI tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Revenue</p>
+          <p className="text-4xl font-extrabold tabular-nums">฿{fmtN(o.revenue)}</p>
+        </div>
+        <div className={`rounded-xl border border-border p-6 flex flex-col gap-2 ${o.netProfit >= 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50" : "bg-destructive/5 border-destructive/20"}`}>
+          <p className={`text-xs font-semibold uppercase tracking-widest ${o.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>Net Profit</p>
+          <p className={`text-4xl font-extrabold tabular-nums ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}`}>
+            ฿{fmtN(o.netProfit)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Margin</p>
+          <p className={`text-4xl font-extrabold tabular-nums ${o.margin >= 20 ? "text-emerald-600 dark:text-emerald-400" : o.margin >= 0 ? "text-foreground" : "text-destructive"}`}>
+            {fmtPct(o.margin)}
+          </p>
+        </div>
+      </div>
+
+      {/* Revenue vs Expenses per shop — CSS bars */}
+      {sortedShops.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
+          <h3 className="text-sm font-semibold text-foreground">Revenue vs. Expenses by shop</h3>
+          <div className="flex flex-col gap-5">
+            {sortedShops.map((s) => {
+              const revPct = (s.revenue / maxRevenue) * 100;
+              const expPct = (((s.expenses + s.hrCosts) / maxRevenue) * 100);
+              return (
+                <div key={s.locationId} className="flex flex-col gap-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-medium">{s.locationName}</span>
+                    <span className={`text-xs font-semibold tabular-nums ${s.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                      {s.netProfit >= 0 ? "+" : ""}฿{fmtN(s.netProfit)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-14 text-right">฿{fmtN(s.revenue)}</span>
+                      <div className="flex-1 h-4 rounded-full bg-muted/40 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500/80"
+                          style={{ width: `${revPct}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground w-10">Rev</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-14 text-right">฿{fmtN(s.expenses + s.hrCosts)}</span>
+                      <div className="flex-1 h-4 rounded-full bg-muted/40 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-rose-400/80"
+                          style={{ width: `${expPct}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground w-10">Exp+HR</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-4 pt-1 border-t border-border/40">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+              <span className="text-xs text-muted-foreground">Revenue</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-rose-400/80" />
+              <span className="text-xs text-muted-foreground">Expenses + HR</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top / bottom callouts */}
+      {sortedShops.length >= 2 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {top && (
+            <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 p-5">
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-2">Top performer</p>
+              <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{top.locationName}</p>
+              <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80 mt-1">฿{fmtN(top.revenue)} revenue · {fmtPct(top.margin)} margin</p>
+            </div>
+          )}
+          {bottom && bottom.locationId !== top?.locationId && (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 p-5">
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2">Needs attention</p>
+              <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{bottom.locationName}</p>
+              <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mt-1">฿{fmtN(bottom.revenue)} revenue · {fmtPct(bottom.margin)} margin</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function ReportsClient() {
-  const [from, setFrom] = useState(firstOfMonth());
-  const [to, setTo] = useState(todayIso());
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"operations" | "ceo">("operations");
+  const [from, setFrom] = useState(monthStart);
+  const [to, setTo] = useState(today);
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+  const [selectedShops, setSelectedShops] = useState<string[]>([]);
+  const [data, setData] = useState<AccountingData | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const fetchSummary = useCallback(async (f: string, t: string) => {
+  const fetchData = useCallback(async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports/summary?from=${f}&to=${t}`);
+      const locParam = shops.length === locs.length ? "all" : shops.join(",");
+      const res = await fetch(`/api/reports/accounting?from=${f}&to=${t}&locations=${locParam}`);
       if (!res.ok) return;
-      setSummary(await res.json() as Summary);
+      const json = await res.json() as AccountingData;
+      setData(json);
+      if (locs.length === 0 && json.locations.length > 0) {
+        setLocations(json.locations);
+        setSelectedShops(json.locations.map((l) => l.id));
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void fetchSummary(from, to); }, [from, to, fetchSummary]);
+  // Initial load
+  useEffect(() => {
+    void fetchData(from, to, [], []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const { documents: docs, animals, accounting: acc } = summary ?? {
-    documents: { total: 0, valid: 0, expiring: 0, expired: 0, attention: 0 },
-    animals: { total: 0, active: 0, attention: 0 },
-    accounting: { salesNet: 0, expenses: 0, hrCosts: 0, totalExpenses: 0, netProfit: 0, margin: 0, daysWithEntries: 0, daysInRange: 1 },
-  };
-
-  const docsAlert = docs.expired > 0 || docs.attention > 0;
-  const animalsAlert = animals.attention > 0;
+  // Re-fetch on param changes (skip initial)
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    if (!initialized) { setInitialized(true); return; }
+    void fetchData(from, to, selectedShops, locations);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [from, to, selectedShops]);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header + period picker */}
-      <div className="flex flex-col gap-3">
-        <h1 className="text-xl font-semibold">Reports</h1>
+    <div className="flex flex-col gap-6 p-6 w-full">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold text-foreground">Reports</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Financial performance across all shops</p>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-          />
-          <span className="text-xs text-muted-foreground">to</span>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-          />
-          <div className="flex flex-wrap gap-1">
-            {QUICK_PERIODS.map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => { setFrom(p.from()); setTo(p.to()); }}
-                className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                  from === p.from() && to === p.to()
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/60"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          {loading && <span className="text-xs text-muted-foreground">Loading…</span>}
+      {/* Tabs */}
+      <div className="flex rounded-md border border-border overflow-hidden text-xs w-fit">
+        {(["operations", "ceo"] as const).map((tab, i) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-1.5 ${i > 0 ? "border-l border-border" : ""} ${
+              activeTab === tab
+                ? "bg-accent text-accent-foreground font-medium"
+                : "text-muted-foreground hover:bg-muted/40"
+            }`}
+          >
+            {tab === "operations" ? "Operations" : "CEO View"}
+          </button>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <Controls
+        from={from}
+        to={to}
+        onFromChange={setFrom}
+        onToChange={setTo}
+        locations={locations}
+        selectedShops={selectedShops}
+        onShopsChange={setSelectedShops}
+      />
+
+      {/* Content */}
+      {loading && (
+        <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+          Loading…
         </div>
-      </div>
-
-      {/* KPI banner */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Sales net" value={fmtB(acc.salesNet)} color="emerald" />
-        <KpiCard label="Total expenses" value={fmtB(acc.totalExpenses)} color="amber" />
-        <KpiCard
-          label="Net profit"
-          value={fmtB(acc.netProfit)}
-          color={acc.netProfit >= 0 ? "emerald" : "red"}
-          trend={acc.netProfit >= 0 ? "up" : "down"}
-        />
-        <KpiCard
-          label="Net margin"
-          value={`${acc.margin.toFixed(1)}%`}
-          color={acc.margin >= 0 ? "emerald" : "red"}
-          trend={acc.margin >= 15 ? "up" : acc.margin < 0 ? "down" : "neutral"}
-        />
-      </div>
-
-      {/* Compliance + Operations grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Documents */}
-        <Link
-          href="/dashboard/documents"
-          className={`group flex flex-col gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/30 ${docsAlert ? "border-red-200 bg-red-50/40 dark:border-red-800/30 dark:bg-red-950/10" : "border-border bg-card"}`}
-        >
-          <div className="flex items-center gap-2">
-            <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${docsAlert ? "bg-red-100 dark:bg-red-900/30" : "bg-purple-100 dark:bg-purple-900/30"}`}>
-              <FileTextIcon className={`size-3.5 ${docsAlert ? "text-red-600 dark:text-red-400" : "text-purple-600 dark:text-purple-400"}`} />
-            </div>
-            <span className="text-xs font-semibold">Documents</span>
-          </div>
-          <div className="flex flex-col gap-1 text-xs">
-            <StatLine label="Total" value={docs.total} />
-            <StatLine label="Valid" value={docs.valid} />
-            {docs.expiring > 0 && <StatLine label="Expiring soon" value={docs.expiring} variant="warn" />}
-            {docs.expired > 0 && <StatLine label="Expired" value={docs.expired} variant="danger" />}
-            {docs.attention > 0 && <StatLine label="Need attention" value={docs.attention} variant="danger" />}
-          </div>
-          {docsAlert
-            ? <div className="flex items-center gap-1 text-[10px] text-red-600 dark:text-red-400"><AlertTriangleIcon className="size-3" />Action required</div>
-            : docs.total > 0 ? <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400"><CheckCircle2Icon className="size-3" />All in order</div>
-            : null}
-        </Link>
-
-        {/* Animals */}
-        <Link
-          href="/dashboard/animals"
-          className={`group flex flex-col gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/30 ${animalsAlert ? "border-amber-200 bg-amber-50/40 dark:border-amber-800/30 dark:bg-amber-950/10" : "border-border bg-card"}`}
-        >
-          <div className="flex items-center gap-2">
-            <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${animalsAlert ? "bg-amber-100 dark:bg-amber-900/30" : "bg-green-100 dark:bg-green-900/30"}`}>
-              <PawPrintIcon className={`size-3.5 ${animalsAlert ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"}`} />
-            </div>
-            <span className="text-xs font-semibold">Animals</span>
-          </div>
-          <div className="flex flex-col gap-1 text-xs">
-            <StatLine label="Total" value={animals.total} />
-            <StatLine label="Active" value={animals.active} />
-            {animals.attention > 0 && <StatLine label="Need attention" value={animals.attention} variant="warn" />}
-          </div>
-          {animalsAlert
-            ? <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400"><AlertTriangleIcon className="size-3" />Sick / quarantine</div>
-            : animals.total > 0 ? <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400"><CheckCircle2Icon className="size-3" />All healthy</div>
-            : null}
-        </Link>
-
-        {/* Accounting */}
-        <Link
-          href="/dashboard/accounting"
-          className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/30"
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-900/30">
-              <CalculatorIcon className="size-3.5 text-teal-600 dark:text-teal-400" />
-            </div>
-            <span className="text-xs font-semibold">Accounting</span>
-          </div>
-          <div className="flex flex-col gap-1 text-xs">
-            <StatLine label="Sales net" value={fmtB(acc.salesNet)} />
-            <StatLine label="Total expenses" value={fmtB(acc.totalExpenses)} />
-            <StatLine label="Net profit" value={fmtB(acc.netProfit)} variant={acc.netProfit >= 0 ? "default" : "danger"} />
-            <StatLine
-              label="Coverage"
-              value={`${acc.daysWithEntries}/${acc.daysInRange} days`}
-              variant={acc.daysWithEntries < acc.daysInRange * 0.5 ? "warn" : "default"}
-            />
-          </div>
-        </Link>
-
-        {/* Schedules */}
-        <Link
-          href="/dashboard/scheduling"
-          className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/30"
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <CalendarDaysIcon className="size-3.5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <span className="text-xs font-semibold">Schedules</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            View shift schedules, employee assignments and weekly planning.
-          </p>
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({ label, value, color, trend }: { label: string; value: string; color: string; trend?: "up" | "down" | "neutral" }) {
-  const colors: Record<string, string> = {
-    emerald: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/30",
-    amber: "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800/30",
-    red: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800/30",
-    default: "bg-card border-border",
-  };
-  const valueColors: Record<string, string> = {
-    emerald: "text-emerald-700 dark:text-emerald-400",
-    amber: "text-amber-700 dark:text-amber-400",
-    red: "text-red-700 dark:text-red-400",
-    default: "text-foreground",
-  };
-  return (
-    <div className={`rounded-xl border px-4 py-3 ${colors[color] ?? colors.default}`}>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="flex items-center gap-1.5 mt-1">
-        <p className={`text-xl font-bold ${valueColors[color] ?? valueColors.default}`}>{value}</p>
-        {trend === "up" && <TrendingUpIcon className="size-4 text-emerald-500 shrink-0" />}
-        {trend === "down" && <TrendingDownIcon className="size-4 text-red-500 shrink-0" />}
-      </div>
-    </div>
-  );
-}
-
-function StatLine({ label, value, variant = "default" }: { label: string; value: string | number; variant?: "default" | "warn" | "danger" | "muted" }) {
-  const cls = variant === "danger" ? "text-red-600 dark:text-red-400 font-medium"
-    : variant === "warn" ? "text-amber-600 dark:text-amber-400 font-medium"
-    : variant === "muted" ? "text-muted-foreground/60"
-    : "text-foreground";
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={cls}>{value}</span>
+      )}
+      {!loading && !data && (
+        <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+          No data
+        </div>
+      )}
+      {!loading && data && (
+        activeTab === "operations"
+          ? <OperationsView data={data} />
+          : <CeoView data={data} />
+      )}
     </div>
   );
 }

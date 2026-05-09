@@ -1,12 +1,14 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   PlusIcon, ExternalLinkIcon, PencilIcon, TrashIcon, XIcon,
-  DownloadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
+  DownloadIcon, UploadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
 } from "lucide-react";
 import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";
+import { DateInput } from "@/components/ui/date-input";
 import {
   computeStatus, daysUntilExpiry,
   DOCUMENT_TYPE_LABELS, STATUS_CLASSES, STATUS_LABELS,
@@ -26,9 +28,7 @@ const STATUS_FILTERS: Array<{ value: "" | DocumentStatus; label: string }> = [
   { value: "expired", label: "Expired" },
   { value: "expiring", label: "Expiring soon" },
   { value: "missing", label: "Missing" },
-  { value: "to_review", label: "To review" },
   { value: "valid", label: "Valid" },
-  { value: "archived", label: "Archived" },
 ];
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -44,8 +44,6 @@ interface FormState {
   location_id: string;
   is_relevant: boolean;
   has_document: boolean;
-  status: DocumentStatus;
-  responsible_person: string;
   issued_at: string;
   expires_at: string;
   reminder_days_override: string;
@@ -57,8 +55,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   title: "", thai_form_name: "", code: "", category: "", authority: "",
   frequency: "", document_type: "other", location_id: "",
-  is_relevant: true, has_document: false, status: "missing",
-  responsible_person: "", issued_at: "", expires_at: "",
+  is_relevant: true, has_document: false, issued_at: "", expires_at: "",
   reminder_days_override: "", drive_url: "", notes: "", shop_notes: "",
 };
 
@@ -91,18 +88,22 @@ function HasDocBadge({ has_document }: { has_document: boolean }) {
 // ─── main component ───────────────────────────────────────────────────────────
 
 export function DocumentsClient({ initialDocuments, locations }: DocumentsClientProps) {
+  const { data: session } = useSession();
+  const isOwner = session?.user?.role === "owner";
+
   const [documents, setDocuments] = useState(initialDocuments);
   const [view, setView] = useState<"table" | "calendar">("table");
   const [statusFilter, setStatusFilter] = useState<"" | DocumentStatus>("");
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [relevanceFilter, setRelevanceFilter] = useState<"" | "relevant" | "not_relevant">("");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // ── derived stats ────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -123,19 +124,17 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
   const displayed = useMemo(() => {
     const q = search.toLowerCase();
     return documents.filter((d) => {
-      if (relevanceFilter === "relevant" && !d.is_relevant) return false;
-      if (relevanceFilter === "not_relevant" && d.is_relevant) return false;
       const effectiveStatus = computeStatus(d);
       if (statusFilter && effectiveStatus !== statusFilter) return false;
       if (locationFilter && d.location_id !== locationFilter) return false;
       if (categoryFilter && d.category !== categoryFilter) return false;
       if (q) {
-        const haystack = `${d.title} ${d.code ?? ""} ${d.responsible_person ?? ""} ${d.thai_form_name ?? ""}`.toLowerCase();
+        const haystack = `${d.title} ${d.code ?? ""} ${d.thai_form_name ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [documents, statusFilter, locationFilter, categoryFilter, relevanceFilter, search]);
+  }, [documents, statusFilter, locationFilter, categoryFilter, search]);
 
   const groupedDisplayed = useMemo(() => {
     const groups: Record<string, typeof displayed> = {};
@@ -167,8 +166,6 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       location_id: doc.location_id ?? "",
       is_relevant: doc.is_relevant,
       has_document: doc.has_document,
-      status: doc.status,
-      responsible_person: doc.responsible_person ?? "",
       issued_at: doc.issued_at ?? "",
       expires_at: doc.expires_at ?? "",
       reminder_days_override: doc.reminder_days_override != null ? String(doc.reminder_days_override) : "",
@@ -197,7 +194,6 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       authority: form.authority || null,
       frequency: form.frequency || null,
       document_type: form.document_type,
-      status: form.status,
       location_id: form.location_id || null,
       is_relevant: form.is_relevant,
       has_document: form.has_document,
@@ -205,7 +201,6 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       issued_at: form.issued_at || null,
       expires_at: form.expires_at || null,
       reminder_days_override: form.reminder_days_override ? Number(form.reminder_days_override) : null,
-      responsible_person: form.responsible_person || null,
       notes: form.notes || null,
       shop_notes: form.shop_notes || null,
     };
@@ -245,17 +240,12 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
     toast.success("Document deleted");
   }
 
-  async function handleMarkChecked(doc: Document) {
-    const res = await fetch(`/api/documents/${doc.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ last_checked_at: new Date().toISOString() }),
-    });
-    if (!res.ok) { toast.error("Update failed"); return; }
-    const updated = await res.json() as Document;
-    setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...updated, location_name: doc.location_name } : d));
-    toast.success("Marked as checked");
-  }
+  useEffect(() => {
+    if (!showForm) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") closeForm(); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showForm]);
 
   async function handleSync() {
     setSyncing(true);
@@ -276,6 +266,33 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       }
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/documents/import", { method: "POST", body: fd });
+      const result = await res.json() as { inserted?: number; skipped?: number; errors?: string[]; error?: string };
+      if (!res.ok) {
+        toast.error(result.error ?? "Import failed");
+        return;
+      }
+      const { inserted = 0, skipped = 0, errors: rowErrors = [] } = result;
+      if (rowErrors.length > 0) {
+        toast.warning(`Imported ${inserted} rows. ${rowErrors.length} row(s) had errors — check console.`);
+        console.warn("Import row errors:", rowErrors);
+      } else {
+        toast.success(`Imported ${inserted} row(s), skipped ${skipped} duplicate(s)`);
+      }
+      if (inserted > 0) window.location.reload();
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -323,6 +340,27 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
               Export CSV
             </Button>
           </a>
+          <a href="/api/documents/template" download>
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <DownloadIcon className="size-4" />
+              Import template
+            </Button>
+          </a>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv"
+            className="sr-only"
+            onChange={(e) => void handleImport(e)}
+          />
+          <Button
+            size="sm" variant="outline" className="gap-1.5"
+            disabled={importing}
+            onClick={() => importInputRef.current?.click()}
+          >
+            <UploadIcon className="size-4" />
+            {importing ? "Importing…" : "Import CSV"}
+          </Button>
           <Button size="sm" onClick={openAdd} className="gap-1.5">
             <PlusIcon className="size-4" />
             Add document
@@ -398,15 +436,6 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <select
-          value={relevanceFilter}
-          onChange={(e) => setRelevanceFilter(e.target.value as "" | "relevant" | "not_relevant")}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-        >
-          <option value="">All relevance</option>
-          <option value="relevant">Relevant only</option>
-          <option value="not_relevant">Not relevant</option>
-        </select>
         <span className="ml-auto self-center text-xs text-muted-foreground">
           {displayed.length} document{displayed.length !== 1 ? "s" : ""}
         </span>
@@ -453,19 +482,16 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                       </span>
                     )}
                   </div>
-                  <table className="w-full text-sm min-w-[900px]">
+                  <table className="w-full text-sm min-w-[640px]">
                     <thead>
                       <tr className="border-b border-border bg-muted/20">
                         <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Code</th>
                         <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Document</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Authority</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Freq.</th>
                         <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Location</th>
                         <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Has doc</th>
                         <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Status</th>
                         <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Expiry / due</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Responsible</th>
-                        <th className="px-4 py-2" />
+                        <th className="px-4 py-2 w-16" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -476,8 +502,9 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                         return (
                           <tr
                             key={doc.id}
+                            onClick={() => openEdit(doc)}
                             className={[
-                              "hover:bg-muted/20 transition-colors group",
+                              "hover:bg-muted/20 transition-colors group cursor-pointer",
                               urgent ? "bg-red-50/30 dark:bg-red-950/10" : "",
                               notRelevant ? "opacity-50" : "",
                             ].filter(Boolean).join(" ")}
@@ -509,14 +536,6 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                                 )}
                               </div>
                             </td>
-                            {/* Authority */}
-                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap max-w-[140px] truncate">
-                              {doc.authority ?? <span className="text-muted-foreground/30">—</span>}
-                            </td>
-                            {/* Frequency */}
-                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                              {doc.frequency ?? <span className="text-muted-foreground/30">—</span>}
-                            </td>
                             {/* Location */}
                             <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                               {doc.location_name ?? <span className="text-muted-foreground/40">Org-wide</span>}
@@ -541,27 +560,9 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                             <td className="px-4 py-2.5 text-xs whitespace-nowrap">
                               <ExpiryCell expires_at={doc.expires_at} />
                             </td>
-                            {/* Responsible */}
-                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                              {doc.responsible_person ?? <span className="text-muted-foreground/30">—</span>}
-                            </td>
                             {/* Actions */}
-                            <td className="px-4 py-2.5">
+                            <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={() => void handleMarkChecked(doc)}
-                                  className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground border border-border/60 hover:bg-muted transition-colors whitespace-nowrap"
-                                  title="Mark as checked today"
-                                >
-                                  Checked
-                                </button>
-                                <button
-                                  onClick={() => openEdit(doc)}
-                                  className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                                  title="Edit"
-                                >
-                                  <PencilIcon className="size-3.5" />
-                                </button>
                                 <button
                                   onClick={() => void handleDelete(doc.id)}
                                   className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
@@ -585,15 +586,16 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
 
       {/* Add / Edit modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="w-full max-w-2xl rounded-xl border border-border bg-background p-5 shadow-xl my-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto"
+          onClick={closeForm}
+        >
+          <div
+            className="w-full max-w-2xl rounded-xl border border-border bg-background p-5 shadow-xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-sm font-semibold">{editingId ? "Edit document" : "Add document"}</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {editingId ? "Update this document's tracking details." : "Add a document to the compliance tracker."}
-                </p>
-              </div>
+              <h2 className="text-sm font-semibold">{editingId ? "Edit document" : "Add document"}</h2>
               <button onClick={closeForm} className="text-muted-foreground hover:text-foreground">
                 <XIcon className="size-4" />
               </button>
@@ -601,78 +603,141 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
 
             <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-5">
 
-              {/* Section: Basic information */}
+              {/* Prominent relevance & has-document toggles */}
+              <div className="rounded-lg bg-muted/30 border border-border/50 p-4 flex flex-col gap-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.is_relevant}
+                    onChange={(e) => setForm((f) => ({ ...f, is_relevant: e.target.checked }))}
+                    className="size-4 rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Relevant to this location</p>
+                    <p className="text-xs text-muted-foreground">Uncheck if this document doesn&apos;t apply to the selected shop</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.has_document}
+                    onChange={(e) => setForm((f) => ({ ...f, has_document: e.target.checked }))}
+                    className="size-4 rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">We have this document</p>
+                    <p className="text-xs text-muted-foreground">Check when the physical or digital copy is in hand</p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Section: Base document info (locked for non-owners) */}
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Basic information</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Document info</p>
+                  {!isOwner ? (
+                    <span className="text-[10px] text-muted-foreground/60 italic">— managed centrally</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/60 italic">— name/code changes apply to all locations</span>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2 flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Document name <span className="text-destructive">*</span></label>
-                    <input
-                      required
-                      value={form.title}
-                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                      placeholder="e.g. Restaurant License"
-                    />
+                    <label className="text-xs font-medium text-muted-foreground">Document name {isOwner && <span className="text-destructive">*</span>}</label>
+                    {isOwner ? (
+                      <input
+                        required
+                        value={form.title}
+                        onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                        placeholder="e.g. Restaurant License"
+                      />
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm text-foreground">{form.title}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Thai form name</label>
-                    <input
-                      value={form.thai_form_name}
-                      onChange={(e) => setForm((f) => ({ ...f, thai_form_name: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                      placeholder="e.g. ใบอนุญาต"
-                    />
+                    {isOwner ? (
+                      <input
+                        value={form.thai_form_name}
+                        onChange={(e) => setForm((f) => ({ ...f, thai_form_name: e.target.value }))}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                        placeholder="e.g. ใบอนุญาต"
+                      />
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.thai_form_name || "—"}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Document code</label>
-                    <input
-                      value={form.code}
-                      onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm font-mono"
-                      placeholder="e.g. FOOD_LICENSE"
-                    />
+                    {isOwner ? (
+                      <input
+                        value={form.code}
+                        onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm font-mono"
+                        placeholder="e.g. FOOD_LICENSE"
+                      />
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm font-mono text-muted-foreground">{form.code || "—"}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Category</label>
-                    <select
-                      value={form.category}
-                      onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      <option value="">Select category</option>
-                      {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    {isOwner ? (
+                      <select
+                        value={form.category}
+                        onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                        className="h-8 rounded-md border border-input bg-background pl-2 pr-8 text-sm"
+                      >
+                        <option value="">Select category</option>
+                        {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.category || "—"}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Type</label>
-                    <select
-                      value={form.document_type}
-                      onChange={(e) => setForm((f) => ({ ...f, document_type: e.target.value as DocumentType }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      {ALL_TYPES.map((t) => (
-                        <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
-                      ))}
-                    </select>
+                    {isOwner ? (
+                      <select
+                        value={form.document_type}
+                        onChange={(e) => setForm((f) => ({ ...f, document_type: e.target.value as DocumentType }))}
+                        className="h-8 rounded-md border border-input bg-background pl-2 pr-8 text-sm"
+                      >
+                        {ALL_TYPES.map((t) => (
+                          <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{DOCUMENT_TYPE_LABELS[form.document_type]}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Authority / issuer</label>
-                    <input
-                      value={form.authority}
-                      onChange={(e) => setForm((f) => ({ ...f, authority: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                      placeholder="e.g. District Office"
-                    />
+                    {isOwner ? (
+                      <input
+                        value={form.authority}
+                        onChange={(e) => setForm((f) => ({ ...f, authority: e.target.value }))}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                        placeholder="e.g. District Office"
+                      />
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.authority || "—"}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Frequency</label>
-                    <input
-                      value={form.frequency}
-                      onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                      placeholder="e.g. Yearly, Monthly, Once"
-                    />
+                    {isOwner ? (
+                      <input
+                        value={form.frequency}
+                        onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                        placeholder="e.g. Yearly, Monthly, Once"
+                      />
+                    ) : (
+                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.frequency || "—"}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -686,54 +751,13 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                     <select
                       value={form.location_id}
                       onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-8 rounded-md border border-input bg-background pl-2 pr-8 text-sm"
                     >
                       <option value="">Org-wide</option>
                       {locations.map((l) => (
                         <option key={l.id} value={l.id}>{l.name}</option>
                       ))}
                     </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Status</label>
-                    <select
-                      value={form.status}
-                      onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as DocumentStatus }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      {(["valid", "missing", "to_review", "replaced", "archived"] as DocumentStatus[]).map((s) => (
-                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 col-span-2">
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={form.is_relevant}
-                        onChange={(e) => setForm((f) => ({ ...f, is_relevant: e.target.checked }))}
-                        className="size-3.5 rounded"
-                      />
-                      Relevant to this location
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer ml-4">
-                      <input
-                        type="checkbox"
-                        checked={form.has_document}
-                        onChange={(e) => setForm((f) => ({ ...f, has_document: e.target.checked }))}
-                        className="size-3.5 rounded"
-                      />
-                      We have this document
-                    </label>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Responsible person</label>
-                    <input
-                      value={form.responsible_person}
-                      onChange={(e) => setForm((f) => ({ ...f, responsible_person: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                      placeholder="Name"
-                    />
                   </div>
                   <div className="col-span-2 flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Shop notes</label>
@@ -754,20 +778,16 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Issue date</label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={form.issued_at}
                       onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Expiry / next due</label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={form.expires_at}
                       onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">

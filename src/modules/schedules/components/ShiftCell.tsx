@@ -129,10 +129,11 @@ export function ShiftCell({
         display: "flex",
         flexDirection: "column",
         gap: 4,
-        padding: "6px 5px 5px",
-        minHeight: 72,
+        padding: "8px 6px 7px",
+        minHeight: 88,
         position: "relative",
         transition: "box-shadow 0.1s",
+        cursor: isOff ? "default" : "grab",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 1px rgba(107,114,128,0.4)";

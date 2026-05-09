@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
-import { STATUS_LABELS, STATUS_CLASSES } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
+import { DateInput } from "@/components/ui/date-input";
 
 interface Props {
   initialSchedules: Schedule[];
@@ -39,6 +39,8 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
   const [createNameOverride, setCreateNameOverride] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [printingId, setPrintingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Schedule | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const createName = createNameOverride ?? defaultScheduleName(createWeek);
 
@@ -75,7 +77,6 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function handleDuplicate(schedule: Schedule) {
     setSubmitting(true);
     try {
@@ -94,12 +95,18 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    const res = await fetch(`/api/schedules/${id}`, { method: "DELETE" });
-    if (!res.ok) { toast.error("Failed to delete schedule"); return; }
-    setSchedules((prev) => prev.filter((s) => s.id !== id));
-    toast.success("Schedule deleted");
+  async function executeDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/schedules/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) { toast.error("Failed to delete schedule"); return; }
+      setSchedules((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      toast.success("Schedule deleted");
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const printSchedule = useCallback(async (schedule: Schedule) => {
@@ -133,7 +140,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
       };
 
       const headers = weekDays.map((d) => `<th>${d.label}</th>`).join("");
-      const rows = Array.from(empMap.entries()).map(([empId, empName]) => {
+      const rows = Array.from(empMap.entries()).map(([empId, empName], rowIdx) => {
         let total = 0;
         const cells = weekDays.map((day) => {
           const s = shiftMap.get(`${empId}__${day.iso}`);
@@ -142,36 +149,59 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           const et = (s.end_time ?? "").substring(0, 5);
           const h = computeH(st, et);
           total += h;
-          return `<td>${st}<br>${et}<br><span class="h">${h.toFixed(1)}h</span></td>`;
+          return `<td class="shift"><span class="time">${st} – ${et}</span><span class="hrs">${h.toFixed(1)}h</span></td>`;
         }).join("");
-        return `<tr><td class="name">${empName}</td>${cells}<td class="total">${total.toFixed(1)}h</td></tr>`;
+        const rowClass = rowIdx % 2 === 0 ? "" : ' class="alt"';
+        return `<tr${rowClass}><td class="name">${empName}</td>${cells}<td class="total">${total.toFixed(1)}h</td></tr>`;
       }).join("");
 
-      const win = window.open("", "_blank", "width=1100,height=750");
+      const win = window.open("", "_blank", "width=1150,height=800");
       if (!win) { toast.error("Pop-up blocked — please allow pop-ups"); return; }
       win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>${schedule.name}</title>
 <style>
-  *{box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;padding:20px;color:#111}
-  h2{margin:0 0 2px;font-size:15px;font-weight:700}
-  .sub{margin:0 0 14px;color:#666;font-size:11px}
-  table{border-collapse:collapse;width:100%}
-  th,td{border:1px solid #ddd;padding:5px 6px;text-align:center;vertical-align:middle}
-  th{background:#f5f5f5;font-weight:600;font-size:10px}
-  td.name{text-align:left;font-weight:500;min-width:110px;white-space:nowrap}
-  td.off{color:#ccc}
-  td.total{font-weight:700;background:#fafafa}
-  span.h{font-weight:600;color:#16a34a}
-  @media print{@page{margin:12mm}body{padding:0}}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11px;color:#1a1a1a;background:#fff}
+  .accent{height:5px;background:#1e3a8a;width:100%}
+  .header{padding:16px 24px 12px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #e5e7eb}
+  .header-left h1{font-size:16px;font-weight:700;color:#111;margin-bottom:3px}
+  .header-left .meta{font-size:11px;color:#6b7280}
+  .header-right{text-align:right;font-size:10px;color:#9ca3af}
+  .content{padding:16px 24px}
+  table{border-collapse:collapse;width:100%;table-layout:fixed}
+  col.name-col{width:130px}
+  col.day-col{width:auto}
+  col.total-col{width:64px}
+  th{background:#1e3a8a;color:#fff;font-weight:600;font-size:10px;padding:7px 8px;text-align:center;letter-spacing:0.3px}
+  th.name-th{text-align:left;padding-left:10px}
+  td{padding:6px 8px;text-align:center;vertical-align:middle;border-bottom:1px solid #f0f0f0;font-size:10.5px}
+  tr.alt td{background:#f8fafc}
+  td.name{text-align:left;font-weight:600;padding-left:10px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  td.off{color:#d1d5db;font-size:13px}
+  td.shift{line-height:1}
+  td.shift .time{display:block;color:#374151;font-weight:500}
+  td.shift .hrs{display:block;color:#16a34a;font-weight:700;font-size:10px;margin-top:2px}
+  td.total{font-weight:700;color:#1e3a8a;background:#eff6ff!important;border-left:2px solid #bfdbfe}
+  tfoot td{background:#f1f5f9;font-weight:700;font-size:11px;padding:7px 8px;border-top:2px solid #e2e8f0}
+  tfoot .name{color:#6b7280;font-weight:600}
+  @media print{@page{margin:8mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.accent{-webkit-print-color-adjust:exact}}
 </style></head><body>
-<h2>${schedule.name}</h2>
-<p class="sub">${data.location_name ?? ""}${data.location_name ? " · " : ""}${weekLabel(schedule.week_start_date)}</p>
+<div class="accent"></div>
+<div class="header">
+  <div class="header-left">
+    <h1>${schedule.name}</h1>
+    <div class="meta">${data.location_name ? `${data.location_name} &nbsp;·&nbsp; ` : ""}${weekLabel(schedule.week_start_date)}</div>
+  </div>
+  <div class="header-right">Capybara Coffee<br>Internal Schedule</div>
+</div>
+<div class="content">
 <table>
-  <thead><tr><th></th>${headers}<th>Week</th></tr></thead>
+  <colgroup><col class="name-col">${weekDays.map(() => '<col class="day-col">').join("")}<col class="total-col"></colgroup>
+  <thead><tr><th class="name-th">Employee</th>${headers}<th>Week</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
-<script>window.onload=function(){window.print();window.close();}<\/script>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
 </body></html>`);
       win.document.close();
     } finally {
@@ -200,7 +230,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               ))}
             </select>
           )}
-          <Button size="sm" onClick={() => setShowCreate((v) => !v)} className="gap-1.5">
+          <Button size="sm" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }} className="gap-1.5">
             <PlusIcon className="size-4" />
             New schedule
           </Button>
@@ -211,49 +241,57 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
       {showCreate && (
         <form
           onSubmit={(e) => void handleCreate(e)}
-          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-wrap gap-3 items-end"
+          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-3"
         >
-          <div className="flex flex-col gap-1 min-w-[220px]">
-            <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
-            <input
-              type="text"
-              required
-              value={createName}
-              onChange={(e) => setCreateNameOverride(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="e.g. Week of 5 May 2026"
-            />
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex flex-col gap-1 min-w-[220px]">
+              <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
+              <input
+                type="text"
+                required
+                value={createName}
+                onChange={(e) => setCreateNameOverride(e.target.value)}
+                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                placeholder="e.g. Week of 5 May 2026"
+              />
+            </div>
+            <div className="flex flex-col gap-1 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground">Shop</label>
+              <select
+                value={createLocation}
+                onChange={(e) => setCreateLocation(e.target.value)}
+                required
+                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground">Week starting (Monday)</label>
+              <DateInput
+                required
+                value={createWeek}
+                onChange={(e) => {
+                  setCreateWeek(e.target.value);
+                  // Reset name override so it auto-updates with the new week
+                  setCreateNameOverride(null);
+                }}
+              />
+            </div>
           </div>
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-muted-foreground">Shop</label>
-            <select
-              value={createLocation}
-              onChange={(e) => setCreateLocation(e.target.value)}
-              required
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          <div className="flex items-center justify-between w-full pt-1 border-t border-border/40 mt-0.5">
+            <button
+              type="button"
+              onClick={() => { setShowCreate(false); setCreateNameOverride(null); }}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-muted-foreground">Week starting (Monday)</label>
-            <input
-              type="date"
-              required
-              value={createWeek}
-              onChange={(e) => {
-                setCreateWeek(e.target.value);
-                // Reset name override so it auto-updates with the new week
-                setCreateNameOverride(null);
-              }}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => { setShowCreate(false); setCreateNameOverride(null); }}>Cancel</Button>
+              Cancel
+            </button>
+            <Button type="submit" size="sm" disabled={submitting} className="gap-1.5">
+              {submitting ? "Creating…" : "Create schedule"}
+            </Button>
           </div>
         </form>
       )}
@@ -266,8 +304,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Shop</th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Week</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 w-24" />
+              <th className="px-4 py-3 w-28" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -285,13 +322,18 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{s.location_name ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{weekLabel(s.week_start_date)}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[s.status]}`}>
-                    {STATUS_LABELS[s.status]}
-                  </span>
-                </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      title="Duplicate"
+                      disabled={submitting}
+                      onClick={() => void handleDuplicate(s)}
+                    >
+                      <CopyIcon className="size-3.5" />
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -316,7 +358,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                       variant="ghost"
                       className="size-7 text-destructive hover:text-destructive"
                       title="Delete"
-                      onClick={() => void handleDelete(s.id, s.name)}
+                      onClick={() => setDeleteTarget(s)}
                     >
                       <TrashIcon className="size-3.5" />
                     </Button>
@@ -334,6 +376,33 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           </div>
         )}
       </div>
+
+      {/* ── Delete confirmation modal ────────────────────────────── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
+            <h2 className="text-base font-semibold mb-1">Delete schedule?</h2>
+            <p className="text-sm text-muted-foreground mb-1">
+              You&apos;re about to permanently delete{" "}
+              <span className="font-medium text-foreground">{deleteTarget.name}</span>.
+            </p>
+            <p className="text-xs text-muted-foreground mb-5">This cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void executeDelete()}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

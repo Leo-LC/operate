@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
+import { toast } from "sonner";
 import type { AuditLogEntry } from "@/modules/admin/types";
 
 const PAGE_SIZE = 25;
@@ -18,10 +20,18 @@ const MODULE_OPTIONS = [
   { value: "admin", label: "Admin" },
 ];
 
-export function AuditLogsClient({ logs }: { logs: AuditLogEntry[] }) {
+export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }) {
+  const [logs, setLogs] = useState(initialLogs);
   const [moduleFilter, setModuleFilter] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearBefore, setClearBefore] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [clearing, setClearing] = useState(false);
 
   const filtered = useMemo(() => {
     let result = logs;
@@ -53,13 +63,31 @@ export function AuditLogsClient({ logs }: { logs: AuditLogEntry[] }) {
     setPage(0);
   }
 
+  async function handleClear() {
+    setClearing(true);
+    try {
+      const res = await fetch(`/api/admin/audit-logs?before=${clearBefore}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Failed to clear logs");
+        return;
+      }
+      const { deleted } = await res.json() as { deleted: number };
+      setLogs((prev) => prev.filter((l) => l.created_at >= new Date(clearBefore).toISOString()));
+      setShowClearModal(false);
+      toast.success(`${deleted} log${deleted !== 1 ? "s" : ""} cleared`);
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Audit Logs</h1>
           <p className="text-xs text-muted-foreground">
-            {filtered.length} of {logs.length} entries
+            {filtered.length} of {logs.length} entries · auto-deleted after 90 days
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -79,6 +107,15 @@ export function AuditLogsClient({ logs }: { logs: AuditLogEntry[] }) {
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/50"
+            onClick={() => setShowClearModal(true)}
+          >
+            <Trash2Icon className="size-3.5" />
+            Clear old logs
+          </Button>
         </div>
       </div>
 
@@ -154,6 +191,38 @@ export function AuditLogsClient({ logs }: { logs: AuditLogEntry[] }) {
             </div>
           )}
         </>
+      )}
+
+      {/* Clear logs modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
+            <h2 className="text-base font-semibold mb-1">Clear audit logs</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Permanently delete all logs older than the selected date. This cannot be undone.
+            </p>
+            <div className="mb-5 flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Delete logs before</label>
+              <DateInput
+                value={clearBefore}
+                onChange={(e) => setClearBefore(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowClearModal(false)} disabled={clearing}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void handleClear()}
+                disabled={clearing || !clearBefore}
+              >
+                {clearing ? "Clearing…" : "Clear logs"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -26,7 +26,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   if (sErr || !sched) notFound();
 
-  const [{ data: shiftsData }, { data: empData }] = await Promise.all([
+  const [{ data: shiftsData }, { data: empDirect }, { data: empByEloc }] = await Promise.all([
     supabase
       .from("schedule_shifts")
       .select("id, schedule_id, employee_id, shift_date, start_time, end_time, break_minutes, notes, employees ( first_name, last_name )")
@@ -39,7 +39,23 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
       .eq("active", true)
       .is("deleted_at", null)
       .order("last_name", { ascending: true }),
+    supabase
+      .from("employees")
+      .select("id, organization_id, location_id, first_name, last_name, position, email, phone, active, notes, user_id, created_at, updated_at, locations ( name ), employee_locations!inner(location_id)")
+      .eq("organization_id", ORG_ID)
+      .eq("employee_locations.location_id", sched.location_id)
+      .eq("active", true)
+      .is("deleted_at", null)
+      .order("last_name", { ascending: true }),
   ]);
+
+  // Merge both result sets, deduplicating by id
+  const seenEmpIds = new Set<string>();
+  const mergedEmpData = [...(empDirect ?? []), ...(empByEloc ?? [])].filter((e) => {
+    if (seenEmpIds.has(e.id)) return false;
+    seenEmpIds.add(e.id);
+    return true;
+  });
 
   type ShiftRow = { id: string; schedule_id: string; employee_id: string; shift_date: string; start_time: string | null; end_time: string | null; break_minutes: number; notes: string | null; employees: { first_name: string; last_name: string } | null };
   const shifts: ScheduleShift[] = (shiftsData as unknown as ShiftRow[]).map((s) => ({
@@ -55,7 +71,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   }));
 
   type EmpRow = { id: string; organization_id: string; location_id: string | null; first_name: string; last_name: string; position: string | null; email: string | null; phone: string | null; active: boolean; notes: string | null; user_id: string | null; created_at: string; updated_at: string; locations: { name: string } | null };
-  const employees: Employee[] = (empData as unknown as EmpRow[]).map((e) => ({
+  const employees: Employee[] = (mergedEmpData as unknown as EmpRow[]).map((e) => ({
     id: e.id,
     organization_id: e.organization_id,
     location_id: e.location_id ?? null,
@@ -67,6 +83,13 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     phone: e.phone ?? null,
     active: e.active,
     notes: e.notes ?? null,
+    nationality: null,
+    national_id: null,
+    work_permit_number: null,
+    work_permit_expires_at: null,
+    base_salary_monthly: null,
+    has_thai_bank_account: false,
+    archived_at: null,
     user_id: e.user_id ?? null,
     created_at: e.created_at,
     updated_at: e.updated_at,

@@ -16,7 +16,9 @@ import {
   StarIcon,
   HouseIcon,
   PinIcon,
-  LayoutDashboardIcon,
+  UsersIcon,
+  ClockIcon,
+  BanknoteIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
@@ -69,8 +71,9 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const canSeeSchedules = hasModuleAccess(permissions, "schedules");
   const canSeeAccounting = hasModuleAccess(permissions, "accounting");
   const canSeeReports = hasModuleAccess(permissions, "reports");
-  const canSeeOverview = role === "owner";
-
+  const canSeeContacts = hasModuleAccess(permissions, "contacts");
+  const canSeeAttendance = hasModuleAccess(permissions, "attendance");
+  const canSeePayments = hasModuleAccess(permissions, "payments");
   const isHome = pathname === "/dashboard/home" || pathname === "/dashboard";
   const isReviews = pathname.startsWith("/dashboard/reviews");
   const isScheduling = pathname.startsWith("/dashboard/scheduling");
@@ -78,8 +81,10 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const isAnimals = pathname.startsWith("/dashboard/animals");
   const isAccounting = pathname.startsWith("/dashboard/accounting");
   const isReports = pathname.startsWith("/dashboard/reports");
+  const isContacts = pathname.startsWith("/dashboard/contacts");
+  const isAttendance = pathname.startsWith("/dashboard/attendance");
+  const isPayments = pathname.startsWith("/dashboard/payments");
   const isAdmin = pathname.startsWith("/dashboard/admin");
-  const isOverview = pathname.startsWith("/dashboard/overview");
 
   const asideClass = [
     "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
@@ -121,7 +126,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
                 <HouseIcon className={`h-4 w-4 transition-colors ${isHome ? "text-foreground" : "text-muted-foreground"}`} />
               </div>
-              <span className={labelClass(sidebarLocked)}>Home</span>
+              <span className={labelClass(sidebarLocked)}>Overview</span>
             </Link>
 
             {canSeeReviews && (
@@ -178,12 +183,31 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               </Link>
             )}
 
-            {canSeeOverview && (
-              <Link href="/dashboard/overview" className={navItemClass(isOverview, sidebarLocked)}>
+
+            {canSeeContacts && (
+              <Link href="/dashboard/contacts" className={navItemClass(isContacts, sidebarLocked)}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <LayoutDashboardIcon className={`h-4 w-4 transition-colors ${isOverview ? "text-foreground" : "text-muted-foreground"}`} />
+                  <UsersIcon className={`h-4 w-4 transition-colors ${isContacts ? "text-foreground" : "text-muted-foreground"}`} />
                 </div>
-                <span className={labelClass(sidebarLocked)}>Overview</span>
+                <span className={labelClass(sidebarLocked)}>Contacts</span>
+              </Link>
+            )}
+
+            {canSeeAttendance && (
+              <Link href="/dashboard/attendance" className={navItemClass(isAttendance, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <ClockIcon className={`h-4 w-4 transition-colors ${isAttendance ? "text-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Attendance</span>
+              </Link>
+            )}
+
+            {canSeePayments && (
+              <Link href="/dashboard/payments" className={navItemClass(isPayments, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+                  <BanknoteIcon className={`h-4 w-4 transition-colors ${isPayments ? "text-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Payments</span>
               </Link>
             )}
 

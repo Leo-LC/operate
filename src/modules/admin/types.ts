@@ -38,6 +38,13 @@ export interface AdminLocation {
   created_at: string;
 }
 
+export interface EmployeeLocationRow {
+  id: string;
+  location_id: string;
+  location_name: string;
+  is_primary: boolean;
+}
+
 export interface Employee {
   id: string;
   organization_id: string;
@@ -46,13 +53,21 @@ export interface Employee {
   first_name: string;
   last_name: string;
   position: string | null;
+  nationality: string | null;
+  national_id: string | null;
+  work_permit_number: string | null;
+  work_permit_expires_at: string | null;
   email: string | null;
   phone: string | null;
   active: boolean;
   notes: string | null;
+  base_salary_monthly: number | null;
+  has_thai_bank_account: boolean;
+  archived_at: string | null;
   user_id: string | null;
   created_at: string;
   updated_at: string;
+  employee_locations?: EmployeeLocationRow[];
 }
 
 export interface AuditLogEntry {

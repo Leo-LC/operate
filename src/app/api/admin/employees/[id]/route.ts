@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("employees")
-    .select("*, locations ( name )")
+    .select(`*, locations ( name ), employee_locations ( id, location_id, is_primary, locations ( name ) )`)
     .eq("id", params.id)
     .eq("organization_id", ORG_ID)
     .is("deleted_at", null)
@@ -37,12 +37,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     first_name: string;
     last_name: string;
     position: string | null;
+    nationality: string | null;
+    national_id: string | null;
+    work_permit_number: string | null;
+    work_permit_expires_at: string | null;
     location_id: string | null;
     email: string | null;
     phone: string | null;
     notes: string | null;
+    base_salary_monthly: number | null;
+    has_thai_bank_account: boolean;
     active: boolean;
     user_id: string | null;
+    archived_at: string | null;
+    location_ids: string[];
+    primary_location_id: string | null;
   }>;
   try {
     body = await request.json();
@@ -54,12 +63,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (body.first_name !== undefined) updates.first_name = body.first_name.trim();
   if (body.last_name !== undefined) updates.last_name = body.last_name.trim();
   if ("position" in body) updates.position = body.position?.trim() ?? null;
+  if ("nationality" in body) updates.nationality = body.nationality?.trim() ?? null;
+  if ("national_id" in body) updates.national_id = body.national_id?.trim() ?? null;
+  if ("work_permit_number" in body) updates.work_permit_number = body.work_permit_number?.trim() ?? null;
+  if ("work_permit_expires_at" in body) updates.work_permit_expires_at = body.work_permit_expires_at ?? null;
   if ("location_id" in body) updates.location_id = body.location_id ?? null;
   if ("email" in body) updates.email = body.email?.trim().toLowerCase() ?? null;
   if ("phone" in body) updates.phone = body.phone?.trim() ?? null;
   if ("notes" in body) updates.notes = body.notes?.trim() ?? null;
+  if ("base_salary_monthly" in body) updates.base_salary_monthly = body.base_salary_monthly ?? null;
+  if ("has_thai_bank_account" in body) updates.has_thai_bank_account = body.has_thai_bank_account ?? false;
   if (body.active !== undefined) updates.active = body.active;
   if ("user_id" in body) updates.user_id = body.user_id ?? null;
+  if ("archived_at" in body) updates.archived_at = body.archived_at ?? null;
+
+  if ("primary_location_id" in body) updates.location_id = body.primary_location_id ?? null;
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
@@ -72,6 +90,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  if (body.location_ids !== undefined) {
+    const primaryId = body.primary_location_id ?? body.location_ids[0] ?? null;
+    await supabase.from("employee_locations").delete().eq("employee_id", params.id);
+    if (body.location_ids.length > 0) {
+      await supabase.from("employee_locations").insert(
+        body.location_ids.map((lid) => ({
+          employee_id: params.id,
+          location_id: lid,
+          is_primary: lid === primaryId,
+        }))
+      );
+    }
+  }
 
   await writeAuditLog({
     userId: session.user.userId ?? null,

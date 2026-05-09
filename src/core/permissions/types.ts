@@ -5,6 +5,9 @@ export type ModuleKey =
   | "schedules"
   | "accounting"
   | "reports"
+  | "contacts"
+  | "attendance"
+  | "payments"
   | "admin";
 
 export type GlobalRole = "owner" | "admin" | "member";

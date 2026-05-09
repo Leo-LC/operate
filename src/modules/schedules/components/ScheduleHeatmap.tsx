@@ -56,12 +56,18 @@ function countAtSlot(
 
 // Inline styles for colors — NOT Tailwind classes — so they render regardless of
 // which source files are included in the Tailwind content config.
+// Monochrome blue gradient: 0 = transparent (shows background), 4+ = dark navy.
+const CELL_BORDER: React.CSSProperties = {
+  border: "1px solid rgba(148,163,184,0.28)",
+  boxSizing: "border-box",
+};
+
 function cellStyle(count: number): React.CSSProperties {
-  if (count === 0) return { backgroundColor: "#1f2937", color: "#6b7280" };
-  if (count === 1) return { backgroundColor: "#1e3a8a", color: "#dbeafe" };
-  if (count === 2) return { backgroundColor: "#2563eb", color: "#ffffff" };
-  if (count === 3) return { backgroundColor: "#16a34a", color: "#ffffff" };
-  return               { backgroundColor: "#f59e0b", color: "#111827" };
+  if (count === 0) return { backgroundColor: "transparent", color: "transparent", ...CELL_BORDER };
+  if (count === 1) return { backgroundColor: "#bfdbfe", color: "#1e40af", ...CELL_BORDER };
+  if (count === 2) return { backgroundColor: "#60a5fa", color: "#ffffff", ...CELL_BORDER };
+  if (count === 3) return { backgroundColor: "#2563eb", color: "#ffffff", ...CELL_BORDER };
+  return               { backgroundColor: "#1e3a8a", color: "#bfdbfe", ...CELL_BORDER };
 }
 
 const DAY_LABEL_STYLE: React.CSSProperties = {
@@ -91,11 +97,11 @@ export function ScheduleHeatmap({ grid, weekDays, employees }: Props) {
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card p-4">
 
-        {/* ── Hour label header ──────────────────────────────────────
-            Layout: [day-label spacer | hour labels grid]
-            The hour labels grid uses the same gridTemplateColumns as the
-            day rows below, so columns align pixel-perfectly.
-            Each label spans 2 columns → centered over both 30-min cells. */}
+        {/* ── Time label header ─────────────────────────────────────
+            One label per full hour, left-aligned to the :00 cell's edge
+            so it's clear which cell the hour starts at.
+            Each label spans 2 columns (= one full hour) but text is left-
+            aligned → reads as "this cell starts at HH:00". */}
         <div style={{ display: "flex", alignItems: "flex-end", marginBottom: GAP }}>
           <div style={{ width: DAY_LABEL_W, flexShrink: 0 }} />
           <div
@@ -110,14 +116,15 @@ export function ScheduleHeatmap({ grid, weekDays, employees }: Props) {
                 key={h}
                 style={{
                   gridColumn: "span 2",
-                  textAlign: "center",
+                  textAlign: "left",
                   fontSize: 9,
-                  fontWeight: 500,
+                  fontWeight: 600,
                   color: "var(--muted-foreground)",
-                  opacity: 0.65,
+                  opacity: 0.75,
                   lineHeight: 1,
                   paddingBottom: 3,
                   userSelect: "none",
+                  overflow: "hidden",
                 }}
               >
                 {h}

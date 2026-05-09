@@ -47,5 +47,7 @@ export default async function AnimalDetailPage({ params }: { params: { id: strin
 
   const locations: AdminLocation[] = locationsData ?? [];
 
-  return <AnimalDetailClient animal={animal} initialEvents={events} locations={locations} />;
+  const isOwner = session.user.role === "owner";
+
+  return <AnimalDetailClient animal={animal} initialEvents={events} locations={locations} isOwner={isOwner} />;
 }
