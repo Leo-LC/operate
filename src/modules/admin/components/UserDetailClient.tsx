@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, TrashIcon, PlusIcon } from "lucide-react";
+import { ArrowLeftIcon, TrashIcon } from "lucide-react";
 import type { AdminUser, AdminLocation } from "@/modules/admin/types";
 import type { ModuleKey } from "@/core/permissions/types";
 
@@ -147,8 +147,6 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
 
   const grantedModuleKeys = new Set(user.module_access.map((m) => m.module_key));
   const grantedLocationIds = new Set(user.location_access.map((la) => la.location_id));
-  const availableModules = ALL_MODULES.filter((m) => !grantedModuleKeys.has(m));
-  const availableLocations = allLocations.filter((l) => !grantedLocationIds.has(l.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -197,82 +195,59 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       {/* Module access */}
       <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Module Access</h2>
-        {user.module_access.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No module access granted.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {user.module_access.map((m) => (
-              <div
-                key={m.module_key}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-3 py-1"
-              >
-                <span className="text-xs font-medium">{m.module_key}</span>
-                <span className="text-[10px] text-muted-foreground">
-                  {m.can_write ? "rw" : "r"}
-                </span>
-                <button
-                  onClick={() => void handleRevokeModule(m.module_key as ModuleKey)}
-                  className="ml-0.5 text-muted-foreground/60 hover:text-destructive transition-colors"
-                  aria-label={`Revoke ${m.module_key}`}
-                >
-                  <TrashIcon className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        {availableModules.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {availableModules.map((mod) => (
-              <button
+        <div className="flex flex-wrap gap-2">
+          {ALL_MODULES.map((mod) => {
+            const granted = grantedModuleKeys.has(mod);
+            return (
+              <label
                 key={mod}
-                onClick={() => void handleGrantModule(mod, false)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-xs text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                  granted
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-background text-muted-foreground hover:border-border/80"
+                }`}
               >
-                <PlusIcon className="size-3" />
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={granted}
+                  onChange={() => granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true)}
+                />
                 {mod}
-              </button>
-            ))}
-          </div>
-        )}
+              </label>
+            );
+          })}
+        </div>
       </section>
 
       {/* Location access */}
       <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Location Access</h2>
-        {user.location_access.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No location access granted.</p>
+        {allLocations.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No locations available.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {user.location_access.map((la) => (
-              <div
-                key={la.location_id}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-3 py-1"
-              >
-                <span className="text-xs font-medium">{la.location_name}</span>
-                <button
-                  onClick={() => void handleRevokeLocation(la.location_id)}
-                  className="ml-0.5 text-muted-foreground/60 hover:text-destructive transition-colors"
-                  aria-label={`Revoke ${la.location_name}`}
+            {allLocations.map((loc) => {
+              const granted = grantedLocationIds.has(loc.id);
+              return (
+                <label
+                  key={loc.id}
+                  className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                    granted
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-border/80"
+                  }`}
                 >
-                  <TrashIcon className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        {availableLocations.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {availableLocations.map((loc) => (
-              <button
-                key={loc.id}
-                onClick={() => void handleGrantLocation(loc.id)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-xs text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-              >
-                <PlusIcon className="size-3" />
-                {loc.name}
-              </button>
-            ))}
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={granted}
+                    onChange={() => granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id)}
+                  />
+                  {loc.name}
+                </label>
+              );
+            })}
           </div>
         )}
       </section>

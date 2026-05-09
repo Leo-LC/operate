@@ -44,6 +44,10 @@ export default function SchedulingEmployeesPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    if (locationId) setShowModal(true);
+  }, [locationId]);
+
   const atLocation = allEmployees.filter((e) =>
     e.employee_locations?.some((el) => el.location_id === locationId) ||
     (e.location_id === locationId && !e.employee_locations?.length)
