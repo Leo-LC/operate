@@ -292,7 +292,11 @@ export function EmployeesListClient({ locations }: Props) {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={emp.id} className={`transition-colors ${emp.archived_at ? "opacity-60 bg-muted/10" : "hover:bg-muted/20"}`}>
+                  <tr
+                    key={emp.id}
+                    className={`transition-colors ${emp.archived_at ? "opacity-60 bg-muted/10" : "hover:bg-muted/20 cursor-pointer"}`}
+                    onClick={() => { if (!emp.archived_at) startEdit(emp); }}
+                  >
                     <td className="px-4 py-2.5 font-medium">
                       {emp.first_name} {emp.last_name}
                       {emp.archived_at && (
@@ -322,7 +326,7 @@ export function EmployeesListClient({ locations }: Props) {
                       {emp.phone && <div>{emp.phone}</div>}
                       {!emp.email && !emp.phone && "—"}
                     </td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" className="size-7" onClick={() => startEdit(emp)} title="Edit">
                           <PencilIcon className="size-3.5" />

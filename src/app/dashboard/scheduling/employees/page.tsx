@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PlusIcon, XIcon, UserPlusIcon, Loader2Icon } from "lucide-react";
+import { XIcon, UserPlusIcon, Loader2Icon, PlusIcon, MinusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "@/modules/admin/components/EmployeeForm";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
-
-type Panel = "none" | "browse" | "create";
 
 export default function SchedulingEmployeesPage() {
   const searchParams = useSearchParams();
@@ -18,9 +16,9 @@ export default function SchedulingEmployeesPage() {
   const [locations, setLocations] = useState<AdminLocation[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [panel, setPanel] = useState<Panel>("none");
-  const [search, setSearch] = useState("");
-  const [busy, setBusy] = useState<string | null>(null); // employee id being processed
+  const [showModal, setShowModal] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
 
   // New employee form state
   const [createForm, setCreateForm] = useState<EmployeeFormState>(EMPTY_EMPLOYEE_FORM);
@@ -32,8 +30,8 @@ export default function SchedulingEmployeesPage() {
     setLoading(true);
     try {
       const [empRes, locRes] = await Promise.all([
-        fetch("/api/admin/employees"),
-        fetch("/api/admin/locations"),
+        fetch("/api/admin/employees", { cache: "no-store" }),
+        fetch("/api/admin/locations", { cache: "no-store" }),
       ]);
       const empData = await empRes.json();
       const locData = await locRes.json();
@@ -46,14 +44,6 @@ export default function SchedulingEmployeesPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  // Pre-select current location in create form when panel opens
-  useEffect(() => {
-    if (panel === "create" && locationId) {
-      setCreateLocIds(new Set([locationId]));
-      setCreatePrimaryLoc(locationId);
-    }
-  }, [panel, locationId]);
-
   const atLocation = allEmployees.filter((e) =>
     e.employee_locations?.some((el) => el.location_id === locationId) ||
     (e.location_id === locationId && !e.employee_locations?.length)
@@ -63,11 +53,6 @@ export default function SchedulingEmployeesPage() {
     !e.employee_locations?.some((el) => el.location_id === locationId) &&
     !(e.location_id === locationId && !e.employee_locations?.length)
   );
-
-  const filtered = notAtLocation.filter((e) => {
-    const q = search.toLowerCase();
-    return !q || `${e.first_name} ${e.last_name}`.toLowerCase().includes(q) || (e.position ?? "").toLowerCase().includes(q);
-  });
 
   async function assignToLocation(emp: Employee) {
     if (!locationId) { toast.error("Select a location first"); return; }
@@ -83,7 +68,7 @@ export default function SchedulingEmployeesPage() {
         toast.error(err.error ?? "Failed to add employee");
         return;
       }
-      toast.success(`${emp.first_name} ${emp.last_name} added to this location`);
+      toast.success(`${emp.first_name} ${emp.last_name} added`);
       await load();
     } finally {
       setBusy(null);
@@ -102,7 +87,7 @@ export default function SchedulingEmployeesPage() {
         toast.error(err.error ?? "Failed to remove employee");
         return;
       }
-      toast.success(`${emp.first_name} ${emp.last_name} removed from this location`);
+      toast.success(`${emp.first_name} ${emp.last_name} removed`);
       await load();
     } finally {
       setBusy(null);
@@ -154,10 +139,17 @@ export default function SchedulingEmployeesPage() {
       setCreateForm(EMPTY_EMPLOYEE_FORM);
       setCreateLocIds(new Set());
       setCreatePrimaryLoc("");
-      setPanel("none");
+      setShowCreate(false);
       await load();
     } finally {
       setCreateSubmitting(false);
+    }
+  }
+
+  function openModal() {
+    if (locationId) {
+      setShowCreate(false);
+      setShowModal(true);
     }
   }
 
@@ -187,113 +179,15 @@ export default function SchedulingEmployeesPage() {
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
           {locationId && (
-            <Button size="sm" onClick={() => setPanel(panel === "none" ? "browse" : "none")} className="gap-1.5">
+            <Button size="sm" onClick={openModal} className="gap-1.5">
               <UserPlusIcon className="size-4" />
-              Add Employee
+              Manage employees
             </Button>
           )}
         </div>
       </div>
 
-      {/* Add employee panel */}
-      {panel !== "none" && locationId && (
-        <div className="rounded-lg border border-border bg-card p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-1 rounded-md border border-border overflow-hidden text-xs w-fit">
-              {(["browse", "create"] as const).map((p, i) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPanel(p)}
-                  className={`px-4 py-1.5 ${i > 0 ? "border-l border-border" : ""} ${
-                    panel === p ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-muted/40"
-                  }`}
-                >
-                  {p === "browse" ? "Browse existing" : "Create new"}
-                </button>
-              ))}
-            </div>
-            <button type="button" onClick={() => setPanel("none")} className="text-muted-foreground hover:text-foreground">
-              <XIcon className="size-4" />
-            </button>
-          </div>
-
-          {panel === "browse" && (
-            <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="Search by name or position…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-3 text-sm max-w-sm"
-              />
-              {filtered.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  {notAtLocation.length === 0 ? "All employees are already at this location." : "No employees match your search."}
-                </p>
-              ) : (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40">
-                      <tr>
-                        <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
-                        <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Position</th>
-                        <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Current locations</th>
-                        <th className="px-4 py-2.5" />
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {filtered.map((emp) => (
-                        <tr key={emp.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-2.5 font-medium">
-                            {emp.first_name} {emp.last_name}
-                          </td>
-                          <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.position ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                            {emp.employee_locations && emp.employee_locations.length > 0
-                              ? emp.employee_locations.map((el) => el.location_name).join(", ")
-                              : (emp.location_id ? "—" : "None")}
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1"
-                              disabled={busy === emp.id}
-                              onClick={() => void assignToLocation(emp)}
-                            >
-                              {busy === emp.id ? <Loader2Icon className="size-3 animate-spin" /> : <PlusIcon className="size-3" />}
-                              Add to this location
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {panel === "create" && (
-            <EmployeeForm
-              form={createForm}
-              locIds={createLocIds}
-              primaryLoc={createPrimaryLoc}
-              locations={locations}
-              submitting={createSubmitting}
-              onChange={(key, val) => setCreateForm((prev) => ({ ...prev, [key]: val }))}
-              onToggleLoc={toggleCreateLoc}
-              onSetPrimary={setCreatePrimaryLoc}
-              onSubmit={(e) => void handleCreate(e)}
-              onCancel={() => setPanel("none")}
-              submitLabel="Create employee"
-            />
-          )}
-        </div>
-      )}
-
-      {/* Employees at this location */}
+      {/* Current employees table */}
       {loading ? (
         <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin mr-2" />
@@ -311,7 +205,6 @@ export default function SchedulingEmployeesPage() {
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Position</th>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Contact</th>
-                <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -329,26 +222,133 @@ export default function SchedulingEmployeesPage() {
                     {emp.phone && <div>{emp.phone}</div>}
                     {!emp.email && !emp.phone && "—"}
                   </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-                      disabled={busy === emp.id}
-                      onClick={() => void removeFromLocation(emp)}
-                      title="Remove from this location"
-                    >
-                      {busy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <XIcon className="size-3.5" />}
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {atLocation.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No employees at this location yet. Use "Add Employee" to assign some.
+              No employees at this location yet. Click "Manage employees" to assign some.
             </div>
           )}
+        </div>
+      )}
+
+      {/* Manage employees modal */}
+      {showModal && locationId && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-background shadow-xl flex flex-col gap-0 my-auto">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="text-base font-semibold">
+                Manage employees — {currentLocation?.name}
+              </h2>
+              <button
+                type="button"
+                onClick={() => { setShowModal(false); setShowCreate(false); }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <XIcon className="size-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-0 divide-y divide-border">
+              {/* Currently at this location */}
+              <div className="px-5 py-4 flex flex-col gap-3">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  At this location ({atLocation.length})
+                </p>
+                {atLocation.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No employees assigned yet.</p>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {atLocation.map((emp) => (
+                      <div key={emp.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                        <div>
+                          <span className="text-sm font-medium">{emp.first_name} {emp.last_name}</span>
+                          {emp.position && <span className="ml-2 text-xs text-muted-foreground">{emp.position}</span>}
+                        </div>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 px-2 py-1 rounded"
+                          disabled={busy === emp.id}
+                          onClick={() => void removeFromLocation(emp)}
+                        >
+                          {busy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <MinusIcon className="size-3.5" />}
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* All other employees */}
+              <div className="px-5 py-4 flex flex-col gap-3">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Other employees ({notAtLocation.length})
+                </p>
+                {notAtLocation.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">All employees are already at this location.</p>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {notAtLocation.map((emp) => (
+                      <div key={emp.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                        <div>
+                          <span className="text-sm font-medium">{emp.first_name} {emp.last_name}</span>
+                          {emp.position && <span className="ml-2 text-xs text-muted-foreground">{emp.position}</span>}
+                          {emp.employee_locations && emp.employee_locations.length > 0 && (
+                            <span className="ml-2 text-xs text-muted-foreground/60">
+                              · {emp.employee_locations.map((el) => el.location_name).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 px-2 py-1 rounded"
+                          disabled={busy === emp.id}
+                          onClick={() => void assignToLocation(emp)}
+                        >
+                          {busy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <PlusIcon className="size-3.5" />}
+                          Add
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Create new employee */}
+              <div className="px-5 py-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Create new employee</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreate((v) => !v)}
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    {showCreate ? <XIcon className="size-3.5" /> : <PlusIcon className="size-3.5" />}
+                    {showCreate ? "Cancel" : "New employee"}
+                  </button>
+                </div>
+                {showCreate && (
+                  <EmployeeForm
+                    form={createForm}
+                    locIds={createLocIds}
+                    primaryLoc={createPrimaryLoc}
+                    locations={locations}
+                    submitting={createSubmitting}
+                    onChange={(key, val) => setCreateForm((prev) => ({ ...prev, [key]: val }))}
+                    onToggleLoc={toggleCreateLoc}
+                    onSetPrimary={setCreatePrimaryLoc}
+                    onSubmit={(e) => void handleCreate(e)}
+                    onCancel={() => setShowCreate(false)}
+                    submitLabel="Create employee"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

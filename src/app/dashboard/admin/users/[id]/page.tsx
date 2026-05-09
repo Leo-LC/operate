@@ -17,8 +17,8 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
       .from("users")
       .select(`
         id, email, name, global_role, organization_id, created_at, updated_at,
-        user_module_access ( id, module_key, can_read, can_write, granted_at ),
-        user_location_access ( id, location_id, granted_at, locations ( name ) )
+        user_module_access!user_module_access_user_id_fkey ( id, module_key, can_read, can_write, granted_at ),
+        user_location_access!user_location_access_user_id_fkey ( id, location_id, granted_at, locations ( name ) )
       `)
       .eq("id", params.id)
       .single(),

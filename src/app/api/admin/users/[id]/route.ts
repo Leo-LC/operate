@@ -81,3 +81,29 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   return Response.json(user);
 }
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+
+  if (session.user.userId === params.id) {
+    return Response.json({ error: "Cannot delete your own account" }, { status: 400 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.from("users").delete().eq("id", params.id);
+
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  await writeAuditLog({
+    userId: session.user.userId ?? null,
+    action: "admin.user.delete",
+    moduleKey: "admin",
+    entityType: "user",
+    entityId: params.id,
+    payload: {},
+  });
+
+  return new Response(null, { status: 204 });
+}

@@ -26,6 +26,8 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
   const router = useRouter();
   const [user, setUser] = useState(initialUser);
   const [savingRole, setSavingRole] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleRoleChange(newRole: string) {
     setSavingRole(true);
@@ -127,6 +129,22 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
     toast.success("Location access revoked");
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Delete failed");
+        return;
+      }
+      toast.success("User deleted");
+      router.push("/dashboard/admin/users");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const grantedModuleKeys = new Set(user.module_access.map((m) => m.module_key));
   const grantedLocationIds = new Set(user.location_access.map((la) => la.location_id));
   const availableModules = ALL_MODULES.filter((m) => !grantedModuleKeys.has(m));
@@ -134,17 +152,28 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/dashboard/admin/users")}
+            className="gap-1.5 text-muted-foreground"
+          >
+            <ArrowLeftIcon className="size-4" />
+            Users
+          </Button>
+          <h1 className="text-lg font-semibold">{user.email}</h1>
+        </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          onClick={() => router.push("/dashboard/admin/users")}
-          className="gap-1.5 text-muted-foreground"
+          className="gap-1.5 text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/5"
+          onClick={() => setShowDeleteConfirm(true)}
         >
-          <ArrowLeftIcon className="size-4" />
-          Users
+          <TrashIcon className="size-3.5" />
+          Delete user
         </Button>
-        <h1 className="text-lg font-semibold">{user.email}</h1>
       </div>
 
       {/* Role */}
@@ -247,6 +276,25 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
           </div>
         )}
       </section>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
+            <h2 className="text-base font-semibold mb-1">Delete user</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Permanently delete <span className="font-medium text-foreground">{user.email}</span>? This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => void handleDelete()} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
