@@ -4,8 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { EmployeesListClient } from "@/modules/admin/components/EmployeesListClient";
 import type { AdminLocation } from "@/modules/admin/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export default async function AdminEmployeesPage() {
   const session = await getServerSession(authOptions);
@@ -16,7 +15,7 @@ export default async function AdminEmployeesPage() {
   const { data: locData } = await supabase
     .from("locations")
     .select("id, name, slug, external_id, is_active, created_at")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .eq("is_active", true)
     .order("name", { ascending: true });
 

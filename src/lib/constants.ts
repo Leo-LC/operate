@@ -1,3 +1,5 @@
+export const DEFAULT_ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+
 export const EXCLUDED_LOCATION_IDS = new Set([
   // "locations/787493951104592729", // Olives Bar Tapas (France)
   "locations/5898853216563266426", // Capybara Coffee Chiang Mai (unverified duplicate)

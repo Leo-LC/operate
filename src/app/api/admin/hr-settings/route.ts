@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,7 +12,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("hr_settings")
     .select("*")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -37,7 +36,7 @@ export async function PATCH(request: Request) {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("hr_settings")
-    .upsert({ organization_id: ORG_ID, ...body, updated_at: new Date().toISOString() }, { onConflict: "organization_id" })
+    .upsert({ organization_id: DEFAULT_ORG_ID, ...body, updated_at: new Date().toISOString() }, { onConflict: "organization_id" })
     .select()
     .single();
 

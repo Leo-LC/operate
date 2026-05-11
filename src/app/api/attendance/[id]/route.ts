@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -21,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .from("attendance_records")
     .update({ ...body, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .select()
     .single();
@@ -42,7 +41,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     .from("attendance_records")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("organization_id", ORG_ID);
+    .eq("organization_id", DEFAULT_ORG_ID);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });

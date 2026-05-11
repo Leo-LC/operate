@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess, derivePermissionsFromRole } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -22,7 +21,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     .from("schedules")
     .select("*")
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .single();
 
@@ -31,7 +30,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const { data: newSchedule, error: insErr } = await supabase
     .from("schedules")
     .insert({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       location_id: source.location_id,
       name: body.name ?? `${source.name} (copy)`,
       week_start_date: body.week_start_date ?? source.week_start_date,

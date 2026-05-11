@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { salesNetTotal, expTotal, hrTotal } from "@/modules/accounting/types";
 import type { DailyEntry } from "@/modules/accounting/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function agg(entries: DailyEntry[]) {
   const revenue = entries.reduce((s, e) => s + salesNetTotal(e), 0);
@@ -46,13 +45,13 @@ export async function GET(request: Request) {
     supabase
       .from("locations")
       .select("id, name")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
       .order("name"),
     supabase
       .from("daily_entries")
       .select("*")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", from)
       .lte("entry_date", to),
   ]);

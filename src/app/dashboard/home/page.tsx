@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { HomeClient } from "@/modules/home/components/HomeClient";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import type { ModuleKey } from "@/core/permissions/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -43,10 +42,10 @@ export default async function HomePage() {
           const soon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
           const [{ count: expiring }, { count: expired }] = await Promise.all([
             supabase.from("documents").select("id", { count: "exact", head: true })
-              .eq("organization_id", ORG_ID).is("deleted_at", null)
+              .eq("organization_id", DEFAULT_ORG_ID).is("deleted_at", null)
               .not("expires_at", "is", null).lte("expires_at", soon).gte("expires_at", todayIso),
             supabase.from("documents").select("id", { count: "exact", head: true })
-              .eq("organization_id", ORG_ID).is("deleted_at", null)
+              .eq("organization_id", DEFAULT_ORG_ID).is("deleted_at", null)
               .not("expires_at", "is", null).lt("expires_at", todayIso),
           ]);
           docsAlert = (expiring ?? 0) + (expired ?? 0);
@@ -63,10 +62,10 @@ export default async function HomePage() {
       ? (async () => {
           const [{ count: sickCount }, { data: nextVaccRow }] = await Promise.all([
             supabase.from("animals").select("id", { count: "exact", head: true })
-              .eq("organization_id", ORG_ID).is("deleted_at", null)
+              .eq("organization_id", DEFAULT_ORG_ID).is("deleted_at", null)
               .in("status", ["sick", "observation", "quarantine"]),
             supabase.from("animals").select("name, next_vaccination_date")
-              .eq("organization_id", ORG_ID).is("deleted_at", null)
+              .eq("organization_id", DEFAULT_ORG_ID).is("deleted_at", null)
               .not("next_vaccination_date", "is", null)
               .gte("next_vaccination_date", todayIso)
               .order("next_vaccination_date", { ascending: true })
@@ -88,7 +87,7 @@ export default async function HomePage() {
           const { data } = await supabase
             .from("daily_entries")
             .select("payment_cash, payment_scan, payment_credit_card, entry_date")
-            .eq("organization_id", ORG_ID)
+            .eq("organization_id", DEFAULT_ORG_ID)
             .eq("entry_date", yesterdayIso)
             .limit(5);
           if (data && data.length > 0) {
@@ -109,7 +108,7 @@ export default async function HomePage() {
           const { count } = await supabase
             .from("schedules")
             .select("id", { count: "exact", head: true })
-            .eq("organization_id", ORG_ID)
+            .eq("organization_id", DEFAULT_ORG_ID)
             .is("deleted_at", null)
             .eq("week_start_date", weekStartIso);
           if ((count ?? 0) > 0) {
@@ -126,7 +125,7 @@ export default async function HomePage() {
           const { count } = await supabase
             .from("users")
             .select("id", { count: "exact", head: true })
-            .eq("organization_id", ORG_ID);
+            .eq("organization_id", DEFAULT_ORG_ID);
           snippets.admin = `${count ?? 0} user${count !== 1 ? "s" : ""} registered`;
         })()
       : Promise.resolve(),

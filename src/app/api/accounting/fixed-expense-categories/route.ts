@@ -3,8 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import type { FixedExpenseCategory } from "@/modules/accounting/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function isAdmin(role: string | undefined) {
   return role === "owner";
@@ -23,7 +22,7 @@ export async function GET(request: Request) {
   let q = supabase
     .from("fixed_expense_categories")
     .select("*")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("sort_order");
 
   if (!includeInactive) q = q.eq("is_active", true);
@@ -51,7 +50,7 @@ export async function POST(request: Request) {
   const { data: existing } = await supabase
     .from("fixed_expense_categories")
     .select("sort_order")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("sort_order", { ascending: false })
     .limit(1);
 
@@ -60,7 +59,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("fixed_expense_categories")
     .upsert(
-      { organization_id: ORG_ID, key, label, sort_order: body.sort_order ?? nextOrder, is_active: true },
+      { organization_id: DEFAULT_ORG_ID, key, label, sort_order: body.sort_order ?? nextOrder, is_active: true },
       { onConflict: "organization_id,key" }
     )
     .select()
@@ -84,7 +83,7 @@ export async function DELETE(request: Request) {
   const { error } = await supabase
     .from("fixed_expense_categories")
     .update({ is_active: false })
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .eq("key", key);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });

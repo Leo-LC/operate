@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -34,7 +33,7 @@ export async function POST(req: Request) {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("locations")
-    .insert({ organization_id: ORG_ID, name: name.trim(), slug: slug.trim(), external_id: external_id?.trim() || null, is_active })
+    .insert({ organization_id: DEFAULT_ORG_ID, name: name.trim(), slug: slug.trim(), external_id: external_id?.trim() || null, is_active })
     .select("id, name, slug, external_id, is_active, created_at")
     .single();
 

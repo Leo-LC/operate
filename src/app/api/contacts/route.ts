@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -17,11 +16,12 @@ export async function GET(request: Request) {
   let query = supabase
     .from("contacts")
     .select(`
-      id, organization_id, name, contact_type, company, email, phone, address, notes,
+      id, organization_id, name, contact_type, company, company_name_th,
+      email, phone, address, address_th, tax_id, branch, notes,
       created_by, created_at, updated_at,
       contact_locations ( id, location_id, locations ( name ) )
     `)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .order("name", { ascending: true });
 
@@ -45,9 +45,13 @@ export async function POST(request: Request) {
     name: string;
     contact_type: string;
     company?: string;
+    company_name_th?: string;
     email?: string;
     phone?: string;
     address?: string;
+    address_th?: string;
+    tax_id?: string;
+    branch?: string;
     notes?: string;
     location_ids?: string[];
   };
@@ -64,13 +68,17 @@ export async function POST(request: Request) {
   const { data: contact, error } = await supabase
     .from("contacts")
     .insert({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       name: body.name.trim(),
       contact_type: body.contact_type,
       company: body.company?.trim() ?? null,
+      company_name_th: body.company_name_th?.trim() ?? null,
       email: body.email?.trim().toLowerCase() ?? null,
       phone: body.phone?.trim() ?? null,
       address: body.address?.trim() ?? null,
+      address_th: body.address_th?.trim() ?? null,
+      tax_id: body.tax_id?.trim() ?? null,
+      branch: body.branch?.trim() ?? null,
       notes: body.notes?.trim() ?? null,
       created_by: session.user.userId ?? null,
     })

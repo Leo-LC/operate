@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess, derivePermissionsFromRole } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 async function guardAndGetSchedule(scheduleId: string, role: string | undefined) {
   const perms = derivePermissionsFromRole(role as "owner" | "staff" | undefined);
@@ -13,7 +12,7 @@ async function guardAndGetSchedule(scheduleId: string, role: string | undefined)
     .from("schedules")
     .select("id")
     .eq("id", scheduleId)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .single();
   return data;

@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -19,7 +18,7 @@ export async function GET(request: Request) {
   const { data: locData } = await supabase
     .from("locations")
     .select("id, name")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .eq("is_active", true)
     .order("name");
 
@@ -38,26 +37,26 @@ export async function GET(request: Request) {
     supabase
       .from("daily_entries")
       .select("location_id, sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, exp_staff_food_cash, exp_drinks_cash, exp_goodies_cash, exp_animals_cash, exp_supply_cash, exp_boss_fees_cash, exp_other_cash, exp_makro_bank, exp_other_bank, hr_salary_cash, hr_salary_bank, hr_challenge_cash, hr_service_charge_cash, hr_accompte_cash")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .in("location_id", targetLocIds)
       .gte("entry_date", `${month}-01`)
       .lte("entry_date", `${month}-31`),
     supabase
       .from("animals")
       .select("location_id, status, species")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .is("deleted_at", null)
       .in("location_id", targetLocIds),
     supabase
       .from("documents")
       .select("location_id, status, expires_at")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .is("deleted_at", null)
       .in("location_id", targetLocIds),
     supabase
       .from("employees")
       .select("location_id, active")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .is("deleted_at", null)
       .eq("active", true)
       .in("location_id", targetLocIds),

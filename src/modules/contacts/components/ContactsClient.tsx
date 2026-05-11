@@ -18,9 +18,13 @@ type FormState = {
   name: string;
   contact_type: ContactType | "";
   company: string;
+  company_name_th: string;
   email: string;
   phone: string;
   address: string;
+  address_th: string;
+  tax_id: string;
+  branch: string;
   notes: string;
 };
 
@@ -28,9 +32,13 @@ const EMPTY_FORM: FormState = {
   name: "",
   contact_type: "",
   company: "",
+  company_name_th: "",
   email: "",
   phone: "",
   address: "",
+  address_th: "",
+  tax_id: "",
+  branch: "",
   notes: "",
 };
 
@@ -39,9 +47,13 @@ function contactToForm(c: Contact): FormState {
     name: c.name,
     contact_type: c.contact_type,
     company: c.company ?? "",
+    company_name_th: c.company_name_th ?? "",
     email: c.email ?? "",
     phone: c.phone ?? "",
     address: c.address ?? "",
+    address_th: c.address_th ?? "",
+    tax_id: c.tax_id ?? "",
+    branch: c.branch ?? "",
     notes: c.notes ?? "",
   };
 }
@@ -115,9 +127,13 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
           name: form.name,
           contact_type: form.contact_type,
           company: form.company || undefined,
+          company_name_th: form.company_name_th || undefined,
           email: form.email || undefined,
           phone: form.phone || undefined,
           address: form.address || undefined,
+          address_th: form.address_th || undefined,
+          tax_id: form.tax_id || undefined,
+          branch: form.branch || undefined,
           notes: form.notes || undefined,
           location_ids: Array.from(formLocIds),
         }),
@@ -157,9 +173,13 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
           name: editForm.name,
           contact_type: editForm.contact_type || undefined,
           company: editForm.company || null,
+          company_name_th: editForm.company_name_th || null,
           email: editForm.email || null,
           phone: editForm.phone || null,
           address: editForm.address || null,
+          address_th: editForm.address_th || null,
+          tax_id: editForm.tax_id || null,
+          branch: editForm.branch || null,
           notes: editForm.notes || null,
           location_ids: Array.from(editLocIds),
         }),
@@ -289,7 +309,12 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
                         {CONTACT_TYPE_LABELS[c.contact_type]}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{c.company ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                      {c.company && <div>{c.company}</div>}
+                      {c.company_name_th && <div className="text-[11px] opacity-70">{c.company_name_th}</div>}
+                      {c.tax_id && <div className="text-[11px] opacity-60">Tax: {c.tax_id}</div>}
+                      {!c.company && !c.company_name_th && "—"}
+                    </td>
                     <td className="px-4 py-2.5 text-muted-foreground text-xs">
                       {c.email && <div>{c.email}</div>}
                       {c.phone && <div>{c.phone}</div>}
@@ -397,12 +422,12 @@ function ContactForm({
             </select>
           </div>
           <div className="flex flex-col gap-1 min-w-[180px]">
-            <label className="text-xs font-medium text-muted-foreground">Company / Organisation</label>
+            <label className="text-xs font-medium text-muted-foreground">Company (EN)</label>
             <input
               type="text" value={form.company}
               onChange={(e) => onChange("company", e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-              placeholder="Company name"
+              placeholder="Company name (English)"
             />
           </div>
         </div>
@@ -437,6 +462,50 @@ function ContactForm({
               onChange={(e) => onChange("address", e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               placeholder="Street address"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Business info */}
+      <div>
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Business info <span className="normal-case font-normal">(for invoicing / delivery)</span></p>
+        <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-1 min-w-[220px]">
+            <label className="text-xs font-medium text-muted-foreground">Company name (TH)</label>
+            <input
+              type="text" value={form.company_name_th}
+              onChange={(e) => onChange("company_name_th", e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              placeholder="บริษัท … จำกัด"
+            />
+          </div>
+          <div className="flex flex-col gap-1 min-w-[160px]">
+            <label className="text-xs font-medium text-muted-foreground">Tax ID</label>
+            <input
+              type="text" value={form.tax_id}
+              onChange={(e) => onChange("tax_id", e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              placeholder="0000000000000"
+            />
+          </div>
+          <div className="flex flex-col gap-1 min-w-[160px]">
+            <label className="text-xs font-medium text-muted-foreground">Branch</label>
+            <input
+              type="text" value={form.branch}
+              onChange={(e) => onChange("branch", e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              placeholder="Head Office / สำนักงานใหญ่"
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-xs font-medium text-muted-foreground">Address (TH)</label>
+            <textarea
+              value={form.address_th}
+              onChange={(e) => onChange("address_th", e.target.value)}
+              rows={2}
+              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
+              placeholder="63/158 หมู่ที่ 5 ตำบล บ่อผุด…"
             />
           </div>
         </div>

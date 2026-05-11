@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -14,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .from("contacts")
     .select(`*, contact_locations ( id, location_id, locations ( name ) )`)
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .single();
 
@@ -33,9 +32,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     name: string;
     contact_type: string;
     company: string | null;
+    company_name_th: string | null;
     email: string | null;
     phone: string | null;
     address: string | null;
+    address_th: string | null;
+    tax_id: string | null;
+    branch: string | null;
     notes: string | null;
     location_ids: string[];
   }>;
@@ -49,9 +52,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (body.name !== undefined) updates.name = body.name.trim();
   if (body.contact_type !== undefined) updates.contact_type = body.contact_type;
   if ("company" in body) updates.company = body.company?.trim() ?? null;
+  if ("company_name_th" in body) updates.company_name_th = body.company_name_th?.trim() ?? null;
   if ("email" in body) updates.email = body.email?.trim().toLowerCase() ?? null;
   if ("phone" in body) updates.phone = body.phone?.trim() ?? null;
   if ("address" in body) updates.address = body.address?.trim() ?? null;
+  if ("address_th" in body) updates.address_th = body.address_th?.trim() ?? null;
+  if ("tax_id" in body) updates.tax_id = body.tax_id?.trim() ?? null;
+  if ("branch" in body) updates.branch = body.branch?.trim() ?? null;
   if ("notes" in body) updates.notes = body.notes?.trim() ?? null;
 
   const supabase = getSupabaseServerClient();
@@ -59,7 +66,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .from("contacts")
     .update(updates)
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .select()
     .single();
@@ -99,7 +106,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     .from("contacts")
     .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID);
+    .eq("organization_id", DEFAULT_ORG_ID);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

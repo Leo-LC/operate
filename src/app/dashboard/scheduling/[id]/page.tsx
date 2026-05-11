@@ -7,8 +7,7 @@ import { ScheduleGrid } from "@/modules/schedules/components/ScheduleGrid";
 import type { Schedule, ScheduleShift } from "@/modules/schedules/types";
 import type { Employee } from "@/modules/admin/types";
 import { ChevronLeftIcon } from "lucide-react";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export default async function ScheduleDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -20,7 +19,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .from("schedules")
     .select("*, locations ( name )")
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .single();
 
@@ -34,7 +33,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     supabase
       .from("employees")
       .select("id, organization_id, location_id, first_name, last_name, position, email, phone, active, notes, user_id, created_at, updated_at, locations ( name )")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("location_id", sched.location_id)
       .eq("active", true)
       .is("deleted_at", null)
@@ -42,7 +41,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     supabase
       .from("employees")
       .select("id, organization_id, location_id, first_name, last_name, position, email, phone, active, notes, user_id, created_at, updated_at, locations ( name ), employee_locations!inner(location_id)")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("employee_locations.location_id", sched.location_id)
       .eq("active", true)
       .is("deleted_at", null)

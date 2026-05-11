@@ -5,8 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { AnimalsListClient } from "@/modules/animals/components/AnimalsListClient";
 import type { Animal } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export default async function AnimalsPage() {
   const session = await getServerSession(authOptions);
@@ -18,7 +17,7 @@ export default async function AnimalsPage() {
       .from("animals")
       .select("id, organization_id, location_id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, last_vaccination_date, next_vaccination_date, vaccination_passport, created_at, updated_at, locations ( name )")
       .is("deleted_at", null)
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .order("name"),
     supabase
       .from("locations")

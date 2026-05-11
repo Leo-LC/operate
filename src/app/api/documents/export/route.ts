@@ -3,8 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { daysUntilExpiry } from "@/modules/documents/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function esc(v: string | number | boolean | null | undefined): string {
   if (v == null) return "";
@@ -30,7 +29,7 @@ export async function GET() {
       "created_at", "locations ( name )",
     ].join(", "))
     .is("deleted_at", null)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("category", { ascending: true })
     .order("title", { ascending: true });
 

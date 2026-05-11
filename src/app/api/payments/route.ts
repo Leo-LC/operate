@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -20,7 +19,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from("employee_payment_records")
     .select("*")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("period_year", { ascending: false })
     .order("period_month", { ascending: false });
 
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase.from("employee_payment_records").upsert({
-    organization_id: ORG_ID,
+    organization_id: DEFAULT_ORG_ID,
     location_id: body.location_id,
     employee_id: body.employee_id,
     period_year: body.period_year,

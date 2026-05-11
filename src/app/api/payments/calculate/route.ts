@@ -9,8 +9,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { buildSummary, DEFAULT_HR_SETTINGS, type HrSettings } from "@/modules/attendance/types";
 import type { AttendanceRecord } from "@/modules/attendance/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -39,13 +38,13 @@ export async function POST(request: Request) {
     supabase
       .from("employees")
       .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, location_id, employee_locations(location_id)")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .is("archived_at", null)
       .is("deleted_at", null),
     supabase
       .from("attendance_records")
       .select("*")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("location_id", location_id)
       .gte("record_date", fromDate)
       .lte("record_date", toDate)
@@ -53,12 +52,12 @@ export async function POST(request: Request) {
     supabase
       .from("hr_settings")
       .select("*")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .single(),
     supabase
       .from("daily_entries")
       .select("sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, sales_card_surcharge")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("location_id", location_id)
       .gte("entry_date", fromDate)
       .lte("entry_date", toDate),

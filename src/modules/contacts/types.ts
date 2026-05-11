@@ -30,9 +30,13 @@ export interface Contact {
   name: string;
   contact_type: ContactType;
   company: string | null;
+  company_name_th: string | null;
   email: string | null;
   phone: string | null;
   address: string | null;
+  address_th: string | null;
+  tax_id: string | null;
+  branch: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;

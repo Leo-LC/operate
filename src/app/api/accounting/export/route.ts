@@ -12,8 +12,7 @@ import {
   fixedExpenseTotal,
 } from "@/modules/accounting/types";
 import type { DailyEntry, FixedExpenseCategory, MonthlyFixedExpense } from "@/modules/accounting/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function esc(v: string | number | null | undefined): string {
   if (v == null) return "";
@@ -47,7 +46,7 @@ export async function GET(request: Request) {
     const { data: cats } = await supabase
       .from("fixed_expense_categories")
       .select("*")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
       .order("sort_order");
     const categories: FixedExpenseCategory[] = cats ?? [];
@@ -55,7 +54,7 @@ export async function GET(request: Request) {
     let q = supabase
       .from("monthly_fixed_expenses")
       .select("*, locations ( name )")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("year", yearNum)
       .order("month");
 
@@ -102,7 +101,7 @@ export async function GET(request: Request) {
   let q = supabase
     .from("daily_entries")
     .select("*, locations ( name )")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("entry_date");
 
   if (month) {

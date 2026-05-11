@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import type { DocumentStatus } from "@/modules/documents/types";
 import { salesNetTotal, expTotal, hrTotal } from "@/modules/accounting/types";
 import type { DailyEntry } from "@/modules/accounting/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -26,16 +25,16 @@ export async function GET(request: Request) {
       .from("documents")
       .select("status, expires_at")
       .is("deleted_at", null)
-      .eq("organization_id", ORG_ID),
+      .eq("organization_id", DEFAULT_ORG_ID),
     supabase
       .from("animals")
       .select("status")
       .is("deleted_at", null)
-      .eq("organization_id", ORG_ID),
+      .eq("organization_id", DEFAULT_ORG_ID),
     supabase
       .from("daily_entries")
       .select("*")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", from)
       .lte("entry_date", to)
       .order("entry_date"),

@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -15,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .from("employees")
     .select(`*, locations ( name ), employee_locations ( id, location_id, is_primary, locations ( name ) )`)
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .single();
 
@@ -84,7 +83,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .from("employees")
     .update(updates)
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .select()
     .single();
@@ -127,7 +126,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     .from("employees")
     .update({ deleted_at: new Date().toISOString(), active: false, updated_at: new Date().toISOString() })
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID);
+    .eq("organization_id", DEFAULT_ORG_ID);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

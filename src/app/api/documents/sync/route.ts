@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { MASTER_DOCUMENTS } from "@/modules/documents/masterList";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 /** POST /api/documents/sync
  * For every active location, insert a document row for each master document code
@@ -23,7 +22,7 @@ export async function POST() {
   const { data: locations, error: locErr } = await supabase
     .from("locations")
     .select("id")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .eq("is_active", true)
     .is("deleted_at", null);
 
@@ -34,7 +33,7 @@ export async function POST() {
 
   for (const loc of locations ?? []) {
     const rows = MASTER_DOCUMENTS.map((m) => ({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       location_id: loc.id,
       title: m.title,
       thai_form_name: m.thai_form_name,

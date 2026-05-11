@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess, derivePermissionsFromRole } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -16,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .from("schedules")
     .select("*, locations ( name )")
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .single();
 
@@ -69,7 +68,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .from("schedules")
     .update(updates)
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .select()
     .single();
@@ -89,7 +88,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     .from("schedules")
     .update({ deleted_at: new Date().toISOString(), status: "archived", updated_at: new Date().toISOString() })
     .eq("id", params.id)
-    .eq("organization_id", ORG_ID);
+    .eq("organization_id", DEFAULT_ORG_ID);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });

@@ -5,8 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DocumentsClient } from "@/modules/documents/components/DocumentsClient";
 import type { Document } from "@/modules/documents/types";
 import type { AdminLocation } from "@/modules/admin/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 const SELECT_FIELDS = [
   "id", "organization_id", "location_id", "title", "thai_form_name",
@@ -27,7 +26,7 @@ export default async function DocumentsPage() {
       .from("documents")
       .select(SELECT_FIELDS)
       .is("deleted_at", null)
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .order("category", { ascending: true })
       .order("title", { ascending: true }),
     supabase

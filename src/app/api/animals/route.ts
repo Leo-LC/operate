@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import type { AnimalStatus, AnimalSex } from "@/modules/animals/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -21,7 +20,7 @@ export async function GET(request: Request) {
     .from("animals")
     .select("id, organization_id, location_id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, last_vaccination_date, next_vaccination_date, vaccination_passport, created_at, updated_at, locations ( name )")
     .is("deleted_at", null)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("name");
 
   if (locationId) query = query.eq("location_id", locationId);
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("animals")
     .insert({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       name: body.name.trim(),
       species: body.species ?? "capybara",
       sex: body.sex ?? null,

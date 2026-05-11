@@ -3,8 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { computeStatus } from "@/modules/documents/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 const REQUIRED_HEADERS = [
   "location_name", "title", "code", "thai_form_name", "category",
@@ -85,7 +84,7 @@ export async function POST(request: Request) {
   const { data: locData, error: locErr } = await supabase
     .from("locations")
     .select("id, name")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .eq("is_active", true);
 
   if (locErr) return Response.json({ error: locErr.message }, { status: 500 });
@@ -145,7 +144,7 @@ export async function POST(request: Request) {
     const status = computeStatus({ is_relevant, has_document, expires_at: expiresAt });
 
     toInsert.push({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       location_id: locationId,
       title,
       code,

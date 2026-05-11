@@ -3,8 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import { derivePermissionsFromRole } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -19,7 +18,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from("schedules")
     .select("id, organization_id, location_id, name, week_start_date, status, created_by, created_at, updated_at, locations ( name )")
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
     .order("week_start_date", { ascending: false });
 
@@ -60,7 +59,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("schedules")
     .insert({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       location_id: body.location_id,
       name,
       week_start_date: body.week_start_date,

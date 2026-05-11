@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import type { DocumentType, DocumentStatus } from "@/modules/documents/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 const SELECT_FIELDS = [
   "id", "organization_id", "location_id", "title", "thai_form_name",
@@ -32,7 +31,7 @@ export async function GET(request: Request) {
     .from("documents")
     .select(SELECT_FIELDS)
     .is("deleted_at", null)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("expires_at", { ascending: true, nullsFirst: false });
 
   if (locationId) query = query.eq("location_id", locationId);
@@ -100,7 +99,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("documents")
     .insert({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       location_id: body.location_id ?? null,
       title: body.title.trim(),
       thai_form_name: body.thai_form_name ?? null,

@@ -5,8 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { ScheduleListClient } from "@/modules/schedules/components/ScheduleListClient";
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export default async function SchedulingPage() {
   const session = await getServerSession(authOptions);
@@ -17,13 +16,13 @@ export default async function SchedulingPage() {
     supabase
       .from("schedules")
       .select("id, organization_id, location_id, name, week_start_date, status, created_by, created_at, updated_at, locations ( name )")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .is("deleted_at", null)
       .order("week_start_date", { ascending: false }),
     supabase
       .from("locations")
       .select("id, name, slug, external_id, is_active, created_at")
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
       .order("name", { ascending: true }),
   ]);

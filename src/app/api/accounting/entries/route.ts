@@ -4,8 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { fromFormState, toFormState } from "@/modules/accounting/types";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -28,7 +27,7 @@ export async function GET(request: Request) {
       .from("daily_entries")
       .select("*")
       .eq("location_id", locationId)
-      .eq("organization_id", ORG_ID)
+      .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", monthStart)
       .lt("entry_date", monthEnd)
       .order("entry_date"),
@@ -74,7 +73,7 @@ export async function POST(request: Request) {
   const { data, error } = await supabase
     .from("daily_entries")
     .upsert({
-      organization_id: ORG_ID,
+      organization_id: DEFAULT_ORG_ID,
       location_id: body.location_id,
       entry_date: body.entry_date,
       ...fields,

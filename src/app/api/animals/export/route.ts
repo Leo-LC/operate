@@ -2,8 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-
-const ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
+import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function esc(v: string | null | undefined): string {
   if (v == null) return "";
@@ -24,7 +23,7 @@ export async function GET() {
     .from("animals")
     .select("id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, created_at, locations ( name )")
     .is("deleted_at", null)
-    .eq("organization_id", ORG_ID)
+    .eq("organization_id", DEFAULT_ORG_ID)
     .order("name");
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
