@@ -134,7 +134,7 @@ function Cell({
 
   if (isEditing) {
     return (
-      <td className={`px-3 h-8 text-right text-xs tabular-nums ${CELL_BORDER} ${extraClass} relative`}>
+      <td className={`px-3 h-8 text-right text-xs tabular-nums font-mono ${CELL_BORDER} ${extraClass} relative`}>
         {/* Invisible text anchors the column to its natural display width */}
         <span aria-hidden="true" className="invisible">{fmt(value)}</span>
         <input
@@ -155,7 +155,7 @@ function Cell({
   // Calculated, non-overrideable: read-only, dimmed
   if (calculated && !isOverrideable) {
     return (
-      <td className={`px-3 h-8 text-right text-xs tabular-nums text-muted-foreground/70 italic ${CELL_BORDER} ${CALC_BG} ${deltaClass} ${extraClass}`}>
+      <td className={`px-3 h-8 text-right text-xs tabular-nums font-mono text-muted-foreground/70 italic ${CELL_BORDER} ${CALC_BG} ${deltaClass} ${extraClass}`}>
         {isDelta ? fmtSigned(value) : fmt(value)}
       </td>
     );
@@ -165,7 +165,7 @@ function Cell({
   if (calculated && isOverrideable) {
     return (
       <td
-        className={`px-3 h-8 text-right text-xs tabular-nums ${CELL_BORDER} ${CALC_BG} cursor-pointer hover:bg-amber-50/60 dark:hover:bg-amber-900/15 hover:outline hover:outline-1 hover:outline-amber-400/60 hover:[outline-offset:-1px] transition-colors select-none ${extraClass} ${isManualOverride ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground/70 italic"}`}
+        className={`px-3 h-8 text-right text-xs tabular-nums font-mono ${CELL_BORDER} ${CALC_BG} cursor-pointer hover:bg-amber-50/60 dark:hover:bg-amber-900/15 hover:outline hover:outline-1 hover:outline-amber-400/60 hover:[outline-offset:-1px] transition-colors select-none ${extraClass} ${isManualOverride ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground/70 italic"}`}
         onClick={() => onRequestOverride?.(day, value)}
         title={isManualOverride ? "Manually overridden — click to change" : "Click to manually override"}
       >
@@ -177,7 +177,7 @@ function Cell({
   // Editable
   return (
     <td
-      className={`px-3 h-8 text-right text-xs tabular-nums cursor-pointer select-none ${CELL_BORDER} hover:bg-accent/20 hover:outline hover:outline-1 hover:outline-border/60 hover:[outline-offset:-1px] transition-colors ${!entry ? "text-muted-foreground/30" : ""} ${deltaClass} ${extraClass}`}
+      className={`px-3 h-8 text-right text-xs tabular-nums font-mono cursor-pointer select-none ${CELL_BORDER} hover:bg-accent/20 hover:outline hover:outline-1 hover:outline-border/60 hover:[outline-offset:-1px] transition-colors ${!entry ? "text-muted-foreground/30" : ""} ${deltaClass} ${extraClass}`}
       onClick={() => onStartEdit(day, fieldKey, entry ? rawValue : 0)}
       title={!entry ? "Click to add" : undefined}
     >
@@ -604,7 +604,7 @@ export function DailyEntriesTable({
                   return (
                     <td
                       key={String(f.key)}
-                      className={`px-3 py-2 text-right text-xs tabular-nums ${CELL_BORDER} ${f.calculated ? CALC_BG : ""} ${deltaClass} ${isSectionStart ? "border-l-2 border-border/50" : ""}`}
+                      className={`px-3 py-2 text-right text-xs tabular-nums font-mono font-medium ${CELL_BORDER} ${f.calculated ? CALC_BG : ""} ${deltaClass} ${isSectionStart ? "border-l-2 border-border/50" : ""}`}
                     >
                       {isDelta ? fmtSigned(value) : fmt(value)}
                     </td>

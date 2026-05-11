@@ -95,8 +95,8 @@ export function AccountingSummaryCards({ entries, daysInMonth, today, month, yea
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {cards.map(({ label, value, cls, valueCls }) => (
         <div key={label} className={`rounded-lg border px-4 py-3 ${cls}`}>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">{label}</p>
-          <p className={`text-base font-semibold tabular-nums ${valueCls}`}>{value}</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">{label}</p>
+          <p className={`font-mono text-base font-medium tabular-nums ${valueCls}`}>{value}</p>
         </div>
       ))}
     </div>

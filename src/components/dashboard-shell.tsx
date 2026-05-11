@@ -31,21 +31,25 @@ interface DashboardShellProps {
 
 function navItemClass(active: boolean, locked: boolean): string {
   return [
-    "grid w-full items-center rounded-lg px-2 py-2 text-xs transition-all duration-300 ease-in-out",
+    "grid w-full items-center rounded-md px-2 py-2 text-xs transition-all duration-300 ease-in-out",
     locked
       ? "grid-cols-[2rem_1fr]"
       : "grid-cols-[2rem_0fr] group-hover:grid-cols-[2rem_1fr]",
     active
-      ? "bg-sidebar-accent text-foreground"
-      : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+      : "text-sidebar-foreground/55 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
   ].join(" ");
 }
 
 function labelClass(locked: boolean): string {
   return [
-    "overflow-hidden whitespace-nowrap pl-2 text-[12px] text-foreground transition-opacity duration-200 ease-out",
+    "overflow-hidden whitespace-nowrap pl-2 text-[12px] text-sidebar-foreground transition-opacity duration-200 ease-out",
     locked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
   ].join(" ");
+}
+
+function iconClass(active: boolean): string {
+  return `h-4 w-4 transition-colors ${active ? "text-sidebar-foreground" : "text-sidebar-foreground/50"}`;
 }
 
 export function DashboardShell({ email, role, children }: DashboardShellProps) {
@@ -64,48 +68,50 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
     localStorage.setItem("sidebar-locked", String(next));
   }
 
-  const canSeeReviews = hasModuleAccess(permissions, "reviews");
-  const canSeeAdmin = hasModuleAccess(permissions, "admin");
-  const canSeeDocuments = hasModuleAccess(permissions, "documents");
-  const canSeeAnimals = hasModuleAccess(permissions, "animals");
-  const canSeeSchedules = hasModuleAccess(permissions, "schedules");
+  const canSeeReviews    = hasModuleAccess(permissions, "reviews");
+  const canSeeAdmin      = hasModuleAccess(permissions, "admin");
+  const canSeeDocuments  = hasModuleAccess(permissions, "documents");
+  const canSeeAnimals    = hasModuleAccess(permissions, "animals");
+  const canSeeSchedules  = hasModuleAccess(permissions, "schedules");
   const canSeeAccounting = hasModuleAccess(permissions, "accounting");
-  const canSeeReports = hasModuleAccess(permissions, "reports");
-  const canSeeContacts = hasModuleAccess(permissions, "contacts");
+  const canSeeReports    = hasModuleAccess(permissions, "reports");
+  const canSeeContacts   = hasModuleAccess(permissions, "contacts");
   const canSeeAttendance = hasModuleAccess(permissions, "attendance");
-  const canSeePayments = hasModuleAccess(permissions, "payments");
-  const isHome = pathname === "/dashboard/home" || pathname === "/dashboard";
-  const isReviews = pathname.startsWith("/dashboard/reviews");
+  const canSeePayments   = hasModuleAccess(permissions, "payments");
+
+  const isHome       = pathname === "/dashboard/home" || pathname === "/dashboard";
+  const isReviews    = pathname.startsWith("/dashboard/reviews");
   const isScheduling = pathname.startsWith("/dashboard/scheduling");
-  const isDocuments = pathname.startsWith("/dashboard/documents");
-  const isAnimals = pathname.startsWith("/dashboard/animals");
+  const isDocuments  = pathname.startsWith("/dashboard/documents");
+  const isAnimals    = pathname.startsWith("/dashboard/animals");
   const isAccounting = pathname.startsWith("/dashboard/accounting");
-  const isReports = pathname.startsWith("/dashboard/reports");
-  const isContacts = pathname.startsWith("/dashboard/contacts");
+  const isReports    = pathname.startsWith("/dashboard/reports");
+  const isContacts   = pathname.startsWith("/dashboard/contacts");
   const isAttendance = pathname.startsWith("/dashboard/attendance");
-  const isPayments = pathname.startsWith("/dashboard/payments");
-  const isAdmin = pathname.startsWith("/dashboard/admin");
+  const isPayments   = pathname.startsWith("/dashboard/payments");
+  const isAdmin      = pathname.startsWith("/dashboard/admin");
 
   const asideClass = [
-    "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
+    "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
     sidebarLocked ? "w-48" : "w-14 hover:w-48",
   ].join(" ");
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="fixed top-0 left-0 right-0 z-40 flex h-12 items-center justify-between border-b border-border bg-background/95 px-4 text-xs text-muted-foreground backdrop-blur">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-40 flex h-12 items-center justify-between border-b border-border bg-background/95 px-4 text-xs text-muted-foreground backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/home" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground">
+          <Link href="/dashboard/home" className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground tracking-tight">
               Op
             </div>
-            <div className="flex flex-col">
-              <span className="text-[13px] font-medium text-foreground">Operate</span>
-              <span className="max-w-[220px] truncate text-[11px] text-muted-foreground">{email}</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-serif text-[14px] text-foreground">Operate</span>
+              <span className="max-w-[220px] truncate text-[10px] text-muted-foreground mt-0.5">{email}</span>
             </div>
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <ThemeToggle />
           <Button
             variant="ghost"
@@ -113,26 +119,28 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
             className="hidden gap-1.5 rounded-full px-3 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground sm:inline-flex"
             onClick={() => signOut({ callbackUrl: "/" })}
           >
-            <LogOutIcon className="size-4" />
+            <LogOutIcon className="size-3.5" />
             Sign out
           </Button>
         </div>
       </header>
 
       <div className="flex flex-1 pt-12">
+        {/* Dark sidebar */}
         <aside className={asideClass}>
-          <div className="mt-3 flex w-full flex-1 flex-col items-center gap-1 px-1">
+          <div className="mt-3 flex w-full flex-1 flex-col items-center gap-0.5 px-2">
+
             <Link href="/dashboard/home" className={navItemClass(isHome, sidebarLocked)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                <HouseIcon className={`h-4 w-4 transition-colors ${isHome ? "text-foreground" : "text-muted-foreground"}`} />
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                <HouseIcon className={iconClass(isHome)} />
               </div>
               <span className={labelClass(sidebarLocked)}>Overview</span>
             </Link>
 
             {canSeeReviews && (
               <Link href="/dashboard/reviews" className={navItemClass(isReviews, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <StarIcon className={`h-4 w-4 transition-colors ${isReviews ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <StarIcon className={iconClass(isReviews)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Reviews</span>
               </Link>
@@ -140,8 +148,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeSchedules && (
               <Link href="/dashboard/scheduling" className={navItemClass(isScheduling, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <CalendarDaysIcon className={`h-4 w-4 transition-colors ${isScheduling ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <CalendarDaysIcon className={iconClass(isScheduling)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Scheduling</span>
               </Link>
@@ -149,8 +157,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeAnimals && (
               <Link href="/dashboard/animals" className={navItemClass(isAnimals, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <PawPrintIcon className={`h-4 w-4 transition-colors ${isAnimals ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <PawPrintIcon className={iconClass(isAnimals)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Animals</span>
               </Link>
@@ -158,8 +166,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeDocuments && (
               <Link href="/dashboard/documents" className={navItemClass(isDocuments, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <FileTextIcon className={`h-4 w-4 transition-colors ${isDocuments ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <FileTextIcon className={iconClass(isDocuments)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Documents</span>
               </Link>
@@ -167,8 +175,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeAccounting && (
               <Link href="/dashboard/accounting" className={navItemClass(isAccounting, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <CalculatorIcon className={`h-4 w-4 transition-colors ${isAccounting ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <CalculatorIcon className={iconClass(isAccounting)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Accounting</span>
               </Link>
@@ -176,18 +184,17 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeReports && (
               <Link href="/dashboard/reports" className={navItemClass(isReports, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <TrendingUpIcon className={`h-4 w-4 transition-colors ${isReports ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <TrendingUpIcon className={iconClass(isReports)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Reports</span>
               </Link>
             )}
 
-
             {canSeeContacts && (
               <Link href="/dashboard/contacts" className={navItemClass(isContacts, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <UsersIcon className={`h-4 w-4 transition-colors ${isContacts ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <UsersIcon className={iconClass(isContacts)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Contacts</span>
               </Link>
@@ -195,8 +202,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeAttendance && (
               <Link href="/dashboard/attendance" className={navItemClass(isAttendance, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <ClockIcon className={`h-4 w-4 transition-colors ${isAttendance ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <ClockIcon className={iconClass(isAttendance)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Attendance</span>
               </Link>
@@ -204,8 +211,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeePayments && (
               <Link href="/dashboard/payments" className={navItemClass(isPayments, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <BanknoteIcon className={`h-4 w-4 transition-colors ${isPayments ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <BanknoteIcon className={iconClass(isPayments)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Payments</span>
               </Link>
@@ -213,25 +220,27 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
 
             {canSeeAdmin && (
               <Link href="/dashboard/admin" className={navItemClass(isAdmin, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
-                  <ShieldIcon className={`h-4 w-4 transition-colors ${isAdmin ? "text-foreground" : "text-muted-foreground"}`} />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <ShieldIcon className={iconClass(isAdmin)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Admin</span>
               </Link>
             )}
           </div>
 
-          {/* Sidebar lock toggle */}
-          <div className="mb-3 w-full px-1">
+          {/* Sidebar pin toggle */}
+          <div className="mb-3 w-full px-2">
             <button
               onClick={toggleLock}
-              title={sidebarLocked ? "Unlock sidebar" : "Lock sidebar open"}
+              title={sidebarLocked ? "Unpin sidebar" : "Pin sidebar open"}
               className={navItemClass(false, sidebarLocked) + " cursor-pointer"}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
                 <PinIcon
                   className={`h-4 w-4 transition-all duration-200 ${
-                    sidebarLocked ? "rotate-45 text-foreground" : "text-muted-foreground"
+                    sidebarLocked
+                      ? "rotate-45 text-sidebar-foreground"
+                      : "text-sidebar-foreground/40"
                   }`}
                 />
               </div>
@@ -246,7 +255,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
           {children}
         </main>
       </div>
-      <footer className="border-t border-border bg-background/80 py-3 text-center text-[11px] text-muted-foreground/60">
+
+      <footer className="border-t border-border bg-background/60 py-3 text-center text-[11px] text-muted-foreground/50 font-sans">
         © {new Date().getFullYear()} Created by Léo Lecée — Nexus-Hub
       </footer>
     </div>
