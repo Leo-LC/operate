@@ -242,8 +242,13 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
           </div>
         </aside>
 
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-32">{children}</main>
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-8">
+          {children}
+        </main>
       </div>
+      <footer className="border-t border-border bg-background/80 py-3 text-center text-[11px] text-muted-foreground/60">
+        © {new Date().getFullYear()} Created by Léo Lecée — Nexus-Hub
+      </footer>
     </div>
   );
 }

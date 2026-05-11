@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { ChevronLeftIcon, ChevronRightIcon, Loader2Icon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Loader2Icon, XIcon, PlusIcon, Trash2Icon, SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   fixedExpenseTotal,
@@ -22,9 +22,10 @@ function fmt(n: number) {
 interface Props {
   locationId: string;
   locations: AdminLocation[];
+  canManageCategories?: boolean;
 }
 
-export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
+export function MonthlyFixedExpensesTable({ locationId, locations, canManageCategories }: Props) {
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState(thisYear);
   const [categories, setCategories] = useState<FixedExpenseCategory[]>([]);
@@ -40,6 +41,12 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
   const [modalMonth, setModalMonth] = useState<number | null>(null);
   const [modalForm, setModalForm] = useState<Record<string, string>>({});
   const [modalSaving, setModalSaving] = useState(false);
+
+  // Category management
+  const [showCatManager, setShowCatManager] = useState(false);
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [addingCat, setAddingCat] = useState(false);
+  const [deletingCat, setDeletingCat] = useState<string | null>(null);
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -140,6 +147,47 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
     }
   }
 
+  // ── Category management ──────────────────────────────────────────────────────
+
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const label = newCatLabel.trim();
+    if (!label) return;
+    setAddingCat(true);
+    try {
+      const res = await fetch("/api/accounting/fixed-expense-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(err.error ?? "Failed to add category");
+        return;
+      }
+      const cat = await res.json() as FixedExpenseCategory;
+      setCategories((prev) => [...prev, cat].sort((a, b) => a.sort_order - b.sort_order));
+      setNewCatLabel("");
+      toast.success(`"${cat.label}" added`);
+    } finally {
+      setAddingCat(false);
+    }
+  }
+
+  async function handleDeleteCategory(key: string, label: string) {
+    setDeletingCat(key);
+    try {
+      const res = await fetch(`/api/accounting/fixed-expense-categories?key=${encodeURIComponent(key)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) { toast.error("Failed to remove category"); return; }
+      setCategories((prev) => prev.filter((c) => c.key !== key));
+      toast.success(`"${label}" removed`);
+    } finally {
+      setDeletingCat(null);
+    }
+  }
+
   // ── Column totals ───────────────────────────────────────────────────────────
 
   const catTotals: Record<string, number> = {};
@@ -164,8 +212,63 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
           </Button>
           {locationName && <span className="text-xs text-muted-foreground">— {locationName}</span>}
         </div>
-
+        {canManageCategories && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`gap-1.5 text-xs h-7 ${showCatManager ? "text-foreground" : "text-muted-foreground"}`}
+            onClick={() => setShowCatManager((v) => !v)}
+          >
+            <SettingsIcon className="size-3.5" />
+            Manage categories
+          </Button>
+        )}
       </div>
+
+      {/* Category manager panel */}
+      {canManageCategories && showCatManager && (
+        <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fixed Expense Categories — Company level</p>
+          <p className="text-xs text-muted-foreground -mt-2">
+            These categories apply to all locations. Adding or removing a category updates all monthly tables immediately.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <div
+                key={cat.key}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs"
+              >
+                <span className="font-medium">{cat.label}</span>
+                <button
+                  type="button"
+                  disabled={deletingCat === cat.key}
+                  onClick={() => void handleDeleteCategory(cat.key, cat.label)}
+                  className="text-muted-foreground/50 hover:text-destructive transition-colors disabled:opacity-30"
+                  title={`Remove "${cat.label}"`}
+                >
+                  {deletingCat === cat.key
+                    ? <Loader2Icon className="size-3 animate-spin" />
+                    : <Trash2Icon className="size-3" />}
+                </button>
+              </div>
+            ))}
+            {categories.length === 0 && <p className="text-xs text-muted-foreground">No categories yet.</p>}
+          </div>
+          <form onSubmit={(e) => void handleAddCategory(e)} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newCatLabel}
+              onChange={(e) => setNewCatLabel(e.target.value)}
+              placeholder="New category name…"
+              className="h-8 flex-1 max-w-xs rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <Button type="submit" size="sm" disabled={addingCat || !newCatLabel.trim()} className="gap-1.5">
+              <PlusIcon className="size-3.5" />
+              {addingCat ? "Adding…" : "Add"}
+            </Button>
+          </form>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-lg border border-border overflow-x-auto">

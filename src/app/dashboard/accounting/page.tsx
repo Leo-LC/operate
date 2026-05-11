@@ -18,5 +18,6 @@ export default async function AccountingPage() {
 
   const locations: AdminLocation[] = data ?? [];
 
-  return <AccountingClient locations={locations} />;
+  const canManage = session.user.role === "owner";
+  return <AccountingClient locations={locations} canManage={canManage} />;
 }

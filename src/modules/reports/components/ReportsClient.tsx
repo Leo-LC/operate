@@ -264,8 +264,8 @@ function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Revenue by category */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-emerald-500/[0.08]">
-          <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Revenue by category</h3>
+        <div className="px-4 py-3 border-b border-border bg-emerald-500/[0.12]">
+          <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Revenue by category</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="text-xs w-full border-collapse">
@@ -318,8 +318,8 @@ function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Payment method split */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-blue-500/[0.08]">
-          <h3 className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Payment methods</h3>
+        <div className="px-4 py-3 border-b border-border bg-blue-500/[0.12]">
+          <h3 className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Payment methods</h3>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
           {[
@@ -338,8 +338,8 @@ function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Expenses + HR */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-amber-500/[0.08]">
-          <h3 className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Expenses &amp; HR</h3>
+        <div className="px-4 py-3 border-b border-border bg-amber-500/[0.12]">
+          <h3 className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Expenses &amp; HR</h3>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
           <div className="flex flex-col gap-1">
@@ -359,8 +359,8 @@ function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Per-shop comparison */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-slate-500/[0.08]">
-          <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-400 uppercase tracking-wide">Per-shop comparison</h3>
+        <div className="px-4 py-3 border-b border-border bg-slate-500/[0.12]">
+          <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Per-shop comparison</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="text-xs w-full border-collapse">
@@ -384,11 +384,41 @@ function OperationsView({ data }: { data: AccountingData }) {
                   <td className={`px-4 py-2 text-right tabular-nums font-medium ${s.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                     ฿{fmtN(s.netProfit)}
                   </td>
-                  <td className={`px-4 py-2 text-right tabular-nums ${s.margin >= 20 ? "text-emerald-600 dark:text-emerald-400" : s.margin >= 0 ? "text-muted-foreground" : "text-destructive"}`}>
-                    {fmtPct(s.margin)}
+                  <td className="px-4 py-2 text-right">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums ${
+                      s.margin >= 20
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : s.margin >= 0
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {fmtPct(s.margin)}
+                    </span>
                   </td>
                 </tr>
               ))}
+              {sortedShops.length > 1 && (
+                <tr className="bg-muted/20 font-semibold border-t-2 border-border text-xs">
+                  <td className="px-4 py-2">Total</td>
+                  <td className="px-4 py-2 text-right tabular-nums">฿{fmtN(o.revenue)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(o.expenses)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(o.hrCosts)}</td>
+                  <td className={`px-4 py-2 text-right tabular-nums font-bold ${o.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    ฿{fmtN(o.netProfit)}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
+                      o.margin >= 20
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : o.margin >= 0
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {fmtPct(o.margin)}
+                    </span>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -440,7 +470,12 @@ function CeoView({ data }: { data: AccountingData }) {
               return (
                 <div key={s.locationId} className="flex flex-col gap-1.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-sm font-medium">{s.locationName}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-medium">{s.locationName}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {o.revenue > 0 ? fmtPct((s.revenue / o.revenue) * 100) : "—"} of revenue
+                      </span>
+                    </div>
                     <span className={`text-xs font-semibold tabular-nums ${s.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                       {s.netProfit >= 0 ? "+" : ""}฿{fmtN(s.netProfit)}
                     </span>
@@ -564,9 +599,9 @@ export function ReportsClient() {
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 ${i > 0 ? "border-l border-border" : ""} ${
+            className={`px-4 py-2 ${i > 0 ? "border-l border-border" : ""} ${
               activeTab === tab
-                ? "bg-accent text-accent-foreground font-medium"
+                ? "bg-primary text-primary-foreground font-semibold"
                 : "text-muted-foreground hover:bg-muted/40"
             }`}
           >

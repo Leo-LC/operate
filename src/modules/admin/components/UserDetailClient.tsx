@@ -147,6 +147,7 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
 
   const grantedModuleKeys = new Set(user.module_access.map((m) => m.module_key));
   const grantedLocationIds = new Set(user.location_access.map((la) => la.location_id));
+  const hasFullAccess = user.global_role === "owner" || user.global_role === "admin";
 
   return (
     <div className="flex flex-col gap-6">
@@ -192,26 +193,43 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
         </div>
       </section>
 
+      {/* Full-access notice for owner/admin */}
+      {hasFullAccess && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-start gap-3">
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-[10px] font-bold">✓</span>
+          <div>
+            <p className="text-sm font-medium text-foreground">Full access granted</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {user.global_role === "owner" ? "Owner" : "Admin"} role gives full access to all modules and locations automatically — no per-module or per-location grants needed.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Module access */}
       <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Module Access</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Module Access</h2>
+          {hasFullAccess && <span className="text-[10px] text-muted-foreground/60 italic">Overridden by role</span>}
+        </div>
         <div className="flex flex-wrap gap-2">
           {ALL_MODULES.map((mod) => {
-            const granted = grantedModuleKeys.has(mod);
+            const granted = hasFullAccess || grantedModuleKeys.has(mod);
             return (
               <label
                 key={mod}
-                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                   granted
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border bg-background text-muted-foreground hover:border-border/80"
-                }`}
+                } ${hasFullAccess ? "cursor-default opacity-60" : "cursor-pointer"}`}
               >
                 <input
                   type="checkbox"
                   className="sr-only"
                   checked={granted}
-                  onChange={() => granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true)}
+                  disabled={hasFullAccess}
+                  onChange={() => !hasFullAccess && (granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true))}
                 />
                 {mod}
               </label>
@@ -222,27 +240,31 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
 
       {/* Location access */}
       <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Location Access</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Location Access</h2>
+          {hasFullAccess && <span className="text-[10px] text-muted-foreground/60 italic">Overridden by role</span>}
+        </div>
         {allLocations.length === 0 ? (
           <p className="text-xs text-muted-foreground">No locations available.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {allLocations.map((loc) => {
-              const granted = grantedLocationIds.has(loc.id);
+              const granted = hasFullAccess || grantedLocationIds.has(loc.id);
               return (
                 <label
                   key={loc.id}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                  className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                     granted
                       ? "border-primary bg-primary/10 text-foreground"
                       : "border-border bg-background text-muted-foreground hover:border-border/80"
-                  }`}
+                  } ${hasFullAccess ? "cursor-default opacity-60" : "cursor-pointer"}`}
                 >
                   <input
                     type="checkbox"
                     className="sr-only"
                     checked={granted}
-                    onChange={() => granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id)}
+                    disabled={hasFullAccess}
+                    onChange={() => !hasFullAccess && (granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id))}
                   />
                   {loc.name}
                 </label>

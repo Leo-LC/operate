@@ -16,9 +16,10 @@ function daysInMonth(year: number, month: number) {
 
 interface Props {
   locations: AdminLocation[];
+  canManage?: boolean;
 }
 
-export function AccountingClient({ locations }: Props) {
+export function AccountingClient({ locations, canManage }: Props) {
   const today = new Date();
   const [year, setYear]           = useState(today.getFullYear());
   const [month, setMonth]         = useState(today.getMonth() + 1);
@@ -172,6 +173,7 @@ export function AccountingClient({ locations }: Props) {
         <MonthlyFixedExpensesTable
           locationId={locationId}
           locations={locations}
+          canManageCategories={canManage}
         />
       )}
     </div>
