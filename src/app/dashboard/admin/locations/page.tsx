@@ -11,12 +11,22 @@ export default async function AdminLocationsPage() {
   if (session.user.role !== "owner") redirect("/dashboard");
 
   const supabase = getSupabaseServerClient();
-  const { data } = await supabase
-    .from("locations")
-    .select("id, name, slug, external_id, is_active, created_at")
-    .order("name");
+  const [{ data: locations }, { data: employees }] = await Promise.all([
+    supabase
+      .from("locations")
+      .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, notes")
+      .order("name"),
+    supabase
+      .from("employees")
+      .select("id, first_name, last_name, position, location_id, active")
+      .eq("active", true)
+      .order("first_name"),
+  ]);
 
-  const locations: AdminLocation[] = data ?? [];
-
-  return <LocationsClient initialLocations={locations} />;
+  return (
+    <LocationsClient
+      initialLocations={(locations ?? []) as AdminLocation[]}
+      employees={employees ?? []}
+    />
+  );
 }

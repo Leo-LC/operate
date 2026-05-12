@@ -36,6 +36,13 @@ export interface AdminLocation {
   external_id: string | null;
   is_active: boolean;
   created_at: string;
+  updated_at?: string;
+  address_en?: string | null;
+  address_th?: string | null;
+  phone?: string | null;
+  vat_number?: string | null;
+  google_maps_url?: string | null;
+  notes?: string | null;
 }
 
 export interface EmployeeLocationRow {

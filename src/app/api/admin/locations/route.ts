@@ -12,7 +12,7 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("locations")
-    .select("id, name, slug, external_id, is_active, created_at")
+    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, notes")
     .order("name");
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, slug, external_id, is_active = true } = body;
+  const { name, slug, external_id, is_active = true, address_en, address_th, phone, vat_number, google_maps_url, notes } = body;
 
   if (!name?.trim()) return Response.json({ error: "name is required" }, { status: 400 });
   if (!slug?.trim()) return Response.json({ error: "slug is required" }, { status: 400 });
@@ -33,8 +33,20 @@ export async function POST(req: Request) {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("locations")
-    .insert({ organization_id: DEFAULT_ORG_ID, name: name.trim(), slug: slug.trim(), external_id: external_id?.trim() || null, is_active })
-    .select("id, name, slug, external_id, is_active, created_at")
+    .insert({
+      organization_id: DEFAULT_ORG_ID,
+      name: name.trim(),
+      slug: slug.trim(),
+      external_id: external_id?.trim() || null,
+      is_active,
+      address_en: address_en?.trim() || null,
+      address_th: address_th?.trim() || null,
+      phone: phone?.trim() || null,
+      vat_number: vat_number?.trim() || null,
+      google_maps_url: google_maps_url?.trim() || null,
+      notes: notes?.trim() || null,
+    })
+    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, notes")
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
