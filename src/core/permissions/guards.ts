@@ -42,11 +42,13 @@ export function derivePermissionsFromRole(
     };
   }
 
-  // staff: reviews read+write, all locations visible
-  // matches current app behavior — staff can reply to reviews across all locations
+  // staff: reviews read+write, wiki read-only, all locations visible
   return {
     global_role: "member",
-    module_access: [{ module_key: "reviews", can_read: true, can_write: true }],
+    module_access: [
+      { module_key: "reviews", can_read: true, can_write: true },
+      { module_key: "wiki", can_read: true, can_write: false },
+    ],
     location_access: [],
     all_locations: true,
   };

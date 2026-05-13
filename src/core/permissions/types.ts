@@ -8,7 +8,8 @@ export type ModuleKey =
   | "contacts"
   | "attendance"
   | "payments"
-  | "admin";
+  | "admin"
+  | "wiki";
 
 export type GlobalRole = "owner" | "admin" | "member";
 

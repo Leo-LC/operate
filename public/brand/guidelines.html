@@ -1,0 +1,2817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capybara Coffee — Brand Guidelines V2</title>
+
+  <style>
+    /* ── LOCAL FONT FACES ───────────────────── */
+
+    /* Cabinet Grotesk */
+    @font-face {
+      font-family: 'Cabinet Grotesk';
+      src: url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Regular.woff2') format('woff2'),
+           url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Regular.woff') format('woff');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cabinet Grotesk';
+      src: url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Medium.woff2') format('woff2'),
+           url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Medium.woff') format('woff');
+      font-weight: 500; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cabinet Grotesk';
+      src: url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Bold.woff2') format('woff2'),
+           url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Bold.woff') format('woff');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cabinet Grotesk';
+      src: url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Extrabold.woff2') format('woff2'),
+           url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Extrabold.woff') format('woff');
+      font-weight: 800; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cabinet Grotesk';
+      src: url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Black.woff2') format('woff2'),
+           url('/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Black.woff') format('woff');
+      font-weight: 900; font-style: normal; font-display: swap;
+    }
+
+    /* Satoshi */
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Light.woff2') format('woff2'),
+           url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Light.woff') format('woff');
+      font-weight: 300; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Regular.woff2') format('woff2'),
+           url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Regular.woff') format('woff');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Italic.woff2') format('woff2'),
+           url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Italic.woff') format('woff');
+      font-weight: 400; font-style: italic; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Medium.woff2') format('woff2'),
+           url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Medium.woff') format('woff');
+      font-weight: 500; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Bold.woff2') format('woff2'),
+           url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Bold.woff') format('woff');
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-BoldItalic.woff2') format('woff2'),
+           url('/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-BoldItalic.woff') format('woff');
+      font-weight: 700; font-style: italic; font-display: swap;
+    }
+
+    /* Next Southerland Serif */
+    @font-face {
+      font-family: 'Next Southerland Serif';
+      src: url('/brand/fonts/the_next_southerland/Next Southerland Serif.ttf') format('truetype');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+
+    /* Next Southerland Script — restricted use (print & special occasions only) */
+    @font-face {
+      font-family: 'Next Southerland Script';
+      src: url('/brand/fonts/the_next_southerland/Next Southerland Script.ttf') format('truetype');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+  </style>
+
+  <style>
+    /* ─────────────────────────────────────────────
+       DESIGN TOKENS
+    ───────────────────────────────────────────── */
+    :root {
+      /* Palette */
+      --cream:         #F7F2E9;
+      --cream-deep:    #EDE5D5;
+      --espresso:      #2F2823;
+      --espresso-mid:  #4A3B32;
+      --amber:         #B9854E;
+      --amber-light:   #D4A574;
+      --sage:          #7C9A4D;
+      --sage-dark:     #5E7A39;
+      --white:         #FFFFFF;
+
+      /* Typography */
+      --font-display: 'Cabinet Grotesk', sans-serif;
+      --font-serif:   'Next Southerland Serif', serif;
+      --font-body:    'Satoshi', sans-serif;
+
+      /* Spacing scale */
+      --s1:  0.5rem;
+      --s2:  1rem;
+      --s3:  1.5rem;
+      --s4:  2rem;
+      --s5:  3rem;
+      --s6:  5rem;
+      --s7:  8rem;
+
+      /* Layout */
+      --max: 1080px;
+      --nav-w: 220px;
+    }
+
+    /* ─────────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      background: var(--cream);
+      color: var(--espresso);
+      font-family: var(--font-body);
+      font-weight: 400;
+      line-height: 1.75;
+    }
+
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ─────────────────────────────────────────────
+       NAV SIDEBAR
+    ───────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--nav-w);
+      height: 100vh;
+      background: var(--espresso);
+      color: var(--cream);
+      padding: var(--s4) var(--s3);
+      overflow-y: auto;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s1);
+    }
+
+    .nav-brand {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: var(--s3);
+      line-height: 1.4;
+    }
+
+    .nav-label {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--espresso-mid);
+      margin-top: var(--s3);
+      margin-bottom: var(--s1);
+    }
+
+    .nav a {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: rgba(247, 242, 233, 0.65);
+      padding: 0.3rem 0;
+      transition: color 0.2s;
+      border-left: 2px solid transparent;
+      padding-left: var(--s2);
+    }
+
+    .nav a:hover {
+      color: var(--cream);
+      border-left-color: var(--amber);
+    }
+
+    /* ─────────────────────────────────────────────
+       MAIN LAYOUT
+    ───────────────────────────────────────────── */
+    .main {
+      margin-left: var(--nav-w);
+    }
+
+    /* ─────────────────────────────────────────────
+       SECTION BASE
+    ───────────────────────────────────────────── */
+    .section {
+      padding: var(--s7) var(--s6);
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    .section--dark {
+      background: var(--espresso);
+      color: var(--cream);
+      max-width: 100%;
+      padding: var(--s7) var(--s6);
+    }
+
+    .section--dark .section-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    .section--amber {
+      background: var(--amber);
+      color: var(--cream);
+      max-width: 100%;
+      padding: var(--s7) var(--s6);
+    }
+
+    .section--amber .section-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    .section--cream-deep {
+      background: var(--cream-deep);
+      max-width: 100%;
+      padding: var(--s7) var(--s6);
+    }
+
+    .section--cream-deep .section-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    /* ─────────────────────────────────────────────
+       SECTION LABELS & HEADINGS
+    ───────────────────────────────────────────── */
+    .section-label {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: var(--s3);
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--amber);
+      opacity: 0.3;
+      max-width: 80px;
+    }
+
+    .section--dark .section-label,
+    .section--amber .section-label {
+      color: var(--amber-light);
+    }
+
+    .section--dark .section-label::after {
+      background: var(--amber-light);
+    }
+
+    .section--amber .section-label::after {
+      background: var(--cream);
+      opacity: 0.4;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(3.5rem, 8vw, 7rem);
+      letter-spacing: -0.02em;
+      line-height: 0.95;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    h3 {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+      line-height: 1.3;
+    }
+
+    h4 {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    p {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.75;
+      max-width: 62ch;
+    }
+
+    p.lead {
+      font-family: var(--font-body);
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+      font-weight: 300;
+      line-height: 1.75;
+      max-width: 58ch;
+      color: var(--espresso-mid);
+    }
+
+    /* ─────────────────────────────────────────────
+       COVER
+    ───────────────────────────────────────────── */
+    #cover {
+      background: var(--espresso);
+      color: var(--cream);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: var(--s6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #cover::before {
+      content: '';
+      position: absolute;
+      top: -10%;
+      right: -5%;
+      width: 55%;
+      height: 110%;
+      background: radial-gradient(ellipse at center, rgba(185,133,78,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cover-eyebrow {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: var(--s4);
+    }
+
+    .cover-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(4rem, 10vw, 9rem);
+      letter-spacing: -0.02em;
+      line-height: 0.9;
+      text-transform: uppercase;
+      color: var(--cream);
+      margin-bottom: var(--s4);
+    }
+
+    .cover-title span {
+      color: var(--amber);
+    }
+
+    .cover-tagline {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      color: rgba(247, 242, 233, 0.6);
+      margin-bottom: var(--s6);
+      max-width: 45ch;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: var(--s5);
+      border-top: 1px solid rgba(247,242,233,0.12);
+      padding-top: var(--s3);
+    }
+
+    .cover-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .cover-meta-item .label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(247,242,233,0.35);
+    }
+
+    .cover-meta-item .value {
+      font-size: 0.85rem;
+      color: rgba(247,242,233,0.7);
+    }
+
+    /* ─────────────────────────────────────────────
+       QUICK REFERENCE / OVERVIEW
+    ───────────────────────────────────────────── */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s2);
+      margin-top: var(--s5);
+    }
+
+    .quick-card {
+      background: var(--cream);
+      border: 1px solid rgba(47,40,35,0.08);
+      padding: var(--s3);
+      border-radius: 2px;
+    }
+
+    .quick-card h4 {
+      color: var(--amber);
+      margin-bottom: var(--s2);
+    }
+
+    .quick-card p {
+      font-size: 0.85rem;
+      color: var(--espresso-mid);
+      max-width: none;
+    }
+
+    /* ─────────────────────────────────────────────
+       DIVIDER
+    ───────────────────────────────────────────── */
+    .divider {
+      width: 48px;
+      height: 2px;
+      background: var(--amber);
+      margin: var(--s4) 0;
+    }
+
+    .divider--sage { background: var(--sage); }
+    .divider--cream { background: var(--cream); opacity: 0.3; }
+
+    /* ─────────────────────────────────────────────
+       VALUES GRID
+    ───────────────────────────────────────────── */
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .value-item {
+      border-top: 2px solid var(--amber);
+      padding-top: var(--s3);
+    }
+
+    .value-item .num {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 2.5rem;
+      color: rgba(47,40,35,0.08);
+      line-height: 1;
+      margin-bottom: var(--s1);
+    }
+
+    .value-item h3 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--espresso);
+      margin-bottom: var(--s2);
+    }
+
+    .value-item p {
+      font-size: 0.9rem;
+      color: var(--espresso-mid);
+      max-width: none;
+    }
+
+    /* ─────────────────────────────────────────────
+       LOGO SECTION
+    ───────────────────────────────────────────── */
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .logo-card {
+      padding: var(--s5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s3);
+      border-radius: 2px;
+      min-height: 240px;
+    }
+
+    .logo-card--light { background: var(--cream-deep); }
+    .logo-card--dark  { background: var(--espresso); }
+    .logo-card--amber { background: var(--amber); }
+
+    .logo-card img {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+    }
+
+    .logo-card .caption {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.5;
+      text-align: center;
+    }
+
+    .logo-card--dark .caption { color: var(--cream); }
+    .logo-card--amber .caption { color: var(--cream); }
+
+    .logo-rules {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .rule-block {
+      padding: var(--s4);
+      border-radius: 2px;
+    }
+
+    .rule-block--do {
+      background: rgba(124, 154, 77, 0.08);
+      border-left: 3px solid var(--sage);
+    }
+
+    .rule-block--dont {
+      background: rgba(185, 133, 78, 0.08);
+      border-left: 3px solid var(--amber);
+    }
+
+    .rule-block h4 {
+      margin-bottom: var(--s2);
+    }
+
+    .rule-block--do h4 { color: var(--sage-dark); }
+    .rule-block--dont h4 { color: var(--amber); }
+
+    .rule-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s1);
+    }
+
+    .rule-list li {
+      font-size: 0.9rem;
+      color: var(--espresso-mid);
+      padding-left: var(--s3);
+      position: relative;
+    }
+
+    .rule-list li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--amber);
+      font-size: 0.8rem;
+    }
+
+    .rule-block--do .rule-list li::before { color: var(--sage); }
+
+    /* ─────────────────────────────────────────────
+       COLOR SYSTEM
+    ───────────────────────────────────────────── */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .color-swatch {
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid rgba(47,40,35,0.06);
+    }
+
+    .swatch-block {
+      height: 120px;
+    }
+
+    .swatch-info {
+      padding: var(--s2) var(--s3);
+      background: var(--white);
+    }
+
+    .swatch-name {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin-bottom: 2px;
+    }
+
+    .swatch-hex {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--espresso-mid);
+      margin-bottom: var(--s1);
+    }
+
+    .swatch-role {
+      font-size: 0.7rem;
+      color: rgba(47,40,35,0.5);
+      line-height: 1.4;
+    }
+
+    .color-usage {
+      margin-top: var(--s5);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s3);
+    }
+
+    .usage-block {
+      padding: var(--s4);
+      border-radius: 2px;
+      background: var(--white);
+      border: 1px solid rgba(47,40,35,0.06);
+    }
+
+    .usage-block h4 {
+      color: var(--amber);
+      margin-bottom: var(--s3);
+    }
+
+    .color-ratio {
+      display: flex;
+      height: 12px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: var(--s2);
+    }
+
+    .usage-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .usage-table td {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(47,40,35,0.06);
+      vertical-align: top;
+    }
+
+    .usage-table td:first-child {
+      font-weight: 700;
+      width: 40%;
+      color: var(--espresso-mid);
+    }
+
+    .color-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* ─────────────────────────────────────────────
+       TYPOGRAPHY SYSTEM
+    ───────────────────────────────────────────── */
+    .type-specimen {
+      margin-top: var(--s5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s4);
+    }
+
+    .type-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: var(--s4);
+      padding: var(--s4) 0;
+      border-top: 1px solid rgba(47,40,35,0.08);
+      align-items: start;
+    }
+
+    .type-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 4px;
+    }
+
+    .type-meta .name {
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .type-meta .spec {
+      font-size: 0.75rem;
+      color: var(--espresso-mid);
+      opacity: 0.65;
+    }
+
+    .type-meta .usage-tag {
+      display: inline-block;
+      background: rgba(185,133,78,0.12);
+      color: var(--amber);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 2px;
+      margin-top: 4px;
+    }
+
+    .type-sample-display {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(3rem, 6vw, 5rem);
+      letter-spacing: -0.02em;
+      line-height: 0.95;
+      text-transform: uppercase;
+      color: var(--espresso);
+    }
+
+    .type-sample-serif-xl {
+      font-family: var(--font-serif);
+      font-weight: 500;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1.15;
+      color: var(--espresso);
+    }
+
+    .type-sample-serif-md {
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+      line-height: 1.65;
+      color: var(--espresso-mid);
+    }
+
+    .type-sample-body {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 1rem;
+      line-height: 1.75;
+      max-width: 55ch;
+    }
+
+    .type-sample-ui {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .type-sample-caption {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 0.8rem;
+      color: var(--espresso-mid);
+      line-height: 1.5;
+    }
+
+    /* Font hierarchy diagram */
+    .font-pairing {
+      margin-top: var(--s5);
+      padding: var(--s5);
+      background: var(--cream-deep);
+      border-radius: 2px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--s4);
+    }
+
+    .pairing-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s2);
+    }
+
+    .pairing-col .font-name {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: var(--s1);
+    }
+
+    /* Typography by channel */
+    .channel-type-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .channel-type-card {
+      padding: var(--s4);
+      border-radius: 2px;
+      background: var(--white);
+      border: 1px solid rgba(47,40,35,0.06);
+    }
+
+    .channel-type-card h4 {
+      color: var(--sage-dark);
+      margin-bottom: var(--s3);
+    }
+
+    .type-spec-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s1);
+    }
+
+    .type-spec-list li {
+      font-size: 0.85rem;
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: var(--s2);
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(47,40,35,0.06);
+    }
+
+    .type-spec-list li span:first-child {
+      font-weight: 700;
+      color: var(--espresso-mid);
+      font-size: 0.75rem;
+    }
+
+    /* ─────────────────────────────────────────────
+       VOICE & TONE
+    ───────────────────────────────────────────── */
+    .voice-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .voice-card {
+      padding: var(--s4);
+      border-radius: 2px;
+    }
+
+    .voice-card--do {
+      background: rgba(124,154,77,0.07);
+      border-top: 2px solid var(--sage);
+    }
+
+    .voice-card--dont {
+      background: rgba(185,133,78,0.07);
+      border-top: 2px solid var(--amber);
+    }
+
+    .voice-card h4 {
+      margin-bottom: var(--s3);
+    }
+
+    .voice-card--do h4 { color: var(--sage-dark); }
+    .voice-card--dont h4 { color: var(--amber); }
+
+    .voice-example {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      color: var(--espresso);
+      padding: var(--s3);
+      background: rgba(255,255,255,0.6);
+      border-radius: 2px;
+      margin-bottom: var(--s2);
+    }
+
+    .voice-example .note {
+      font-family: var(--font-body);
+      font-style: normal;
+      font-size: 0.75rem;
+      color: var(--espresso-mid);
+      margin-top: var(--s1);
+    }
+
+    .personality-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--s1);
+      margin-top: var(--s3);
+    }
+
+    .tag {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 2px;
+    }
+
+    .tag--amber  { background: var(--amber);    color: var(--cream); }
+    .tag--sage   { background: var(--sage);     color: var(--cream); }
+    .tag--outline{ border: 1.5px solid var(--espresso); color: var(--espresso); }
+    .tag--light  { background: var(--cream-deep); color: var(--espresso); }
+
+    /* ─────────────────────────────────────────────
+       PHOTOGRAPHY
+    ───────────────────────────────────────────── */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s2);
+      margin-top: var(--s5);
+    }
+
+    .photo-principle {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .photo-principle-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6rem;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    .photo-principle-content {
+      position: relative;
+      padding: var(--s3);
+    }
+
+    .photo-principle h4 {
+      font-size: 0.7rem;
+      margin-bottom: 4px;
+    }
+
+    .photo-principle p {
+      font-size: 0.8rem;
+      max-width: none;
+      opacity: 0.8;
+    }
+
+    /* ─────────────────────────────────────────────
+       APPLICATION SECTIONS
+    ───────────────────────────────────────────── */
+    .app-header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--s3);
+      margin-bottom: var(--s5);
+    }
+
+    .app-header h2 { flex: 1; }
+
+    .app-number {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 4rem;
+      color: rgba(247,242,233,0.08);
+      line-height: 1;
+    }
+
+    .app-spec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--s3);
+      margin-top: var(--s4);
+    }
+
+    .spec-block {
+      padding: var(--s4);
+      border-top: 2px solid rgba(247,242,233,0.15);
+    }
+
+    .spec-block h4 {
+      color: var(--amber-light);
+      margin-bottom: var(--s2);
+    }
+
+    .spec-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .spec-list li {
+      font-size: 0.85rem;
+      color: rgba(247,242,233,0.65);
+      padding-left: var(--s2);
+      position: relative;
+    }
+
+    .spec-list li::before {
+      content: '·';
+      position: absolute;
+      left: 4px;
+      color: var(--amber);
+    }
+
+    /* Mockup frame */
+    .mockup-frame {
+      background: var(--cream-deep);
+      border-radius: 8px 8px 0 0;
+      padding: var(--s3) var(--s3) 0;
+      margin-top: var(--s4);
+      border: 1px solid rgba(47,40,35,0.08);
+      border-bottom: none;
+    }
+
+    .mockup-bar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: var(--s3);
+      opacity: 0.4;
+    }
+
+    .mockup-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--espresso);
+    }
+
+    .mockup-content {
+      background: var(--cream);
+      padding: var(--s4);
+      border-radius: 4px 4px 0 0;
+      min-height: 200px;
+    }
+
+    /* ─────────────────────────────────────────────
+       INSTAGRAM GRID
+    ───────────────────────────────────────────── */
+    .ig-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-top: var(--s4);
+      max-width: 400px;
+    }
+
+    .ig-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 2px;
+    }
+
+    /* Merch grid */
+    .merch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s4);
+    }
+
+    .merch-item {
+      padding: var(--s4);
+      border-radius: 2px;
+      background: rgba(247,242,233,0.06);
+      border: 1px solid rgba(247,242,233,0.1);
+    }
+
+    .merch-item h4 { color: var(--amber-light); margin-bottom: var(--s2); }
+    .merch-item p  { font-size: 0.85rem; color: rgba(247,242,233,0.6); max-width: none; }
+
+    /* ─────────────────────────────────────────────
+       DON'TS
+    ───────────────────────────────────────────── */
+    .donts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+
+    .dont-card {
+      padding: var(--s4);
+      border-radius: 2px;
+      background: var(--white);
+      border: 1px solid rgba(47,40,35,0.06);
+      border-left: 3px solid var(--amber);
+    }
+
+    .dont-card h4 {
+      color: var(--amber);
+      margin-bottom: var(--s2);
+      font-size: 0.8rem;
+    }
+
+    .dont-card p {
+      font-size: 0.85rem;
+      color: var(--espresso-mid);
+      max-width: none;
+    }
+
+    /* ─────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────── */
+    .footer {
+      background: var(--espresso);
+      color: var(--cream);
+      padding: var(--s6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s2);
+    }
+
+    .footer-brand {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .footer-text {
+      font-size: 0.8rem;
+      color: rgba(247,242,233,0.4);
+      max-width: none;
+    }
+
+    /* ─────────────────────────────────────────────
+       UTILITIES
+    ───────────────────────────────────────────── */
+    .mt1 { margin-top: var(--s1); }
+    .mt2 { margin-top: var(--s2); }
+    .mt3 { margin-top: var(--s3); }
+    .mt4 { margin-top: var(--s4); }
+    .mt5 { margin-top: var(--s5); }
+    .mt6 { margin-top: var(--s6); }
+    .gap2 { gap: var(--s2); }
+    .flex { display: flex; }
+    .flex-col { display: flex; flex-direction: column; }
+    .items-start { align-items: flex-start; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+    .col-amber { color: var(--amber); }
+    .col-sage  { color: var(--sage); }
+    .col-cream { color: var(--cream); }
+    .bg-white  { background: var(--white); }
+    .text-sm   { font-size: 0.85rem; }
+    .text-xs   { font-size: 0.75rem; }
+    .muted     { opacity: 0.55; }
+    .italic    { font-style: italic; }
+    .serif     { font-family: var(--font-serif); }
+
+    /* ── BACK TO TOP ─────────────────────────── */
+    .back-to-top {
+      position: fixed;
+      bottom: var(--s4);
+      right: var(--s4);
+      width: 44px;
+      height: 44px;
+      background: var(--espresso);
+      color: var(--amber);
+      border: 1px solid rgba(185,133,78,0.3);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 200;
+      transform: translateY(8px);
+      text-decoration: none;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+    .back-to-top:hover { background: var(--amber); color: var(--cream); }
+
+    /* ── PERSONALITY CARDS ───────────────────── */
+    .personality-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s4);
+    }
+    .personality-card {
+      padding: var(--s4);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .personality-card::before {
+      content: attr(data-num);
+      position: absolute;
+      top: -10px;
+      right: var(--s2);
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 5rem;
+      opacity: 0.07;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .personality-card h4 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: var(--s2);
+    }
+    .personality-card p { font-size: 0.85rem; max-width: none; }
+    .personality-card .example {
+      margin-top: var(--s2);
+      font-size: 0.75rem;
+      font-style: italic;
+      opacity: 0.6;
+      border-top: 1px solid currentColor;
+      padding-top: var(--s1);
+      border-color: rgba(47,40,35,0.1);
+    }
+    .pc--amber { background: var(--amber); color: var(--cream); }
+    .pc--amber .example { border-color: rgba(247,242,233,0.2); opacity: 0.7; }
+    .pc--sage  { background: var(--sage);  color: var(--cream); }
+    .pc--sage .example  { border-color: rgba(247,242,233,0.2); opacity: 0.7; }
+    .pc--espresso { background: var(--espresso); color: var(--cream); }
+    .pc--espresso .example { border-color: rgba(247,242,233,0.15); opacity: 0.7; }
+    .pc--cream    { background: var(--cream-deep); color: var(--espresso); }
+    .pc--outline  { background: transparent; color: var(--espresso); border: 1.5px solid var(--espresso); }
+
+    /* ── AT A GLANCE ENRICHED ────────────────── */
+    .quick-card { position: relative; }
+    .quick-card .swatch-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: var(--s2);
+    }
+    .quick-swatch {
+      height: 16px;
+      flex: 1;
+      border-radius: 1px;
+    }
+    .quick-font-sample {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .quick-font-sub {
+      font-family: var(--font-serif);
+      font-size: 0.9rem;
+      color: var(--espresso-mid);
+      margin-bottom: 4px;
+    }
+    .quick-font-body {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--espresso-mid);
+      font-weight: 300;
+    }
+
+    /* ── VOICE SECTION IMPROVED ─────────────── */
+    .voice-example {
+      font-family: var(--font-body) !important;
+      font-style: italic;
+      font-weight: 300;
+      font-size: 1rem;
+      line-height: 1.6;
+      padding: var(--s3);
+      background: rgba(255,255,255,0.6);
+      border-radius: 2px;
+      margin-bottom: var(--s2);
+    }
+    .voice-example .note {
+      font-style: normal;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--espresso-mid);
+      margin-top: var(--s1);
+      opacity: 0.8;
+    }
+    .voice-principles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1px solid rgba(47,40,35,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: var(--s5);
+    }
+    .voice-principle {
+      padding: var(--s4);
+      border-right: 1px solid rgba(47,40,35,0.08);
+    }
+    .voice-principle:last-child { border-right: none; }
+    .voice-principle .vp-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--sage-dark);
+      margin-bottom: var(--s2);
+    }
+    .voice-principle .vp-title {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      line-height: 1.3;
+      color: var(--espresso);
+      margin-bottom: var(--s2);
+    }
+    .voice-principle p { font-size: 0.8rem; color: var(--espresso-mid); max-width: none; }
+
+    /* ── TONE BY CHANNEL IMPROVED ────────────── */
+    .tone-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      margin-top: var(--s4);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .tone-card {
+      padding: var(--s4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s2);
+    }
+    .tone-card .tc-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+    .tone-card h4 { font-size: 0.75rem; letter-spacing: 0.12em; }
+    .tone-card p  { font-size: 0.82rem; max-width: none; line-height: 1.6; }
+    .tone-card .tc-example {
+      margin-top: auto;
+      padding-top: var(--s2);
+      border-top: 1px solid rgba(255,255,255,0.15);
+      font-size: 0.75rem;
+      font-style: italic;
+      opacity: 0.65;
+    }
+    .tc--web      { background: var(--espresso); color: var(--cream); }
+    .tc--ig       { background: var(--amber);    color: var(--cream); }
+    .tc--store    { background: var(--sage);      color: var(--cream); }
+    .tc--print    { background: var(--cream-deep);color: var(--espresso); }
+    .tc--print .tc-example { border-color: rgba(47,40,35,0.15); }
+    .tc--print h4 { color: var(--espresso); }
+
+    /* ── CHANNEL TYPE CARDS IMPROVED ─────────── */
+    .channel-type-card {
+      border-top: 3px solid var(--amber) !important;
+    }
+    .channel-type-card:nth-child(2) { border-top-color: var(--sage) !important; }
+    .channel-type-card:nth-child(3) { border-top-color: var(--espresso) !important; }
+    .channel-type-card:nth-child(4) { border-top-color: var(--amber-light) !important; }
+
+    /* ── FONT PAIRING ALIGNED ─────────────────── */
+    .font-pairing-aligned {
+      margin-top: var(--s5);
+      background: var(--cream-deep);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .fpa-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .fpa-row--names {
+      padding: var(--s2) 0 0;
+      border-bottom: 1px solid rgba(47,40,35,0.06);
+    }
+    .fpa-row--samples {
+      border-bottom: 1px solid rgba(47,40,35,0.06);
+    }
+    .fpa-row--details { }
+    .fpa-cell {
+      padding: var(--s3) var(--s4);
+      border-right: 1px solid rgba(47,40,35,0.06);
+    }
+    .fpa-cell:last-child { border-right: none; }
+    .fpa-name {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+    .fpa-detail {
+      font-size: 0.72rem;
+      color: var(--espresso-mid);
+      line-height: 1.5;
+    }
+
+    /* ── FORBIDDEN COLORS VISUAL ─────────────── */
+    .forbidden-visual {
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+      margin-top: var(--s2);
+      margin-bottom: var(--s2);
+      padding: var(--s2) var(--s3);
+      border-radius: 2px;
+    }
+    .forbidden-visual .fv-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 1px;
+    }
+    .forbidden-visual .fv-arrow {
+      font-size: 0.75rem;
+      opacity: 0.4;
+    }
+
+    /* ── PRINT PLACEHOLDERS ──────────────────── */
+    .print-placeholder {
+      aspect-ratio: 0.7;
+      background: var(--cream-deep);
+      border: 2px dashed rgba(47,40,35,0.15);
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s2);
+      padding: var(--s3);
+    }
+    .print-placeholder .ph-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--espresso-mid);
+      opacity: 0.5;
+      text-align: center;
+    }
+    .print-placeholder .ph-icon {
+      font-size: 2rem;
+      opacity: 0.2;
+    }
+
+    /* ── MERCH IMPROVED ──────────────────────── */
+    .merch-grid-new {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+    .merch-card {
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .merch-card-visual {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--s1);
+      padding: var(--s3);
+    }
+    .merch-card-body {
+      padding: var(--s3) var(--s3) var(--s4);
+      background: rgba(247,242,233,0.06);
+      border: 1px solid rgba(247,242,233,0.08);
+      border-top: none;
+    }
+    .merch-card-body h4 { color: var(--amber-light); margin-bottom: var(--s1); font-size: 0.72rem; }
+    .merch-card-body p  { font-size: 0.8rem; color: rgba(247,242,233,0.55); max-width: none; line-height: 1.5; }
+
+    /* ── NON-NEGOTIABLES ─────────────────────── */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s3);
+      margin-top: var(--s5);
+    }
+    .rule-card {
+      padding: var(--s4);
+      background: var(--white);
+      border-radius: 2px;
+      border-left: 3px solid var(--amber);
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: var(--s3);
+      align-items: start;
+    }
+    .rule-card .rc-icon {
+      font-size: 1rem;
+      color: var(--amber);
+      font-weight: 700;
+      padding-top: 2px;
+    }
+    .rule-card h4 {
+      font-size: 0.78rem;
+      color: var(--espresso);
+      margin-bottom: 6px;
+    }
+    .rule-card p {
+      font-size: 0.82rem;
+      color: var(--espresso-mid);
+      max-width: none;
+      line-height: 1.55;
+    }
+    .rule-card .rc-visual {
+      grid-column: 2;
+      margin-top: var(--s2);
+      padding: var(--s2) var(--s3);
+      background: var(--cream-deep);
+      border-radius: 2px;
+      font-size: 0.78rem;
+      color: var(--espresso-mid);
+      font-style: italic;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ════════════════════════════════════════════
+     NAV
+════════════════════════════════════════════ -->
+<nav class="nav">
+  <a href="#cover" class="nav-brand" style="text-decoration:none;">Capybara<br>Coffee<br>Thailand</a>
+
+  <div class="nav-label" style="color: rgba(247,242,233,0.38); margin-top: var(--s3);">Foundation</div>
+  <a href="#identity">Brand Identity</a>
+  <a href="#logo">Logo System</a>
+  <a href="#colors">Color System</a>
+  <a href="#typography">Typography</a>
+
+  <div class="nav-label" style="color: rgba(247,242,233,0.38);">Expression</div>
+  <a href="#voice">Voice &amp; Tone</a>
+  <a href="#photography">Photography</a>
+
+  <div class="nav-label" style="color: rgba(247,242,233,0.38);">Applications</div>
+  <a href="#web">Website</a>
+  <a href="#social">Social Media</a>
+  <a href="#print">Print &amp; Marketing</a>
+  <a href="#signage">Signage &amp; In-store</a>
+  <a href="#merch">Merchandise</a>
+
+  <div class="nav-label" style="color: rgba(247,242,233,0.38);">Reference</div>
+  <a href="#donts">Non-Negotiables</a>
+</nav>
+
+<!-- ════════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- ── COVER ──────────────────────────────── -->
+  <section id="cover">
+    <p class="cover-eyebrow">Brand Guidelines — Version 2.0</p>
+    <h1 class="cover-title">Capybara<br><span>Coffee</span></h1>
+    <p class="cover-tagline" style="font-family: 'Next Southerland Script', serif; font-size: clamp(2rem, 4.5vw, 3.4rem); font-weight: 400; font-style: normal; color: var(--amber-light); line-height: 1.1; transform: rotate(-1.5deg) translateX(-8px); display: inline-block; margin-bottom: var(--s5);">Where happiness begins</p>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <span class="label">Version</span>
+        <span class="value">2.0 — Draft 1</span>
+      </div>
+      <div class="cover-meta-item">
+        <span class="label">Date</span>
+        <span class="value">May 2026</span>
+      </div>
+      <div class="cover-meta-item">
+        <span class="label">Market</span>
+        <span class="value">Thailand</span>
+      </div>
+      <div class="cover-meta-item">
+        <span class="label">Applies to</span>
+        <span class="value">Web · Social · Print · Merch</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── OVERVIEW ───────────────────────────── -->
+  <div class="section--cream-deep">
+    <div class="section-inner">
+      <p class="section-label">At a glance</p>
+      <h2>Everything in one view</h2>
+      <p class="lead mt3">This document is the single source of truth for how Capybara Coffee looks, sounds, and feels — across every surface.</p>
+
+      <div class="quick-grid">
+        <div class="quick-card">
+          <h4>Logo</h4>
+          <div style="margin: var(--s2) 0; display:flex; align-items:center; gap: var(--s2);">
+            <img src="./logo_v2_no_outline.png" style="width:52px;height:52px;object-fit:contain;border-radius:50%;">
+            <div style="font-size:0.72rem; color:var(--espresso-mid); line-height:1.4;">v2 mark<br><strong>No outline</strong><br>Always circular</div>
+          </div>
+          <p>Use v2 on cream, espresso or white. Never stretch, recolour, or place over a photo.</p>
+        </div>
+        <div class="quick-card">
+          <h4>Colors</h4>
+          <div class="swatch-row" style="display:flex;gap:4px;margin:var(--s2) 0;">
+            <div style="flex:1;height:28px;background:#F7F2E9;border:1px solid rgba(47,40,35,0.1);border-radius:1px;" title="Cream"></div>
+            <div style="flex:1;height:28px;background:#2F2823;border-radius:1px;" title="Espresso"></div>
+            <div style="flex:1;height:28px;background:#B9854E;border-radius:1px;" title="Amber"></div>
+            <div style="flex:1;height:28px;background:#7C9A4D;border-radius:1px;" title="Sage"></div>
+          </div>
+          <div style="display:flex;gap:var(--s1);flex-wrap:wrap;margin-bottom:var(--s2);">
+            <span style="font-size:0.65rem;font-weight:700;color:var(--espresso-mid);">60% Cream</span>
+            <span style="font-size:0.65rem;color:var(--espresso-mid);">·</span>
+            <span style="font-size:0.65rem;font-weight:700;color:var(--espresso-mid);">25% Espresso</span>
+            <span style="font-size:0.65rem;color:var(--espresso-mid);">·</span>
+            <span style="font-size:0.65rem;font-weight:700;color:var(--amber);">12% Amber</span>
+            <span style="font-size:0.65rem;color:var(--espresso-mid);">·</span>
+            <span style="font-size:0.65rem;font-weight:700;color:var(--sage);">3% Sage</span>
+          </div>
+          <p>Four colours, fixed ratios. Nothing outside the palette — ever.</p>
+        </div>
+        <div class="quick-card">
+          <h4>Typography</h4>
+          <div style="margin: var(--s2) 0; display:flex;flex-direction:column;gap:3px;">
+            <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:1rem;text-transform:uppercase;letter-spacing:-0.01em;line-height:1;color:var(--espresso);">CAPYBARA COFFEE</div>
+            <div style="font-family:'Next Southerland Serif',serif;font-size:0.95rem;color:var(--espresso);">Section titles</div>
+            <div style="font-family:'Next Southerland Script',serif;font-size:1rem;color:var(--amber);">Script accent</div>
+            <div style="font-family:'Satoshi',sans-serif;font-size:0.8rem;color:var(--espresso-mid);font-weight:300;">Body & UI text</div>
+          </div>
+          <p>Four fonts, four roles. No substitution.</p>
+        </div>
+        <div class="quick-card">
+          <h4>Tone</h4>
+          <div style="margin:var(--s2) 0;padding:var(--s2) var(--s3);background:var(--espresso);border-radius:2px;">
+            <p style="font-family:'Satoshi',sans-serif;font-size:0.8rem;font-style:italic;font-weight:300;color:var(--cream);max-width:none;line-height:1.6;">"Spend 30 minutes with our capybaras. Feed them, sit beside them, let the day slow down."</p>
+          </div>
+          <p>Specific. Warm. Genuine. Like a knowledgeable friend — not a sign, not a marketer.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BRAND IDENTITY ─────────────────────── -->
+  <section id="identity" class="section">
+    <p class="section-label">01 — Brand Identity</p>
+    <h2>Who we are</h2>
+    <div class="divider"></div>
+
+    <p class="lead">Capybara Coffee was born from a simple question: what if the most memorable part of your visit wasn't the drink? Across Thailand's most beloved destinations, we build spaces where capybaras, meerkats, and their friends are the stars.</p>
+    <p class="mt3">Our guests don't just visit a café — they slow down, connect with animals, and leave with a story. We are an experience brand first, a coffee brand second.</p>
+
+    <div class="mt6">
+      <h3>Mission</h3>
+      <div class="divider mt2"></div>
+      <p class="mt3 lead serif">To create unforgettable moments of joy through the gentle connection between humans and animals.</p>
+    </div>
+
+    <div class="mt6">
+      <h3>Brand Personality</h3>
+      <div class="divider mt2"></div>
+      <p class="mt3">Five values that define every decision — from a button label to a social post to the colour of a cup sleeve.</p>
+      <div class="personality-grid">
+        <div class="personality-card pc--amber" data-num="01">
+          <h4>Warm</h4>
+          <p>Every interaction — visual or verbal — should feel like a welcome, not a transaction.</p>
+          <div class="example">→ Cream backgrounds, amber accents, friendly copy</div>
+        </div>
+        <div class="personality-card pc--sage" data-num="02">
+          <h4>Memorable</h4>
+          <p>We exist to create stories people tell. Design reinforces this — it doesn't compete with it.</p>
+          <div class="example">→ Strong visuals, no visual clutter, bold moments</div>
+        </div>
+        <div class="personality-card pc--espresso" data-num="03">
+          <h4>Genuine</h4>
+          <p>No hype, no hollow superlatives. We say what's true and let the experience speak.</p>
+          <div class="example">→ "30 minutes" not "an unforgettable time"</div>
+        </div>
+        <div class="personality-card pc--cream" data-num="04">
+          <h4>Curious</h4>
+          <p>We share what we know about our animals. We invite guests to learn, not just look.</p>
+          <div class="example">→ Pedagogical signage, educational captions</div>
+        </div>
+        <div class="personality-card pc--outline" data-num="05">
+          <h4>Caring</h4>
+          <p>Animal welfare is non-negotiable. This shows in how we write, design, and photograph.</p>
+          <div class="example">→ Never show animal distress, always show space & calm</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="values-grid mt6">
+      <div class="value-item">
+        <div class="num">01</div>
+        <h3>Exigence</h3>
+        <p>Quality in everything we do — from the cleanliness of the space to the weight of a font choice.</p>
+      </div>
+      <div class="value-item">
+        <div class="num">02</div>
+        <h3>Memorable</h3>
+        <p>Every visit should produce a story worth telling. Design should reinforce this, not compete with it.</p>
+      </div>
+      <div class="value-item">
+        <div class="num">03</div>
+        <h3>Benevolence</h3>
+        <p>We care for our animals and our guests with equal attention. This is never marketing — it's principle.</p>
+      </div>
+      <div class="value-item">
+        <div class="num">04</div>
+        <h3>Pedagogy</h3>
+        <p>We educate, we don't just entertain. Our guests leave knowing a little more than when they arrived.</p>
+      </div>
+      <div class="value-item">
+        <div class="num">05</div>
+        <h3>Warmth</h3>
+        <p>Thailand's legendary hospitality, expressed in every visual, every word, every interaction.</p>
+      </div>
+      <div class="value-item">
+        <div class="num">06</div>
+        <h3>Simplicity</h3>
+        <p>We don't overcomplicate. One clear message per surface. Ease of understanding is a design goal.</p>
+      </div>
+    </div>
+  </section>
+
+  <div style="background: var(--cream-deep);">
+  <!-- ── LOGO SYSTEM ────────────────────────── -->
+  <section id="logo" class="section" style="background: transparent;">
+    <p class="section-label">02 — Logo System</p>
+    <h2>The mark</h2>
+    <div class="divider"></div>
+
+    <p class="mt3">Our logo is a circular badge mark featuring a capybara sitting in a coffee cup. It is warm, recognisable, and deliberately charming. The v2 mark (no outer outline) is the current standard.</p>
+
+    <div class="logo-grid">
+      <div class="logo-card logo-card--light">
+        <img src="./logo_v2_no_outline.png" alt="Logo on light background">
+        <p class="caption">Primary — Light background</p>
+      </div>
+      <div class="logo-card logo-card--dark">
+        <img src="./logo_v2_no_outline.png" alt="Logo on dark background" style="filter: brightness(0.9);">
+        <p class="caption">On dark / Espresso</p>
+      </div>
+      <div class="logo-card logo-card--amber">
+        <div style="width:140px;height:140px;border:2px dashed rgba(247,242,233,0.35);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;padding:var(--s3);">
+          <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(247,242,233,0.55);text-align:center;line-height:1.5;">Mono reversed<br>version<br>coming soon</span>
+        </div>
+        <p class="caption">On Amber — mono version needed</p>
+      </div>
+    </div>
+
+    <div class="mt6">
+      <h3>Clear space</h3>
+      <p class="mt3">Always maintain a minimum clear space equal to <strong>¼ of the logo's diameter</strong> on all sides. No text, graphic element, or edge of a surface should enter this zone.</p>
+    </div>
+
+    <div class="mt5">
+      <h3>Minimum sizes</h3>
+      <div class="grid-2 mt3">
+        <div style="padding: var(--s4); background: var(--cream-deep); border-radius: 2px;">
+          <h4 class="mb2" style="margin-bottom: var(--s2);">Digital</h4>
+          <ul class="rule-list">
+            <li>Minimum 32px diameter for UI use (favicon, app icon)</li>
+            <li>Minimum 80px for body / inline use</li>
+            <li>No upper size limit</li>
+          </ul>
+        </div>
+        <div style="padding: var(--s4); background: var(--cream-deep); border-radius: 2px;">
+          <h4 style="margin-bottom: var(--s2);">Print &amp; physical</h4>
+          <ul class="rule-list">
+            <li>Minimum 15mm diameter for print</li>
+            <li>Minimum 20mm for embroidery / emboss</li>
+            <li>Use vector source file for print above 50mm</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="logo-rules">
+      <div class="rule-block rule-block--do">
+        <h4>✓ Do</h4>
+        <ul class="rule-list">
+          <li>Use on Cream, Espresso, or plain white backgrounds</li>
+          <li>Use the v2 mark (no outline) as the default everywhere</li>
+          <li>Maintain the original proportions at all times</li>
+          <li>Use on solid colour backgrounds only</li>
+          <li>Ensure sufficient contrast at all sizes</li>
+        </ul>
+      </div>
+      <div class="rule-block rule-block--dont">
+        <h4>✗ Never</h4>
+        <ul class="rule-list">
+          <li>Stretch, squash, or rotate the mark</li>
+          <li>Place the logo on a busy photograph without a solid backing</li>
+          <li>Change any colours in the illustration</li>
+          <li>Add drop shadows, gradients, or effects</li>
+          <li>Use the v1 outline logo (retired — do not use)</li>
+          <li>Recreate the logo in any other typeface</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ── COLOR SYSTEM ───────────────────────── -->
+  <section id="colors" class="section">
+    <p class="section-label">03 — Color System</p>
+    <h2>The palette</h2>
+    <div class="divider"></div>
+    <p class="mt3">Four colors. Every color has a precise role. Nothing outside this palette should appear in official brand materials.</p>
+
+    <div class="color-grid">
+      <div class="color-swatch">
+        <div class="swatch-block" style="background: #F7F2E9;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Cream</p>
+          <p class="swatch-hex">#F7F2E9</p>
+          <p class="swatch-role">Primary background · Page base · Large fields</p>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-block" style="background: #2F2823;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Espresso</p>
+          <p class="swatch-hex">#2F2823</p>
+          <p class="swatch-role">Primary text · Dark sections · Footer · Nav</p>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-block" style="background: #B9854E;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Amber</p>
+          <p class="swatch-hex">#B9854E</p>
+          <p class="swatch-role">Headings · Brand warmth · Section labels · CTA borders</p>
+        </div>
+      </div>
+      <div class="color-swatch">
+        <div class="swatch-block" style="background: #7C9A4D;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Sage</p>
+          <p class="swatch-hex">#7C9A4D</p>
+          <p class="swatch-role">Accent only · CTAs · Badges · Highlights · Nature reference</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-usage">
+      <div class="usage-block">
+        <h4>Color roles by volume</h4>
+        <p class="text-sm muted mt2" style="max-width: none; margin-bottom: var(--s3);">Approximate coverage across a typical page or document.</p>
+        <div style="display: flex; flex-direction: column; gap: var(--s3);">
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-xs" style="font-weight: 700;">Cream — backgrounds</span>
+              <span class="text-xs muted">~60%</span>
+            </div>
+            <div style="height: 8px; background: #F7F2E9; border: 1px solid rgba(47,40,35,0.12); border-radius: 2px;"></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-xs" style="font-weight: 700;">Espresso — text &amp; dark areas</span>
+              <span class="text-xs muted">~25%</span>
+            </div>
+            <div style="height: 8px; background: #2F2823; border-radius: 2px; width: 40%;"></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-xs" style="font-weight: 700;">Amber — warmth &amp; structure</span>
+              <span class="text-xs muted">~12%</span>
+            </div>
+            <div style="height: 8px; background: #B9854E; border-radius: 2px; width: 20%;"></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-xs" style="font-weight: 700;">Sage — accents only</span>
+              <span class="text-xs muted">~3%</span>
+            </div>
+            <div style="height: 8px; background: #7C9A4D; border-radius: 2px; width: 6%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="usage-block">
+        <h4>Color pairing rules</h4>
+        <table class="usage-table mt3">
+          <tr>
+            <td><span class="color-dot" style="background:#F7F2E9; border:1px solid #ddd;"></span>Cream on</td>
+            <td>Espresso only. Never on Amber or Sage backgrounds.</td>
+          </tr>
+          <tr>
+            <td><span class="color-dot" style="background:#2F2823;"></span>Espresso on</td>
+            <td>Cream or White. Readable at all sizes.</td>
+          </tr>
+          <tr>
+            <td><span class="color-dot" style="background:#B9854E;"></span>Amber on</td>
+            <td>Cream or Espresso. For labels, borders, dividers.</td>
+          </tr>
+          <tr>
+            <td><span class="color-dot" style="background:#7C9A4D;"></span>Sage on</td>
+            <td>Cream or Espresso. CTA fills, badges. <strong>Sparingly.</strong></td>
+          </tr>
+          <tr>
+            <td><span class="color-dot" style="background:#FFFFFF;border:1px solid rgba(47,40,35,0.2);"></span>White on</td>
+            <td>Espresso sections only (body copy, captions).</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt6">
+      <h3>Forbidden color combinations</h3>
+      <div class="grid-2 mt3">
+        <div class="dont-card">
+          <h4>✗ Sage on Amber (or reverse)</h4>
+          <div class="forbidden-visual" style="background:#B9854E;">
+            <span class="fv-badge" style="background:#7C9A4D;color:#fff;">Sage text</span>
+            <span class="fv-arrow">→ illegible</span>
+            <span class="fv-badge" style="background:#B9854E;color:#7C9A4D;border:1px solid #7C9A4D;">Amber text</span>
+          </div>
+          <p>Neither colour reads clearly on the other. Contrast ratio fails accessibility minimums.</p>
+        </div>
+        <div class="dont-card">
+          <h4>✗ Amber as body text</h4>
+          <div class="forbidden-visual" style="background:#F7F2E9;">
+            <span style="font-size:0.8rem;color:#B9854E;line-height:1.5;">This paragraph is written in Amber. At reading size it becomes strained and loses all contrast against cream — notice how your eye struggles to track the line.</span>
+          </div>
+          <p>Amber is for short labels and headings only. Never body copy.</p>
+        </div>
+        <div class="dont-card">
+          <h4>✗ Sage as a page background</h4>
+          <div class="forbidden-visual" style="background:#7C9A4D;flex-direction:column;align-items:flex-start;">
+            <span style="font-size:0.75rem;font-weight:700;color:#fff;opacity:0.9;">Section heading</span>
+            <span style="font-size:0.72rem;color:rgba(255,255,255,0.7);">Body text on sage background. It feels like a nature website, not a warm coffee experience. The hierarchy breaks — sage disappears as a CTA accent.</span>
+          </div>
+          <p>Sage backgrounds overpower the accent role. Stick to Cream or Espresso for large fields.</p>
+        </div>
+        <div class="dont-card">
+          <h4>✗ Colours outside the system</h4>
+          <div class="forbidden-visual" style="background:#F7F2E9;gap:var(--s1);flex-wrap:wrap;">
+            <span class="fv-badge" style="background:#E67E22;color:#fff;font-size:0.65rem;">Custom orange</span>
+            <span class="fv-badge" style="background:#3498DB;color:#fff;font-size:0.65rem;">Template blue</span>
+            <span class="fv-badge" style="background:#9B59B6;color:#fff;font-size:0.65rem;">Canva purple</span>
+            <span style="font-size:0.7rem;color:var(--amber);font-weight:700;">← None of these.</span>
+          </div>
+          <p>No tints, gradients, or "close enough" swaps. Four colours, always.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div style="background: var(--cream-deep);">
+  <!-- ── TYPOGRAPHY ─────────────────────────── -->
+  <section id="typography" class="section" style="background:transparent;">
+    <p class="section-label">04 — Typography</p>
+    <h2>The type system</h2>
+    <div class="divider"></div>
+
+    <p class="mt3">Three typefaces, three distinct roles. They work together — Cabinet Grotesk commands attention, Next Southerland Serif adds refinement and warmth, Satoshi carries information cleanly. Do not substitute them.</p>
+
+    <div class="rule-block rule-block--do mt4" style="max-width: 680px;">
+      <h4>About the Script companion</h4>
+      <p style="font-size: 0.9rem; color: var(--espresso-mid); margin-top: var(--s2); max-width: none;">The Next Southerland package includes a Script variant that pairs beautifully with the Serif — it adds a handcrafted warmth when used as a one-line accent beneath Cabinet Grotesk on merch and banners. It is <strong>not for digital use, body text, or standalone headings</strong>. See the Merchandise section for the approved pairing example.</p>
+    </div>
+
+    <div class="font-pairing-aligned">
+      <div class="fpa-row fpa-row--names">
+        <div class="fpa-cell"><span class="fpa-name">Cabinet Grotesk</span></div>
+        <div class="fpa-cell"><span class="fpa-name">Next Southerland Serif</span></div>
+        <div class="fpa-cell"><span class="fpa-name">Next Southerland Script</span></div>
+        <div class="fpa-cell"><span class="fpa-name">Satoshi</span></div>
+      </div>
+      <div class="fpa-row fpa-row--samples">
+        <div class="fpa-cell" style="padding-top:var(--s4);padding-bottom:var(--s4);">
+          <span style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-0.02em;text-transform:uppercase;line-height:0.95;display:block;">CAPYBARA<br>COFFEE</span>
+        </div>
+        <div class="fpa-cell" style="padding-top:var(--s4);padding-bottom:var(--s4);">
+          <span style="font-family:'Next Southerland Serif',serif;font-size:clamp(1.6rem,3vw,2.2rem);line-height:1.15;display:block;">Where happiness<br>begins</span>
+        </div>
+        <div class="fpa-cell" style="padding-top:var(--s4);padding-bottom:var(--s4);">
+          <span style="font-family:'Next Southerland Script',serif;font-size:clamp(1.6rem,3vw,2.4rem);color:var(--amber);line-height:1.2;display:block;">Where happiness begins</span>
+        </div>
+        <div class="fpa-cell" style="padding-top:var(--s4);padding-bottom:var(--s4);display:flex;flex-direction:column;gap:var(--s2);">
+          <span style="font-family:'Satoshi',sans-serif;font-weight:300;font-size:1rem;line-height:1.6;display:block;">An enchanting experience where nature and relaxation come together.</span>
+          <span style="font-family:'Satoshi',sans-serif;font-weight:300;font-style:italic;font-size:0.9rem;line-height:1.6;color:var(--espresso-mid);display:block;">Italic variant for emphasis within body.</span>
+        </div>
+      </div>
+      <div class="fpa-row fpa-row--details">
+        <div class="fpa-cell"><p class="fpa-detail">Weight 800 · All-caps · Tight tracking<br>Logo · Hero headlines · Brand statements</p></div>
+        <div class="fpa-cell"><p class="fpa-detail">Single weight · Mixed case · Short titles only<br>Never for long phrases or body text</p></div>
+        <div class="fpa-cell"><p class="fpa-detail">Single weight · One line max<br>Merch · Banners · Cover tagline only<br>Always paired below Cabinet Grotesk</p></div>
+        <div class="fpa-cell"><p class="fpa-detail">300 (lead &amp; pull quote) · 400 (body)<br>400i (emphasis) · 700 (labels, UI, buttons)</p></div>
+      </div>
+    </div>
+
+    <div class="type-specimen">
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">Display / Hero</span>
+          <span class="spec">Cabinet Grotesk 800</span>
+          <span class="spec">Uppercase · −2% tracking</span>
+          <span class="usage-tag">Website hero · Signage · OOH</span>
+        </div>
+        <div class="type-sample-display">Capybara Coffee</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">Section Title H2</span>
+          <span class="spec">Next Southerland Serif</span>
+          <span class="spec">28–48px · Mixed case · Short titles only</span>
+          <span class="usage-tag">Section openers · Page headers · Short statements</span>
+        </div>
+        <div class="type-sample-serif-xl">Where happiness begins</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">Subheading / Pull quote</span>
+          <span class="spec">Satoshi 300 (Light)</span>
+          <span class="spec">18–26px · 165% line height</span>
+          <span class="usage-tag">Pull quotes · Taglines · Lead text · Intros</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--s2);">
+          <div style="font-family:'Satoshi',sans-serif;font-weight:300;font-size:clamp(1.15rem,2.5vw,1.5rem);line-height:1.65;color:var(--espresso-mid);">"Come meet the friendliest animals in Thailand — feed them, sit beside them, and let the day slow down."</div>
+          <div style="font-family:'Satoshi',sans-serif;font-weight:300;font-style:italic;font-size:clamp(1rem,2vw,1.25rem);line-height:1.65;color:var(--espresso-mid);border-left:2px solid var(--amber);padding-left:var(--s3);">"Their wellbeing comes first — always. That's not a promise. It's how we run every single day."</div>
+          <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--amber);">↑ Italic variant — for quotes, testimonials, editorial emphasis</span>
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">Body copy</span>
+          <span class="spec">Satoshi 400</span>
+          <span class="spec">15–16px · 175% line height</span>
+          <span class="usage-tag">All body text · Descriptions · Articles</span>
+        </div>
+        <div class="type-sample-body">At Capybara Coffee, our animals are the heart of everything. We ensure every creature in our care is treated with love, space, and respect — so your visit is as good for them as it is for you.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">UI Label / Button</span>
+          <span class="spec">Satoshi 700</span>
+          <span class="spec">11–13px · +12% tracking · Uppercase</span>
+          <span class="usage-tag">Buttons · Nav · Badges · Tags</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--s2);">
+          <div class="type-sample-ui">Book Your Visit →</div>
+          <div class="type-sample-ui col-sage">Our Animals</div>
+          <div class="type-sample-ui" style="color: var(--espresso-mid);">Contact Us</div>
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">Caption / Meta</span>
+          <span class="spec">Satoshi 400</span>
+          <span class="spec">12–13px · 150% line height</span>
+          <span class="usage-tag">Photo captions · Footnotes · Addresses</span>
+        </div>
+        <div class="type-sample-caption">Located in Ko Samui, Ko Phangan, Bangkok Ekkamai, Bangkok Silom, Chiang Mai &amp; Pattaya.<br>Entry from 200 THB · One drink required per visit.</div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-meta">
+          <span class="name">Script Accent</span>
+          <span class="spec">Next Southerland Script</span>
+          <span class="spec">Single weight · Never below 18px</span>
+          <span class="usage-tag">Merch · Banners · Packaging · Cover tagline</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--s2);">
+          <div style="font-family: 'Next Southerland Script', serif; font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--amber); line-height: 1.2;">Where happiness begins</div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; text-transform: uppercase; color: var(--espresso); line-height: 1;">CAPYBARA COFFEE</div>
+            <div style="font-family: 'Next Southerland Script', serif; font-size: 1.4rem; color: var(--amber); line-height: 1.1;">Where happiness begins</div>
+            <p style="font-size: 0.7rem; color: var(--espresso-mid); margin-top: 4px; max-width: none; font-style: italic;">↑ Typical pairing: Cabinet Grotesk above, Script below — one line max.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt6">
+      <h3>Typography by channel</h3>
+      <div class="channel-type-grid">
+        <div class="channel-type-card">
+          <h4>Website</h4>
+          <ul class="type-spec-list">
+            <li><span>Hero headline</span> Cabinet Grotesk 800, 64–96px, uppercase</li>
+            <li><span>Section title</span> Next Southerland Serif 500, 32–48px</li>
+            <li><span>Body copy</span> Satoshi 400, 15–16px, line-height 1.75</li>
+            <li><span>Nav / buttons</span> Satoshi 700, 12px, uppercase, +0.12em tracking</li>
+            <li><span>Captions</span> Satoshi 400, 12px, 60% opacity</li>
+          </ul>
+        </div>
+        <div class="channel-type-card">
+          <h4>Instagram</h4>
+          <ul class="type-spec-list">
+            <li><span>Post headline</span> Cabinet Grotesk 800 or Next Southerland Serif 600</li>
+            <li><span>Caption body</span> Plain text, Satoshi voice — no decorative fonts</li>
+            <li><span>Story text</span> Satoshi 700 over a solid colour band (never over raw photo)</li>
+            <li><span>Hashtags</span> Satoshi 400, smallest size, end of caption only</li>
+          </ul>
+        </div>
+        <div class="channel-type-card">
+          <h4>Print (Flyer / Brochure)</h4>
+          <ul class="type-spec-list">
+            <li><span>Headline</span> Cabinet Grotesk 800, minimum 24pt</li>
+            <li><span>Subheading</span> Next Southerland Serif 500, 16–22pt</li>
+            <li><span>Body</span> Satoshi 400, 9–10pt, line-height 1.6</li>
+            <li><span>Price / CTA</span> Satoshi 700 + Amber colour</li>
+            <li><span>Address / legal</span> Satoshi 400, 7–8pt, muted</li>
+          </ul>
+        </div>
+        <div class="channel-type-card">
+          <h4>Merchandise</h4>
+          <ul class="type-spec-list">
+            <li><span>Primary mark</span> Logo only — no standalone wordmark on merch</li>
+            <li><span>Secondary text</span> Cabinet Grotesk 800, uppercase, brief slogans only</li>
+            <li><span>Script accent</span> Next Southerland Script — one line beneath Cabinet Grotesk, for warmth on print merch</li>
+            <li><span>Fine print</span> Satoshi 400, smallest legible size</li>
+            <li><span>No serif on merch</span> Next Southerland Serif does not embroider well — avoid on fabric</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ── VOICE & TONE ───────────────────────── -->
+  <section id="voice" class="section">
+    <p class="section-label">05 — Voice &amp; Tone</p>
+    <h2>How we speak</h2>
+    <div class="divider"></div>
+
+    <p class="mt3">Our voice is consistent — it belongs to the brand. Our tone shifts slightly by context (warmer on social, more informative on signage) but the character never changes: genuine, warm, and specific.</p>
+
+    <div class="voice-principles mt5">
+      <div class="voice-principle">
+        <div class="vp-label">01</div>
+        <div class="vp-title">Specific,<br>not vague</div>
+        <p>Say "30 minutes with our capybaras" — not "an unforgettable experience." Concrete details build trust.</p>
+      </div>
+      <div class="voice-principle">
+        <div class="vp-label">02</div>
+        <div class="vp-title">Warm,<br>not gushing</div>
+        <p>One honest sentence beats three excited ones. We trust the experience to speak for itself.</p>
+      </div>
+      <div class="voice-principle">
+        <div class="vp-label">03</div>
+        <div class="vp-title">Knowledgeable,<br>not academic</div>
+        <p>We share what we know about our animals in plain, interesting sentences — not Wikipedia prose.</p>
+      </div>
+      <div class="voice-principle">
+        <div class="vp-label">04</div>
+        <div class="vp-title">Inviting,<br>not pushy</div>
+        <p>No countdown timers, no "limited spots." We invite — we don't pressure. The experience earns the visit.</p>
+      </div>
+    </div>
+
+    <div class="voice-grid mt6">
+      <div class="voice-card voice-card--do">
+        <h4>✓ Write this</h4>
+        <div class="voice-example">
+          Come and spend 30 minutes with our capybaras. Feed them, sit beside them, and let the day slow down.
+          <div class="note">Specific time, real action, emotional benefit — no hype.</div>
+        </div>
+        <div class="voice-example">
+          Our animals are cared for daily by trained staff. Their wellbeing comes first — always.
+          <div class="note">Direct, confidence-building, no hollow promises.</div>
+        </div>
+        <div class="voice-example">
+          400 THB · Adults · 30 minutes · One drink required.
+          <div class="note">Pricing: clear and honest. No asterisks, no surprises.</div>
+        </div>
+      </div>
+      <div class="voice-card voice-card--dont">
+        <h4>✗ Not this</h4>
+        <div class="voice-example">
+          Experience the MOST AMAZING adventure of your life!!!! 🐾🐾🐾
+          <div class="note">Hyperbole and excess punctuation undermine credibility.</div>
+        </div>
+        <div class="voice-example">
+          We are passionate about providing world-class animal interactions in a unique environment.
+          <div class="note">Generic brand-speak. Says nothing. Replace with facts.</div>
+        </div>
+        <div class="voice-example">
+          LIMITED SPOTS — BOOK NOW BEFORE IT'S TOO LATE
+          <div class="note">Pressure tactics are off-brand. We invite, we don't chase.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt6">
+      <h3>Tone by channel</h3>
+      <div class="tone-grid">
+        <div class="tone-card tc--web">
+          <div class="tc-icon">🌐</div>
+          <h4>Website</h4>
+          <p>Warm and informative. Lead with the experience, follow with logistics. Visitors need to know what to expect, how to get there, and what it costs — make it effortless.</p>
+          <div class="tc-example">"Located in Samui, Phangan, Bangkok &amp; Chiang Mai — each with its own capybaras."</div>
+        </div>
+        <div class="tone-card tc--ig">
+          <div class="tc-icon">📷</div>
+          <h4>Instagram</h4>
+          <p>Playful, intimate, real. Share moments, not promotions. Let the photo carry the emotion — the caption adds context or a quiet smile.</p>
+          <div class="tc-example">"She came for the coffee. She stayed for him." ↗</div>
+        </div>
+        <div class="tone-card tc--store">
+          <div class="tc-icon">🪧</div>
+          <h4>In-store</h4>
+          <p>Clear and brief. Guests are already here — guide them, inform them, occasionally delight them. One idea per sign. Never sell to someone who already bought.</p>
+          <div class="tc-example">"Feeding time: hold the snack flat, palm open."</div>
+        </div>
+        <div class="tone-card tc--print">
+          <div class="tc-icon">🖨</div>
+          <h4>Print &amp; Marketing</h4>
+          <p>Lead with the most compelling fact. Follow with location, price, CTA. Short sentences. No filler adjectives.</p>
+          <div class="tc-example">"Feed a capybara. Sip a coffee. Repeat." →</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div style="background: var(--cream-deep);">
+  <!-- ── PHOTOGRAPHY ─────────────────────────── -->
+  <section id="photography" class="section" style="background:transparent;">
+    <p class="section-label">06 — Photography &amp; Imagery</p>
+    <h2>What our world looks like</h2>
+    <div class="divider"></div>
+
+    <p class="mt3">Photography is our strongest brand asset — it shows what no tagline can. Every image should feel warm, natural, and real. Never staged. Never stock.</p>
+
+    <div class="photo-grid">
+      <div class="photo-principle" style="background: var(--amber); color: var(--cream); min-height: 200px;">
+        <div class="photo-principle-bg">☀</div>
+        <div class="photo-principle-content">
+          <h4>Warm light</h4>
+          <p>Golden hour, natural daylight. Avoid harsh overhead flash. The space is warm — photos should feel it.</p>
+        </div>
+      </div>
+      <div class="photo-principle" style="background: var(--sage); color: var(--cream); min-height: 200px;">
+        <div class="photo-principle-bg">🌿</div>
+        <div class="photo-principle-content">
+          <h4>Nature-forward</h4>
+          <p>Show plants, textures, outdoor spaces. Reinforce the nature theme — not just the animals.</p>
+        </div>
+      </div>
+      <div class="photo-principle" style="background: var(--espresso); color: var(--cream); min-height: 200px;">
+        <div class="photo-principle-bg">♡</div>
+        <div class="photo-principle-content">
+          <h4>Genuine moments</h4>
+          <p>Guests and animals in real interaction. Candid over posed. Reaction shots over product shots.</p>
+        </div>
+      </div>
+      <div class="photo-principle" style="background: var(--cream-deep); min-height: 200px;">
+        <div class="photo-principle-bg" style="color: var(--espresso);">✕</div>
+        <div class="photo-principle-content">
+          <h4 style="color: var(--amber);">Never: Stock photos</h4>
+          <p class="text-sm" style="color: var(--espresso-mid);">No generic café or animal photos. Every image must be taken at one of our locations.</p>
+        </div>
+      </div>
+      <div class="photo-principle" style="background: var(--cream-deep); min-height: 200px;">
+        <div class="photo-principle-bg" style="color: var(--espresso);">✕</div>
+        <div class="photo-principle-content">
+          <h4 style="color: var(--amber);">Never: Heavy filters</h4>
+          <p class="text-sm" style="color: var(--espresso-mid);">No heavy Instagram filters, desaturation, or dramatic edits. Light colour grading only — preserve warmth.</p>
+        </div>
+      </div>
+      <div class="photo-principle" style="background: var(--cream-deep); min-height: 200px;">
+        <div class="photo-principle-bg" style="color: var(--espresso);">✕</div>
+        <div class="photo-principle-content">
+          <h4 style="color: var(--amber);">Never: Animal distress</h4>
+          <p class="text-sm" style="color: var(--espresso-mid);">Never publish images that could suggest forced interaction, stress, or poor animal welfare. This is non-negotiable.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt6">
+      <h3>Image composition rules</h3>
+      <div class="grid-2 mt4">
+        <div class="rule-block rule-block--do">
+          <h4>✓ Prioritise</h4>
+          <ul class="rule-list">
+            <li>Close-up texture shots of animals (fur, expressions)</li>
+            <li>Hands feeding or gently touching animals</li>
+            <li>Children and families in natural moments</li>
+            <li>The coffee and drinks as secondary elements (in hand, on table beside animal)</li>
+            <li>Lush greenery and outdoor ambiance shots</li>
+            <li>Staff with animals — shows care and relationship</li>
+          </ul>
+        </div>
+        <div class="rule-block rule-block--dont">
+          <h4>✗ Avoid</h4>
+          <ul class="rule-list">
+            <li>Animals isolated from human presence (feels zoo-like)</li>
+            <li>Cluttered backgrounds or messy visible infrastructure</li>
+            <li>Heavy text overlaid directly on photos</li>
+            <li>Promotional graphics (discount %, QR codes) over photos</li>
+            <li>Dark, underexposed, or blurry images on official channels</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ── WEBSITE APPLICATION ────────────────── -->
+  <div class="section--dark" id="web">
+    <div class="section-inner">
+      <p class="section-label">07 — Application</p>
+      <div class="app-header">
+        <div>
+          <h2 class="col-cream">Website</h2>
+          <div class="divider divider--cream mt2"></div>
+          <p class="mt3" style="color: rgba(247,242,233,0.65);">capybaracoffeethailand.com — the primary public-facing touchpoint. Most tourists encounter the brand here first.</p>
+        </div>
+      </div>
+
+      <div class="app-spec-grid" style="margin-top:var(--s5);">
+        <div class="spec-block" style="border-top-color:var(--amber);">
+          <h4>Layout principles</h4>
+          <ul class="spec-list">
+            <li>Generous whitespace — let images breathe</li>
+            <li>Cream background as the dominant surface</li>
+            <li>Espresso sections used sparingly (footer, hero alternate)</li>
+            <li>Max content width: 1100px · centered</li>
+            <li>Mobile-first: all decisions start at 375px</li>
+            <li>No carousels auto-advancing — user controls content</li>
+          </ul>
+        </div>
+        <div class="spec-block">
+          <h4>Navigation</h4>
+          <ul class="spec-list">
+            <li>Background: Cream (scrolled) / Transparent (hero top)</li>
+            <li>Logo: Left-aligned · 40px height</li>
+            <li>Nav links: Satoshi 700 · 12px · uppercase · Espresso</li>
+            <li>CTA button: Sage fill · Cream text · Satoshi 700</li>
+            <li>No hamburger menu on desktop — keep links visible</li>
+            <li>Sticky on scroll — always accessible</li>
+          </ul>
+        </div>
+        <div class="spec-block">
+          <h4>Typography in context</h4>
+          <ul class="spec-list">
+            <li>Hero: Cabinet Grotesk 800 · 72–96px · Cream on Espresso</li>
+            <li>Section H2: Next Southerland Serif · 36–48px · Espresso</li>
+            <li>Section H3: Next Southerland Serif Italic · 22–28px · Amber</li>
+            <li>Body: Satoshi 400 · 15–16px · Espresso on Cream</li>
+            <li>Section labels: Satoshi 700 · 10px · uppercase · Amber · +20% tracking</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt5">
+        <h4 style="color: var(--amber-light); margin-bottom: var(--s3);">Page structure guide</h4>
+        <div class="mockup-frame" style="background: #3a2f2a;">
+          <div class="mockup-bar">
+            <div class="mockup-dot" style="background: var(--cream);"></div>
+            <div class="mockup-dot" style="background: var(--cream);"></div>
+            <div class="mockup-dot" style="background: var(--cream);"></div>
+          </div>
+          <div class="mockup-content" style="background: var(--cream); padding: var(--s4); min-height: 300px;">
+            <div style="border-bottom: 1px solid rgba(47,40,35,0.1); padding-bottom: var(--s2); margin-bottom: var(--s4); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber);">CAPYBARA COFFEE</span>
+              <span style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--espresso); opacity: 0.5;">OUR SHOPS · ABOUT · ANIMALS · PRICES</span>
+              <span style="background: var(--sage); color: white; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 12px; border-radius: 2px;">Book now</span>
+            </div>
+            <div style="background: var(--espresso); padding: var(--s4); border-radius: 2px; margin-bottom: var(--s3);">
+              <div style="font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800; font-size: 2.5rem; text-transform: uppercase; color: var(--cream); line-height: 0.95; letter-spacing: -0.02em;">CAPYBARA<br>COFFEE</div>
+              <div style="font-family: 'Next Southerland Script', serif; color: var(--amber-light); font-size: 1.3rem; margin-top: var(--s2); line-height: 1.2;">Where happiness begins</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2);">
+              <div style="padding: var(--s3); background: var(--cream-deep); border-radius: 2px;">
+                <div style="font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px;">About us</div>
+                <div style="font-family: 'Next Southerland Serif', serif; font-size: 1.1rem;">Where happiness begins</div>
+              </div>
+              <div style="padding: var(--s3); background: var(--cream-deep); border-radius: 2px;">
+                <div style="font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--sage); margin-bottom: 6px;">Our Animals</div>
+                <div style="font-family: 'Next Southerland Serif', serif; font-size: 1.1rem;">Meet the capybaras</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SOCIAL MEDIA ───────────────────────── -->
+  <section id="social" class="section">
+    <p class="section-label">08 — Application</p>
+    <h2>Social media</h2>
+    <div class="divider"></div>
+
+    <p class="mt3">Instagram is our highest-traffic visual channel. Every post contributes to a visual impression — grid consistency matters as much as individual posts.</p>
+
+    <div class="grid-2 mt5">
+      <div>
+        <h3>Grid visual rhythm</h3>
+        <p class="mt3 text-sm">The grid should alternate between: animal close-ups, people + animal moments, and environment / ambiance shots. Never three similar images in a row. Warm tones throughout — no cold-filtered images.</p>
+
+        <div class="ig-grid mt4">
+          <div class="ig-cell" style="background: var(--amber); color: var(--cream);">Animal<br>close-up</div>
+          <div class="ig-cell" style="background: var(--espresso); color: var(--cream);">Guest<br>moment</div>
+          <div class="ig-cell" style="background: var(--sage); color: var(--cream);">Ambiance</div>
+          <div class="ig-cell" style="background: var(--cream-deep);">Guest<br>moment</div>
+          <div class="ig-cell" style="background: var(--amber); color: var(--cream);">Animal<br>close-up</div>
+          <div class="ig-cell" style="background: var(--espresso); color: var(--cream);">Drinks</div>
+          <div class="ig-cell" style="background: var(--sage); color: var(--cream);">Ambiance</div>
+          <div class="ig-cell" style="background: var(--cream-deep);">Guest<br>moment</div>
+          <div class="ig-cell" style="background: var(--amber); color: var(--cream);">Animal<br>close-up</div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Post specifications</h3>
+        <div class="mt4" style="display: flex; flex-direction: column; gap: var(--s3);">
+          <div class="channel-type-card">
+            <h4>Feed post — square 1:1</h4>
+            <ul class="type-spec-list">
+              <li><span>Format</span> 1080 × 1080px minimum</li>
+              <li><span>Text overlay</span> Only on solid colour band — never raw over photo</li>
+              <li><span>Caption</span> 1–3 sentences max · Warm, specific · Satoshi voice</li>
+              <li><span>Hashtags</span> 5–10 · end of caption · lowercase</li>
+            </ul>
+          </div>
+          <div class="channel-type-card">
+            <h4>Story — 9:16 vertical</h4>
+            <ul class="type-spec-list">
+              <li><span>Format</span> 1080 × 1920px</li>
+              <li><span>Safe zone</span> Keep key content within centre 80%</li>
+              <li><span>Text</span> Satoshi 700 · Cream on Espresso band · Never on photo</li>
+              <li><span>CTA sticker</span> "Book now" or "Find us" — use native IG sticker</li>
+            </ul>
+          </div>
+          <div class="channel-type-card">
+            <h4>Reels cover frame</h4>
+            <ul class="type-spec-list">
+              <li><span>Cover</span> Should match grid aesthetic — not a random frame</li>
+              <li><span>Text</span> Cabinet Grotesk or none — keep it minimal</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PRINT & MARKETING ──────────────────── -->
+  <div class="section--cream-deep" id="print">
+    <div class="section-inner">
+      <p class="section-label">09 — Application</p>
+      <h2>Print &amp; marketing materials</h2>
+      <div class="divider mt3"></div>
+
+      <p class="mt3">Flyers, brochures, banners, hotel inserts, booking cards. All printed material must be visually connected — a tourist should recognise Capybara Coffee instantly regardless of which material they pick up.</p>
+
+      <div class="app-spec-grid mt5" style="grid-template-columns: 1fr 1fr 1fr 1fr; align-items: start;">
+        <!-- Flyer -->
+        <div style="display:flex;flex-direction:column;gap:var(--s2);">
+          <div class="print-placeholder" style="aspect-ratio:0.71;">
+            <div class="ph-icon">📄</div>
+            <span class="ph-label">A5 Flyer<br>Placeholder</span>
+            <div style="width:70%;margin-top:var(--s2);display:flex;flex-direction:column;gap:4px;align-items:center;">
+              <div style="width:24px;height:24px;background:rgba(47,40,35,0.1);border-radius:50%;"></div>
+              <div style="width:80%;height:6px;background:rgba(47,40,35,0.12);border-radius:1px;"></div>
+              <div style="width:60%;height:4px;background:rgba(47,40,35,0.08);border-radius:1px;"></div>
+              <div style="width:70%;height:3px;background:rgba(47,40,35,0.08);border-radius:1px;"></div>
+              <div style="width:40%;height:10px;background:rgba(124,154,77,0.3);border-radius:1px;margin-top:4px;"></div>
+            </div>
+          </div>
+          <div style="padding:var(--s3);background:var(--white);border:1px solid rgba(47,40,35,0.06);border-radius:2px;border-top:2px solid var(--amber);">
+            <h4 style="margin-bottom:var(--s2);color:var(--amber);">Flyer / Hotel insert — A5</h4>
+            <ul class="rule-list">
+              <li>Cream bg · Logo top · v2 mark only</li>
+              <li>Cabinet Grotesk headline · max 6 words</li>
+              <li>Satoshi body · max 3 sentences</li>
+              <li>Sage CTA with address / QR</li>
+              <li>Max 2 photos per piece</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Roll-up -->
+        <div style="display:flex;flex-direction:column;gap:var(--s2);">
+          <div class="print-placeholder" style="aspect-ratio:0.42;">
+            <div class="ph-icon">🖼</div>
+            <span class="ph-label">Roll-up Banner<br>85×200cm<br>Placeholder</span>
+            <div style="width:60%;margin-top:var(--s2);display:flex;flex-direction:column;gap:4px;align-items:center;">
+              <div style="width:30px;height:30px;background:rgba(185,133,78,0.2);border-radius:50%;"></div>
+              <div style="width:70%;height:8px;background:rgba(47,40,35,0.12);border-radius:1px;"></div>
+              <div style="width:55%;height:4px;background:rgba(47,40,35,0.08);border-radius:1px;"></div>
+              <div style="width:45%;height:14px;background:rgba(124,154,77,0.25);border-radius:1px;margin-top:6px;"></div>
+            </div>
+          </div>
+          <div style="padding:var(--s3);background:var(--white);border:1px solid rgba(47,40,35,0.06);border-radius:2px;border-top:2px solid var(--espresso);">
+            <h4 style="margin-bottom:var(--s2);">Roll-up banner</h4>
+            <ul class="rule-list">
+              <li>Espresso bg · Logo centred · large</li>
+              <li>Serif headline · Cream · below logo</li>
+              <li>Locations · Satoshi · Amber tint</li>
+              <li>QR · bottom quarter · Cream block</li>
+              <li>Max 3 text elements</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Booking card -->
+        <div style="display:flex;flex-direction:column;gap:var(--s2);">
+          <div class="print-placeholder" style="aspect-ratio:1.54;">
+            <div class="ph-icon">🎫</div>
+            <span class="ph-label">Booking Card<br>Placeholder</span>
+            <div style="width:80%;margin-top:var(--s2);display:flex;flex-direction:column;gap:3px;align-items:center;">
+              <div style="width:20px;height:20px;background:rgba(185,133,78,0.2);border-radius:50%;"></div>
+              <div style="width:70%;height:4px;background:rgba(47,40,35,0.1);border-radius:1px;"></div>
+              <div style="width:55%;height:3px;background:rgba(47,40,35,0.07);border-radius:1px;"></div>
+            </div>
+          </div>
+          <div style="padding:var(--s3);background:var(--white);border:1px solid rgba(47,40,35,0.06);border-radius:2px;border-top:2px solid var(--sage);">
+            <h4 style="margin-bottom:var(--s2);color:var(--sage-dark);">Booking confirmation card</h4>
+            <ul class="rule-list">
+              <li>Cream · Espresso text · Amber logo</li>
+              <li>Serif: "We can't wait to meet you."</li>
+              <li>Satoshi: date, location, instructions</li>
+            </ul>
+          </div>
+        </div>
+        <!-- Business card -->
+        <div style="display:flex;flex-direction:column;gap:var(--s2);">
+          <div class="print-placeholder" style="aspect-ratio:1.54;">
+            <div class="ph-icon">💳</div>
+            <span class="ph-label">Business Card<br>85×55mm<br>Placeholder</span>
+            <div style="width:80%;margin-top:var(--s2);display:flex;flex-direction:column;gap:3px;align-items:center;">
+              <div style="width:20px;height:20px;background:rgba(185,133,78,0.2);border-radius:50%;"></div>
+              <div style="width:50%;height:1px;background:rgba(185,133,78,0.4);"></div>
+              <div style="width:60%;height:3px;background:rgba(47,40,35,0.1);border-radius:1px;"></div>
+            </div>
+          </div>
+          <div style="padding:var(--s3);background:var(--white);border:1px solid rgba(47,40,35,0.06);border-radius:2px;border-top:2px solid var(--amber-light);">
+            <h4 style="margin-bottom:var(--s2);">Business card — 85×55mm</h4>
+            <ul class="rule-list">
+              <li>Front: Cream · Logo centred only</li>
+              <li>Back: Espresso · Name · Satoshi</li>
+              <li>Amber divider · No QR</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SIGNAGE ─────────────────────────────── -->
+  <section id="signage" class="section">
+    <p class="section-label">10 — Application</p>
+    <h2>In-store &amp; signage</h2>
+    <div class="divider"></div>
+
+    <p class="mt3">Each Capybara Coffee location has its own layout, theme, and constraints. Signage guidelines will be developed per-location once the brand foundations are locked. Core principles (typography, colour, tone) from this document apply.</p>
+
+    <div class="mt5" style="padding: var(--s6); background: var(--cream-deep); border-radius: 2px; border: 2px dashed rgba(47,40,35,0.12); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--s3);">
+      <span style="font-size: 2rem; opacity: 0.3;">🪧</span>
+      <h3 style="color: var(--espresso-mid);">In progress</h3>
+      <p style="color: var(--espresso-mid); max-width: 45ch; text-align: center;">Signage specs will be defined per location — Samui, Phangan, Bangkok, Chiang Mai, Pattaya — once the brand system is validated. Check back here in the next revision.</p>
+      <span style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber); border: 1px solid var(--amber); padding: 6px 16px; border-radius: 2px;">Coming in V2.1</span>
+    </div>
+  </section>
+
+  <!-- ── MERCHANDISE ────────────────────────── -->
+  <div class="section--dark" id="merch">
+    <div class="section-inner">
+      <p class="section-label">11 — Application</p>
+      <h2 class="col-cream">Merchandise</h2>
+      <div class="divider divider--cream mt2"></div>
+
+      <p class="mt3" style="color: rgba(247,242,233,0.65);">Merch is a walking ambassador for the brand. It should be something people actually want to wear or keep — not just a souvenir. Simple mark, quality execution.</p>
+
+      <!-- Script font showcase -->
+      <div style="margin-top: var(--s5); padding: var(--s5); background: rgba(247,242,233,0.05); border: 1px solid rgba(247,242,233,0.1); border-radius: 2px;">
+        <p style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber-light); margin-bottom: var(--s4);">Script font — controlled use on merch &amp; banners</p>
+        <div style="display: flex; flex-direction: column; gap: var(--s1); align-items: flex-start;">
+          <span style="font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800; font-size: clamp(1.4rem, 3vw, 2.2rem); letter-spacing: -0.01em; text-transform: uppercase; color: var(--cream); line-height: 1;">CAPYBARA COFFEE</span>
+          <span style="font-family: 'Next Southerland Script', serif; font-size: clamp(1.6rem, 3.5vw, 2.8rem); color: var(--amber-light); line-height: 1.1;">Where happiness begins</span>
+        </div>
+        <p style="font-size: 0.8rem; color: rgba(247,242,233,0.45); margin-top: var(--s3); max-width: none;">The Script adds warmth when paired directly below Cabinet Grotesk — on tote bags, roll-up banners, cup sleeves, and seasonal packaging. One line maximum. Never use the Script alone or for body text.</p>
+      </div>
+
+      <div class="merch-grid-new">
+        <div class="merch-card">
+          <div class="merch-card-visual" style="background:var(--espresso);">
+            <img src="./logo_v2_no_outline.png" style="width:60px;height:60px;object-fit:contain;opacity:0.9;">
+            <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(247,242,233,0.4);">T-shirt · Cap · Hoodie</span>
+          </div>
+          <div class="merch-card-body">
+            <h4>Apparel</h4>
+            <p>Logo v2 mark only — no wordmark. Embroidered preferred. Base: Cream, Espresso, or Amber. Never green logo on apparel.</p>
+          </div>
+        </div>
+        <div class="merch-card">
+          <div class="merch-card-visual" style="background:var(--cream-deep);display:flex;align-items:center;justify-content:center;gap:var(--s3);">
+            <div style="width:48px;height:64px;background:var(--cream);border-radius:3px;border:1px solid rgba(47,40,35,0.1);display:flex;align-items:center;justify-content:center;">
+              <img src="./logo_v2_no_outline.png" style="width:32px;height:32px;object-fit:contain;">
+            </div>
+            <div style="width:48px;height:64px;background:var(--espresso);border-radius:3px;display:flex;align-items:center;justify-content:center;">
+              <img src="./logo_v2_no_outline.png" style="width:32px;height:32px;object-fit:contain;filter:brightness(1.8);">
+            </div>
+          </div>
+          <div class="merch-card-body">
+            <h4>Cups &amp; Drinkware</h4>
+            <p>Cream + Espresso print, or Espresso + Cream print. No amber cups. Tagline optional below logo in Satoshi 400.</p>
+          </div>
+        </div>
+        <div class="merch-card">
+          <div class="merch-card-visual" style="background:#D4C9B4;">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;">
+              <img src="./logo_v2_no_outline.png" style="width:44px;height:44px;object-fit:contain;">
+            </div>
+            <span style="font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(47,40,35,0.45);">Natural canvas tote</span>
+          </div>
+          <div class="merch-card-body">
+            <h4>Tote bag</h4>
+            <p>Natural canvas + Espresso screen print, or Cream canvas + Amber logo. Logo mark only — no full colour print.</p>
+          </div>
+        </div>
+        <div class="merch-card">
+          <div class="merch-card-visual" style="background:var(--cream);display:flex;gap:var(--s2);">
+            <div style="width:50px;height:50px;background:var(--cream-deep);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(47,40,35,0.1);">
+              <img src="./logo_v2_no_outline.png" style="width:36px;height:36px;object-fit:contain;">
+            </div>
+            <div style="width:64px;height:50px;background:var(--cream-deep);border-radius:2px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(47,40,35,0.1);">
+              <img src="./logo_v2_no_outline.png" style="width:36px;height:36px;object-fit:contain;">
+            </div>
+          </div>
+          <div class="merch-card-body">
+            <h4>Stickers &amp; Postcards</h4>
+            <p>Logo mark only. Cream background. Postcards: logo front / photo back with Satoshi caption.</p>
+          </div>
+        </div>
+        <div class="merch-card">
+          <div class="merch-card-visual" style="background:var(--cream);">
+            <div style="width:100px;height:40px;background:var(--cream-deep);border-radius:3px;border-top:3px solid var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+              <img src="./logo_v2_no_outline.png" style="width:24px;height:24px;object-fit:contain;">
+              <span style="font-size:0.6rem;font-weight:700;color:var(--espresso);opacity:0.6;letter-spacing:0.05em;text-transform:uppercase;">Samui</span>
+            </div>
+          </div>
+          <div class="merch-card-body">
+            <h4>Packaging &amp; Sleeves</h4>
+            <p>Logo + location in Satoshi 700. Cream base + Espresso print. Amber accent line. No body copy.</p>
+          </div>
+        </div>
+        <div class="merch-card">
+          <div class="merch-card-visual" style="background:var(--amber);flex-direction:row;gap:var(--s2);">
+            <div style="width:32px;height:48px;background:rgba(247,242,233,0.15);border-radius:2px;display:flex;align-items:center;justify-content:center;">
+              <img src="./logo_v2_no_outline.png" style="width:24px;height:24px;object-fit:contain;">
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:center;gap:2px;">
+              <span style="font-size:0.55rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(247,242,233,0.7);">Hangtag</span>
+              <span style="font-size:0.55rem;color:rgba(247,242,233,0.5);">@capybaracoffeethailand</span>
+            </div>
+          </div>
+          <div class="merch-card-body">
+            <h4>Plush &amp; Stuffed animals</h4>
+            <p>Hangtag only — logo front, Instagram + website back. The animal is the brand. No other branding needed.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: var(--cream-deep);">
+  <!-- ── DON'TS ──────────────────────────────── -->
+  <section id="donts" class="section" style="background:transparent;">
+    <p class="section-label">12 — Reference</p>
+    <h2>Non-Negotiables</h2>
+    <div class="divider"></div>
+    <p class="mt3">Eight rules. If any one of these is broken, the brand breaks. No exceptions, no "just this once."</p>
+
+    <div class="rules-grid">
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Unauthorised fonts</h4>
+          <p>Only Cabinet Grotesk, Next Southerland Serif, Next Southerland Script, and Satoshi. Nothing from Canva, Google Fonts, or templates.</p>
+          <div class="rc-visual">The previous website used a script font for all headings. It is now retired.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Sage as a heading colour</h4>
+          <p>Sage is an accent only — CTAs, badges, small highlights. Headings are Espresso or Amber. Never Sage.</p>
+          <div class="rc-visual">The current website uses Sage green on nearly every heading. This is retired.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Espresso sections used heavily</h4>
+          <p>Dark backgrounds are for the hero, footer, and one or two feature blocks. Not every other section.</p>
+          <div class="rc-visual">Alternating cream/espresso every block makes the page feel heavy and dated.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Promotional overlays on photos</h4>
+          <p>"20% OFF" banners, QR codes, and discount graphics placed over brand photography reduce perceived quality instantly.</p>
+          <div class="rc-visual">Promotions live in dedicated sections — never embedded in images.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Colours outside the palette</h4>
+          <p>Four colours, fixed. No tints, no gradients, no "close enough." Override any template default that deviates.</p>
+          <div class="rc-visual">Orange, blue, purple, grey — none of these exist in the brand.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Text directly over photographs</h4>
+          <p>Text always sits on a solid colour surface. Never raw over a photo — not even with opacity tricks.</p>
+          <div class="rc-visual">Use a Cream or Espresso band. The photo goes beside the text, not behind it.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Logo v1 in active use</h4>
+          <p>The v1 mark (outline ring, "Healthy Drinks &amp; Coffee Bar") is retired. v2 everywhere — website, print, social, merch.</p>
+          <div class="rc-visual">If you find v1 in use anywhere, replace it immediately.</div>
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-icon">✗</div>
+        <div>
+          <h4>Hype language in copy</h4>
+          <p>No "AMAZING!", no "BOOK NOW BEFORE IT'S TOO LATE", no excessive punctuation. We invite — we don't pressure.</p>
+          <div class="rc-visual">"An unforgettable experience!!!" → "30 minutes with our capybaras."</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ── FOOTER ──────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-brand">Capybara Coffee Thailand — Brand Guidelines V2</div>
+    <p class="footer-text">This document is the single source of truth for the Capybara Coffee brand. Any deviation requires written approval. For questions or asset requests: bookings@capybaracoffeethailand.com</p>
+    <p class="footer-text">Draft 1 · May 2026 · Internal use only</p>
+    <p class="footer-text" style="margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid rgba(247,242,233,0.08);">Created by <strong style="color:rgba(247,242,233,0.65);">Leo Lecée</strong> · Capybara Coffee Thailand</p>
+  </footer>
+
+</div><!-- /main -->
+
+<a href="#cover" class="back-to-top" id="backToTop" title="Back to top">↑</a>
+
+<script>
+  const btn = document.getElementById('backToTop');
+  const cover = document.getElementById('cover');
+  const observer = new IntersectionObserver(([e]) => {
+    btn.classList.toggle('visible', !e.isIntersecting);
+  }, { threshold: 0 });
+  observer.observe(cover);
+</script>
+</body>
+</html>

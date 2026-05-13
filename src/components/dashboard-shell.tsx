@@ -19,6 +19,7 @@ import {
   UsersIcon,
   ClockIcon,
   BanknoteIcon,
+  BookOpenIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
@@ -78,6 +79,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const canSeeContacts   = hasModuleAccess(permissions, "contacts");
   const canSeeAttendance = hasModuleAccess(permissions, "attendance");
   const canSeePayments   = hasModuleAccess(permissions, "payments");
+  const canSeeWiki       = hasModuleAccess(permissions, "wiki");
 
   const isHome       = pathname === "/dashboard/home" || pathname === "/dashboard";
   const isReviews    = pathname.startsWith("/dashboard/reviews");
@@ -90,6 +92,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const isAttendance = pathname.startsWith("/dashboard/attendance");
   const isPayments   = pathname.startsWith("/dashboard/payments");
   const isAdmin      = pathname.startsWith("/dashboard/admin");
+  const isWiki       = pathname.startsWith("/dashboard/wiki");
 
   const asideClass = [
     "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
@@ -215,6 +218,15 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
                   <BanknoteIcon className={iconClass(isPayments)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Payments</span>
+              </Link>
+            )}
+
+            {canSeeWiki && (
+              <Link href="/dashboard/wiki" className={navItemClass(isWiki, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <BookOpenIcon className={iconClass(isWiki)} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Wiki</span>
               </Link>
             )}
 
