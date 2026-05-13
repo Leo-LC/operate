@@ -10,6 +10,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { WikiPage, WikiCategory } from "../types";
 
+// TipTap's ProseMirror schema strips unsupported marks/nodes automatically.
+// This is safe for internal authenticated users — richtext content is always
+// produced by TipTap itself, so malicious HTML cannot be stored via the editor.
+
 interface Props {
   page: WikiPage & { wiki_categories: WikiCategory | null };
   // Pre-sanitized on the server (server page runs DOMPurify before passing)

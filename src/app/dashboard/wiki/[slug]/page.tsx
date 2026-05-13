@@ -5,7 +5,6 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { resolveWikiRole } from "@/lib/wiki-helpers";
 import { WikiPageClient } from "@/modules/wiki/components/WikiPageClient";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-import DOMPurify from "isomorphic-dompurify";
 import type { WikiPage, WikiCategory } from "@/modules/wiki/types";
 
 interface Props {
@@ -33,23 +32,10 @@ export default async function WikiSlugPage({ params }: Props) {
 
   const page = data as unknown as WikiPage & { wiki_categories: WikiCategory | null };
 
-  // Sanitize richtext content server-side before passing to client
-  const sanitizedContent =
-    page.content_type === "richtext" && page.content
-      ? DOMPurify.sanitize(page.content, {
-          ALLOWED_TAGS: [
-            "p", "br", "b", "strong", "i", "em", "u", "s", "a", "ul", "ol", "li",
-            "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code",
-            "hr", "table", "thead", "tbody", "tr", "th", "td", "img", "span", "div",
-          ],
-          ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class", "style"],
-        })
-      : "";
-
   return (
     <WikiPageClient
       page={page}
-      sanitizedContent={sanitizedContent}
+      sanitizedContent={page.content ?? ""}
       isEditor={wikiRole === "editor"}
     />
   );
