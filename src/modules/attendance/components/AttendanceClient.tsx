@@ -283,7 +283,7 @@ export function AttendanceClient({ initialLocations }: Props) {
                       {sm.ot_holiday_hours > 0 ? <span className="text-purple-600 dark:text-purple-400">{sm.ot_holiday_hours}h</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center text-xs tabular-nums">
-                      {sm.paid_leave_days > 0 ? <span className="text-emerald-600 dark:text-emerald-400">{sm.paid_leave_days}d</span> : <span className="text-muted-foreground/40">—</span>}
+                      {sm.paid_leave_days > 0 ? <span className="text-emerald-700 dark:text-emerald-400">{sm.paid_leave_days}d</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center text-xs tabular-nums">
                       {sm.sick_leave_days > 0 ? <span className="text-amber-600 dark:text-amber-400">{sm.sick_leave_days}d</span> : <span className="text-muted-foreground/40">—</span>}

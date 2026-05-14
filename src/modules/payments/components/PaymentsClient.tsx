@@ -282,7 +282,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                             className="cursor-pointer hover:underline"
                             onClick={() => { setEditingId(record.id); setEditField("bonus_amount"); setEditValue(String(record.bonus_amount)); }}
                           >
-                            {record.bonus_amount > 0 ? <span className="text-emerald-600 dark:text-emerald-400">{fmtThb(record.bonus_amount)}</span> : <span className="text-muted-foreground/30 text-[10px]">+ add</span>}
+                            {record.bonus_amount > 0 ? <span className="text-emerald-700 dark:text-emerald-400">{fmtThb(record.bonus_amount)}</span> : <span className="text-muted-foreground/30 text-[10px]">+ add</span>}
                           </span>
                         )
                       ) : <span className="text-muted-foreground/40">—</span>}

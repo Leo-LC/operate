@@ -76,7 +76,7 @@ export function AccountingChart({ entries, year, month }: Props) {
         </div>
       </div>
       <div className="flex gap-4 text-[10px] text-muted-foreground">
-        <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-500" /> Sales net</div>
+        <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-400" /> Sales net</div>
         <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-400" /> Expenses + HR</div>
       </div>
     </div>
