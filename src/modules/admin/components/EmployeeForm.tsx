@@ -63,10 +63,10 @@ export function EmployeeForm({
   submitLabel: string;
 }) {
   return (
-    <form onSubmit={onSubmit} className="rounded-lg border border-border bg-muted/20 p-5 flex flex-col gap-5">
+    <form onSubmit={onSubmit} className="rounded-xl border border-border bg-card shadow-xs p-5 flex flex-col gap-5">
       {/* Basic info */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Basic info</p>
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Basic info</p>
         <div className="flex flex-wrap gap-3">
           <div className="flex flex-col gap-1 min-w-[130px]">
             <label className="text-xs font-medium text-muted-foreground">First name <span className="text-destructive">*</span></label>
@@ -115,7 +115,7 @@ export function EmployeeForm({
 
       {/* Contact */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact</p>
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Contact</p>
         <div className="flex flex-wrap gap-3">
           <div className="flex flex-col gap-1 min-w-[190px]">
             <label className="text-xs font-medium text-muted-foreground">Email</label>
@@ -140,7 +140,7 @@ export function EmployeeForm({
 
       {/* Salary */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Compensation</p>
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Compensation</p>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex flex-col gap-1 min-w-[170px]">
             <label className="text-xs font-medium text-muted-foreground">Base salary / month (฿)</label>
@@ -171,7 +171,7 @@ export function EmployeeForm({
 
       {/* Identification */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Identification</p>
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Identification</p>
         <div className="flex flex-wrap gap-3">
           <div className="flex flex-col gap-1 min-w-[160px]">
             <label className="text-xs font-medium text-muted-foreground">National ID</label>
@@ -208,7 +208,7 @@ export function EmployeeForm({
       {/* Location access */}
       {locations.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Location access</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Location access</p>
           <div className="flex flex-wrap gap-2">
             {locations.map((loc) => {
               const checked = locIds.has(loc.id);

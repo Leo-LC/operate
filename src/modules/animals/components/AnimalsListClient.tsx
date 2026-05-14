@@ -187,7 +187,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       {showForm && (
         <form
           onSubmit={(e) => void handleAdd(e)}
-          className="rounded-lg border border-border bg-muted/20 p-5 flex flex-col gap-5"
+          className="rounded-xl border border-border bg-card shadow-xs p-5 flex flex-col gap-5"
         >
           <div className="flex items-start justify-between">
             <div>
@@ -201,7 +201,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
           {/* Basic information */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Basic information</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Basic information</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
@@ -255,7 +255,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
           {/* Location */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Location</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Location</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
@@ -276,7 +276,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
           {/* Health & vaccines */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Health & vaccines</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Health & vaccines</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
@@ -310,7 +310,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
           {/* Notes */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Notes</p>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Notes</p>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
