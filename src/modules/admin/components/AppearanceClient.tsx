@@ -33,7 +33,8 @@ export function AppearanceClient({ currentTheme }: AppearanceClientProps) {
         return;
       }
       setActive(theme);
-      toast.success("Theme updated — reload to apply");
+      toast.success("Theme updated");
+      setTimeout(() => window.location.reload(), 800);
     } finally {
       setSaving(false);
     }
