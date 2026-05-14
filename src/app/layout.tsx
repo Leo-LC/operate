@@ -51,7 +51,7 @@ export default async function RootLayout({
       lang="en"
       data-theme={orgTheme}
       className={cn("font-sans", sans.variable, serif.variable, decorative.variable, mono.variable)}
-      suppressHydrationWarning
+      suppressHydrationWarning // next-themes mutates class on the client; data-theme is server-stable
     >
       <body className="antialiased">
         <Providers>
