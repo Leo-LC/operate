@@ -21,9 +21,12 @@ The work is done on a separate branch and run locally for evaluation. If it look
 |---|---|---|
 | Body / UI | Plus Jakarta Sans | Satoshi |
 | Headings / Display | Instrument Serif | Cabinet Grotesk |
+| Accent / Decorative | — | Next Southerland Serif (subtle, selective) |
 | Monospace | DM Mono | DM Mono (unchanged) |
 
-Both Cabinet Grotesk and Satoshi are already in `/public/brand/` — no new downloads needed. They need to be loaded via `next/font/local` in `layout.tsx` instead of the current Google Fonts imports.
+Cabinet Grotesk, Satoshi, and Next Southerland Serif are all in `/public/brand/` — no new downloads needed. They need to be loaded via `next/font/local` in `layout.tsx` instead of the current Google Fonts imports.
+
+Next Southerland Serif should be used sparingly: large section titles on the login/landing page, empty-state headings, or prominent stat callouts — anywhere a single elegant serif headline adds character without cluttering the UI. Never for body copy or dense UI text.
 
 ### 2. Color Palette
 
