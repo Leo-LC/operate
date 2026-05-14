@@ -22,10 +22,11 @@ export async function getOrgTheme(): Promise<AppTheme> {
 
 export async function setOrgTheme(theme: AppTheme): Promise<void> {
   const supabase = getSupabaseServerClient();
-  await supabase
+  const { error } = await supabase
     .from("app_settings")
     .upsert(
       { organization_id: DEFAULT_ORG_ID, theme, updated_at: new Date().toISOString() },
       { onConflict: "organization_id" },
     );
+  if (error) throw new Error(error.message);
 }

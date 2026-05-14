@@ -25,6 +25,11 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Invalid theme" }, { status: 400 });
   }
 
-  await setOrgTheme(theme as AppTheme);
+  try {
+    await setOrgTheme(theme as AppTheme);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to save theme";
+    return Response.json({ error: msg }, { status: 500 });
+  }
   return Response.json({ theme });
 }
