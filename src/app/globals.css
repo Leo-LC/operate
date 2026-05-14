@@ -164,4 +164,14 @@
   .dark ::-webkit-scrollbar-thumb {
     background: oklch(0.35 0.015 145 / 0.6);
   }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+    cursor: pointer;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.5;
+  }
 }

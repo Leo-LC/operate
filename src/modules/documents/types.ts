@@ -95,7 +95,7 @@ export const STATUS_LABELS: Record<DocumentStatus, string> = {
 
 export const STATUS_CLASSES: Record<DocumentStatus, string> = {
   valid:
-    "bg-[color-mix(in_oklch,var(--success)_15%,transparent)] text-[var(--success)]",
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   expiring:
     "bg-[color-mix(in_oklch,var(--amber,#f59e0b)_15%,transparent)] text-amber-600",
   expired:

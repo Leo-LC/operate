@@ -64,7 +64,7 @@ export const STATUS_LABELS: Record<AnimalStatus, string> = {
 
 export const STATUS_CLASSES: Record<AnimalStatus, string> = {
   active:
-    "bg-[color-mix(in_oklch,var(--success)_15%,transparent)] text-[var(--success)]",
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   observation:
     "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   quarantine:

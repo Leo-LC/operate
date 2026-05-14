@@ -59,7 +59,7 @@ export function AccountingChart({ entries, year, month }: Props) {
                 <div
                   title={sales != null ? `Day ${day}: Sales ${fmt(sales)}` : `Day ${day}: no data`}
                   style={{ height: `${barH(sales)}px`, width: "8px" }}
-                  className={`rounded-t transition-all ${sales != null ? "bg-green-500 dark:bg-green-500" : "bg-muted/30"}`}
+                  className={`rounded-t transition-all ${sales != null ? "bg-green-500 dark:bg-green-400" : "bg-muted/30"}`}
                 />
                 {/* Expenses bar */}
                 <div

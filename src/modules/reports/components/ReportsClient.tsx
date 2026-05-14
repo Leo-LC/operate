@@ -158,7 +158,7 @@ function KpiCard({
 }) {
   const valueColor =
     color === "green"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-emerald-700 dark:text-emerald-400"
       : color === "red"
       ? "text-destructive"
       : color === "blue"
@@ -303,11 +303,11 @@ function OperationsView({ data }: { data: AccountingData }) {
               <tr className="bg-muted/20 font-semibold border-t-2 border-border">
                 <td className="px-4 py-2">Total revenue</td>
                 {sortedShops.map((s) => (
-                  <td key={s.locationId} className="px-4 py-2 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                  <td key={s.locationId} className="px-4 py-2 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
                     {fmtN(s.revenue)}
                   </td>
                 ))}
-                <td className="px-4 py-2 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                <td className="px-4 py-2 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
                   {fmtN(o.revenue)}
                 </td>
               </tr>
@@ -381,7 +381,7 @@ function OperationsView({ data }: { data: AccountingData }) {
                   <td className="px-4 py-2 text-right tabular-nums">฿{fmtN(s.revenue)}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(s.expenses)}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(s.hrCosts)}</td>
-                  <td className={`px-4 py-2 text-right tabular-nums font-medium ${s.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                  <td className={`px-4 py-2 text-right tabular-nums font-medium ${s.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
                     ฿{fmtN(s.netProfit)}
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -403,7 +403,7 @@ function OperationsView({ data }: { data: AccountingData }) {
                   <td className="px-4 py-2 text-right tabular-nums">฿{fmtN(o.revenue)}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(o.expenses)}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(o.hrCosts)}</td>
-                  <td className={`px-4 py-2 text-right tabular-nums font-bold ${o.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                  <td className={`px-4 py-2 text-right tabular-nums font-bold ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
                     ฿{fmtN(o.netProfit)}
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -446,14 +446,14 @@ function CeoView({ data }: { data: AccountingData }) {
           <p className="text-4xl font-extrabold tabular-nums">฿{fmtN(o.revenue)}</p>
         </div>
         <div className={`rounded-xl border border-border p-6 flex flex-col gap-2 ${o.netProfit >= 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50" : "bg-destructive/5 border-destructive/20"}`}>
-          <p className={`text-xs font-semibold uppercase tracking-widest ${o.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>Net Profit</p>
+          <p className={`text-xs font-semibold uppercase tracking-widest ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>Net Profit</p>
           <p className={`text-4xl font-extrabold tabular-nums ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}`}>
             ฿{fmtN(o.netProfit)}
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Margin</p>
-          <p className={`text-4xl font-extrabold tabular-nums ${o.margin >= 20 ? "text-emerald-600 dark:text-emerald-400" : o.margin >= 0 ? "text-foreground" : "text-destructive"}`}>
+          <p className={`text-4xl font-extrabold tabular-nums ${o.margin >= 20 ? "text-emerald-700 dark:text-emerald-400" : o.margin >= 0 ? "text-foreground" : "text-destructive"}`}>
             {fmtPct(o.margin)}
           </p>
         </div>
@@ -476,7 +476,7 @@ function CeoView({ data }: { data: AccountingData }) {
                         {o.revenue > 0 ? fmtPct((s.revenue / o.revenue) * 100) : "—"} of revenue
                       </span>
                     </div>
-                    <span className={`text-xs font-semibold tabular-nums ${s.netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                    <span className={`text-xs font-semibold tabular-nums ${s.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
                       {s.netProfit >= 0 ? "+" : ""}฿{fmtN(s.netProfit)}
                     </span>
                   </div>
@@ -524,9 +524,9 @@ function CeoView({ data }: { data: AccountingData }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {top && (
             <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 p-5">
-              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-2">Top performer</p>
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-2">Top performer</p>
               <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{top.locationName}</p>
-              <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80 mt-1">฿{fmtN(top.revenue)} revenue · {fmtPct(top.margin)} margin</p>
+              <p className="text-sm text-emerald-700/80 dark:text-emerald-400/80 mt-1">฿{fmtN(top.revenue)} revenue · {fmtPct(top.margin)} margin</p>
             </div>
           )}
           {bottom && bottom.locationId !== top?.locationId && (

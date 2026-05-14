@@ -24,7 +24,7 @@
 }
 
 .dashboard-stat-item[data-variant="success"] strong {
-  color: var(--success);
+  color: oklch(0.45 0.14 145);
 }
 
 .dashboard-stat-item[data-variant="amber"] strong {

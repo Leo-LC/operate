@@ -80,7 +80,7 @@ function ExpiryCell({ expires_at }: { expires_at: string | null }) {
 
 function HasDocBadge({ has_document }: { has_document: boolean }) {
   if (has_document) {
-    return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-[color-mix(in_oklch,var(--success)_12%,transparent)] text-[var(--success)]">Yes</span>;
+    return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Yes</span>;
   }
   return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">—</span>;
 }
