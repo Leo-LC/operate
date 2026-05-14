@@ -1,22 +1,29 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Plus_Jakarta_Sans, Instrument_Serif, DM_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { DM_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { getOrgTheme } from "@/lib/theme";
 
-const sans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const sans = localFont({
+  src: "../../public/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Variable.woff2",
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: "300 900",
   display: "swap",
 });
 
-const serif = Instrument_Serif({
-  subsets: ["latin"],
+const serif = localFont({
+  src: "../../public/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Variable.woff2",
   variable: "--font-serif",
-  weight: "400",
-  style: ["normal", "italic"],
+  weight: "100 900",
+  display: "swap",
+});
+
+const decorative = localFont({
+  src: "../../public/brand/fonts/the_next_southerland/Next Southerland Serif.otf",
+  variable: "--font-decorative",
   display: "swap",
 });
 
@@ -32,15 +39,18 @@ export const metadata: Metadata = {
   description: "Internal operations platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const orgTheme = await getOrgTheme();
+
   return (
     <html
       lang="en"
-      className={cn("font-sans", sans.variable, serif.variable, mono.variable)}
+      data-theme={orgTheme}
+      className={cn("font-sans", sans.variable, serif.variable, decorative.variable, mono.variable)}
       suppressHydrationWarning
     >
       <body className="antialiased">
