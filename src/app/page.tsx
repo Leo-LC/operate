@@ -58,7 +58,7 @@ export default async function Home() {
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary/70">
                 Internal operations
               </p>
-              <h1 className="font-serif text-4xl text-foreground sm:text-5xl lg:text-[3.25rem]">
+              <h1 className="font-decorative text-4xl text-foreground sm:text-5xl lg:text-[3.25rem]">
                 One platform,<br />
                 <em className="not-italic text-primary">every concern.</em>
               </h1>
