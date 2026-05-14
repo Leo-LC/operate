@@ -36,9 +36,9 @@ export async function POST(req: Request) {
   if (wikiRole !== "editor") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { title, slug, content, content_type, category_id } = body;
-  if (!title || !slug || !content_type) {
-    return NextResponse.json({ error: "title, slug, and content_type are required" }, { status: 400 });
+  const { title, slug, content, category_id } = body;
+  if (!title || !slug) {
+    return NextResponse.json({ error: "title and slug are required" }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       title,
       slug,
       content: content ?? "",
-      content_type,
+      content_type: "richtext",
       category_id: category_id || null,
       created_by: session.user.email,
       updated_by: session.user.email,

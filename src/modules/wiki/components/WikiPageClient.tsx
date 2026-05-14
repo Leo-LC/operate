@@ -121,9 +121,6 @@ export function WikiPageClient({ page, sanitizedContent, isEditor }: Props) {
             })}
           </span>
           {page.updated_by && <span>by {page.updated_by.split("@")[0]}</span>}
-          <span className="rounded bg-muted px-1.5 py-px text-[10px] font-medium uppercase tracking-wide">
-            {page.content_type === "html" ? "Custom HTML" : "Rich text"}
-          </span>
         </div>
       </div>
 
@@ -131,13 +128,6 @@ export function WikiPageClient({ page, sanitizedContent, isEditor }: Props) {
       <div className="min-h-[200px]">
         {!page.content ? (
           <p className="text-sm text-muted-foreground italic">This page has no content yet.</p>
-        ) : page.content_type === "html" ? (
-          <iframe
-            srcDoc={page.content}
-            sandbox="allow-scripts allow-same-origin"
-            className="w-full min-h-[600px] border-0 rounded-lg"
-            title={page.title}
-          />
         ) : (
           <RichTextViewer content={sanitizedContent} />
         )}

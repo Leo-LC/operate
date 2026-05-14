@@ -20,6 +20,7 @@ import {
   ClockIcon,
   BanknoteIcon,
   BookOpenIcon,
+  PaletteIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
@@ -92,7 +93,8 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const isAttendance = pathname.startsWith("/dashboard/attendance");
   const isPayments   = pathname.startsWith("/dashboard/payments");
   const isAdmin      = pathname.startsWith("/dashboard/admin");
-  const isWiki       = pathname.startsWith("/dashboard/wiki");
+  const isWiki            = pathname.startsWith("/dashboard/wiki");
+  const isBrandGuidelines = pathname.startsWith("/brand-guidelines");
 
   const asideClass = [
     "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
@@ -229,6 +231,13 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
                 <span className={labelClass(sidebarLocked)}>Wiki</span>
               </Link>
             )}
+
+            <Link href="/brand-guidelines" className={navItemClass(isBrandGuidelines, sidebarLocked)}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                <PaletteIcon className={iconClass(isBrandGuidelines)} />
+              </div>
+              <span className={labelClass(sidebarLocked)}>Brand</span>
+            </Link>
 
             {canSeeAdmin && (
               <Link href="/dashboard/admin" className={navItemClass(isAdmin, sidebarLocked)}>

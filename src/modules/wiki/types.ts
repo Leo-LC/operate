@@ -1,4 +1,4 @@
-export type WikiContentType = "html" | "richtext";
+export type WikiContentType = "richtext";
 export type WikiRole = "viewer" | "editor";
 
 export interface WikiCategory {

@@ -141,9 +141,6 @@ export function WikiIndexClient({ pages, categories, isEditor }: Props) {
                       <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                         <ClockIcon className="size-3 shrink-0" />
                         <span>{formatRelativeDate(page.updated_at)}</span>
-                        <span className="rounded bg-muted px-1.5 py-px text-[10px]">
-                          {page.content_type === "html" ? "HTML" : "Rich text"}
-                        </span>
                       </div>
                     </div>
                     <ChevronRightIcon className="ml-3 size-3.5 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5" />
