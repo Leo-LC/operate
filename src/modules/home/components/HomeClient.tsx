@@ -139,7 +139,7 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
       const mod = ALL_MODULES.find((m) => m.key === key)!;
       return { key, label: mod.label, value: snippets[key]! };
     });
-  const showPulse = role === "owner" && pulseStats.length > 0;
+  const showPulse = permissions.global_role === "owner" && pulseStats.length > 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -293,7 +293,6 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
                   >
                     <Icon className="size-3.5" />
                     <span>{mod.label}</span>
-                    <ArrowRightIcon className="size-3 text-muted-foreground/50 ml-auto" />
                   </Link>
                 );
               })}
