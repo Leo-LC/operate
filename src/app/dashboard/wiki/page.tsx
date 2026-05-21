@@ -8,8 +8,10 @@ const FRENCH_MONTHS = [
 ];
 
 function formatDate(iso: string): string {
-  const [year, month, day] = iso.split("-").map(Number);
-  return `${day} ${FRENCH_MONTHS[month - 1]} ${year}`;
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return iso;
+  const [year, month, day] = parts;
+  return `${day} ${FRENCH_MONTHS[month - 1] ?? iso} ${year}`;
 }
 
 export default function WikiIndexPage() {
@@ -41,7 +43,7 @@ export default function WikiIndexPage() {
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-[#B9854E]">
                   {category}
                 </span>
-                <span className="h-px flex-1 bg-border opacity-60" />
+                <span className="h-px flex-1 bg-[#E8DDD0]" />
               </div>
 
               {/* Article grid */}
@@ -50,6 +52,7 @@ export default function WikiIndexPage() {
                   <Link
                     key={article.slug}
                     href={article.href}
+                    aria-label={article.title}
                     className="group flex items-start justify-between rounded-lg border border-[#E8DDD0] bg-[#F7F2E9] p-4 transition-all hover:border-[#B9854E]/40 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">

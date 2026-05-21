@@ -4,6 +4,7 @@ export interface ArticleMeta {
   title: string;
   description: string;
   category: string;
+  /** ISO date string in YYYY-MM-DD format */
   updatedAt: string;
   type: "rich" | "prose";
 }
