@@ -139,7 +139,7 @@ export default function DividendsPage() {
           </li>
           <li>
             Remise du certificat de retenue{" "}
-            <span aria-hidden="true">(ภ.ง.ด.1 ก)</span> au(x) bénéficiaire(s)
+            (ภ.ง.ด.1 ก) au(x) bénéficiaire(s)
           </li>
         </ol>
       </DetailSection>
