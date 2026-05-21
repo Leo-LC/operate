@@ -4,8 +4,16 @@ import { cn } from "@/lib/utils";
 
 export interface DetailHeroTag {
   label: string;
-  color: string;
+  variant: "green" | "amber" | "red" | "blue" | "muted";
 }
+
+const heroTagVariantClasses: Record<DetailHeroTag["variant"], string> = {
+  green: "bg-green-900/30 text-green-300",
+  amber: "bg-amber-900/30 text-amber-300",
+  red: "bg-red-900/30 text-red-300",
+  blue: "bg-blue-900/30 text-blue-300",
+  muted: "bg-white/10 text-[#a08060]",
+};
 
 export interface DetailHeroProps {
   rate: string;
@@ -29,22 +37,30 @@ export function WikiDetailLayout({ breadcrumbs, hero, children }: Props) {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-[11.5px] text-[#a08060]">
-        {breadcrumbs.map((item, i) => (
-          <span key={i} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-[#D4C4B0]">›</span>}
-            {item.href ? (
-              <Link
-                href={item.href}
-                className="transition-colors hover:text-[#B9854E]"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <span className="font-semibold text-[#2F2823]">{item.label}</span>
-            )}
-          </span>
-        ))}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11.5px] text-[#a08060]">
+        {breadcrumbs.map((item, i) => {
+          const isLast = i === breadcrumbs.length - 1;
+          return (
+            <span key={item.label} className="flex items-center gap-1.5">
+              {i > 0 && <span className="text-[#D4C4B0]">›</span>}
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="transition-colors hover:text-[#B9854E]"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span
+                  aria-current={isLast ? "page" : undefined}
+                  className="font-semibold text-[#2F2823]"
+                >
+                  {item.label}
+                </span>
+              )}
+            </span>
+          );
+        })}
       </nav>
 
       {/* Hero block */}
@@ -55,12 +71,12 @@ export function WikiDetailLayout({ breadcrumbs, hero, children }: Props) {
             {hero.subtitle}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {hero.tags.map((tag, i) => (
+            {hero.tags.map((tag) => (
               <span
-                key={i}
+                key={tag.label}
                 className={cn(
                   "rounded px-2 py-0.5 text-[8.5px] font-medium",
-                  tag.color
+                  heroTagVariantClasses[tag.variant]
                 )}
               >
                 {tag.label}
@@ -136,7 +152,7 @@ export function ExampleFlow({ items }: ExampleFlowProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {items.map((item, i) => (
-        <span key={i} className="flex items-center gap-1.5">
+        <span key={item} className="flex items-center gap-1.5">
           {i > 0 && <span className="text-[#B9854E]">→</span>}
           <span className="rounded border border-[#D4C4B0] bg-white px-2 py-0.5 text-[11px]">
             {item}
@@ -157,9 +173,10 @@ export function ThresholdTable({ headers, rows }: ThresholdTableProps) {
     <table className="w-full text-left">
       <thead>
         <tr>
-          {headers.map((h, i) => (
+          {headers.map((h) => (
             <th
-              key={i}
+              key={h}
+              scope="col"
               className="border-b border-[#E8DDD0] pb-1.5 text-[8px] font-bold uppercase tracking-[0.06em] text-[#7a6a5a]"
             >
               {h}
@@ -192,9 +209,9 @@ interface DeadlineCardsProps {
 export function DeadlineCards({ items }: DeadlineCardsProps) {
   return (
     <div className="flex gap-2">
-      {items.map((item, i) => (
+      {items.map((item) => (
         <div
-          key={i}
+          key={item.label}
           className="flex-1 rounded-lg border border-[#E8DDD0] bg-white p-2.5"
         >
           <p className="mb-0.5 text-[7px] uppercase tracking-[0.07em] text-[#7a6a5a]">
@@ -219,9 +236,9 @@ interface RelatedCardsProps {
 export function RelatedCards({ items }: RelatedCardsProps) {
   return (
     <div className="grid grid-cols-3 gap-2">
-      {items.map((item, i) => (
+      {items.map((item) => (
         <Link
-          key={i}
+          key={item.href}
           href={item.href}
           className="flex items-center justify-between rounded-lg border border-[#E8DDD0] bg-white px-3 py-2 text-[10px] font-semibold text-[#2F2823] transition-colors hover:border-[#B9854E] hover:text-[#B9854E]"
         >

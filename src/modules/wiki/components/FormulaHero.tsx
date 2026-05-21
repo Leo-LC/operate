@@ -1,4 +1,4 @@
-export function FormulaHero() {
+export function ThaiTaxFormulaHero() {
   return (
     <div className="rounded-[14px] bg-[#2F2823] p-5">
       {/* Label */}

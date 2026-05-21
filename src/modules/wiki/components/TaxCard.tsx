@@ -96,9 +96,9 @@ export function TaxCard({
       {/* Row 4: tags */}
       {tags && tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {tags.map((tag, i) => (
+          {tags.map((tag) => (
             <span
-              key={i}
+              key={tag.label}
               className={cn(
                 "rounded-full px-2 py-0.5 text-[10px] font-medium",
                 tagVariantClasses[tag.variant]

@@ -46,14 +46,14 @@ const columns: CalendarColumn[] = [
   },
 ];
 
-export function CalendarStrip() {
+export function ThaiTaxCalendarStrip() {
   return (
     <div className="overflow-hidden rounded-[11px] border border-[#E8DDD0]">
       {/* Header row */}
       <div className="grid grid-cols-4 bg-[#2F2823]">
-        {columns.map((col, i) => (
+        {columns.map((col) => (
           <div
-            key={i}
+            key={col.label}
             className="border-r border-white/[0.08] px-3 py-2.5 last:border-0"
           >
             <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#B9854E]">
@@ -66,10 +66,10 @@ export function CalendarStrip() {
 
       {/* Content row */}
       <div className="grid grid-cols-4 bg-white">
-        {columns.map((col, i) => (
-          <div key={i} className="border-r border-[#EDE5D5] p-2.5 last:border-0">
-            {col.entries.map((entry, j) => (
-              <div key={j} className="mb-2 flex items-start gap-1.5 last:mb-0">
+        {columns.map((col) => (
+          <div key={col.label} className="border-r border-[#EDE5D5] p-2.5 last:border-0">
+            {col.entries.map((entry) => (
+              <div key={entry.code} className="mb-2 flex items-start gap-1.5 last:mb-0">
                 <span className="mt-1.5 h-[5px] w-[5px] shrink-0 rounded-full bg-[#B9854E]" />
                 <div>
                   <p className="font-mono text-[9.5px] font-bold text-[#2F2823]">
