@@ -15,7 +15,7 @@ export function NoteBox({ icon = "💡", children, className }: NoteBoxProps) {
         className
       )}
     >
-      <span className="mt-0.5 shrink-0 text-sm">{icon}</span>
+      <span aria-hidden="true" className="mt-0.5 shrink-0 text-sm">{icon}</span>
       <div className="text-[12px] leading-relaxed text-[#5c4d3c]">{children}</div>
     </div>
   );

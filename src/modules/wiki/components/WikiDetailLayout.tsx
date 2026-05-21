@@ -243,9 +243,9 @@ export function RelatedCards({ items }: RelatedCardsProps) {
           className="flex items-center justify-between rounded-lg border border-[#E8DDD0] bg-white px-3 py-2 text-[10px] font-semibold text-[#2F2823] transition-colors hover:border-[#B9854E] hover:text-[#B9854E]"
         >
           <span>
-            {item.icon} {item.label}
+            <span aria-hidden="true">{item.icon} </span>{item.label}
           </span>
-          <span className="text-[#B9854E]">→</span>
+          <span aria-hidden="true" className="text-[#B9854E]">→</span>
         </Link>
       ))}
     </div>
