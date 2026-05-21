@@ -20,7 +20,9 @@ export default function ThaiTaxesPage() {
             Vue d&apos;ensemble de tous les impôts et obligations déclaratives pour une société thaïlandaise.
           </p>
         </div>
-        <p className="shrink-0 text-[11px] text-[#7a6a5a]">Mis à jour le 21 mai 2026</p>
+        <time dateTime="2026-05-21" className="shrink-0 text-[11px] text-[#7a6a5a]">
+          Mis à jour le 21 mai 2026
+        </time>
       </div>
 
       {/* Formula hero */}
@@ -90,6 +92,7 @@ export default function ThaiTaxesPage() {
               { label: "PP.1", variant: "muted" },
               { label: "Avant le 7", variant: "blue" },
             ]}
+            deadline="Avant le 7"
             href="/dashboard/wiki/thai-taxes/wht"
           />
           <TaxCard
@@ -101,6 +104,7 @@ export default function ThaiTaxesPage() {
               { label: "PP.1", variant: "muted" },
               { label: "Avant le 7", variant: "blue" },
             ]}
+            deadline="Avant le 7"
             href="/dashboard/wiki/thai-taxes/wht"
           />
           <TaxCard
@@ -112,6 +116,7 @@ export default function ThaiTaxesPage() {
               { label: "PP.1", variant: "muted" },
               { label: "Avant le 7", variant: "blue" },
             ]}
+            deadline="Avant le 7"
             href="/dashboard/wiki/thai-taxes/wht"
           />
           <TaxCard
@@ -123,6 +128,7 @@ export default function ThaiTaxesPage() {
               { label: "PP.3", variant: "muted" },
               { label: "7 jours", variant: "amber" },
             ]}
+            deadline="7 jours"
             href="/dashboard/wiki/thai-taxes/wht"
           />
         </div>
