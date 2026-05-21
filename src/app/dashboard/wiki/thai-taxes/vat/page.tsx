@@ -82,14 +82,14 @@ export default function VATPage() {
           leurs achats. Différent du taux zéro (exportations) où l'input VAT reste récupérable.
         </NoteBox>
         <ul className="space-y-1 text-[12px] text-[#5c4d3c]">
-          <li className="flex gap-2"><span>•</span><span>Produits agricoles non transformés</span></li>
-          <li className="flex gap-2"><span>•</span><span>Médicaments, équipements médicaux</span></li>
-          <li className="flex gap-2"><span>•</span><span>Services éducatifs (établissements agréés)</span></li>
-          <li className="flex gap-2"><span>•</span><span>Soins de santé (hôpitaux, cliniques)</span></li>
-          <li className="flex gap-2"><span>•</span><span>Transport intérieur routier et ferroviaire</span></li>
-          <li className="flex gap-2"><span>•</span><span>Immobilier résidentiel</span></li>
-          <li className="flex gap-2"><span>•</span><span>Services culturels et religieux</span></li>
-          <li className="flex gap-2"><span>•</span><span>Journaux et magazines</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Produits agricoles non transformés</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Médicaments, équipements médicaux</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Services éducatifs (établissements agréés)</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Soins de santé (hôpitaux, cliniques)</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Transport intérieur routier et ferroviaire</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Immobilier résidentiel</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Services culturels et religieux</span></li>
+          <li className="flex gap-2"><span aria-hidden="true">•</span><span>Journaux et magazines</span></li>
         </ul>
       </DetailSection>
 
@@ -145,35 +145,35 @@ export default function VATPage() {
       <DetailSection title="Points importants">
         <ul className="space-y-2 text-[12px] text-[#5c4d3c]">
           <li className="flex gap-2">
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>
               <strong>Tax Invoice obligatoire</strong> : pour déduire l'input VAT, vous devez détenir
               une Tax Invoice en bonne et due forme émise par votre fournisseur.
             </span>
           </li>
           <li className="flex gap-2">
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>
               <strong>Conservation 5 ans</strong> : les registres de TVA (output et input) doivent être
               conservés 5 ans.
             </span>
           </li>
           <li className="flex gap-2">
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>
               <strong>Pénalités</strong> : retard de paiement = 2%/mois sur le montant dû + intérêts de
               1,5%/mois.
             </span>
           </li>
           <li className="flex gap-2">
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>
               <strong>SBT</strong> : certains secteurs (banques, immobilier, assurance-vie) sont soumis
               à la Taxe sur les affaires spécifiques (SBT) à la place de la TVA.
             </span>
           </li>
           <li className="flex gap-2">
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>
               <strong>E-filing bonus</strong> : le dépôt électronique accorde 8 jours supplémentaires
               (délai passe du 15 au 23 du mois).
