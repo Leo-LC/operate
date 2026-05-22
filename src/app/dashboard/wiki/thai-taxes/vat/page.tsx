@@ -35,14 +35,14 @@ export default function VATPage() {
       <DetailSection title="Principe">
         <p className="text-[12.5px] leading-relaxed text-[#5c4d3c]">
           La TVA (Value Added Tax) est une taxe à la consommation de 7% collectée par les entreprises
-          pour le compte de l'État. Chaque maillon de la chaîne collecte la TVA sur ses ventes (output
+          pour le compte de l&apos;État. Chaque maillon de la chaîne collecte la TVA sur ses ventes (output
           VAT) et récupère la TVA sur ses achats (input VAT). Seule la différence est versée au Revenue
           Department.
         </p>
         <FormulaBlock>TVA à reverser = Output VAT − Input VAT</FormulaBlock>
         <NoteBox icon="⚠️">
-          La TVA n'est pas un revenu de l'entreprise. Elle transite par vos comptes mais appartient à
-          l'État. Elle n'est pas incluse dans votre chiffre d'affaires imposable.
+          La TVA n&apos;est pas un revenu de l&apos;entreprise. Elle transite par vos comptes mais appartient à
+          l&apos;État. Elle n&apos;est pas incluse dans votre chiffre d&apos;affaires imposable.
         </NoteBox>
       </DetailSection>
 
@@ -78,8 +78,8 @@ export default function VATPage() {
       {/* 3. Catégories exonérées */}
       <DetailSection title="Catégories exonérées de TVA">
         <NoteBox icon="📋">
-          Les activités exonérées ne collectent pas de TVA et ne peuvent pas récupérer l'input VAT sur
-          leurs achats. Différent du taux zéro (exportations) où l'input VAT reste récupérable.
+          Les activités exonérées ne collectent pas de TVA et ne peuvent pas récupérer l&apos;input VAT sur
+          leurs achats. Différent du taux zéro (exportations) où l&apos;input VAT reste récupérable.
         </NoteBox>
         <ul className="space-y-1 text-[12px] text-[#5c4d3c]">
           <li className="flex gap-2"><span aria-hidden="true">•</span><span>Produits agricoles non transformés</span></li>
@@ -107,7 +107,7 @@ export default function VATPage() {
             ]}
           />
           <p className="mt-2 text-[11.5px] text-[#7a6a5a]">
-            Si l'input VAT dépasse l'output VAT (cas des exportateurs), l'excédent peut être reporté
+            Si l&apos;input VAT dépasse l&apos;output VAT (cas des exportateurs), l&apos;excédent peut être reporté
             sur le mois suivant ou remboursé par le Revenue Department.
           </p>
         </ExampleBlock>
@@ -147,7 +147,7 @@ export default function VATPage() {
           <li className="flex gap-2">
             <span aria-hidden="true">•</span>
             <span>
-              <strong>Tax Invoice obligatoire</strong> : pour déduire l'input VAT, vous devez détenir
+              <strong>Tax Invoice obligatoire</strong> : pour déduire l&apos;input VAT, vous devez détenir
               une Tax Invoice en bonne et due forme émise par votre fournisseur.
             </span>
           </li>

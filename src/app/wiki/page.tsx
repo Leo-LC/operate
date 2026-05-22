@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenIcon, ChevronRightIcon, ClockIcon } from "lucide-react";
+import { ChevronRightIcon, ClockIcon } from "lucide-react";
 
 export default function PublicWikiIndexPage() {
   return (
