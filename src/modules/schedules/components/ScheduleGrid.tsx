@@ -5,7 +5,7 @@ import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
-import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon, Loader2Icon, PlusIcon, MinusIcon } from "lucide-react";
+import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon, Loader2Icon, PlusIcon, MinusIcon, TriangleAlertIcon } from "lucide-react";
 import { ShiftCell, computeShiftHours } from "@/modules/schedules/components/ShiftCell";
 import { ScheduleHeatmap } from "@/modules/schedules/components/ScheduleHeatmap";
 import type { Schedule, ScheduleShift, ShiftGrid, CellData } from "@/modules/schedules/types";
@@ -55,6 +55,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   const [localWeekStart, setLocalWeekStart] = useState(schedule.week_start_date);
   const [editingWeek, setEditingWeek] = useState(false);
   const [weekInput, setWeekInput] = useState(schedule.week_start_date);
+  const [conflictNames, setConflictNames] = useState<string[]>([]);
   const [clipboard, setClipboard] = useState<CellData | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState(false);
@@ -169,6 +170,18 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
       setLocalName(schedule.name);
     }
   }
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/schedules?location_id=${encodeURIComponent(schedule.location_id)}`);
+        if (!res.ok) return;
+        const all = (await res.json()) as Array<{ id: string; name: string; week_start_date: string }>;
+        setConflictNames(all.filter((s) => s.week_start_date === localWeekStart && s.id !== schedule.id).map((s) => s.name));
+      } catch { /* ignore */ }
+    };
+    void check();
+  }, [localWeekStart, schedule.location_id, schedule.id]);
 
   async function saveWeek() {
     setEditingWeek(false);
@@ -527,6 +540,22 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
           )}
         </div>
       </div>
+
+      {/* ── Overlap warning ────────────────────────────────────── */}
+      {conflictNames.length > 0 && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <TriangleAlertIcon className="size-4 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold">Scheduling overlap — </span>
+            <span>
+              {conflictNames.length === 1
+                ? `"${conflictNames[0]}" also covers`
+                : `${conflictNames.map((n) => `"${n}"`).join(" and ")} also cover`}{" "}
+              this shop and week. Hours will be double-counted in payroll.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── No employees state ──────────────────────────────────── */}
       {employees.length === 0 && (

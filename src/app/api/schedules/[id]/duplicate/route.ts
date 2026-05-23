@@ -48,15 +48,23 @@ export async function POST(request: Request, { params }: { params: { id: string 
     .eq("schedule_id", params.id);
 
   if (sourceShifts && sourceShifts.length > 0) {
-    const shiftRows = sourceShifts.map((s) => ({
-      schedule_id: newSchedule.id,
-      employee_id: s.employee_id,
-      shift_date: s.shift_date,
-      start_time: s.start_time,
-      end_time: s.end_time,
-      break_minutes: s.break_minutes,
-      notes: s.notes,
-    }));
+    const targetWeek = body.week_start_date ?? source.week_start_date;
+    const offsetDays = Math.round(
+      (new Date(targetWeek).getTime() - new Date(source.week_start_date).getTime()) / 86400000
+    );
+    const shiftRows = sourceShifts.map((s) => {
+      const d = new Date(s.shift_date);
+      d.setUTCDate(d.getUTCDate() + offsetDays);
+      return {
+        schedule_id: newSchedule.id,
+        employee_id: s.employee_id,
+        shift_date: d.toISOString().slice(0, 10),
+        start_time: s.start_time,
+        end_time: s.end_time,
+        break_minutes: s.break_minutes,
+        notes: s.notes,
+      };
+    });
     await supabase.from("schedule_shifts").insert(shiftRows);
   }
 

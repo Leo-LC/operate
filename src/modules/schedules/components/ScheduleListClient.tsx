@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DateInput } from "@/components/ui/date-input";
@@ -51,6 +51,22 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     const list = locationFilter ? schedules.filter((s) => s.location_id === locationFilter) : schedules;
     return [...list].sort((a, b) => b.week_start_date.localeCompare(a.week_start_date));
   }, [schedules, locationFilter]);
+
+  // IDs of schedules that share location + week with another schedule
+  const conflictIds = useMemo(() => {
+    const seen = new Map<string, string[]>();
+    for (const s of schedules) {
+      const key = `${s.location_id}__${s.week_start_date}`;
+      const group = seen.get(key) ?? [];
+      group.push(s.id);
+      seen.set(key, group);
+    }
+    const result = new Set<string>();
+    Array.from(seen.values()).forEach((ids) => {
+      if (ids.length > 1) ids.forEach((id: string) => result.add(id));
+    });
+    return result;
+  }, [schedules]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -331,6 +347,15 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
                     {s.name}
+                    {conflictIds.has(s.id) && (
+                      <span
+                        title="Another schedule covers the same shop and week — hours may be double-counted in payroll"
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400"
+                      >
+                        <TriangleAlertIcon className="size-3" />
+                        Overlap
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{s.location_name ?? "—"}</td>

@@ -67,6 +67,45 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const supabase = getSupabaseServerClient();
+
+  // When week_start_date changes, remap all existing shifts by the same offset
+  if (updates.week_start_date) {
+    const { data: current } = await supabase
+      .from("schedules")
+      .select("week_start_date")
+      .eq("id", params.id)
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .single();
+
+    if (current && current.week_start_date !== updates.week_start_date) {
+      const offsetDays = Math.round(
+        (new Date(updates.week_start_date as string).getTime() - new Date(current.week_start_date).getTime()) / 86400000
+      );
+      const { data: shifts } = await supabase
+        .from("schedule_shifts")
+        .select("employee_id, shift_date, start_time, end_time, break_minutes, notes")
+        .eq("schedule_id", params.id);
+
+      if (shifts && shifts.length > 0) {
+        const toInsert = shifts.map((s) => {
+          const d = new Date(s.shift_date);
+          d.setUTCDate(d.getUTCDate() + offsetDays);
+          return {
+            schedule_id: params.id,
+            employee_id: s.employee_id,
+            shift_date: d.toISOString().slice(0, 10),
+            start_time: s.start_time,
+            end_time: s.end_time,
+            break_minutes: s.break_minutes,
+            notes: s.notes,
+          };
+        });
+        await supabase.from("schedule_shifts").delete().eq("schedule_id", params.id);
+        await supabase.from("schedule_shifts").insert(toInsert);
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from("schedules")
     .update(updates)
