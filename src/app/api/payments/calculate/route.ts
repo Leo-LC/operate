@@ -52,19 +52,6 @@ export async function POST(request: Request) {
 
   const scheduleIds = (schedData ?? []).map((s) => s.id);
 
-  // Fetch existing payment records to preserve manually-entered deductions
-  const { data: existingPayments } = await supabase
-    .from("employee_payment_records")
-    .select("employee_id, deductions")
-    .eq("organization_id", DEFAULT_ORG_ID)
-    .eq("location_id", location_id)
-    .eq("period_year", period_year)
-    .eq("period_month", period_month);
-
-  const existingDeductionMap = new Map<string, number>(
-    (existingPayments ?? []).map((p) => [p.employee_id, p.deductions ?? 0])
-  );
-
   const [empRes, attRes, settRes, dailyRes, shiftsRes] = await Promise.all([
     supabase
       .from("employees")
@@ -150,10 +137,13 @@ export async function POST(request: Request) {
 
     const baseSalary = (emp.base_salary_monthly as number | null) ?? 0;
     const hourly_rate = baseSalary > 0 ? baseSalary / settings.monthly_hours_divisor : 0;
-    // Use existing deduction if one was manually set in attendance view; otherwise 0
-    const deduction = existingDeductionMap.has(emp.id)
-      ? existingDeductionMap.get(emp.id)!
-      : 0;
+    // Deduction: unpaid leave days × daily rate (base_salary / scheduled working days)
+    const scheduledDays = byDate.size;
+    const daily_rate = scheduledDays > 0 && baseSalary > 0
+      ? baseSalary / scheduledDays
+      : (baseSalary > 0 ? baseSalary / lastDay : 0);
+    const deductibleDays = empRecords.filter((r) => DEDUCTIBLE_TYPES.has(r.record_type)).length;
+    const deduction = Math.round(deductibleDays * daily_rate * 100) / 100;
 
     return {
       employee_id: emp.id,

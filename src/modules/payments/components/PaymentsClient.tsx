@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
-  CheckIcon, BanknoteIcon, BuildingIcon, ClockIcon, CoinsIcon,
+  CheckIcon, BanknoteIcon, BuildingIcon, CoinsIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type PaymentRecord, type PaymentStatus, totalPayment, STATUS_LABELS, STATUS_COLORS } from "@/modules/payments/types";
@@ -31,10 +31,6 @@ interface Props {
 
 function fmtThb(n: number) {
   return `฿${Math.round(n).toLocaleString()}`;
-}
-
-function fmtHours(h: number) {
-  return `${h % 1 === 0 ? h : h.toFixed(1)}h`;
 }
 
 type EditableField =
@@ -295,10 +291,6 @@ export function PaymentsClient({ initialLocations }: Props) {
             <thead className="bg-muted/40">
               <tr>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground sticky left-0 bg-muted/40">Employee</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">
-                  <span className="inline-flex items-center gap-1"><ClockIcon className="size-3" />Hours</span>
-                </th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Base salary</th>
                 <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Deductions</th>
                 <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">OT pay</th>
                 <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">
@@ -314,28 +306,22 @@ export function PaymentsClient({ initialLocations }: Props) {
             <tbody className="divide-y divide-border">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
                     {employees.length === 0
                       ? <><a href="/dashboard/admin/employees" className="underline hover:text-foreground">Add your first employee</a> to start tracking payments.</>
                       : <>No employees assigned to this location. Assign employees, then use <strong>Calculate period</strong> to generate records.</>}
                   </td>
                 </tr>
-              ) : rows.map(({ employee: emp, record, calc }) => {
+              ) : rows.map(({ employee: emp, record }) => {
                 const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
                 const rowBg = isBankTransfer ? "bg-blue-50/40 dark:bg-blue-950/20" : "bg-amber-50/20 dark:bg-amber-950/10";
                 const total = record ? totalPayment(record) : 0;
                 const creditBalance = emp.credit_hours ?? 0;
                 const creditApplied = record?.credit_hours_applied ?? 0;
 
-                // Hours display: use record snapshot if available, else calc result
-                const scheduledH = record?.scheduled_hours ?? calc?.scheduled_hours ?? null;
-                const missedH = record?.missed_hours ?? calc?.missed_hours ?? null;
-                const workedH = scheduledH != null && missedH != null ? scheduledH - missedH : null;
-                const hourlyRate = record?.hourly_rate_snapshot ?? calc?.hourly_rate_snapshot ?? null;
-
                 return (
                   <tr key={emp.id} className={`transition-colors ${rowBg} hover:brightness-[0.97]`}>
-                    {/* Employee name + credit badge */}
+                    {/* Employee name + salary + credit badge */}
                     <td className={`px-4 py-2.5 font-medium sticky left-0 ${rowBg}`}>
                       <div className="flex flex-col gap-0.5">
                         <span>
@@ -344,41 +330,23 @@ export function PaymentsClient({ initialLocations }: Props) {
                             <span className="ml-1.5 text-[10px] text-amber-600">no salary set</span>
                           )}
                         </span>
+                        {emp.base_salary_monthly ? (
+                          <span className="text-[10px] font-normal text-muted-foreground">
+                            {fmtThb(emp.base_salary_monthly)}/mo
+                          </span>
+                        ) : null}
                         {creditBalance !== 0 && (
                           <span className={`text-[10px] font-normal ${creditBalance > 0 ? "text-orange-600 dark:text-orange-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                             {creditBalance > 0
-                              ? `${fmtHours(creditBalance)} owed back`
-                              : `${fmtHours(Math.abs(creditBalance))} carry credit`}
+                              ? `${creditBalance}h owed back`
+                              : `${Math.abs(creditBalance)}h carry credit`}
                             {emp.credit_note ? ` · ${emp.credit_note}` : ""}
                           </span>
                         )}
                       </div>
                     </td>
 
-                    {/* Hours worked / scheduled */}
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {workedH != null ? (
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className={missedH && missedH > 0 ? "text-amber-600 dark:text-amber-400" : ""}>
-                            {fmtHours(workedH)} / {fmtHours(scheduledH!)}
-                          </span>
-                          {missedH && missedH > 0 && hourlyRate && (
-                            <span className="text-[10px] text-muted-foreground">
-                              −{fmtHours(missedH)} @ {fmtThb(hourlyRate)}/h
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground/60">—</span>
-                      )}
-                    </td>
-
-                    {/* Base salary */}
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? fmtThb(record.base_salary) : <span className="text-muted-foreground/60">—</span>}
-                    </td>
-
-                    {/* Deductions — editable, shows calculated vs overridden */}
+                    {/* Deductions — editable */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
                       {record ? (
                         <div className="flex flex-col items-end gap-0.5">
@@ -391,7 +359,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                           />
                           {creditApplied > 0 && (
                             <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                              −{fmtHours(creditApplied)} credit applied
+                              −{creditApplied}h credit applied
                             </span>
                           )}
                         </div>
@@ -513,8 +481,6 @@ export function PaymentsClient({ initialLocations }: Props) {
               <tfoot className="border-t-2 border-border bg-muted/20">
                 <tr className="font-semibold">
                   <td className="px-4 py-2.5 text-xs sticky left-0 bg-muted/20">Total</td>
-                  <td className="px-4 py-2.5" />
-                  <td className="px-4 py-2.5 text-right text-xs tabular-nums">{fmtThb(totals.base)}</td>
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums text-destructive">{totals.deductions > 0 ? fmtThb(totals.deductions) : "—"}</td>
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.ot > 0 ? fmtThb(totals.ot) : "—"}</td>
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.sc > 0 ? fmtThb(totals.sc) : "—"}</td>
@@ -530,8 +496,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
       <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
         <p>Blue rows = bank transfer · Amber rows = cash</p>
-        <p>Hours column: worked / scheduled — click <strong>Deductions</strong> to override. Service charge = 1% of location net revenue per employee (click to override).</p>
-        <p>Credit balance shown in orange under employee name = hours owed back · green = employer owes carry hours (applied next month).</p>
+        <p>Click <strong>Calculate period</strong> to pull OT and deductions from Attendance. Click any amount to override. Service charge = 1% of location net revenue per employee.</p>
       </div>
     </div>
   );
