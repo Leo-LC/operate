@@ -53,7 +53,7 @@ export default async function AttendancePage() {
 
   return (
     <div className="rounded-lg border border-border bg-card p-6">
-      <AttendanceClient initialLocations={locations} />
+      <AttendanceClient initialLocations={locations} isOwner={isOwner} />
     </div>
   );
 }
