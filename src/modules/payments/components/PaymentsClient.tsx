@@ -322,12 +322,10 @@ export function PaymentsClient({ initialLocations }: Props) {
                               onChange={(e) => setEditValue(e.target.value)}
                               onBlur={() => void patchRecord(record.id, {
                                 service_charge: parseFloat(editValue) || 0,
-                                service_charge_is_manual: true,
                               })}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") void patchRecord(record.id, {
                                   service_charge: parseFloat(editValue) || 0,
-                                  service_charge_is_manual: true,
                                 });
                                 if (e.key === "Escape") cancelEdit();
                               }}
@@ -342,9 +340,6 @@ export function PaymentsClient({ initialLocations }: Props) {
                                 ? fmtThb(record.service_charge)
                                 : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
                             </span>
-                          )}
-                          {record.service_charge_is_manual && (
-                            <span className="text-[10px] text-amber-600 dark:text-amber-400">manual</span>
                           )}
                         </div>
                       ) : <span className="text-muted-foreground/60">—</span>}

@@ -8,17 +8,12 @@ export interface PaymentRecord {
   employee_id: string;
   period_year: number;
   period_month: number;
-  // Calculation snapshot
-  scheduled_hours: number;
-  missed_hours: number;
-  hourly_rate_snapshot: number;
   // Payment amounts
   base_salary: number;
   deductions: number;
   deduction_note: string | null;
   overtime_pay: number;
   service_charge: number;
-  service_charge_is_manual: boolean;
   bonus_amount: number;
   bonus_note: string | null;
   // Admin

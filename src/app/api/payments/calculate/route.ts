@@ -3,11 +3,9 @@
  * POST body: { period_year, period_month, location_id }
  *
  * Calculation logic:
- * - scheduled_hours: sum of all shift hours in the calendar month (from published schedules)
- * - missed_hours: sum of shift hours for dates with absence/sick_leave/unpaid_leave records
- * - deductions: missed_hours × hourly_rate (paid_leave and public_holiday are not deducted)
+ * - deductions: unpaid_leave_days × (base_salary / scheduled_working_days)
  * - service_charge: total_net_revenue × 0.01 per employee individually
- * - overtime_pay: OT attendance records × hourly_rate × multiplier
+ * - overtime_pay: OT attendance records × hourly_rate × 1.5
  */
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -138,15 +136,8 @@ export async function POST(request: Request) {
     );
 
     const byDate = shiftsByEmployee.get(emp.id) ?? new Map<string, number>();
-    const scheduled_hours = Array.from(byDate.values()).reduce((a, b) => a + b, 0);
-
-    // Sum hours for dates with deductible attendance records
-    const missed_hours = empRecords
-      .filter((r) => DEDUCTIBLE_TYPES.has(r.record_type))
-      .reduce((sum, r) => sum + (byDate.get(r.record_date) ?? 0), 0);
 
     const baseSalary = (emp.base_salary_monthly as number | null) ?? 0;
-    const hourly_rate = baseSalary > 0 ? baseSalary / settings.monthly_hours_divisor : 0;
     // Deduction: unpaid leave days × daily rate (base_salary / scheduled working days)
     const scheduledDays = byDate.size;
     const daily_rate = scheduledDays > 0 && baseSalary > 0
@@ -159,11 +150,7 @@ export async function POST(request: Request) {
 
     return {
       employee_id: emp.id,
-      employee_name: summary.employee_name,
       base_salary: baseSalary,
-      scheduled_hours: Math.round(scheduled_hours * 100) / 100,
-      missed_hours: Math.round(missed_hours * 100) / 100,
-      hourly_rate_snapshot: Math.round(hourly_rate * 100) / 100,
       deductions: deduction,
       overtime_pay: Math.round(summary.ot_pay * 100) / 100,
       service_charge: Math.round(serviceChargePerEmployee * 100) / 100,
@@ -180,15 +167,11 @@ export async function POST(request: Request) {
       employee_id:     c.employee_id,
       period_year,
       period_month,
-      scheduled_hours:       c.scheduled_hours,
-      missed_hours:          c.missed_hours,
-      hourly_rate_snapshot:  c.hourly_rate_snapshot,
       base_salary:           c.base_salary,
       deductions:            c.deductions,
       deduction_note:        existing?.deduction_note ?? null,
       overtime_pay:          c.overtime_pay,
-      service_charge:        existing?.service_charge_is_manual ? existing.service_charge : c.service_charge,
-      service_charge_is_manual: existing?.service_charge_is_manual ?? false,
+      service_charge:        c.service_charge,
       bonus_amount:          existing?.bonus_amount ?? 0,
       bonus_note:            existing?.bonus_note ?? null,
       payment_method:        c.payment_method,
