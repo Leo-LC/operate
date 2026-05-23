@@ -88,7 +88,6 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     work_permit_expires_at: null,
     base_salary_monthly: null,
     has_thai_bank_account: false,
-    credit_hours: 0,
     credit_note: null,
     archived_at: null,
     user_id: e.user_id ?? null,

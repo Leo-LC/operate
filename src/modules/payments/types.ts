@@ -21,7 +21,6 @@ export interface PaymentRecord {
   service_charge_is_manual: boolean;
   bonus_amount: number;
   bonus_note: string | null;
-  credit_hours_applied: number;
   // Admin
   payment_method: PaymentMethod;
   status: PaymentStatus;

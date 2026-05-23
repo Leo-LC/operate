@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   const [empRes, attRes, settRes, dailyRes, shiftsRes] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, credit_hours, credit_note, location_id, employee_locations(location_id)")
+      .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, credit_note, location_id, employee_locations(location_id)")
       .eq("organization_id", DEFAULT_ORG_ID)
       .is("archived_at", null)
       .is("deleted_at", null),
@@ -152,7 +152,9 @@ export async function POST(request: Request) {
     const daily_rate = scheduledDays > 0 && baseSalary > 0
       ? baseSalary / scheduledDays
       : (baseSalary > 0 ? baseSalary / lastDay : 0);
-    const deductibleDays = empRecords.filter((r) => DEDUCTIBLE_TYPES.has(r.record_type)).length;
+    const deductibleDays = empRecords
+      .filter((r) => DEDUCTIBLE_TYPES.has(r.record_type))
+      .reduce((sum, r) => sum + ((r as unknown as { hours?: number | null }).hours ?? 1), 0);
     const deduction = Math.round(deductibleDays * daily_rate * 100) / 100;
 
     return {
@@ -166,8 +168,6 @@ export async function POST(request: Request) {
       overtime_pay: Math.round(summary.ot_pay * 100) / 100,
       service_charge: Math.round(serviceChargePerEmployee * 100) / 100,
       payment_method: (emp.has_thai_bank_account as boolean) ? "bank_transfer" : "cash",
-      credit_hours_balance: (emp.credit_hours as number) ?? 0,
-      credit_note: (emp.credit_note as string | null) ?? null,
     };
   });
 
@@ -191,7 +191,6 @@ export async function POST(request: Request) {
       service_charge_is_manual: existing?.service_charge_is_manual ?? false,
       bonus_amount:          existing?.bonus_amount ?? 0,
       bonus_note:            existing?.bonus_note ?? null,
-      credit_hours_applied:  existing?.credit_hours_applied ?? 0,
       payment_method:        c.payment_method,
       status:                existing?.status ?? "draft",
       notes:                 existing?.notes ?? null,

@@ -23,7 +23,6 @@ type EditableField =
   | "deductions" | "deduction_note"
   | "overtime_pay"
   | "service_charge"
-  | "credit_hours_applied"
   | "notes";
 
 export function PaymentsClient({ initialLocations }: Props) {
@@ -261,8 +260,6 @@ export function PaymentsClient({ initialLocations }: Props) {
                 const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
                 const rowBg = isBankTransfer ? "bg-blue-50/40 dark:bg-blue-950/20" : "bg-amber-50/20 dark:bg-amber-950/10";
                 const total = record ? totalPayment(record) : 0;
-                const creditBalance = emp.credit_hours ?? 0;
-                const creditApplied = record?.credit_hours_applied ?? 0;
 
                 return (
                   <tr key={emp.id} className={`transition-colors ${rowBg} hover:brightness-[0.97]`}>
@@ -280,13 +277,8 @@ export function PaymentsClient({ initialLocations }: Props) {
                             {fmtThb(emp.base_salary_monthly)}/mo
                           </span>
                         ) : null}
-                        {creditBalance !== 0 && (
-                          <span className={`text-[10px] font-normal ${creditBalance > 0 ? "text-orange-600 dark:text-orange-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                            {creditBalance > 0
-                              ? `${creditBalance}h owed back`
-                              : `${Math.abs(creditBalance)}h carry credit`}
-                            {emp.credit_note ? ` · ${emp.credit_note}` : ""}
-                          </span>
+                        {emp.credit_note && (
+                          <span className="text-[10px] font-normal text-muted-foreground">{emp.credit_note}</span>
                         )}
                       </div>
                     </td>
@@ -302,11 +294,6 @@ export function PaymentsClient({ initialLocations }: Props) {
                             color="text-destructive"
                             emptyLabel="+ add"
                           />
-                          {creditApplied > 0 && (
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                              −{creditApplied}h credit applied
-                            </span>
-                          )}
                         </div>
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </td>

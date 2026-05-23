@@ -28,7 +28,6 @@ function empToForm(emp: Employee): FormState {
     notes: emp.notes ?? "",
     base_salary_monthly: emp.base_salary_monthly != null ? String(emp.base_salary_monthly) : "",
     has_thai_bank_account: emp.has_thai_bank_account ?? false,
-    credit_hours: String(emp.credit_hours ?? 0),
     credit_note: emp.credit_note ?? "",
   };
 }
@@ -134,7 +133,6 @@ export function EmployeesListClient({ locations }: Props) {
           notes: form.notes || undefined,
           base_salary_monthly: form.base_salary_monthly ? parseFloat(form.base_salary_monthly) : undefined,
           has_thai_bank_account: form.has_thai_bank_account,
-          credit_hours: parseFloat(form.credit_hours) || 0,
           credit_note: form.credit_note || undefined,
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
@@ -175,7 +173,6 @@ export function EmployeesListClient({ locations }: Props) {
           notes: editForm.notes || null,
           base_salary_monthly: editForm.base_salary_monthly ? parseFloat(editForm.base_salary_monthly) : null,
           has_thai_bank_account: editForm.has_thai_bank_account,
-          credit_hours: parseFloat(editForm.credit_hours) || 0,
           credit_note: editForm.credit_note || null,
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,

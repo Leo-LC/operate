@@ -66,13 +66,11 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
   const [settingsForm, setSettingsForm] = useState<HrSettings>(DEFAULT_HR_SETTINGS);
   const [settingsSaving, setSettingsSaving] = useState(false);
 
-  // Summary inline quick-add (OT or leave)
-  const [summaryEdit, setSummaryEdit] = useState<{
-    empId: string; type: "ot" | "leave";
-  } | null>(null);
-  const [summaryHours, setSummaryHours] = useState("1");
-  const [summaryNote, setSummaryNote] = useState("");
-  const [summaryDate, setSummaryDate] = useState("");
+  // Summary inline SET-TOTAL inputs
+  const [summaryOtEditId, setSummaryOtEditId] = useState<string | null>(null);
+  const [summaryOtValue, setSummaryOtValue] = useState("");
+  const [summaryLeaveEditId, setSummaryLeaveEditId] = useState<string | null>(null);
+  const [summaryLeaveValue, setSummaryLeaveValue] = useState("");
   const [summarySaving, setSummarySaving] = useState(false);
 
   // Cell modal
@@ -169,7 +167,9 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
           if (schedMap.get(schedKey(emp.id, dateStr)) === "work") scheduledDays++;
         }
         const totalOtHours = sm.ot_weekday_hours + sm.ot_weekend_hours + sm.ot_holiday_hours;
-        const totalUnpaidDays = sm.absence_days + sm.sick_leave_days + sm.unpaid_leave_days;
+        const totalUnpaidDays = records
+          .filter((r) => r.employee_id === emp.id && DEDUCTIBLE.has(r.record_type))
+          .reduce((sum, r) => sum + (r.hours ?? 1), 0);
         const baseSalary = emp.base_salary_monthly ?? 0;
         const dailyRate = scheduledDays > 0 && baseSalary > 0
           ? baseSalary / scheduledDays
@@ -257,46 +257,69 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
     }
   }
 
-  function openSummaryEdit(empId: string, type: "ot" | "leave") {
-    // Default date: today if in current month, else last day of the displayed month
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
-    const defaultDate = isCurrentMonth
-      ? today.toISOString().slice(0, 10)
-      : `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
-    setSummaryEdit({ empId, type });
-    setSummaryHours("1");
-    setSummaryNote("");
-    setSummaryDate(defaultDate);
+  async function saveSummaryOt(empId: string) {
+    const newHours = parseFloat(summaryOtValue);
+    if (isNaN(newHours) || newHours < 0) return;
+    setSummarySaving(true);
+    const lastDate = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+    try {
+      const otRecords = records.filter(
+        (r) => r.employee_id === empId && OT_TYPES.includes(r.record_type),
+      );
+      await Promise.all(otRecords.map((r) => fetch(`/api/attendance/${r.id}`, { method: "DELETE" })));
+      setRecords((prev) => prev.filter((r) => !(r.employee_id === empId && OT_TYPES.includes(r.record_type))));
+      if (newHours > 0) {
+        const res = await fetch("/api/attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location_id: locationId,
+            employee_id: empId,
+            record_date: lastDate,
+            record_type: "overtime_weekday",
+            hours: newHours,
+          }),
+        });
+        if (!res.ok) { toast.error("Failed to save OT"); return; }
+        const created = (await res.json()) as AttendanceRecord;
+        setRecords((prev) => [...prev, created]);
+      }
+      toast.success("Saved");
+      setSummaryOtEditId(null);
+    } finally {
+      setSummarySaving(false);
+    }
   }
 
-  async function saveSummaryEdit() {
-    if (!summaryEdit || !summaryDate) return;
+  async function saveSummaryLeave(empId: string) {
+    const newDays = parseFloat(summaryLeaveValue);
+    if (isNaN(newDays) || newDays < 0) return;
     setSummarySaving(true);
+    const lastDate = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
     try {
-      const recordType = summaryEdit.type === "ot" ? "overtime_weekday" : "unpaid_leave";
-      const isOt = summaryEdit.type === "ot";
-      const res = await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          location_id: locationId,
-          employee_id: summaryEdit.empId,
-          record_date: summaryDate,
-          record_type: recordType,
-          hours: isOt ? parseFloat(summaryHours) || 1 : undefined,
-          note: summaryNote.trim() || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        toast.error(err.error ?? "Failed to save");
-        return;
+      const leaveRecords = records.filter(
+        (r) => r.employee_id === empId && DEDUCTIBLE.has(r.record_type),
+      );
+      await Promise.all(leaveRecords.map((r) => fetch(`/api/attendance/${r.id}`, { method: "DELETE" })));
+      setRecords((prev) => prev.filter((r) => !(r.employee_id === empId && DEDUCTIBLE.has(r.record_type))));
+      if (newDays > 0) {
+        const res = await fetch("/api/attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location_id: locationId,
+            employee_id: empId,
+            record_date: lastDate,
+            record_type: "unpaid_leave",
+            hours: newDays,
+          }),
+        });
+        if (!res.ok) { toast.error("Failed to save leave"); return; }
+        const created = (await res.json()) as AttendanceRecord;
+        setRecords((prev) => [...prev, created]);
       }
-      const created = (await res.json()) as AttendanceRecord;
-      setRecords((prev) => [...prev, created]);
       toast.success("Saved");
-      setSummaryEdit(null);
+      setSummaryLeaveEditId(null);
     } finally {
       setSummarySaving(false);
     }
@@ -572,30 +595,66 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           ? `${sm.scheduledDays}d`
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-center text-xs tabular-nums">
-                        <button
-                          type="button"
-                          className={`hover:underline transition-colors ${sm.totalOtHours > 0 ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground/40"}`}
-                          onClick={() => openSummaryEdit(sm.employee_id, "ot")}
-                          title="Add OT hours"
-                        >
-                          {sm.totalOtHours > 0 ? `${sm.totalOtHours}h +` : "+ add"}
-                        </button>
+                      <td className="px-3 py-2 text-center text-xs tabular-nums">
+                        {summaryOtEditId === sm.employee_id ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <input
+                              type="number" min="0" step="0.5" autoFocus
+                              value={summaryOtValue}
+                              onChange={(e) => setSummaryOtValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void saveSummaryOt(sm.employee_id);
+                                if (e.key === "Escape") setSummaryOtEditId(null);
+                              }}
+                              className="h-6 w-16 rounded border border-input bg-background px-1.5 text-xs text-center"
+                              disabled={summarySaving}
+                            />
+                            <button type="button" className="text-emerald-600 hover:text-emerald-700 text-xs font-medium" onClick={() => void saveSummaryOt(sm.employee_id)} disabled={summarySaving}>✓</button>
+                            <button type="button" className="text-muted-foreground hover:text-foreground text-xs" onClick={() => setSummaryOtEditId(null)}>✕</button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className={`hover:underline transition-colors ${sm.totalOtHours > 0 ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground/40"}`}
+                            onClick={() => { setSummaryOtEditId(sm.employee_id); setSummaryOtValue(String(sm.totalOtHours || "")); }}
+                            title="Set OT hours total"
+                          >
+                            {sm.totalOtHours > 0 ? `${sm.totalOtHours}h` : "—"}
+                          </button>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs tabular-nums">
                         {sm.ot_pay > 0
                           ? <span className="text-blue-600 dark:text-blue-400 font-medium">{fmtThb(sm.ot_pay)}</span>
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-center text-xs tabular-nums">
-                        <button
-                          type="button"
-                          className={`hover:underline transition-colors ${sm.totalUnpaidDays > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground/40"}`}
-                          onClick={() => openSummaryEdit(sm.employee_id, "leave")}
-                          title="Add unpaid leave"
-                        >
-                          {sm.totalUnpaidDays > 0 ? `${sm.totalUnpaidDays}d +` : "+ add"}
-                        </button>
+                      <td className="px-3 py-2 text-center text-xs tabular-nums">
+                        {summaryLeaveEditId === sm.employee_id ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <input
+                              type="number" min="0" step="0.5" autoFocus
+                              value={summaryLeaveValue}
+                              onChange={(e) => setSummaryLeaveValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void saveSummaryLeave(sm.employee_id);
+                                if (e.key === "Escape") setSummaryLeaveEditId(null);
+                              }}
+                              className="h-6 w-16 rounded border border-input bg-background px-1.5 text-xs text-center"
+                              disabled={summarySaving}
+                            />
+                            <button type="button" className="text-emerald-600 hover:text-emerald-700 text-xs font-medium" onClick={() => void saveSummaryLeave(sm.employee_id)} disabled={summarySaving}>✓</button>
+                            <button type="button" className="text-muted-foreground hover:text-foreground text-xs" onClick={() => setSummaryLeaveEditId(null)}>✕</button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className={`hover:underline transition-colors ${sm.totalUnpaidDays > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground/40"}`}
+                            onClick={() => { setSummaryLeaveEditId(sm.employee_id); setSummaryLeaveValue(String(sm.totalUnpaidDays || "")); }}
+                            title="Set unpaid leave days total"
+                          >
+                            {sm.totalUnpaidDays > 0 ? `${sm.totalUnpaidDays}d` : "—"}
+                          </button>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs tabular-nums">
                         {sm.deduction > 0
@@ -654,63 +713,6 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
             </p>
           </div>
         </>
-      )}
-
-      {/* Summary quick-add modal */}
-      {summaryEdit && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setSummaryEdit(null); }}
-        >
-          <div className="w-full max-w-xs rounded-xl border border-border bg-card shadow-xl mx-4">
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <p className="font-semibold text-sm">
-                {summaryEdit.type === "ot" ? "Add overtime hours" : "Add unpaid leave day"}
-              </p>
-              <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setSummaryEdit(null)}>
-                <XIcon className="size-4" />
-              </button>
-            </div>
-            <div className="p-4 flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Date</label>
-                <input
-                  type="date"
-                  value={summaryDate}
-                  onChange={(e) => setSummaryDate(e.target.value)}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                />
-              </div>
-              {summaryEdit.type === "ot" && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Hours</label>
-                  <input
-                    type="number" min="0.5" max="24" step="0.5"
-                    value={summaryHours}
-                    onChange={(e) => setSummaryHours(e.target.value)}
-                    className="h-9 w-28 rounded-md border border-input bg-background px-3 text-sm"
-                  />
-                </div>
-              )}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
-                <input
-                  type="text"
-                  value={summaryNote}
-                  onChange={(e) => setSummaryNote(e.target.value)}
-                  placeholder="e.g. Extra shift"
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" className="flex-1" disabled={summarySaving || !summaryDate} onClick={() => void saveSummaryEdit()}>
-                  {summarySaving ? <><Loader2Icon className="size-3.5 animate-spin mr-1.5" />Saving…</> : "Save"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setSummaryEdit(null)}>Cancel</Button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Cell modal */}

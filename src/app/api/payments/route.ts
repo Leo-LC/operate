@@ -54,7 +54,6 @@ export async function POST(request: Request) {
     service_charge_is_manual?: boolean;
     bonus_amount?: number;
     bonus_note?: string;
-    credit_hours_applied?: number;
     payment_method?: string;
     status?: string;
     notes?: string;
@@ -84,7 +83,6 @@ export async function POST(request: Request) {
     service_charge_is_manual: body.service_charge_is_manual ?? false,
     bonus_amount: body.bonus_amount ?? 0,
     bonus_note: body.bonus_note ?? null,
-    credit_hours_applied: body.credit_hours_applied ?? 0,
     payment_method: body.payment_method ?? "cash",
     status: body.status ?? "draft",
     notes: body.notes ?? null,
