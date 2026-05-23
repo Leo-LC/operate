@@ -78,9 +78,9 @@ export function EmployeeForm({
             />
           </div>
           <div className="flex flex-col gap-1 min-w-[130px]">
-            <label className="text-xs font-medium text-muted-foreground">Last name <span className="text-destructive">*</span></label>
+            <label className="text-xs font-medium text-muted-foreground">Last name</label>
             <input
-              type="text" required value={form.last_name}
+              type="text" value={form.last_name}
               onChange={(e) => onChange("last_name", e.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               placeholder="Last name"
