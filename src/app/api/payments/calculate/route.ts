@@ -42,6 +42,16 @@ export async function POST(request: Request) {
   const fromDate = `${period_year}-${monthPad}-01`;
   const toDate   = `${period_year}-${monthPad}-${String(lastDay).padStart(2, "0")}`;
 
+  // Step 1: get valid schedule IDs for this location first (avoids dot-notation filter ambiguity)
+  const { data: schedData } = await supabase
+    .from("schedules")
+    .select("id")
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .eq("location_id", location_id)
+    .is("deleted_at", null);
+
+  const scheduleIds = (schedData ?? []).map((s) => s.id);
+
   const [empRes, attRes, settRes, dailyRes, shiftsRes] = await Promise.all([
     supabase
       .from("employees")
@@ -69,15 +79,16 @@ export async function POST(request: Request) {
       .eq("location_id", location_id)
       .gte("entry_date", fromDate)
       .lte("entry_date", toDate),
-    // Fetch all schedule_shifts for the month via published schedules at this location
-    supabase
-      .from("schedule_shifts")
-      .select("employee_id, shift_date, start_time, end_time, break_minutes, schedule_id, schedules!inner(location_id, deleted_at)")
-      .eq("schedules.location_id", location_id)
-      .is("schedules.deleted_at", null)
-      .gte("shift_date", fromDate)
-      .lte("shift_date", toDate)
-      .not("start_time", "is", null),
+    // Step 2: shifts from valid schedules only (no cross-location contamination)
+    scheduleIds.length > 0
+      ? supabase
+          .from("schedule_shifts")
+          .select("employee_id, shift_date, start_time, end_time, break_minutes")
+          .in("schedule_id", scheduleIds)
+          .gte("shift_date", fromDate)
+          .lte("shift_date", toDate)
+          .not("start_time", "is", null)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const settings: HrSettings = settRes.data ?? DEFAULT_HR_SETTINGS;

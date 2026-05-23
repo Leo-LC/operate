@@ -30,12 +30,24 @@ export async function GET(request: Request) {
   const toDate   = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   const supabase = getSupabaseServerClient();
+
+  // Step 1: get valid schedule IDs for this location (avoids dot-notation filter ambiguity)
+  const { data: schedData, error: schedErr } = await supabase
+    .from("schedules")
+    .select("id")
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .eq("location_id", locationId)
+    .is("deleted_at", null);
+
+  if (schedErr) return Response.json({ error: schedErr.message }, { status: 500 });
+  const scheduleIds = (schedData ?? []).map((s) => s.id);
+  if (scheduleIds.length === 0) return Response.json([]);
+
+  // Step 2: fetch shifts within the month for those schedules
   const { data, error } = await supabase
     .from("schedule_shifts")
-    .select("employee_id, shift_date, start_time, end_time, break_minutes, schedules!inner(location_id, deleted_at)")
-    .eq("schedules.location_id", locationId)
-    .is("schedules.deleted_at", null)
-    .eq("organization_id", DEFAULT_ORG_ID)
+    .select("employee_id, shift_date, start_time, end_time, break_minutes")
+    .in("schedule_id", scheduleIds)
     .gte("shift_date", fromDate)
     .lte("shift_date", toDate)
     .not("start_time", "is", null);
