@@ -115,6 +115,16 @@ export async function POST(request: Request) {
     byDate.set(s.shift_date as string, (byDate.get(s.shift_date as string) ?? 0) + h);
   }
 
+  // Fetch existing payment records to preserve manually-overridden fields
+  const { data: existingRecords } = await supabase
+    .from("employee_payment_records")
+    .select("*")
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .eq("location_id", location_id)
+    .eq("period_year", period_year)
+    .eq("period_month", period_month);
+  const existingMap = new Map((existingRecords ?? []).map((r) => [r.employee_id as string, r]));
+
   const results = locationEmployees.map((emp) => {
     const empAttendance = (attRes.data ?? []) as AttendanceRecord[];
     const empRecords = empAttendance.filter((r) => r.employee_id === emp.id);
@@ -161,5 +171,40 @@ export async function POST(request: Request) {
     };
   });
 
-  return Response.json(results);
+  // Upsert all payment records server-side so the client gets the saved state back
+  const upsertRows = results.map((c) => {
+    const existing = existingMap.get(c.employee_id);
+    return {
+      organization_id: DEFAULT_ORG_ID,
+      location_id:     location_id,
+      employee_id:     c.employee_id,
+      period_year,
+      period_month,
+      scheduled_hours:       c.scheduled_hours,
+      missed_hours:          c.missed_hours,
+      hourly_rate_snapshot:  c.hourly_rate_snapshot,
+      base_salary:           c.base_salary,
+      deductions:            c.deductions,
+      deduction_note:        existing?.deduction_note ?? null,
+      overtime_pay:          c.overtime_pay,
+      service_charge:        existing?.service_charge_is_manual ? existing.service_charge : c.service_charge,
+      service_charge_is_manual: existing?.service_charge_is_manual ?? false,
+      bonus_amount:          existing?.bonus_amount ?? 0,
+      bonus_note:            existing?.bonus_note ?? null,
+      credit_hours_applied:  existing?.credit_hours_applied ?? 0,
+      payment_method:        c.payment_method,
+      status:                existing?.status ?? "draft",
+      notes:                 existing?.notes ?? null,
+      created_by:            session.user.userId ?? null,
+      updated_at:            new Date().toISOString(),
+    };
+  });
+
+  const { data: saved, error: upsertErr } = await supabase
+    .from("employee_payment_records")
+    .upsert(upsertRows, { onConflict: "employee_id,period_year,period_month" })
+    .select();
+
+  if (upsertErr) return Response.json({ error: upsertErr.message }, { status: 500 });
+  return Response.json(saved ?? []);
 }

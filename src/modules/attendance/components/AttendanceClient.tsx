@@ -66,6 +66,15 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
   const [settingsForm, setSettingsForm] = useState<HrSettings>(DEFAULT_HR_SETTINGS);
   const [settingsSaving, setSettingsSaving] = useState(false);
 
+  // Summary inline quick-add (OT or leave)
+  const [summaryEdit, setSummaryEdit] = useState<{
+    empId: string; type: "ot" | "leave";
+  } | null>(null);
+  const [summaryHours, setSummaryHours] = useState("1");
+  const [summaryNote, setSummaryNote] = useState("");
+  const [summaryDate, setSummaryDate] = useState("");
+  const [summarySaving, setSummarySaving] = useState(false);
+
   // Cell modal
   const [modal, setModal] = useState<{ empId: string; date: string; emp: Employee } | null>(null);
   const [modalType, setModalType] = useState<"none" | RecordType>("none");
@@ -245,6 +254,51 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
       setModal(null);
     } finally {
       setModalSaving(false);
+    }
+  }
+
+  function openSummaryEdit(empId: string, type: "ot" | "leave") {
+    // Default date: today if in current month, else last day of the displayed month
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+    const defaultDate = isCurrentMonth
+      ? today.toISOString().slice(0, 10)
+      : `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+    setSummaryEdit({ empId, type });
+    setSummaryHours("1");
+    setSummaryNote("");
+    setSummaryDate(defaultDate);
+  }
+
+  async function saveSummaryEdit() {
+    if (!summaryEdit || !summaryDate) return;
+    setSummarySaving(true);
+    try {
+      const recordType = summaryEdit.type === "ot" ? "overtime_weekday" : "unpaid_leave";
+      const isOt = summaryEdit.type === "ot";
+      const res = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location_id: locationId,
+          employee_id: summaryEdit.empId,
+          record_date: summaryDate,
+          record_type: recordType,
+          hours: isOt ? parseFloat(summaryHours) || 1 : undefined,
+          note: summaryNote.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(err.error ?? "Failed to save");
+        return;
+      }
+      const created = (await res.json()) as AttendanceRecord;
+      setRecords((prev) => [...prev, created]);
+      toast.success("Saved");
+      setSummaryEdit(null);
+    } finally {
+      setSummarySaving(false);
     }
   }
 
@@ -519,9 +573,14 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="px-3 py-2.5 text-center text-xs tabular-nums">
-                        {sm.totalOtHours > 0
-                          ? <span className="text-blue-600 dark:text-blue-400">{sm.totalOtHours}h</span>
-                          : <span className="text-muted-foreground/40">—</span>}
+                        <button
+                          type="button"
+                          className={`hover:underline transition-colors ${sm.totalOtHours > 0 ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground/40"}`}
+                          onClick={() => openSummaryEdit(sm.employee_id, "ot")}
+                          title="Add OT hours"
+                        >
+                          {sm.totalOtHours > 0 ? `${sm.totalOtHours}h +` : "+ add"}
+                        </button>
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs tabular-nums">
                         {sm.ot_pay > 0
@@ -529,9 +588,14 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="px-3 py-2.5 text-center text-xs tabular-nums">
-                        {sm.totalUnpaidDays > 0
-                          ? <span className="text-orange-600 dark:text-orange-400">{sm.totalUnpaidDays}d</span>
-                          : <span className="text-muted-foreground/40">—</span>}
+                        <button
+                          type="button"
+                          className={`hover:underline transition-colors ${sm.totalUnpaidDays > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground/40"}`}
+                          onClick={() => openSummaryEdit(sm.employee_id, "leave")}
+                          title="Add unpaid leave"
+                        >
+                          {sm.totalUnpaidDays > 0 ? `${sm.totalUnpaidDays}d +` : "+ add"}
+                        </button>
                       </td>
                       <td className="px-3 py-2.5 text-right text-xs tabular-nums">
                         {sm.deduction > 0
@@ -590,6 +654,63 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
             </p>
           </div>
         </>
+      )}
+
+      {/* Summary quick-add modal */}
+      {summaryEdit && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setSummaryEdit(null); }}
+        >
+          <div className="w-full max-w-xs rounded-xl border border-border bg-card shadow-xl mx-4">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <p className="font-semibold text-sm">
+                {summaryEdit.type === "ot" ? "Add overtime hours" : "Add unpaid leave day"}
+              </p>
+              <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setSummaryEdit(null)}>
+                <XIcon className="size-4" />
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Date</label>
+                <input
+                  type="date"
+                  value={summaryDate}
+                  onChange={(e) => setSummaryDate(e.target.value)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              {summaryEdit.type === "ot" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Hours</label>
+                  <input
+                    type="number" min="0.5" max="24" step="0.5"
+                    value={summaryHours}
+                    onChange={(e) => setSummaryHours(e.target.value)}
+                    className="h-9 w-28 rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                </div>
+              )}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
+                <input
+                  type="text"
+                  value={summaryNote}
+                  onChange={(e) => setSummaryNote(e.target.value)}
+                  placeholder="e.g. Extra shift"
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" className="flex-1" disabled={summarySaving || !summaryDate} onClick={() => void saveSummaryEdit()}>
+                  {summarySaving ? <><Loader2Icon className="size-3.5 animate-spin mr-1.5" />Saving…</> : "Save"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSummaryEdit(null)}>Cancel</Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Cell modal */}

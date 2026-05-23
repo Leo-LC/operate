@@ -10,21 +10,6 @@ import { Button } from "@/components/ui/button";
 import { type PaymentRecord, type PaymentStatus, totalPayment, STATUS_LABELS, STATUS_COLORS } from "@/modules/payments/types";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 
-interface CalcResult {
-  employee_id: string;
-  employee_name: string;
-  base_salary: number;
-  scheduled_hours: number;
-  missed_hours: number;
-  hourly_rate_snapshot: number;
-  deductions: number;
-  overtime_pay: number;
-  service_charge: number;
-  payment_method: "bank_transfer" | "cash";
-  credit_hours_balance: number;
-  credit_note: string | null;
-}
-
 interface Props {
   initialLocations: AdminLocation[];
 }
@@ -36,6 +21,7 @@ function fmtThb(n: number) {
 type EditableField =
   | "bonus_amount" | "bonus_note"
   | "deductions" | "deduction_note"
+  | "overtime_pay"
   | "service_charge"
   | "credit_hours_applied"
   | "notes";
@@ -50,9 +36,6 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
-
-  // Cache the last CalcResult per employee for showing calculated vs overridden values
-  const [calcResults, setCalcResults] = useState<Map<string, CalcResult>>(new Map());
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editField, setEditField] = useState<EditableField | null>(null);
@@ -94,9 +77,8 @@ export function PaymentsClient({ initialLocations }: Props) {
     locationEmployees.map((emp) => ({
       employee: emp,
       record: records.find((r) => r.employee_id === emp.id) ?? null,
-      calc: calcResults.get(emp.id) ?? null,
     })),
-    [locationEmployees, records, calcResults]
+    [locationEmployees, records]
   );
 
   function prevMonth() {
@@ -112,56 +94,19 @@ export function PaymentsClient({ initialLocations }: Props) {
     if (!locationId) return;
     setCalculating(true);
     try {
-      const calcRes = await fetch("/api/payments/calculate", {
+      const res = await fetch("/api/payments/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ period_year: year, period_month: month, location_id: locationId }),
       });
-      if (!calcRes.ok) {
-        const err = await calcRes.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
         toast.error(err.error ?? "Calculation failed");
         return;
       }
-      const calcData = await calcRes.json() as CalcResult[];
-
-      // Cache the results for display
-      const resultMap = new Map(calcData.map((c) => [c.employee_id, c]));
-      setCalcResults(resultMap);
-
-      // Upsert payment records — preserve manual overrides for existing records
-      await Promise.all(calcData.map(async (c) => {
-        const existing = records.find((r) => r.employee_id === c.employee_id);
-        await fetch("/api/payments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location_id: locationId,
-            employee_id: c.employee_id,
-            period_year: year,
-            period_month: month,
-            scheduled_hours: c.scheduled_hours,
-            missed_hours: c.missed_hours,
-            hourly_rate_snapshot: c.hourly_rate_snapshot,
-            base_salary: c.base_salary,
-            deductions: c.deductions,
-            deduction_note: existing?.deduction_note ?? null,
-            overtime_pay: c.overtime_pay,
-            service_charge: existing?.service_charge_is_manual
-              ? existing.service_charge
-              : c.service_charge,
-            service_charge_is_manual: existing?.service_charge_is_manual ?? false,
-            bonus_amount: existing?.bonus_amount ?? 0,
-            bonus_note: existing?.bonus_note ?? null,
-            credit_hours_applied: existing?.credit_hours_applied ?? 0,
-            payment_method: c.payment_method,
-            status: existing?.status ?? "draft",
-            notes: existing?.notes ?? null,
-          }),
-        });
-      }));
-
+      const saved = await res.json() as PaymentRecord[];
+      setRecords(saved);
       toast.success("Calculations applied");
-      await loadData();
     } finally {
       setCalculating(false);
     }
@@ -366,12 +311,16 @@ export function PaymentsClient({ initialLocations }: Props) {
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </td>
 
-                    {/* OT pay */}
+                    {/* OT pay — editable */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
                       {record ? (
-                        record.overtime_pay > 0
-                          ? <span className="text-blue-600 dark:text-blue-400">{fmtThb(record.overtime_pay)}</span>
-                          : "—"
+                        <InlineNumber
+                          record={record}
+                          field="overtime_pay"
+                          value={record.overtime_pay}
+                          color="text-blue-600 dark:text-blue-400"
+                          emptyLabel="+ add"
+                        />
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </td>
 
