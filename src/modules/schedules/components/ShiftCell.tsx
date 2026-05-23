@@ -29,7 +29,20 @@ const TIME_OPTIONS = Array.from({ length: (22 - 6) * 2 }).map((_, i) => {
 
 // Inline styles for cell containers — these guarantee colors render even when
 // Tailwind's content scanner doesn't include this module's directory.
-function containerStyle(isOff: boolean, hours: number): React.CSSProperties {
+function shiftColor(startTime: string): { bg: string; border: string; accent: string } {
+  if (startTime <= "07:30") {
+    // Morning: blue
+    return { bg: "rgba(59, 130, 246, 0.08)", border: "rgba(59, 130, 246, 0.2)", accent: "rgba(59, 130, 246, 0.75)" };
+  }
+  if (startTime < "12:00") {
+    // Middle: orange
+    return { bg: "rgba(249, 115, 22, 0.08)", border: "rgba(249, 115, 22, 0.2)", accent: "rgba(249, 115, 22, 0.75)" };
+  }
+  // Evening: red
+  return { bg: "rgba(239, 68, 68, 0.08)", border: "rgba(239, 68, 68, 0.2)", accent: "rgba(239, 68, 68, 0.75)" };
+}
+
+function containerStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
   if (isOff) {
     return {
       backgroundColor: "rgba(107, 114, 128, 0.07)",
@@ -48,17 +61,18 @@ function containerStyle(isOff: boolean, hours: number): React.CSSProperties {
       borderRadius: 6,
     };
   }
+  const c = shiftColor(startTime);
   return {
-    backgroundColor: "rgba(14, 165, 233, 0.07)",
-    borderTop: "1px solid rgba(14, 165, 233, 0.2)",
-    borderRight: "1px solid rgba(14, 165, 233, 0.2)",
-    borderBottom: "1px solid rgba(14, 165, 233, 0.2)",
-    borderLeft: "3px solid rgba(14, 165, 233, 0.7)",
+    backgroundColor: c.bg,
+    borderTop: `1px solid ${c.border}`,
+    borderRight: `1px solid ${c.border}`,
+    borderBottom: `1px solid ${c.border}`,
+    borderLeft: `3px solid ${c.accent}`,
     borderRadius: 6,
   };
 }
 
-function hoursBadgeStyle(isOff: boolean, hours: number): React.CSSProperties {
+function hoursBadgeStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
   if (isOff) {
     return {
       backgroundColor: "transparent",
@@ -79,9 +93,10 @@ function hoursBadgeStyle(isOff: boolean, hours: number): React.CSSProperties {
       padding: "1px 4px",
     };
   }
+  const c = shiftColor(startTime);
   return {
-    backgroundColor: "rgba(14, 165, 233, 0.12)",
-    color: "rgba(14, 165, 233, 0.9)",
+    backgroundColor: c.bg,
+    color: c.accent,
     fontSize: 10,
     fontWeight: 700,
     borderRadius: 3,
@@ -125,7 +140,7 @@ export function ShiftCell({
       onDrop={(e) => { e.preventDefault(); onDrop(); }}
       className="relative group"
       style={{
-        ...containerStyle(isOff, hours),
+        ...containerStyle(isOff, hours, data.start_time ?? ""),
         display: "flex",
         flexDirection: "column",
         gap: 4,
@@ -202,7 +217,7 @@ export function ShiftCell({
           textAlign: "center",
           lineHeight: 1,
           marginTop: 1,
-          ...hoursBadgeStyle(isOff, hours),
+          ...hoursBadgeStyle(isOff, hours, data.start_time ?? ""),
         }}
       >
         {isOff ? "OFF" : hours > 0 ? `${hours.toFixed(1)}h` : "—"}

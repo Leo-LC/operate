@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon } from "lucide-react";
+import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon, Loader2Icon, PlusIcon, MinusIcon } from "lucide-react";
 import { ShiftCell, computeShiftHours } from "@/modules/schedules/components/ShiftCell";
 import { ScheduleHeatmap } from "@/modules/schedules/components/ScheduleHeatmap";
 import type { Schedule, ScheduleShift, ShiftGrid, CellData } from "@/modules/schedules/types";
 import { EMPTY_CELL } from "@/modules/schedules/types";
-import type { Employee } from "@/modules/admin/types";
+import type { Employee, AdminLocation } from "@/modules/admin/types";
+import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "@/modules/admin/components/EmployeeForm";
 
 const DEFAULT_BREAK_MINUTES = 30;
 
@@ -53,6 +54,18 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   const [clipboard, setClipboard] = useState<CellData | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState(false);
+
+  // Manage employees modal
+  const [showManage, setShowManage] = useState(false);
+  const [manageAllEmployees, setManageAllEmployees] = useState<Employee[]>([]);
+  const [manageLocations, setManageLocations] = useState<AdminLocation[]>([]);
+  const [manageLoading, setManageLoading] = useState(false);
+  const [manageBusy, setManageBusy] = useState<string | null>(null);
+  const [showManageCreate, setShowManageCreate] = useState(false);
+  const [manageCreateForm, setManageCreateForm] = useState<EmployeeFormState>(EMPTY_EMPLOYEE_FORM);
+  const [manageCreateLocIds, setManageCreateLocIds] = useState<Set<string>>(new Set());
+  const [manageCreatePrimaryLoc, setManageCreatePrimaryLoc] = useState("");
+  const [manageCreateSubmitting, setManageCreateSubmitting] = useState(false);
 
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef(false);
@@ -249,6 +262,123 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function openManage() {
+    setShowManage(true);
+    setShowManageCreate(false);
+    setManageCreateForm(EMPTY_EMPLOYEE_FORM);
+    setManageCreateLocIds(new Set());
+    setManageCreatePrimaryLoc("");
+    void (async () => {
+      setManageLoading(true);
+      try {
+        const [empRes, locRes] = await Promise.all([
+          fetch("/api/admin/employees", { cache: "no-store" }),
+          fetch("/api/admin/locations", { cache: "no-store" }),
+        ]);
+        const empData = await empRes.json().catch(() => []);
+        const locData = await locRes.json().catch(() => []);
+        setManageAllEmployees(Array.isArray(empData) ? empData as Employee[] : []);
+        setManageLocations(Array.isArray(locData) ? locData as AdminLocation[] : []);
+      } finally {
+        setManageLoading(false);
+      }
+    })();
+  }
+
+  async function reloadManage() {
+    setManageLoading(true);
+    try {
+      const empRes = await fetch("/api/admin/employees", { cache: "no-store" });
+      const empData = await empRes.json().catch(() => []);
+      setManageAllEmployees(Array.isArray(empData) ? empData as Employee[] : []);
+    } finally {
+      setManageLoading(false);
+    }
+    router.refresh();
+  }
+
+  async function assignToLocation(emp: Employee) {
+    setManageBusy(emp.id);
+    try {
+      const res = await fetch(`/api/admin/employees/${emp.id}/assign-location`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_id: schedule.location_id }),
+      });
+      if (!res.ok) { toast.error("Failed to add employee"); return; }
+      toast.success(`${emp.first_name} added`);
+      await reloadManage();
+    } finally {
+      setManageBusy(null);
+    }
+  }
+
+  async function removeFromLocation(emp: Employee) {
+    setManageBusy(emp.id);
+    try {
+      const res = await fetch(`/api/admin/employees/${emp.id}/assign-location?location_id=${encodeURIComponent(schedule.location_id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) { toast.error("Failed to remove employee"); return; }
+      toast.success(`${emp.first_name} removed`);
+      await reloadManage();
+    } finally {
+      setManageBusy(null);
+    }
+  }
+
+  function toggleManageCreateLoc(id: string) {
+    setManageCreateLocIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        if (manageCreatePrimaryLoc === id) setManageCreatePrimaryLoc(next.values().next().value ?? "");
+      } else {
+        next.add(id);
+        if (!manageCreatePrimaryLoc) setManageCreatePrimaryLoc(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleManageCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setManageCreateSubmitting(true);
+    try {
+      const res = await fetch("/api/admin/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: manageCreateForm.first_name,
+          last_name: manageCreateForm.last_name,
+          position: manageCreateForm.position || undefined,
+          nationality: manageCreateForm.nationality || undefined,
+          national_id: manageCreateForm.national_id || undefined,
+          work_permit_number: manageCreateForm.work_permit_number || undefined,
+          work_permit_expires_at: manageCreateForm.work_permit_expires_at || undefined,
+          email: manageCreateForm.email || undefined,
+          phone: manageCreateForm.phone || undefined,
+          notes: manageCreateForm.notes || undefined,
+          location_ids: Array.from(manageCreateLocIds),
+          primary_location_id: manageCreatePrimaryLoc || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(err.error ?? "Failed to create employee");
+        return;
+      }
+      toast.success("Employee created");
+      setManageCreateForm(EMPTY_EMPLOYEE_FORM);
+      setManageCreateLocIds(new Set());
+      setManageCreatePrimaryLoc("");
+      setShowManageCreate(false);
+      await reloadManage();
+    } finally {
+      setManageCreateSubmitting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -320,13 +450,15 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
             <PrinterIcon className="size-4" />
             PDF
           </Button>
-          <a
-            href={`/dashboard/scheduling/employees?location_id=${schedule.location_id}`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={openManage}
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
           >
             <UserPlusIcon className="size-4" />
             Manage employees
-          </a>
+          </Button>
           {saveState === "saved" ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-green-600 dark:text-green-400 font-medium rounded-md bg-green-500/8 dark:bg-green-400/8 border border-green-500/20 dark:border-green-400/20">
               <CheckIcon className="size-4" />
@@ -354,13 +486,10 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
             Browse all organisation employees or create a new one with full details including salary, nationality, and work permit.
           </p>
-          <a
-            href={`/dashboard/scheduling/employees?location_id=${schedule.location_id}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
+          <Button onClick={openManage} className="gap-1.5">
             <UserPlusIcon className="size-4" />
             Manage employees for this shop
-          </a>
+          </Button>
         </div>
       )}
 
@@ -445,6 +574,124 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
       {employees.length > 0 && (
         <ScheduleHeatmap grid={grid} weekDays={weekDays.map((d) => d.iso)} employees={employees} />
       )}
+
+      {/* ── Manage employees modal ───────────────────────────────── */}
+      {showManage && (() => {
+        const atLoc = manageAllEmployees.filter((e) =>
+          e.employee_locations?.some((el) => el.location_id === schedule.location_id) ||
+          (e.location_id === schedule.location_id && !e.employee_locations?.length)
+        );
+        const notAtLoc = manageAllEmployees.filter((e) =>
+          !e.employee_locations?.some((el) => el.location_id === schedule.location_id) &&
+          !(e.location_id === schedule.location_id && !e.employee_locations?.length)
+        );
+        return (
+          <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+            <div className="w-full max-w-2xl rounded-xl border border-border bg-background shadow-xl flex flex-col my-auto">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <h2 className="text-base font-semibold">Manage employees — {schedule.location_name}</h2>
+                <button type="button" onClick={() => { setShowManage(false); setShowManageCreate(false); }} className="text-muted-foreground hover:text-foreground">
+                  <XIcon className="size-5" />
+                </button>
+              </div>
+
+              {manageLoading ? (
+                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                  <Loader2Icon className="size-4 animate-spin mr-2" />Loading…
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-border">
+                  {/* At this location */}
+                  <div className="px-5 py-4 flex flex-col gap-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">At this location ({atLoc.length})</p>
+                    {atLoc.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-1">No employees assigned yet.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {atLoc.map((emp) => (
+                          <div key={emp.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                            <div>
+                              <span className="text-sm font-medium">{emp.first_name} {emp.last_name}</span>
+                              {emp.position && <span className="ml-2 text-xs text-muted-foreground">{emp.position}</span>}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 px-2 py-1 rounded"
+                              disabled={manageBusy === emp.id}
+                              onClick={() => void removeFromLocation(emp)}
+                            >
+                              {manageBusy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <MinusIcon className="size-3.5" />}
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Other employees */}
+                  <div className="px-5 py-4 flex flex-col gap-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Other employees ({notAtLoc.length})</p>
+                    {notAtLoc.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-1">All employees are already at this location.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {notAtLoc.map((emp) => (
+                          <div key={emp.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                            <div>
+                              <span className="text-sm font-medium">{emp.first_name} {emp.last_name}</span>
+                              {emp.position && <span className="ml-2 text-xs text-muted-foreground">{emp.position}</span>}
+                            </div>
+                            <button
+                              type="button"
+                              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 px-2 py-1 rounded"
+                              disabled={manageBusy === emp.id}
+                              onClick={() => void assignToLocation(emp)}
+                            >
+                              {manageBusy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <PlusIcon className="size-3.5" />}
+                              Add
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Create new employee */}
+                  <div className="px-5 py-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Create new employee</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowManageCreate((v) => !v)}
+                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      >
+                        {showManageCreate ? <XIcon className="size-3.5" /> : <PlusIcon className="size-3.5" />}
+                        {showManageCreate ? "Cancel" : "New employee"}
+                      </button>
+                    </div>
+                    {showManageCreate && (
+                      <EmployeeForm
+                        form={manageCreateForm}
+                        locIds={manageCreateLocIds}
+                        primaryLoc={manageCreatePrimaryLoc}
+                        locations={manageLocations}
+                        submitting={manageCreateSubmitting}
+                        onChange={(key, val) => setManageCreateForm((prev) => ({ ...prev, [key]: val }))}
+                        onToggleLoc={toggleManageCreateLoc}
+                        onSetPrimary={setManageCreatePrimaryLoc}
+                        onSubmit={(e) => void handleManageCreate(e)}
+                        onCancel={() => setShowManageCreate(false)}
+                        submitLabel="Create employee"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

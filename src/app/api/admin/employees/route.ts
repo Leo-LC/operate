@@ -100,9 +100,9 @@ export async function POST(request: Request) {
   }
 
   const first_name = body.first_name?.trim();
-  const last_name = body.last_name?.trim();
-  if (!first_name || !last_name) {
-    return Response.json({ error: "first_name and last_name are required" }, { status: 400 });
+  const last_name = body.last_name?.trim() ?? "";
+  if (!first_name) {
+    return Response.json({ error: "first_name is required" }, { status: 400 });
   }
 
   const primaryLocationId = body.primary_location_id ?? body.location_ids?.[0] ?? null;

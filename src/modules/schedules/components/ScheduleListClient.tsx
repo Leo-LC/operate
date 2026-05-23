@@ -21,7 +21,7 @@ function weekLabel(iso: string) {
 
 function defaultScheduleName(weekIso: string): string {
   const start = parseISO(weekIso);
-  return `Week of ${format(start, "d MMM yyyy")}`;
+  return `${format(start, "d MMM")} – ${format(addDays(start, 6), "d MMM")}`;
 }
 
 function mondayOf(d: Date) {
@@ -41,13 +41,16 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Schedule | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [dupTarget, setDupTarget] = useState<Schedule | null>(null);
+  const [dupWeek, setDupWeek] = useState("");
+  const [dupName, setDupName] = useState("");
 
   const createName = createNameOverride ?? defaultScheduleName(createWeek);
 
-  const filtered = useMemo(
-    () => (locationFilter ? schedules.filter((s) => s.location_id === locationFilter) : schedules),
-    [schedules, locationFilter],
-  );
+  const filtered = useMemo(() => {
+    const list = locationFilter ? schedules.filter((s) => s.location_id === locationFilter) : schedules;
+    return [...list].sort((a, b) => b.week_start_date.localeCompare(a.week_start_date));
+  }, [schedules, locationFilter]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -77,19 +80,29 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }
 
-  async function handleDuplicate(schedule: Schedule) {
+  function openDuplicate(schedule: Schedule) {
+    const nextWeek = format(addDays(parseISO(schedule.week_start_date), 7), "yyyy-MM-dd");
+    setDupTarget(schedule);
+    setDupWeek(nextWeek);
+    setDupName(defaultScheduleName(nextWeek));
+  }
+
+  async function handleDuplicateConfirm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!dupTarget) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/schedules/${schedule.id}/duplicate`, {
+      const res = await fetch(`/api/schedules/${dupTarget.id}/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: `${schedule.name} (copy)` }),
+        body: JSON.stringify({ name: dupName.trim() || defaultScheduleName(dupWeek), week_start_date: dupWeek }),
       });
       if (!res.ok) { toast.error("Failed to duplicate"); return; }
       const duped = (await res.json()) as Schedule;
       const loc = locations.find((l) => l.id === duped.location_id);
       setSchedules((prev) => [{ ...duped, location_name: loc?.name ?? null }, ...prev]);
       toast.success("Schedule duplicated");
+      setDupTarget(null);
     } finally {
       setSubmitting(false);
     }
@@ -330,7 +343,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                       className="size-7"
                       title="Duplicate"
                       disabled={submitting}
-                      onClick={() => void handleDuplicate(s)}
+                      onClick={() => openDuplicate(s)}
                     >
                       <CopyIcon className="size-3.5" />
                     </Button>
@@ -376,6 +389,47 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           </div>
         )}
       </div>
+
+      {/* ── Duplicate modal ─────────────────────────────────────── */}
+      {dupTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <form
+            onSubmit={(e) => void handleDuplicateConfirm(e)}
+            className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl flex flex-col gap-4"
+          >
+            <h2 className="text-base font-semibold">Duplicate schedule</h2>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">New week starting (Monday)</label>
+              <DateInput
+                required
+                value={dupWeek}
+                onChange={(e) => {
+                  setDupWeek(e.target.value);
+                  setDupName(defaultScheduleName(e.target.value));
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
+              <input
+                type="text"
+                required
+                value={dupName}
+                onChange={(e) => setDupName(e.target.value)}
+                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" type="button" onClick={() => setDupTarget(null)} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button size="sm" type="submit" disabled={submitting}>
+                {submitting ? "Duplicating…" : "Duplicate"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* ── Delete confirmation modal ────────────────────────────── */}
       {deleteTarget && (
