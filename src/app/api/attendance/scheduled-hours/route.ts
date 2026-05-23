@@ -7,7 +7,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-import { computeShiftHours } from "@/lib/scheduling/schedule-math";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
@@ -43,34 +42,23 @@ export async function GET(request: Request) {
   const scheduleIds = (schedData ?? []).map((s) => s.id);
   if (scheduleIds.length === 0) return Response.json([]);
 
-  // Step 2: fetch shifts within the month for those schedules
+  // Step 2: fetch all shifts within the month (including day-offs where start_time is null)
   const { data, error } = await supabase
     .from("schedule_shifts")
     .select("employee_id, shift_date, start_time, end_time, break_minutes")
     .in("schedule_id", scheduleIds)
     .gte("shift_date", fromDate)
-    .lte("shift_date", toDate)
-    .not("start_time", "is", null);
+    .lte("shift_date", toDate);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // Group by employee: { employee_id → { total_hours, shifts: [{ date, hours }] } }
-  const byEmployee = new Map<string, { scheduled_hours: number; shift_dates: string[] }>();
-  for (const s of (data ?? [])) {
-    if (!s.start_time || !s.end_time) continue;
-    const h = computeShiftHours(s.start_time as string, s.end_time as string, s.break_minutes ?? 30);
-    const entry = byEmployee.get(s.employee_id) ?? { scheduled_hours: 0, shift_dates: [] };
-    entry.scheduled_hours = Math.round((entry.scheduled_hours + h) * 100) / 100;
-    entry.shift_dates.push(s.shift_date as string);
-    byEmployee.set(s.employee_id, entry);
-  }
-
   return Response.json(
-    Array.from(byEmployee.entries()).map(([employee_id, v]) => ({
-      employee_id,
-      scheduled_hours: v.scheduled_hours,
-      shift_count: v.shift_dates.length,
-      shift_dates: v.shift_dates.sort(),
+    (data ?? []).map((s) => ({
+      employee_id: s.employee_id,
+      shift_date: s.shift_date,
+      start_time: s.start_time ?? null,
+      end_time: s.end_time ?? null,
+      break_minutes: s.break_minutes ?? null,
     }))
   );
 }

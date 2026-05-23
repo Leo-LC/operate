@@ -151,6 +151,10 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               </Link>
             )}
 
+            {(canSeeSchedules || canSeeAttendance || canSeePayments) && (
+              <div className="my-1 border-t border-sidebar-foreground/10" />
+            )}
+
             {canSeeSchedules && (
               <Link href="/dashboard/scheduling" className={navItemClass(isScheduling, sidebarLocked)}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
@@ -158,6 +162,28 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
                 </div>
                 <span className={labelClass(sidebarLocked)}>Scheduling</span>
               </Link>
+            )}
+
+            {canSeeAttendance && (
+              <Link href="/dashboard/attendance" className={navItemClass(isAttendance, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <ClockIcon className={iconClass(isAttendance)} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Attendance</span>
+              </Link>
+            )}
+
+            {canSeePayments && (
+              <Link href="/dashboard/payments" className={navItemClass(isPayments, sidebarLocked)}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
+                  <BanknoteIcon className={iconClass(isPayments)} />
+                </div>
+                <span className={labelClass(sidebarLocked)}>Payments</span>
+              </Link>
+            )}
+
+            {(canSeeSchedules || canSeeAttendance || canSeePayments) && (
+              <div className="my-1 border-t border-sidebar-foreground/10" />
             )}
 
             {canSeeAnimals && (
@@ -202,24 +228,6 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
                   <UsersIcon className={iconClass(isContacts)} />
                 </div>
                 <span className={labelClass(sidebarLocked)}>Contacts</span>
-              </Link>
-            )}
-
-            {canSeeAttendance && (
-              <Link href="/dashboard/attendance" className={navItemClass(isAttendance, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <ClockIcon className={iconClass(isAttendance)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Attendance</span>
-              </Link>
-            )}
-
-            {canSeePayments && (
-              <Link href="/dashboard/payments" className={navItemClass(isPayments, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <BanknoteIcon className={iconClass(isPayments)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Payments</span>
               </Link>
             )}
 
