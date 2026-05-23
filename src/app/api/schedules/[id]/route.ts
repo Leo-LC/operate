@@ -49,7 +49,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const perms = derivePermissionsFromRole(session.user.role || undefined);
   if (!hasModuleAccess(perms, "schedules")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  let body: Partial<{ name: string; status: string }>;
+  let body: Partial<{ name: string; status: string; week_start_date: string }>;
   try {
     body = await request.json();
   } catch {
@@ -61,6 +61,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (body.name) updates.name = body.name.trim();
   if (body.status && validStatuses.includes(body.status as (typeof validStatuses)[number])) {
     updates.status = body.status;
+  }
+  if (body.week_start_date && /^\d{4}-\d{2}-\d{2}$/.test(body.week_start_date)) {
+    updates.week_start_date = body.week_start_date;
   }
 
   const supabase = getSupabaseServerClient();

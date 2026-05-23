@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { addDays, format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { SaveIcon, CheckIcon, PencilIcon, PrinterIcon, UserPlusIcon, XIcon, CopyIcon, Loader2Icon, PlusIcon, MinusIcon } from "lucide-react";
 import { ShiftCell, computeShiftHours } from "@/modules/schedules/components/ShiftCell";
 import { ScheduleHeatmap } from "@/modules/schedules/components/ScheduleHeatmap";
@@ -51,6 +52,9 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   const [localName, setLocalName] = useState(schedule.name);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(schedule.name);
+  const [localWeekStart, setLocalWeekStart] = useState(schedule.week_start_date);
+  const [editingWeek, setEditingWeek] = useState(false);
+  const [weekInput, setWeekInput] = useState(schedule.week_start_date);
   const [clipboard, setClipboard] = useState<CellData | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState(false);
@@ -75,7 +79,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   employeesRef.current = employees;
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
-    const d = addDays(parseISO(schedule.week_start_date), i);
+    const d = addDays(parseISO(localWeekStart), i);
     return { iso: format(d, "yyyy-MM-dd"), label: format(d, "EEE d") };
   });
   const weekDaysRef = useRef(weekDays);
@@ -166,11 +170,29 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
     }
   }
 
+  async function saveWeek() {
+    setEditingWeek(false);
+    if (!weekInput || weekInput === localWeekStart) return;
+    const prev = localWeekStart;
+    setLocalWeekStart(weekInput);
+    const res = await fetch(`/api/schedules/${schedule.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ week_start_date: weekInput }),
+    });
+    if (!res.ok) {
+      toast.error("Failed to update dates");
+      setLocalWeekStart(prev);
+    } else {
+      toast.success("Dates updated");
+    }
+  }
+
   function printSchedule() {
     const win = window.open("", "_blank", "width=1100,height=750");
     if (!win) { toast.error("Pop-up blocked — please allow pop-ups and try again"); return; }
 
-    const weekRange = `${format(parseISO(schedule.week_start_date), "d MMM")} – ${format(addDays(parseISO(schedule.week_start_date), 6), "d MMM yyyy")}`;
+    const weekRange = `${format(parseISO(localWeekStart), "d MMM")} – ${format(addDays(parseISO(localWeekStart), 6), "d MMM yyyy")}`;
     const headers = weekDaysRef.current.map((d) => `<th>${d.label}</th>`).join("");
     const rows = employeesRef.current.map((emp, rowIdx) => {
       let total = 0;
@@ -420,11 +442,38 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
           <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             {schedule.location_name && <span>{schedule.location_name}</span>}
             {schedule.location_name && <span className="text-muted-foreground/40">·</span>}
-            <span>
-              {format(parseISO(schedule.week_start_date), "d MMM")}
-              {" – "}
-              {format(addDays(parseISO(schedule.week_start_date), 6), "d MMM yyyy")}
-            </span>
+            {editingWeek ? (
+              <div className="flex items-center gap-1.5">
+                <DateInput
+                  autoFocus
+                  value={weekInput}
+                  onChange={(e) => setWeekInput(e.target.value)}
+                  onBlur={() => void saveWeek()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void saveWeek();
+                    if (e.key === "Escape") { setEditingWeek(false); setWeekInput(localWeekStart); }
+                  }}
+                  className="h-7 text-xs"
+                />
+                <button type="button" onClick={() => { setEditingWeek(false); setWeekInput(localWeekStart); }} className="text-muted-foreground hover:text-foreground">
+                  <XIcon className="size-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setWeekInput(localWeekStart); setEditingWeek(true); }}
+                className="group flex items-center gap-1 hover:text-foreground transition-colors"
+                title="Click to change dates"
+              >
+                <span>
+                  {format(parseISO(localWeekStart), "d MMM")}
+                  {" – "}
+                  {format(addDays(parseISO(localWeekStart), 6), "d MMM yyyy")}
+                </span>
+                <PencilIcon className="size-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -534,7 +583,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                       const hours = computeShiftHours(cell.start_time, cell.end_time, DEFAULT_BREAK_MINUTES);
                       weeklyHours += hours;
                       return (
-                        <td key={day.iso} className="px-1.5 py-1.5 align-top border-l border-border/50">
+                        <td key={day.iso} className="p-0 align-top border-l border-border/50">
                           <ShiftCell
                             data={cell}
                             hours={hours}

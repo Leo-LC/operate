@@ -27,81 +27,32 @@ const TIME_OPTIONS = Array.from({ length: (22 - 6) * 2 }).map((_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-// Inline styles for cell containers — these guarantee colors render even when
-// Tailwind's content scanner doesn't include this module's directory.
-function shiftColor(startTime: string): { bg: string; border: string; accent: string } {
-  if (startTime <= "07:30") {
-    // Morning: blue
-    return { bg: "rgba(59, 130, 246, 0.08)", border: "rgba(59, 130, 246, 0.2)", accent: "rgba(59, 130, 246, 0.75)" };
-  }
-  if (startTime < "12:00") {
-    // Middle: orange
-    return { bg: "rgba(249, 115, 22, 0.08)", border: "rgba(249, 115, 22, 0.2)", accent: "rgba(249, 115, 22, 0.75)" };
-  }
-  // Evening: red
-  return { bg: "rgba(239, 68, 68, 0.08)", border: "rgba(239, 68, 68, 0.2)", accent: "rgba(239, 68, 68, 0.75)" };
+// Inline styles — guarantee colors render even when Tailwind scanner misses this file.
+function shiftBg(startTime: string): string {
+  // Morning: start 07:00 or 07:30 → blue
+  if (startTime <= "07:30") return "rgba(59, 130, 246, 0.18)";
+  // Middle: after 07:30, before 12:00 → orange
+  if (startTime < "12:00") return "rgba(249, 115, 22, 0.18)";
+  // Evening: 12:00+ → red
+  return "rgba(239, 68, 68, 0.18)";
+}
+
+function shiftTextColor(startTime: string): string {
+  if (startTime <= "07:30") return "rgba(37, 99, 235, 0.9)";
+  if (startTime < "12:00") return "rgba(194, 65, 12, 0.9)";
+  return "rgba(185, 28, 28, 0.9)";
 }
 
 function containerStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
-  if (isOff) {
-    return {
-      backgroundColor: "rgba(107, 114, 128, 0.07)",
-      border: "1px solid rgba(107, 114, 128, 0.2)",
-      borderRadius: 6,
-    };
-  }
-  if (hours === 0) {
-    // Start set but end equals start or produces 0 hours — treat as incomplete.
-    return {
-      backgroundColor: "rgba(245, 158, 11, 0.07)",
-      borderTop: "1px dashed rgba(245, 158, 11, 0.4)",
-      borderRight: "1px dashed rgba(245, 158, 11, 0.4)",
-      borderBottom: "1px dashed rgba(245, 158, 11, 0.4)",
-      borderLeft: "3px solid rgba(245, 158, 11, 0.6)",
-      borderRadius: 6,
-    };
-  }
-  const c = shiftColor(startTime);
-  return {
-    backgroundColor: c.bg,
-    borderTop: `1px solid ${c.border}`,
-    borderRight: `1px solid ${c.border}`,
-    borderBottom: `1px solid ${c.border}`,
-    borderLeft: `3px solid ${c.accent}`,
-    borderRadius: 6,
-  };
+  if (isOff) return { backgroundColor: "rgba(107, 114, 128, 0.05)" };
+  if (hours === 0) return { backgroundColor: "rgba(245, 158, 11, 0.12)" };
+  return { backgroundColor: shiftBg(startTime) };
 }
 
 function hoursBadgeStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
-  if (isOff) {
-    return {
-      backgroundColor: "transparent",
-      color: "rgba(156, 163, 175, 0.5)",
-      fontSize: 9,
-      letterSpacing: "0.1em",
-      textTransform: "uppercase" as const,
-      fontWeight: 600,
-    };
-  }
-  if (hours === 0) {
-    return {
-      backgroundColor: "rgba(245, 158, 11, 0.1)",
-      color: "rgba(245, 158, 11, 0.85)",
-      fontSize: 10,
-      fontWeight: 700,
-      borderRadius: 3,
-      padding: "1px 4px",
-    };
-  }
-  const c = shiftColor(startTime);
-  return {
-    backgroundColor: c.bg,
-    color: c.accent,
-    fontSize: 10,
-    fontWeight: 700,
-    borderRadius: 3,
-    padding: "1px 4px",
-  };
+  if (isOff) return { color: "rgba(156, 163, 175, 0.5)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" as const, fontWeight: 600 };
+  if (hours === 0) return { color: "rgba(245, 158, 11, 0.9)", fontSize: 10, fontWeight: 700 };
+  return { color: shiftTextColor(startTime), fontSize: 10, fontWeight: 700 };
 }
 
 const SELECT_STYLE: React.CSSProperties = {
@@ -146,15 +97,9 @@ export function ShiftCell({
         gap: 4,
         padding: "8px 6px 7px",
         minHeight: 88,
+        height: "100%",
         position: "relative",
-        transition: "box-shadow 0.1s",
         cursor: isOff ? "default" : "grab",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 1px rgba(107,114,128,0.4)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
       }}
     >
       {/* ── Hover action buttons ─────────────────────────────────── */}
