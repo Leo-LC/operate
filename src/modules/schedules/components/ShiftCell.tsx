@@ -37,22 +37,16 @@ function shiftBg(startTime: string): string {
   return "rgba(239, 68, 68, 0.18)";
 }
 
-function shiftTextColor(startTime: string): string {
-  if (startTime <= "07:30") return "rgba(37, 99, 235, 0.9)";
-  if (startTime < "12:00") return "rgba(194, 65, 12, 0.9)";
-  return "rgba(185, 28, 28, 0.9)";
-}
-
 function containerStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
   if (isOff) return { backgroundColor: "rgba(107, 114, 128, 0.05)" };
   if (hours === 0) return { backgroundColor: "rgba(245, 158, 11, 0.12)" };
   return { backgroundColor: shiftBg(startTime) };
 }
 
-function hoursBadgeStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
-  if (isOff) return { color: "rgba(156, 163, 175, 0.5)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" as const, fontWeight: 600 };
-  if (hours === 0) return { color: "rgba(245, 158, 11, 0.9)", fontSize: 10, fontWeight: 700 };
-  return { color: shiftTextColor(startTime), fontSize: 10, fontWeight: 700 };
+function hoursBadgeStyle(isOff: boolean, hours: number): React.CSSProperties {
+  if (isOff) return { color: "hsl(var(--muted-foreground))", opacity: 0.7, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" as const, fontWeight: 600 };
+  if (hours === 0) return { color: "hsl(var(--foreground))", opacity: 0.7, fontSize: 10, fontWeight: 700 };
+  return { color: "hsl(var(--foreground))", fontSize: 10, fontWeight: 700 };
 }
 
 const SELECT_STYLE: React.CSSProperties = {
@@ -162,7 +156,7 @@ export function ShiftCell({
           textAlign: "center",
           lineHeight: 1,
           marginTop: 1,
-          ...hoursBadgeStyle(isOff, hours, data.start_time ?? ""),
+          ...hoursBadgeStyle(isOff, hours),
         }}
       >
         {isOff ? "OFF" : hours > 0 ? `${hours.toFixed(1)}h` : "—"}

@@ -26,8 +26,8 @@ type SectionTab = "full" | "sales" | "payments" | "expenses" | "hr" | "treasury"
 type RowState = "future" | "empty" | "partial" | "complete" | "mismatch";
 
 const ROW_STATE_DOT: Record<RowState, string> = {
-  future:   "text-muted-foreground/20",
-  empty:    "text-muted-foreground/35",
+  future:   "text-muted-foreground/50",
+  empty:    "text-muted-foreground/60",
   partial:  "text-amber-500",
   complete: "text-green-700 dark:text-green-400",
   mismatch: "text-destructive",
@@ -177,7 +177,7 @@ function Cell({
   // Editable
   return (
     <td
-      className={`px-3 h-8 text-right text-xs tabular-nums font-mono cursor-pointer select-none ${CELL_BORDER} hover:bg-accent/20 hover:outline hover:outline-1 hover:outline-border/60 hover:[outline-offset:-1px] transition-colors ${!entry ? "text-muted-foreground/30" : ""} ${deltaClass} ${extraClass}`}
+      className={`px-3 h-8 text-right text-xs tabular-nums font-mono cursor-pointer select-none ${CELL_BORDER} hover:bg-accent/20 hover:outline hover:outline-1 hover:outline-border/60 hover:[outline-offset:-1px] transition-colors ${!entry ? "text-muted-foreground/60" : ""} ${deltaClass} ${extraClass}`}
       onClick={() => onStartEdit(day, fieldKey, entry ? rawValue : 0)}
       title={!entry ? "Click to add" : undefined}
     >

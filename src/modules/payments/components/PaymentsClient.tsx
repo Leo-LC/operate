@@ -254,13 +254,13 @@ export function PaymentsClient({ initialLocations }: Props) {
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? fmtThb(record.base_salary) : <span className="text-muted-foreground/40">—</span>}
+                      {record ? fmtThb(record.base_salary) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (record.overtime_pay > 0 ? <span className="text-blue-600 dark:text-blue-400">{fmtThb(record.overtime_pay)}</span> : "—") : <span className="text-muted-foreground/40">—</span>}
+                      {record ? (record.overtime_pay > 0 ? <span className="text-blue-600 dark:text-blue-400">{fmtThb(record.overtime_pay)}</span> : "—") : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (record.service_charge > 0 ? fmtThb(record.service_charge) : "—") : <span className="text-muted-foreground/40">—</span>}
+                      {record ? (record.service_charge > 0 ? fmtThb(record.service_charge) : "—") : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     {/* Bonus — inline editable */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
@@ -282,10 +282,10 @@ export function PaymentsClient({ initialLocations }: Props) {
                             className="cursor-pointer hover:underline"
                             onClick={() => { setEditingId(record.id); setEditField("bonus_amount"); setEditValue(String(record.bonus_amount)); }}
                           >
-                            {record.bonus_amount > 0 ? <span className="text-emerald-700 dark:text-emerald-400">{fmtThb(record.bonus_amount)}</span> : <span className="text-muted-foreground/30 text-[10px]">+ add</span>}
+                            {record.bonus_amount > 0 ? <span className="text-emerald-700 dark:text-emerald-400">{fmtThb(record.bonus_amount)}</span> : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
                           </span>
                         )
-                      ) : <span className="text-muted-foreground/40">—</span>}
+                      ) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     {/* Deductions — inline editable */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
@@ -307,13 +307,13 @@ export function PaymentsClient({ initialLocations }: Props) {
                             className="cursor-pointer hover:underline"
                             onClick={() => { setEditingId(record.id); setEditField("deductions"); setEditValue(String(record.deductions)); }}
                           >
-                            {record.deductions > 0 ? <span className="text-destructive">{fmtThb(record.deductions)}</span> : <span className="text-muted-foreground/30 text-[10px]">+ add</span>}
+                            {record.deductions > 0 ? <span className="text-destructive">{fmtThb(record.deductions)}</span> : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
                           </span>
                         )
-                      ) : <span className="text-muted-foreground/40">—</span>}
+                      ) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
-                      {record ? fmtThb(total) : <span className="text-muted-foreground/40">—</span>}
+                      {record ? fmtThb(total) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {isBankTransfer

@@ -350,7 +350,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                     {conflictIds.has(s.id) && (
                       <span
                         title="Another schedule covers the same shop and week — hours may be double-counted in payroll"
-                        className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400"
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200"
                       >
                         <TriangleAlertIcon className="size-3" />
                         Overlap

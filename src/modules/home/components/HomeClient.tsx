@@ -171,7 +171,7 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
                 <Link
                   key={key}
                   href={mod.href}
-                  className="flex items-center gap-3 rounded-lg border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                  className="flex items-center gap-3 rounded-lg border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-500/15">
                     <Icon className="size-4" />
@@ -243,7 +243,7 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-foreground">{mod.label}</span>
                           {alert && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200">
                               <AlertTriangleIcon className="size-2.5" />
                               {alert.count}
                             </span>
@@ -255,7 +255,7 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
                       {/* Footer */}
                       <div className="border-t border-border/40 pt-3">
                         {alert ? (
-                          <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                          <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
                             {alert.label} →
                           </span>
                         ) : snippet ? (
