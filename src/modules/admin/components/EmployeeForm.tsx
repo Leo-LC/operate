@@ -20,6 +20,8 @@ export type EmployeeFormState = {
   notes: string;
   base_salary_monthly: string;
   has_thai_bank_account: boolean;
+  credit_hours: string;
+  credit_note: string;
 };
 
 export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
@@ -35,6 +37,8 @@ export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
   notes: "",
   base_salary_monthly: "",
   has_thai_bank_account: false,
+  credit_hours: "0",
+  credit_note: "",
 };
 
 export function EmployeeForm({
@@ -166,6 +170,25 @@ export function EmployeeForm({
             <span className="text-sm">Thai bank account</span>
             <span className="text-[11px] text-muted-foreground">(salary paid by transfer)</span>
           </label>
+          <div className="flex flex-col gap-1 min-w-[120px]">
+            <label className="text-xs font-medium text-muted-foreground">Credit hours balance</label>
+            <input
+              type="number" step="0.5" value={form.credit_hours}
+              onChange={(e) => onChange("credit_hours", e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              placeholder="0"
+            />
+            <p className="text-[10px] text-muted-foreground">+ = owes hours back · − = carry credit</p>
+          </div>
+          <div className="flex flex-col gap-1 min-w-[200px]">
+            <label className="text-xs font-medium text-muted-foreground">Credit note</label>
+            <input
+              type="text" value={form.credit_note}
+              onChange={(e) => onChange("credit_note", e.target.value)}
+              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+              placeholder="e.g. took extra day off Jan 15"
+            />
+          </div>
         </div>
       </div>
 

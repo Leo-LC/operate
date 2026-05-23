@@ -46,6 +46,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     notes: string | null;
     base_salary_monthly: number | null;
     has_thai_bank_account: boolean;
+    credit_hours: number;
+    credit_note: string | null;
     active: boolean;
     user_id: string | null;
     archived_at: string | null;
@@ -72,6 +74,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if ("notes" in body) updates.notes = body.notes?.trim() ?? null;
   if ("base_salary_monthly" in body) updates.base_salary_monthly = body.base_salary_monthly ?? null;
   if ("has_thai_bank_account" in body) updates.has_thai_bank_account = body.has_thai_bank_account ?? false;
+  if ("credit_hours" in body) updates.credit_hours = body.credit_hours ?? 0;
+  if ("credit_note" in body) updates.credit_note = body.credit_note?.trim() ?? null;
   if (body.active !== undefined) updates.active = body.active;
   if ("user_id" in body) updates.user_id = body.user_id ?? null;
   if ("archived_at" in body) updates.archived_at = body.archived_at ?? null;

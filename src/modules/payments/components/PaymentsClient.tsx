@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon, CheckIcon, BanknoteIcon, BuildingIcon } from "lucide-react";
+import {
+  ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
+  CheckIcon, BanknoteIcon, BuildingIcon, ClockIcon, CoinsIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type PaymentRecord, type PaymentStatus, totalPayment, STATUS_LABELS, STATUS_COLORS } from "@/modules/payments/types";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
@@ -11,9 +14,15 @@ interface CalcResult {
   employee_id: string;
   employee_name: string;
   base_salary: number;
+  scheduled_hours: number;
+  missed_hours: number;
+  hourly_rate_snapshot: number;
+  deductions: number;
   overtime_pay: number;
   service_charge: number;
   payment_method: "bank_transfer" | "cash";
+  credit_hours_balance: number;
+  credit_note: string | null;
 }
 
 interface Props {
@@ -24,7 +33,16 @@ function fmtThb(n: number) {
   return `฿${Math.round(n).toLocaleString()}`;
 }
 
-type EditableField = "bonus_amount" | "bonus_note" | "deductions" | "deduction_note" | "notes";
+function fmtHours(h: number) {
+  return `${h % 1 === 0 ? h : h.toFixed(1)}h`;
+}
+
+type EditableField =
+  | "bonus_amount" | "bonus_note"
+  | "deductions" | "deduction_note"
+  | "service_charge"
+  | "credit_hours_applied"
+  | "notes";
 
 export function PaymentsClient({ initialLocations }: Props) {
   const now = new Date();
@@ -37,7 +55,9 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
 
-  // Inline editing for bonus/deductions
+  // Cache the last CalcResult per employee for showing calculated vs overridden values
+  const [calcResults, setCalcResults] = useState<Map<string, CalcResult>>(new Map());
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editField, setEditField] = useState<EditableField | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -74,13 +94,13 @@ export function PaymentsClient({ initialLocations }: Props) {
     [employees, locationId]
   );
 
-  // Merge employees with their payment records
   const rows = useMemo(() =>
     locationEmployees.map((emp) => ({
       employee: emp,
       record: records.find((r) => r.employee_id === emp.id) ?? null,
+      calc: calcResults.get(emp.id) ?? null,
     })),
-    [locationEmployees, records]
+    [locationEmployees, records, calcResults]
   );
 
   function prevMonth() {
@@ -108,7 +128,11 @@ export function PaymentsClient({ initialLocations }: Props) {
       }
       const calcData = await calcRes.json() as CalcResult[];
 
-      // Upsert payment records for each employee
+      // Cache the results for display
+      const resultMap = new Map(calcData.map((c) => [c.employee_id, c]));
+      setCalcResults(resultMap);
+
+      // Upsert payment records — preserve manual overrides for existing records
       await Promise.all(calcData.map(async (c) => {
         const existing = records.find((r) => r.employee_id === c.employee_id);
         await fetch("/api/payments", {
@@ -119,13 +143,20 @@ export function PaymentsClient({ initialLocations }: Props) {
             employee_id: c.employee_id,
             period_year: year,
             period_month: month,
+            scheduled_hours: c.scheduled_hours,
+            missed_hours: c.missed_hours,
+            hourly_rate_snapshot: c.hourly_rate_snapshot,
             base_salary: c.base_salary,
+            deductions: c.deductions,
+            deduction_note: existing?.deduction_note ?? null,
             overtime_pay: c.overtime_pay,
-            service_charge: c.service_charge,
+            service_charge: existing?.service_charge_is_manual
+              ? existing.service_charge
+              : c.service_charge,
+            service_charge_is_manual: existing?.service_charge_is_manual ?? false,
             bonus_amount: existing?.bonus_amount ?? 0,
             bonus_note: existing?.bonus_note ?? null,
-            deductions: existing?.deductions ?? 0,
-            deduction_note: existing?.deduction_note ?? null,
+            credit_hours_applied: existing?.credit_hours_applied ?? 0,
             payment_method: c.payment_method,
             status: existing?.status ?? "draft",
             notes: existing?.notes ?? null,
@@ -164,15 +195,58 @@ export function PaymentsClient({ initialLocations }: Props) {
     await patchRecord(record.id, { status });
   }
 
+  function startEdit(recordId: string, field: EditableField, currentValue: string | number) {
+    setEditingId(recordId);
+    setEditField(field);
+    setEditValue(String(currentValue));
+  }
+
+  function cancelEdit() { setEditingId(null); setEditField(null); }
+
+  function InlineNumber({ record, field, value, color, emptyLabel }: {
+    record: PaymentRecord;
+    field: EditableField;
+    value: number;
+    color?: string;
+    emptyLabel?: string;
+  }) {
+    const isEditing = editingId === record.id && editField === field;
+    if (isEditing) {
+      return (
+        <input
+          type="number" min="0" step="100" autoFocus
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={() => void patchRecord(record.id, { [field]: parseFloat(editValue) || 0 } as Partial<PaymentRecord>)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void patchRecord(record.id, { [field]: parseFloat(editValue) || 0 } as Partial<PaymentRecord>);
+            if (e.key === "Escape") cancelEdit();
+          }}
+          className="w-24 h-6 text-right text-xs rounded border border-ring bg-background px-1 focus:outline-none"
+        />
+      );
+    }
+    return (
+      <span
+        className="cursor-pointer hover:underline"
+        onClick={() => startEdit(record.id, field, value)}
+      >
+        {value > 0
+          ? <span className={color}>{fmtThb(value)}</span>
+          : <span className="text-muted-foreground/60 text-[10px]">{emptyLabel ?? "—"}</span>}
+      </span>
+    );
+  }
+
   const totals = useMemo(() => {
     const paid = rows.filter((r) => r.record);
     return {
-      base: paid.reduce((s, r) => s + (r.record?.base_salary ?? 0), 0),
-      ot: paid.reduce((s, r) => s + (r.record?.overtime_pay ?? 0), 0),
-      sc: paid.reduce((s, r) => s + (r.record?.service_charge ?? 0), 0),
-      bonus: paid.reduce((s, r) => s + (r.record?.bonus_amount ?? 0), 0),
+      base:       paid.reduce((s, r) => s + (r.record?.base_salary ?? 0), 0),
+      ot:         paid.reduce((s, r) => s + (r.record?.overtime_pay ?? 0), 0),
+      sc:         paid.reduce((s, r) => s + (r.record?.service_charge ?? 0), 0),
+      bonus:      paid.reduce((s, r) => s + (r.record?.bonus_amount ?? 0), 0),
       deductions: paid.reduce((s, r) => s + (r.record?.deductions ?? 0), 0),
-      total: paid.reduce((s, r) => s + (r.record ? totalPayment(r.record) : 0), 0),
+      total:      paid.reduce((s, r) => s + (r.record ? totalPayment(r.record) : 0), 0),
     };
   }, [rows]);
 
@@ -217,15 +291,20 @@ export function PaymentsClient({ initialLocations }: Props) {
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-x-auto">
-          <table className="w-full text-sm min-w-[900px]">
+          <table className="w-full text-sm min-w-[1080px]">
             <thead className="bg-muted/40">
               <tr>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground sticky left-0 bg-muted/40">Employee</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">
+                  <span className="inline-flex items-center gap-1"><ClockIcon className="size-3" />Hours</span>
+                </th>
                 <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Base salary</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">OT pay</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Service charge</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Bonus</th>
                 <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Deductions</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">OT pay</th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">
+                  <span className="inline-flex items-center gap-1"><CoinsIcon className="size-3" />Svc charge</span>
+                </th>
+                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Bonus</th>
                 <th className="px-4 py-2.5 text-right font-medium text-muted-foreground">Total</th>
                 <th className="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs">Method</th>
                 <th className="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs">Status</th>
@@ -235,91 +314,164 @@ export function PaymentsClient({ initialLocations }: Props) {
             <tbody className="divide-y divide-border">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  <td colSpan={11} className="px-4 py-10 text-center text-sm text-muted-foreground">
                     {employees.length === 0
                       ? <><a href="/dashboard/admin/employees" className="underline hover:text-foreground">Add your first employee</a> to start tracking payments.</>
                       : <>No employees assigned to this location. Assign employees, then use <strong>Calculate period</strong> to generate records.</>}
                   </td>
                 </tr>
-              ) : rows.map(({ employee: emp, record }) => {
+              ) : rows.map(({ employee: emp, record, calc }) => {
                 const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
                 const rowBg = isBankTransfer ? "bg-blue-50/40 dark:bg-blue-950/20" : "bg-amber-50/20 dark:bg-amber-950/10";
                 const total = record ? totalPayment(record) : 0;
+                const creditBalance = emp.credit_hours ?? 0;
+                const creditApplied = record?.credit_hours_applied ?? 0;
+
+                // Hours display: use record snapshot if available, else calc result
+                const scheduledH = record?.scheduled_hours ?? calc?.scheduled_hours ?? null;
+                const missedH = record?.missed_hours ?? calc?.missed_hours ?? null;
+                const workedH = scheduledH != null && missedH != null ? scheduledH - missedH : null;
+                const hourlyRate = record?.hourly_rate_snapshot ?? calc?.hourly_rate_snapshot ?? null;
+
                 return (
                   <tr key={emp.id} className={`transition-colors ${rowBg} hover:brightness-[0.97]`}>
+                    {/* Employee name + credit badge */}
                     <td className={`px-4 py-2.5 font-medium sticky left-0 ${rowBg}`}>
-                      {emp.first_name} {emp.last_name}
-                      {!emp.base_salary_monthly && (
-                        <span className="ml-1.5 text-[10px] text-amber-600">no salary set</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span>
+                          {emp.first_name} {emp.last_name}
+                          {!emp.base_salary_monthly && (
+                            <span className="ml-1.5 text-[10px] text-amber-600">no salary set</span>
+                          )}
+                        </span>
+                        {creditBalance !== 0 && (
+                          <span className={`text-[10px] font-normal ${creditBalance > 0 ? "text-orange-600 dark:text-orange-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                            {creditBalance > 0
+                              ? `${fmtHours(creditBalance)} owed back`
+                              : `${fmtHours(Math.abs(creditBalance))} carry credit`}
+                            {emp.credit_note ? ` · ${emp.credit_note}` : ""}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Hours worked / scheduled */}
+                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
+                      {workedH != null ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className={missedH && missedH > 0 ? "text-amber-600 dark:text-amber-400" : ""}>
+                            {fmtHours(workedH)} / {fmtHours(scheduledH!)}
+                          </span>
+                          {missedH && missedH > 0 && hourlyRate && (
+                            <span className="text-[10px] text-muted-foreground">
+                              −{fmtHours(missedH)} @ {fmtThb(hourlyRate)}/h
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/60">—</span>
                       )}
                     </td>
+
+                    {/* Base salary */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
                       {record ? fmtThb(record.base_salary) : <span className="text-muted-foreground/60">—</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (record.overtime_pay > 0 ? <span className="text-blue-600 dark:text-blue-400">{fmtThb(record.overtime_pay)}</span> : "—") : <span className="text-muted-foreground/60">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (record.service_charge > 0 ? fmtThb(record.service_charge) : "—") : <span className="text-muted-foreground/60">—</span>}
-                    </td>
-                    {/* Bonus — inline editable */}
+
+                    {/* Deductions — editable, shows calculated vs overridden */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
                       {record ? (
-                        editingId === record.id && editField === "bonus_amount" ? (
-                          <input
-                            type="number" min="0" step="100" autoFocus
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() => void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 })}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 });
-                              if (e.key === "Escape") { setEditingId(null); setEditField(null); }
-                            }}
-                            className="w-24 h-6 text-right text-xs rounded border border-ring bg-background px-1 focus:outline-none"
+                        <div className="flex flex-col items-end gap-0.5">
+                          <InlineNumber
+                            record={record}
+                            field="deductions"
+                            value={record.deductions}
+                            color="text-destructive"
+                            emptyLabel="+ add"
                           />
-                        ) : (
-                          <span
-                            className="cursor-pointer hover:underline"
-                            onClick={() => { setEditingId(record.id); setEditField("bonus_amount"); setEditValue(String(record.bonus_amount)); }}
-                          >
-                            {record.bonus_amount > 0 ? <span className="text-emerald-700 dark:text-emerald-400">{fmtThb(record.bonus_amount)}</span> : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
-                          </span>
-                        )
+                          {creditApplied > 0 && (
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                              −{fmtHours(creditApplied)} credit applied
+                            </span>
+                          )}
+                        </div>
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </td>
-                    {/* Deductions — inline editable */}
+
+                    {/* OT pay */}
                     <td className="px-4 py-2.5 text-right text-xs tabular-nums">
                       {record ? (
-                        editingId === record.id && editField === "deductions" ? (
-                          <input
-                            type="number" min="0" step="100" autoFocus
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() => void patchRecord(record.id, { deductions: parseFloat(editValue) || 0 })}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") void patchRecord(record.id, { deductions: parseFloat(editValue) || 0 });
-                              if (e.key === "Escape") { setEditingId(null); setEditField(null); }
-                            }}
-                            className="w-24 h-6 text-right text-xs rounded border border-ring bg-background px-1 focus:outline-none"
-                          />
-                        ) : (
-                          <span
-                            className="cursor-pointer hover:underline"
-                            onClick={() => { setEditingId(record.id); setEditField("deductions"); setEditValue(String(record.deductions)); }}
-                          >
-                            {record.deductions > 0 ? <span className="text-destructive">{fmtThb(record.deductions)}</span> : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
-                          </span>
-                        )
+                        record.overtime_pay > 0
+                          ? <span className="text-blue-600 dark:text-blue-400">{fmtThb(record.overtime_pay)}</span>
+                          : "—"
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </td>
+
+                    {/* Service charge — editable, shows manual indicator */}
+                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
+                      {record ? (
+                        <div className="flex flex-col items-end gap-0.5">
+                          {editingId === record.id && editField === "service_charge" ? (
+                            <input
+                              type="number" min="0" step="100" autoFocus
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => void patchRecord(record.id, {
+                                service_charge: parseFloat(editValue) || 0,
+                                service_charge_is_manual: true,
+                              })}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void patchRecord(record.id, {
+                                  service_charge: parseFloat(editValue) || 0,
+                                  service_charge_is_manual: true,
+                                });
+                                if (e.key === "Escape") cancelEdit();
+                              }}
+                              className="w-24 h-6 text-right text-xs rounded border border-ring bg-background px-1 focus:outline-none"
+                            />
+                          ) : (
+                            <span
+                              className="cursor-pointer hover:underline"
+                              onClick={() => startEdit(record.id, "service_charge", record.service_charge)}
+                            >
+                              {record.service_charge > 0
+                                ? fmtThb(record.service_charge)
+                                : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
+                            </span>
+                          )}
+                          {record.service_charge_is_manual && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400">manual</span>
+                          )}
+                        </div>
+                      ) : <span className="text-muted-foreground/60">—</span>}
+                    </td>
+
+                    {/* Bonus — editable */}
+                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
+                      {record ? (
+                        <InlineNumber
+                          record={record}
+                          field="bonus_amount"
+                          value={record.bonus_amount}
+                          color="text-emerald-700 dark:text-emerald-400"
+                          emptyLabel="+ add"
+                        />
+                      ) : <span className="text-muted-foreground/60">—</span>}
+                    </td>
+
+                    {/* Total */}
                     <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
                       {record ? fmtThb(total) : <span className="text-muted-foreground/60">—</span>}
                     </td>
+
+                    {/* Payment method */}
                     <td className="px-4 py-2.5 text-center">
                       {isBankTransfer
                         ? <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"><BuildingIcon className="size-2.5" />Bank</span>
                         : <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"><BanknoteIcon className="size-2.5" />Cash</span>}
                     </td>
+
+                    {/* Status */}
                     <td className="px-4 py-2.5 text-center">
                       {record ? (
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[record.status]}`}>
@@ -327,6 +479,8 @@ export function PaymentsClient({ initialLocations }: Props) {
                         </span>
                       ) : <span className="text-muted-foreground/40 text-xs">—</span>}
                     </td>
+
+                    {/* Actions */}
                     <td className="px-4 py-2.5 text-right">
                       {record && record.status !== "paid" && (
                         <div className="flex justify-end gap-1">
@@ -359,11 +513,12 @@ export function PaymentsClient({ initialLocations }: Props) {
               <tfoot className="border-t-2 border-border bg-muted/20">
                 <tr className="font-semibold">
                   <td className="px-4 py-2.5 text-xs sticky left-0 bg-muted/20">Total</td>
+                  <td className="px-4 py-2.5" />
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums">{fmtThb(totals.base)}</td>
+                  <td className="px-4 py-2.5 text-right text-xs tabular-nums text-destructive">{totals.deductions > 0 ? fmtThb(totals.deductions) : "—"}</td>
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.ot > 0 ? fmtThb(totals.ot) : "—"}</td>
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.sc > 0 ? fmtThb(totals.sc) : "—"}</td>
                   <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.bonus > 0 ? fmtThb(totals.bonus) : "—"}</td>
-                  <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.deductions > 0 ? fmtThb(totals.deductions) : "—"}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{fmtThb(totals.total)}</td>
                   <td colSpan={3} />
                 </tr>
@@ -373,9 +528,11 @@ export function PaymentsClient({ initialLocations }: Props) {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">
-        Blue rows = bank transfer (Thai bank account) · Amber rows = cash · Service charge = 1% of location net revenue shared equally among employees.
-      </p>
+      <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+        <p>Blue rows = bank transfer · Amber rows = cash</p>
+        <p>Hours column: worked / scheduled — click <strong>Deductions</strong> to override. Service charge = 1% of location net revenue per employee (click to override).</p>
+        <p>Credit balance shown in orange under employee name = hours owed back · green = employer owes carry hours (applied next month).</p>
+      </div>
     </div>
   );
 }

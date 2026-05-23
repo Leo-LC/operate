@@ -8,13 +8,21 @@ export interface PaymentRecord {
   employee_id: string;
   period_year: number;
   period_month: number;
+  // Calculation snapshot
+  scheduled_hours: number;
+  missed_hours: number;
+  hourly_rate_snapshot: number;
+  // Payment amounts
   base_salary: number;
-  overtime_pay: number;
-  service_charge: number;
-  bonus_amount: number;
-  bonus_note: string | null;
   deductions: number;
   deduction_note: string | null;
+  overtime_pay: number;
+  service_charge: number;
+  service_charge_is_manual: boolean;
+  bonus_amount: number;
+  bonus_note: string | null;
+  credit_hours_applied: number;
+  // Admin
   payment_method: PaymentMethod;
   status: PaymentStatus;
   paid_at: string | null;
@@ -25,7 +33,7 @@ export interface PaymentRecord {
 }
 
 export function totalPayment(r: PaymentRecord): number {
-  return r.base_salary + r.overtime_pay + r.service_charge + r.bonus_amount - r.deductions;
+  return r.base_salary - r.deductions + r.overtime_pay + r.service_charge + r.bonus_amount;
 }
 
 export const STATUS_LABELS: Record<PaymentStatus, string> = {

@@ -15,12 +15,40 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try { body = await request.json(); }
   catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  // Auto-set paid_at when status transitions to "paid"
   if (body.status === "paid" && !body.paid_at) {
     body.paid_at = new Date().toISOString();
   }
 
   const supabase = getSupabaseServerClient();
+
+  // When confirming a payment, reconcile credit_hours on the employee
+  if (body.status === "confirmed" || body.status === "paid") {
+    const { data: existing } = await supabase
+      .from("employee_payment_records")
+      .select("status, credit_hours_applied, employee_id")
+      .eq("id", id)
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .single();
+
+    // Only apply credits once (when transitioning from non-confirmed → confirmed/paid)
+    if (existing && existing.status === "draft") {
+      const creditApplied = (body.credit_hours_applied as number | undefined) ?? (existing.credit_hours_applied as number) ?? 0;
+      if (creditApplied !== 0) {
+        const { data: emp } = await supabase
+          .from("employees")
+          .select("credit_hours")
+          .eq("id", existing.employee_id as string)
+          .single();
+        if (emp) {
+          await supabase
+            .from("employees")
+            .update({ credit_hours: ((emp.credit_hours as number) ?? 0) - creditApplied })
+            .eq("id", existing.employee_id as string);
+        }
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from("employee_payment_records")
     .update({ ...body, updated_at: new Date().toISOString() })

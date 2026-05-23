@@ -43,13 +43,18 @@ export async function POST(request: Request) {
     employee_id: string;
     period_year: number;
     period_month: number;
+    scheduled_hours?: number;
+    missed_hours?: number;
+    hourly_rate_snapshot?: number;
     base_salary?: number;
-    overtime_pay?: number;
-    service_charge?: number;
-    bonus_amount?: number;
-    bonus_note?: string;
     deductions?: number;
     deduction_note?: string;
+    overtime_pay?: number;
+    service_charge?: number;
+    service_charge_is_manual?: boolean;
+    bonus_amount?: number;
+    bonus_note?: string;
+    credit_hours_applied?: number;
     payment_method?: string;
     status?: string;
     notes?: string;
@@ -68,13 +73,18 @@ export async function POST(request: Request) {
     employee_id: body.employee_id,
     period_year: body.period_year,
     period_month: body.period_month,
+    scheduled_hours: body.scheduled_hours ?? 0,
+    missed_hours: body.missed_hours ?? 0,
+    hourly_rate_snapshot: body.hourly_rate_snapshot ?? 0,
     base_salary: body.base_salary ?? 0,
-    overtime_pay: body.overtime_pay ?? 0,
-    service_charge: body.service_charge ?? 0,
-    bonus_amount: body.bonus_amount ?? 0,
-    bonus_note: body.bonus_note ?? null,
     deductions: body.deductions ?? 0,
     deduction_note: body.deduction_note ?? null,
+    overtime_pay: body.overtime_pay ?? 0,
+    service_charge: body.service_charge ?? 0,
+    service_charge_is_manual: body.service_charge_is_manual ?? false,
+    bonus_amount: body.bonus_amount ?? 0,
+    bonus_note: body.bonus_note ?? null,
+    credit_hours_applied: body.credit_hours_applied ?? 0,
     payment_method: body.payment_method ?? "cash",
     status: body.status ?? "draft",
     notes: body.notes ?? null,

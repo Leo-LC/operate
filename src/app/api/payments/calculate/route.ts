@@ -1,7 +1,13 @@
 /**
- * Auto-calculates overtime pay and service charge for a period + location.
+ * Auto-calculates payroll for a period + location.
  * POST body: { period_year, period_month, location_id }
- * Returns: array of { employee_id, base_salary, overtime_pay, service_charge, payment_method }
+ *
+ * Calculation logic:
+ * - scheduled_hours: sum of all shift hours in the calendar month (from published schedules)
+ * - missed_hours: sum of shift hours for dates with absence/sick_leave/unpaid_leave records
+ * - deductions: missed_hours × hourly_rate (paid_leave and public_holiday are not deducted)
+ * - service_charge: total_net_revenue × 0.01 per employee individually
+ * - overtime_pay: OT attendance records × hourly_rate × multiplier
  */
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -9,7 +15,10 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { buildSummary, DEFAULT_HR_SETTINGS, type HrSettings } from "@/modules/attendance/types";
 import type { AttendanceRecord } from "@/modules/attendance/types";
+import { computeShiftHours } from "@/lib/scheduling/schedule-math";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+
+const DEDUCTIBLE_TYPES = new Set(["absence", "sick_leave", "unpaid_leave"]);
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -28,16 +37,15 @@ export async function POST(request: Request) {
 
   const supabase = getSupabaseServerClient();
 
-  // Build date range for the period
   const monthPad = String(period_month).padStart(2, "0");
   const lastDay = new Date(period_year, period_month, 0).getDate();
   const fromDate = `${period_year}-${monthPad}-01`;
   const toDate   = `${period_year}-${monthPad}-${String(lastDay).padStart(2, "0")}`;
 
-  const [empRes, attRes, settRes, dailyRes] = await Promise.all([
+  const [empRes, attRes, settRes, dailyRes, shiftsRes] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, location_id, employee_locations(location_id)")
+      .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, credit_hours, credit_note, location_id, employee_locations(location_id)")
       .eq("organization_id", DEFAULT_ORG_ID)
       .is("archived_at", null)
       .is("deleted_at", null),
@@ -61,11 +69,19 @@ export async function POST(request: Request) {
       .eq("location_id", location_id)
       .gte("entry_date", fromDate)
       .lte("entry_date", toDate),
+    // Fetch all schedule_shifts for the month via published schedules at this location
+    supabase
+      .from("schedule_shifts")
+      .select("employee_id, shift_date, start_time, end_time, break_minutes, schedule_id, schedules!inner(location_id, deleted_at)")
+      .eq("schedules.location_id", location_id)
+      .is("schedules.deleted_at", null)
+      .gte("shift_date", fromDate)
+      .lte("shift_date", toDate)
+      .not("start_time", "is", null),
   ]);
 
   const settings: HrSettings = settRes.data ?? DEFAULT_HR_SETTINGS;
 
-  // Calculate total net revenue for the period (for service charge = 1%)
   const totalNetRevenue = (dailyRes.data ?? []).reduce((sum, row) => {
     return sum + (row.sales_drinks_net ?? 0) + (row.sales_ticket_net ?? 0) +
            (row.sales_snack_net ?? 0) + (row.sales_goodies_net ?? 0) + (row.sales_card_surcharge ?? 0);
@@ -77,26 +93,54 @@ export async function POST(request: Request) {
     return locs.some((el) => el.location_id === location_id) || e.location_id === location_id;
   });
 
+  // Build a map: employee_id → { date → shift_hours } for quick lookup
+  type ShiftMap = Map<string, Map<string, number>>;
+  const shiftsByEmployee: ShiftMap = new Map();
+  for (const s of (shiftsRes.data ?? [])) {
+    if (!s.start_time || !s.end_time) continue;
+    let byDate = shiftsByEmployee.get(s.employee_id);
+    if (!byDate) { byDate = new Map(); shiftsByEmployee.set(s.employee_id, byDate); }
+    const h = computeShiftHours(s.start_time as string, s.end_time as string, s.break_minutes ?? 30);
+    byDate.set(s.shift_date as string, (byDate.get(s.shift_date as string) ?? 0) + h);
+  }
+
   const results = locationEmployees.map((emp) => {
-    const empRecords = (attRes.data ?? []) as AttendanceRecord[];
+    const empAttendance = (attRes.data ?? []) as AttendanceRecord[];
+    const empRecords = empAttendance.filter((r) => r.employee_id === emp.id);
     const summary = buildSummary(
       emp.id,
       `${emp.first_name} ${emp.last_name}`,
       emp.base_salary_monthly as number | null,
       emp.has_thai_bank_account as boolean,
-      empRecords.filter((r) => r.employee_id === emp.id),
+      empRecords,
       settings,
     );
+
+    const byDate = shiftsByEmployee.get(emp.id) ?? new Map<string, number>();
+    const scheduled_hours = Array.from(byDate.values()).reduce((a, b) => a + b, 0);
+
+    // Sum hours for dates with deductible attendance records
+    const missed_hours = empRecords
+      .filter((r) => DEDUCTIBLE_TYPES.has(r.record_type))
+      .reduce((sum, r) => sum + (byDate.get(r.record_date) ?? 0), 0);
+
+    const baseSalary = (emp.base_salary_monthly as number | null) ?? 0;
+    const hourly_rate = baseSalary > 0 ? baseSalary / settings.monthly_hours_divisor : 0;
+    const deduction = Math.round(missed_hours * hourly_rate * 100) / 100;
 
     return {
       employee_id: emp.id,
       employee_name: summary.employee_name,
-      base_salary: emp.base_salary_monthly ?? 0,
+      base_salary: baseSalary,
+      scheduled_hours: Math.round(scheduled_hours * 100) / 100,
+      missed_hours: Math.round(missed_hours * 100) / 100,
+      hourly_rate_snapshot: Math.round(hourly_rate * 100) / 100,
+      deductions: deduction,
       overtime_pay: Math.round(summary.ot_pay * 100) / 100,
-      service_charge: locationEmployees.length > 0
-        ? Math.round((serviceChargePerEmployee / locationEmployees.length) * 100) / 100
-        : 0,
-      payment_method: emp.has_thai_bank_account ? "bank_transfer" : "cash",
+      service_charge: Math.round(serviceChargePerEmployee * 100) / 100,
+      payment_method: (emp.has_thai_bank_account as boolean) ? "bank_transfer" : "cash",
+      credit_hours_balance: (emp.credit_hours as number) ?? 0,
+      credit_note: (emp.credit_note as string | null) ?? null,
     };
   });
 
