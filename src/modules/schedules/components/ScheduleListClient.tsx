@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon, TriangleAlertIcon, Loader2Icon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DateInput } from "@/components/ui/date-input";
@@ -44,6 +44,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
   const [dupTarget, setDupTarget] = useState<Schedule | null>(null);
   const [dupWeek, setDupWeek] = useState("");
   const [dupName, setDupName] = useState("");
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const createName = createNameOverride ?? defaultScheduleName(createWeek);
 
@@ -238,6 +239,113 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }, []);
 
+  const exportMonthPdf = useCallback(async () => {
+    setExportingPdf(true);
+    try {
+      const now = new Date();
+      const currentMonth = format(now, "yyyy-MM");
+
+      const toExport = schedules.filter((s) => {
+        const matchesLoc = !locationFilter || s.location_id === locationFilter;
+        const matchesMonth = s.week_start_date.startsWith(currentMonth);
+        return matchesLoc && matchesMonth;
+      });
+
+      if (toExport.length === 0) {
+        toast.info(`No schedules found for ${format(now, "MMMM yyyy")}${locationFilter ? " at selected shop" : ""}`);
+        return;
+      }
+
+      type ShiftRow = { employee_id: string; employee_name: string | null; shift_date: string; start_time: string | null; end_time: string | null };
+
+      const computeH = (startT: string | null, endT: string | null): number => {
+        if (!startT || !endT) return 0;
+        const [sh, sm2] = startT.split(":").map(Number);
+        const [eh, em] = endT.split(":").map(Number);
+        const diff = eh * 60 + em - (sh * 60 + sm2);
+        return diff <= 30 ? 0 : (diff - 30) / 60;
+      };
+
+      const sections = await Promise.all(toExport.map(async (schedule) => {
+        const res = await fetch(`/api/schedules/${schedule.id}`);
+        if (!res.ok) return "";
+        const data = (await res.json()) as { shifts: ShiftRow[]; location_name: string | null };
+        const shifts = data.shifts ?? [];
+
+        const empMap = new Map<string, string>();
+        shifts.forEach((s) => { if (s.employee_name && !empMap.has(s.employee_id)) empMap.set(s.employee_id, s.employee_name); });
+
+        const weekStart = parseISO(schedule.week_start_date);
+        const weekDays = Array.from({ length: 7 }).map((_, i) => {
+          const d = addDays(weekStart, i);
+          return { iso: format(d, "yyyy-MM-dd"), label: format(d, "EEE d") };
+        });
+
+        const shiftMap = new Map<string, ShiftRow>();
+        shifts.forEach((s) => shiftMap.set(`${s.employee_id}__${s.shift_date}`, s));
+
+        const headers = weekDays.map((d) => `<th>${d.label}</th>`).join("");
+        const tableRows = Array.from(empMap.entries()).map(([empId, empName], rowIdx) => {
+          let total = 0;
+          const cells = weekDays.map((day) => {
+            const s = shiftMap.get(`${empId}__${day.iso}`);
+            if (!s?.start_time) return `<td class="off">—</td>`;
+            const st = s.start_time.substring(0, 5);
+            const et = (s.end_time ?? "").substring(0, 5);
+            const h = computeH(st, et);
+            total += h;
+            return `<td class="shift"><span class="time">${st} – ${et}</span><span class="hrs">${h.toFixed(1)}h</span></td>`;
+          }).join("");
+          const rowClass = rowIdx % 2 === 0 ? "" : ' class="alt"';
+          return `<tr${rowClass}><td class="name">${empName}</td>${cells}<td class="total">${total.toFixed(1)}h</td></tr>`;
+        }).join("");
+
+        const colgroup = `<colgroup><col class="name-col">${weekDays.map(() => '<col class="day-col">').join("")}<col class="total-col"></colgroup>`;
+        const locationMeta = data.location_name ? `${data.location_name} &nbsp;&middot;&nbsp; ` : "";
+        return `<div class="section"><div class="accent"></div><div class="header"><div class="header-left"><h1>${schedule.name}</h1><div class="meta">${locationMeta}${weekLabel(schedule.week_start_date)}</div></div><div class="header-right">Capybara Coffee<br>Internal Schedule</div></div><div class="content"><table>${colgroup}<thead><tr><th class="name-th">Employee</th>${headers}<th>Week</th></tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
+      }));
+
+      const validSections = sections.filter(Boolean);
+      if (!validSections.length) { toast.error("Failed to load schedule data"); return; }
+
+      const locationName = locationFilter ? (locations.find((l) => l.id === locationFilter)?.name ?? "") : "All shops";
+      const css = [
+        "*{box-sizing:border-box;margin:0;padding:0}",
+        "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11px;color:#1a1a1a;background:#fff}",
+        ".section{page-break-after:always}.section:last-child{page-break-after:avoid}",
+        ".accent{height:5px;background:#1e3a8a;width:100%}",
+        ".header{padding:16px 24px 12px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #e5e7eb}",
+        ".header-left h1{font-size:16px;font-weight:700;color:#111;margin-bottom:3px}",
+        ".header-left .meta{font-size:11px;color:#6b7280}",
+        ".header-right{text-align:right;font-size:10px;color:#9ca3af}",
+        ".content{padding:16px 24px}",
+        "table{border-collapse:collapse;width:100%;table-layout:fixed}",
+        "col.name-col{width:130px}col.day-col{width:auto}col.total-col{width:64px}",
+        "th{background:#1e3a8a;color:#fff;font-weight:600;font-size:10px;padding:7px 8px;text-align:center;letter-spacing:0.3px}",
+        "th.name-th{text-align:left;padding-left:10px}",
+        "td{padding:6px 8px;text-align:center;vertical-align:middle;border-bottom:1px solid #f0f0f0;font-size:10.5px}",
+        "tr.alt td{background:#f8fafc}",
+        "td.name{text-align:left;font-weight:600;padding-left:10px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+        "td.off{color:#d1d5db;font-size:13px}",
+        "td.shift{line-height:1}td.shift .time{display:block;color:#374151;font-weight:500}",
+        "td.shift .hrs{display:block;color:#16a34a;font-weight:700;font-size:10px;margin-top:2px}",
+        "td.total{font-weight:700;color:#1e3a8a;background:#eff6ff!important;border-left:2px solid #bfdbfe}",
+        "@media print{@page{margin:8mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.accent{-webkit-print-color-adjust:exact}}",
+      ].join("");
+
+      const title = `Schedules — ${format(now, "MMMM yyyy")} — ${locationName}`;
+      const printHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body>${validSections.join("")}</body></html>`;
+
+      const blob = new Blob([printHtml], { type: "text/html; charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, "_blank", "width=1150,height=800");
+      if (!win) { URL.revokeObjectURL(blobUrl); toast.error("Pop-up blocked — please allow pop-ups"); return; }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [schedules, locationFilter, locations]);
+
   return (
     <div className="flex flex-col gap-6">
       {/* ── Header ──────────────────────────────────────────────── */}
@@ -259,6 +367,10 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               ))}
             </select>
           )}
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void exportMonthPdf()} disabled={exportingPdf}>
+            {exportingPdf ? <Loader2Icon className="size-4 animate-spin" /> : <PrinterIcon className="size-4" />}
+            Export month
+          </Button>
           <Button size="sm" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }} className="gap-1.5">
             <PlusIcon className="size-4" />
             New schedule

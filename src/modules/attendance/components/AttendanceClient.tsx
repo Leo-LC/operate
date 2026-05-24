@@ -527,7 +527,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                     return (
                       <div
                         key={d}
-                        className={`flex h-9 w-8 shrink-0 flex-col items-center justify-center text-[10px] font-medium ${
+                        className={`flex h-9 w-8 shrink-0 flex-col items-center justify-center text-[10px] font-medium border-l border-border/40 ${
                           isWeekend ? "text-muted-foreground/40" : "text-muted-foreground"
                         }`}
                       >
@@ -551,7 +551,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                     {dayNumbers.map((d) => {
                       const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                       return (
-                        <div key={d} className="flex w-8 shrink-0 items-center justify-center py-1.5">
+                        <div key={d} className="flex w-8 shrink-0 items-center justify-center py-1.5 border-l border-border/40">
                           <div
                             className={getCellStyle(emp.id, dateStr)}
                             onClick={() => handleCellClick(emp, dateStr)}
@@ -578,24 +578,24 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                 <thead className="bg-muted/40">
                   <tr>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground sticky left-0 bg-muted/40">Employee</th>
-                    <th className="px-3 py-2.5 text-center font-medium text-muted-foreground text-xs">Scheduled</th>
-                    <th className="px-3 py-2.5 text-center font-medium text-muted-foreground text-xs">OT hours</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs">OT pay</th>
-                    <th className="px-3 py-2.5 text-center font-medium text-muted-foreground text-xs">Unpaid leave</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs">Deduction</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs">Delta</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Scheduled</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">OT hours</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">OT pay</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Unpaid leave</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Deduction</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Delta</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {summaries.map((sm) => (
                     <tr key={sm.employee_id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-2.5 font-medium sticky left-0 bg-card text-sm">{sm.employee_name}</td>
-                      <td className="px-3 py-2.5 text-center text-xs tabular-nums text-muted-foreground">
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums text-muted-foreground border-l border-border/40">
                         {sm.scheduledDays > 0
                           ? `${sm.scheduledDays}d`
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-3 py-2 text-center text-xs tabular-nums">
+                      <td className="px-3 py-2 text-right text-xs tabular-nums border-l border-border/40">
                         {summaryOtEditId === sm.employee_id ? (
                           <div className="flex items-center gap-1 justify-center">
                             <input
@@ -623,12 +623,12 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           </button>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums">
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums border-l border-border/40">
                         {sm.ot_pay > 0
                           ? <span className="text-blue-600 dark:text-blue-400 font-medium">{fmtThb(sm.ot_pay)}</span>
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-3 py-2 text-center text-xs tabular-nums">
+                      <td className="px-3 py-2 text-right text-xs tabular-nums border-l border-border/40">
                         {summaryLeaveEditId === sm.employee_id ? (
                           <div className="flex items-center gap-1 justify-center">
                             <input
@@ -656,18 +656,18 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           </button>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums">
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums border-l border-border/40">
                         {sm.deduction > 0
                           ? <span className="text-destructive font-medium">{fmtThb(sm.deduction)}</span>
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums font-semibold">
+                      <td className="px-3 py-2.5 text-right text-xs tabular-nums font-semibold border-l border-border/40">
                         {sm.ot_pay === 0 && sm.deduction === 0 ? (
                           <span className="text-muted-foreground/40">—</span>
                         ) : sm.delta >= 0 ? (
-                          <span className="text-emerald-700 dark:text-emerald-400">+{fmtThb(sm.delta)}</span>
+                          <span className="text-emerald-700 dark:text-emerald-400">฿ +{Math.round(sm.delta).toLocaleString()}</span>
                         ) : (
-                          <span className="text-destructive">{fmtThb(sm.delta)}</span>
+                          <span className="text-destructive">฿ {Math.round(sm.delta).toLocaleString()}</span>
                         )}
                       </td>
                     </tr>
@@ -677,30 +677,30 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                   <tfoot className="border-t-2 border-border bg-muted/20">
                     <tr className="font-semibold text-xs">
                       <td className="px-4 py-2.5 sticky left-0 bg-muted/20">Total</td>
-                      <td />
-                      <td className="px-3 py-2.5 text-center tabular-nums text-blue-600 dark:text-blue-400">
+                      <td className="border-l border-border/40" />
+                      <td className="px-3 py-2.5 text-right tabular-nums text-blue-600 dark:text-blue-400 border-l border-border/40">
                         {summaries.reduce((s, sm) => s + sm.totalOtHours, 0) > 0
                           ? `${summaries.reduce((s, sm) => s + sm.totalOtHours, 0)}h` : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-blue-600 dark:text-blue-400">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-blue-600 dark:text-blue-400 border-l border-border/40">
                         {summaries.reduce((s, sm) => s + sm.ot_pay, 0) > 0
                           ? fmtThb(summaries.reduce((s, sm) => s + sm.ot_pay, 0)) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-center tabular-nums text-orange-600 dark:text-orange-400">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-orange-600 dark:text-orange-400 border-l border-border/40">
                         {summaries.reduce((s, sm) => s + sm.totalUnpaidDays, 0) > 0
                           ? `${summaries.reduce((s, sm) => s + sm.totalUnpaidDays, 0)}d` : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-destructive">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-destructive border-l border-border/40">
                         {summaries.reduce((s, sm) => s + sm.deduction, 0) > 0
                           ? fmtThb(summaries.reduce((s, sm) => s + sm.deduction, 0)) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">
+                      <td className="px-3 py-2.5 text-right tabular-nums border-l border-border/40">
                         {(() => {
                           const d = summaries.reduce((s, sm) => s + sm.delta, 0);
                           if (d === 0) return "—";
                           return d >= 0
-                            ? <span className="text-emerald-700 dark:text-emerald-400">+{fmtThb(d)}</span>
-                            : <span className="text-destructive">{fmtThb(d)}</span>;
+                            ? <span className="text-emerald-700 dark:text-emerald-400">฿ +{Math.round(d).toLocaleString()}</span>
+                            : <span className="text-destructive">฿ {Math.round(d).toLocaleString()}</span>;
                         })()}
                       </td>
                     </tr>

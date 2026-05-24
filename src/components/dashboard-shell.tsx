@@ -152,7 +152,9 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
             )}
 
             {(canSeeSchedules || canSeeAttendance || canSeePayments) && (
-              <div className="my-1 border-t border-sidebar-foreground/10" />
+              <div className="px-2 pt-3 pb-0.5">
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 pl-1">HR</span>
+              </div>
             )}
 
             {canSeeSchedules && (

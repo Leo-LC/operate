@@ -543,7 +543,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
       {/* ── Overlap warning ────────────────────────────────────── */}
       {conflictNames.length > 0 && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-400 dark:border-amber-600 bg-amber-100 dark:bg-amber-900/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
           <TriangleAlertIcon className="size-4 shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold">Scheduling overlap — </span>

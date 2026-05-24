@@ -12,7 +12,7 @@ const BACK_STRIP = `
   border-bottom:1px solid rgba(255,255,255,0.08);
   font-family:system-ui,sans-serif;font-size:13px;color:rgba(255,255,255,0.7);
 ">
-  <a href="/dashboard/wiki" style="
+  <a href="/dashboard" style="
     display:flex;align-items:center;gap:6px;
     color:rgba(255,255,255,0.6);text-decoration:none;
   ">
@@ -23,15 +23,20 @@ const BACK_STRIP = `
   </span>
   <div style="width:140px"></div>
 </div>
-<div style="height:44px"></div>
 `;
 
 export async function GET() {
   const htmlPath = path.join(process.cwd(), "public", "brand", "guidelines.html");
   let html = fs.readFileSync(htmlPath, "utf-8");
 
-  // Inject the back-strip right after the opening <body> tag
-  html = html.replace(/<body([^>]*)>/, `<body$1>${BACK_STRIP}`);
+  // Inject the back-strip right after the opening <body> tag, and push body content down
+  html = html.replace(/<body([^>]*)>/, (_m, attrs: string) => {
+    const hasStyle = /style\s*=\s*["']/i.test(attrs);
+    const newAttrs = hasStyle
+      ? attrs.replace(/(style\s*=\s*["'])/, `$1padding-top:44px;`)
+      : attrs + ` style="padding-top:44px;"`;
+    return `<body${newAttrs}>${BACK_STRIP}`;
+  });
 
   return new NextResponse(html, {
     headers: { "Content-Type": "text/html; charset=utf-8" },

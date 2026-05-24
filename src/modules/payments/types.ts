@@ -37,7 +37,7 @@ export const STATUS_LABELS: Record<PaymentStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<PaymentStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
+  draft: "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200",
   confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
   paid: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
 };
