@@ -1,29 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import {
-  LogOutIcon,
-  ShieldIcon,
-  FileTextIcon,
-  PawPrintIcon,
-  CalendarDaysIcon,
-  CalculatorIcon,
-  TrendingUpIcon,
-  StarIcon,
-  HouseIcon,
-  PinIcon,
-  UsersIcon,
-  ClockIcon,
-  BanknoteIcon,
-  BookOpenIcon,
-  PaletteIcon,
+  HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
+  PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
+  SunIcon, MoonIcon, LogOutIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { CommandPalette } from "@/components/command-palette";
+import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
 
 interface DashboardShellProps {
   email: string;
@@ -31,265 +21,442 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-function navItemClass(active: boolean, locked: boolean): string {
-  return [
-    "grid w-full items-center rounded-md px-2 py-2 text-xs transition-all duration-300 ease-in-out",
-    locked
-      ? "grid-cols-[2rem_1fr]"
-      : "grid-cols-[2rem_0fr] group-hover:grid-cols-[2rem_1fr]",
-    active
-      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-      : "text-sidebar-foreground/55 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
-  ].join(" ");
+const NAV_ITEMS = [
+  { id: "overview",   label: "Overview",   href: "/dashboard/home",       icon: HomeIcon,         module: null },
+  { id: "reviews",    label: "Reviews",    href: "/dashboard/reviews",    icon: StarIcon,         module: "reviews" },
+  { id: "scheduling", label: "Scheduling", href: "/dashboard/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+  { id: "attendance", label: "Attendance", href: "/dashboard/attendance", icon: ClockIcon,        module: "attendance" },
+  { id: "payments",   label: "Payments",   href: "/dashboard/payments",   icon: BanknoteIcon,     module: "payments" },
+  { id: "animals",    label: "Animals",    href: "/dashboard/animals",    icon: PawPrintIcon,     module: "animals" },
+  { id: "documents",  label: "Documents",  href: "/dashboard/documents",  icon: FileTextIcon,     module: "documents" },
+  { id: "accounting", label: "Accounting", href: "/dashboard/accounting", icon: CalculatorIcon,   module: "accounting" },
+  { id: "reports",    label: "Reports",    href: "/dashboard/reports",    icon: TrendingUpIcon,   module: "reports" },
+  { id: "contacts",   label: "Contacts",   href: "/dashboard/contacts",   icon: UsersIcon,        module: "contacts" },
+  { id: "wiki",       label: "Wiki",       href: "/dashboard/wiki",       icon: BookOpenIcon,     module: "wiki" },
+  { id: "brand",      label: "Brand",      href: "/brand-guidelines",     icon: PaletteIcon,      module: null },
+  { id: "admin",      label: "Admin",      href: "/dashboard/admin",      icon: ShieldIcon,       module: "admin" },
+] as const;
+
+/* Deterministic avatar colour from initials */
+const AVATAR_HUES = [24, 38, 185, 145, 260, 310];
+function avatarColor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  return `hsl(${AVATAR_HUES[Math.abs(hash) % AVATAR_HUES.length]}, 55%, 52%)`;
 }
 
-function labelClass(locked: boolean): string {
-  return [
-    "overflow-hidden whitespace-nowrap pl-2 text-[12px] text-sidebar-foreground transition-opacity duration-200 ease-out",
-    locked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-  ].join(" ");
-}
-
-function iconClass(active: boolean): string {
-  return `h-4 w-4 transition-colors ${active ? "text-sidebar-foreground" : "text-sidebar-foreground/50"}`;
+function initials(name: string): string {
+  return name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 export function DashboardShell({ email, role, children }: DashboardShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const permissions = derivePermissionsFromRole(role);
 
-  const [sidebarLocked, setSidebarLocked] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
+  /* ── Global keyboard shortcuts ── */
+  const gKeyRef = useRef(false);
   useEffect(() => {
-    setSidebarLocked(localStorage.getItem("sidebar-locked") === "true");
-  }, []);
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const inInput = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
 
-  function toggleLock() {
-    const next = !sidebarLocked;
-    setSidebarLocked(next);
-    localStorage.setItem("sidebar-locked", String(next));
+      /* ⌘K / Ctrl+K */
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+        return;
+      }
+
+      if (inInput) return;
+
+      /* ? → shortcuts overlay */
+      if (e.key === "?" && !e.shiftKey) {
+        setShortcutsOpen((v) => !v);
+        return;
+      }
+
+      /* T → toggle theme */
+      if (e.key === "t" || e.key === "T") {
+        setTheme(theme === "dark" ? "light" : "dark");
+        return;
+      }
+
+      /* g+letter navigation */
+      if (e.key === "g") {
+        gKeyRef.current = true;
+        setTimeout(() => { gKeyRef.current = false; }, 1000);
+        return;
+      }
+
+      if (gKeyRef.current) {
+        const map: Record<string, string> = {
+          o: "/dashboard/home",
+          r: "/dashboard/reviews",
+          s: "/dashboard/scheduling",
+          a: "/dashboard/attendance",
+          p: "/dashboard/payments",
+          n: "/dashboard/animals",
+          d: "/dashboard/documents",
+          c: "/dashboard/accounting",
+          e: "/dashboard/reports",
+          t: "/dashboard/contacts",
+          w: "/dashboard/wiki",
+          b: "/brand-guidelines",
+          m: "/dashboard/admin",
+        };
+        const dest = map[e.key.toLowerCase()];
+        if (dest) {
+          gKeyRef.current = false;
+          router.push(dest);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [theme, setTheme, router]);
+
+  function isActive(href: string): boolean {
+    if (href === "/dashboard/home") return pathname === "/dashboard/home" || pathname === "/dashboard";
+    return pathname.startsWith(href);
   }
 
-  const canSeeReviews    = hasModuleAccess(permissions, "reviews");
-  const canSeeAdmin      = hasModuleAccess(permissions, "admin");
-  const canSeeDocuments  = hasModuleAccess(permissions, "documents");
-  const canSeeAnimals    = hasModuleAccess(permissions, "animals");
-  const canSeeSchedules  = hasModuleAccess(permissions, "schedules");
-  const canSeeAccounting = hasModuleAccess(permissions, "accounting");
-  const canSeeReports    = hasModuleAccess(permissions, "reports");
-  const canSeeContacts   = hasModuleAccess(permissions, "contacts");
-  const canSeeAttendance = hasModuleAccess(permissions, "attendance");
-  const canSeePayments   = hasModuleAccess(permissions, "payments");
-  const canSeeWiki       = hasModuleAccess(permissions, "wiki");
-
-  const isHome       = pathname === "/dashboard/home" || pathname === "/dashboard";
-  const isReviews    = pathname.startsWith("/dashboard/reviews");
-  const isScheduling = pathname.startsWith("/dashboard/scheduling");
-  const isDocuments  = pathname.startsWith("/dashboard/documents");
-  const isAnimals    = pathname.startsWith("/dashboard/animals");
-  const isAccounting = pathname.startsWith("/dashboard/accounting");
-  const isReports    = pathname.startsWith("/dashboard/reports");
-  const isContacts   = pathname.startsWith("/dashboard/contacts");
-  const isAttendance = pathname.startsWith("/dashboard/attendance");
-  const isPayments   = pathname.startsWith("/dashboard/payments");
-  const isAdmin      = pathname.startsWith("/dashboard/admin");
-  const isWiki            = pathname.startsWith("/dashboard/wiki");
-  const isBrandGuidelines = pathname.startsWith("/brand-guidelines");
-
-  const asideClass = [
-    "group sticky top-12 hidden h-[calc(100vh-3rem)] flex-col items-center overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out md:flex",
-    sidebarLocked ? "w-48" : "w-14 hover:w-48",
-  ].join(" ");
+  const displayName = email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 flex h-12 items-center justify-between border-b border-border bg-background/95 px-4 text-xs text-muted-foreground backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard/home" className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground tracking-tight">
-              Op
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-serif text-[14px] text-foreground">Operate</span>
-              <span className="max-w-[220px] truncate text-[10px] text-muted-foreground mt-0.5">{email}</span>
-            </div>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "var(--bg)",
+        color: "var(--fg)",
+      }}
+    >
+      {/* ── Sidebar ── */}
+      <aside
+        style={{
+          width: "var(--sidebar-w)",
+          flexShrink: 0,
+          borderRight: "1px solid var(--line)",
+          background: "var(--surface-2)",
+          display: "flex",
+          flexDirection: "column",
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          zIndex: 40,
+        }}
+      >
+        {/* Brand header — same height as topbar so they align */}
+        <div
+          style={{
+            height: "var(--topbar-h)",
+            display: "flex",
+            alignItems: "center",
+            padding: "0 var(--s-5)",
+            borderBottom: "1px solid var(--line)",
+            flexShrink: 0,
+          }}
+        >
+          <Link
+            href="/dashboard/home"
+            style={{ display: "flex", alignItems: "baseline", gap: 6, textDecoration: "none" }}
+          >
+            <span
+              style={{
+                fontSize: 17,
+                fontWeight: 700,
+                letterSpacing: "-0.01em",
+                color: "var(--fg)",
+                fontFamily: "var(--font-sans)",
+              }}
+            >
+              Operate
+            </span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>v2.6</span>
           </Link>
         </div>
-        <div className="flex items-center gap-1.5">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden gap-1.5 rounded-full px-3 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground sm:inline-flex"
-            onClick={() => signOut({ callbackUrl: "/" })}
-          >
-            <LogOutIcon className="size-3.5" />
-            Sign out
-          </Button>
-        </div>
-      </header>
 
-      <div className="flex flex-1 pt-12">
-        {/* Dark sidebar */}
-        <aside className={asideClass}>
-          <div className="mt-3 flex w-full flex-1 flex-col items-center gap-0.5 px-2">
-
-            <Link href="/dashboard/home" className={navItemClass(isHome, sidebarLocked)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                <HouseIcon className={iconClass(isHome)} />
-              </div>
-              <span className={labelClass(sidebarLocked)}>Overview</span>
-            </Link>
-
-            {canSeeReviews && (
-              <Link href="/dashboard/reviews" className={navItemClass(isReviews, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <StarIcon className={iconClass(isReviews)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Reviews</span>
-              </Link>
-            )}
-
-            {(canSeeSchedules || canSeeAttendance || canSeePayments) && (
-              <div className="px-2 pt-3 pb-0.5">
-                <span className="text-[9px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 pl-1">HR</span>
-              </div>
-            )}
-
-            {canSeeSchedules && (
-              <Link href="/dashboard/scheduling" className={navItemClass(isScheduling, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <CalendarDaysIcon className={iconClass(isScheduling)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Scheduling</span>
-              </Link>
-            )}
-
-            {canSeeAttendance && (
-              <Link href="/dashboard/attendance" className={navItemClass(isAttendance, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <ClockIcon className={iconClass(isAttendance)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Attendance</span>
-              </Link>
-            )}
-
-            {canSeePayments && (
-              <Link href="/dashboard/payments" className={navItemClass(isPayments, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <BanknoteIcon className={iconClass(isPayments)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Payments</span>
-              </Link>
-            )}
-
-            {(canSeeSchedules || canSeeAttendance || canSeePayments) && (
-              <div className="my-1 border-t border-sidebar-foreground/10" />
-            )}
-
-            {canSeeAnimals && (
-              <Link href="/dashboard/animals" className={navItemClass(isAnimals, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <PawPrintIcon className={iconClass(isAnimals)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Animals</span>
-              </Link>
-            )}
-
-            {canSeeDocuments && (
-              <Link href="/dashboard/documents" className={navItemClass(isDocuments, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <FileTextIcon className={iconClass(isDocuments)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Documents</span>
-              </Link>
-            )}
-
-            {canSeeAccounting && (
-              <Link href="/dashboard/accounting" className={navItemClass(isAccounting, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <CalculatorIcon className={iconClass(isAccounting)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Accounting</span>
-              </Link>
-            )}
-
-            {canSeeReports && (
-              <Link href="/dashboard/reports" className={navItemClass(isReports, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <TrendingUpIcon className={iconClass(isReports)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Reports</span>
-              </Link>
-            )}
-
-            {canSeeContacts && (
-              <Link href="/dashboard/contacts" className={navItemClass(isContacts, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <UsersIcon className={iconClass(isContacts)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Contacts</span>
-              </Link>
-            )}
-
-            {canSeeWiki && (
-              <Link href="/dashboard/wiki" className={navItemClass(isWiki, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <BookOpenIcon className={iconClass(isWiki)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Wiki</span>
-              </Link>
-            )}
-
-            <Link href="/brand-guidelines" className={navItemClass(isBrandGuidelines, sidebarLocked)}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                <PaletteIcon className={iconClass(isBrandGuidelines)} />
-              </div>
-              <span className={labelClass(sidebarLocked)}>Brand</span>
-            </Link>
-
-            {canSeeAdmin && (
-              <Link href="/dashboard/admin" className={navItemClass(isAdmin, sidebarLocked)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                  <ShieldIcon className={iconClass(isAdmin)} />
-                </div>
-                <span className={labelClass(sidebarLocked)}>Admin</span>
-              </Link>
-            )}
-          </div>
-
-          {/* Sidebar pin toggle */}
-          <div className="mb-3 w-full px-2">
-            <button
-              onClick={toggleLock}
-              title={sidebarLocked ? "Unpin sidebar" : "Pin sidebar open"}
-              className={navItemClass(false, sidebarLocked) + " cursor-pointer"}
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-foreground/8">
-                <PinIcon
-                  className={`h-4 w-4 transition-all duration-200 ${
-                    sidebarLocked
-                      ? "rotate-45 text-sidebar-foreground"
-                      : "text-sidebar-foreground/40"
-                  }`}
+        {/* Nav */}
+        <nav
+          style={{
+            flex: 1,
+            padding: "var(--s-3)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            overflowY: "auto",
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) {
+              return null;
+            }
+            const active = isActive(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "7px 10px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: active ? 500 : 400,
+                  color: active ? "var(--fg)" : "var(--fg-3)",
+                  background: active ? "var(--surface)" : "transparent",
+                  border: `1px solid ${active ? "var(--line)" : "transparent"}`,
+                  textDecoration: "none",
+                  transition: "background var(--dur) var(--ease)",
+                }}
+                className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg-2)] active:!bg-[var(--row-active)]"
+              >
+                <Icon
+                  size={16}
+                  style={{
+                    color: active ? "var(--bronze)" : "var(--fg-3)",
+                    flexShrink: 0,
+                    strokeWidth: 1.5,
+                  }}
                 />
-              </div>
-              <span className={labelClass(sidebarLocked)}>
-                {sidebarLocked ? "Unpin sidebar" : "Pin sidebar"}
-              </span>
-            </button>
-          </div>
-        </aside>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 pb-8">
+        {/* User footer */}
+        <div
+          style={{
+            padding: "var(--s-3) var(--s-4)",
+            borderTop: "1px solid var(--line)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexShrink: 0,
+          }}
+        >
+          {/* Avatar */}
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "var(--r-pill)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+              color: "#fff",
+              background: avatarColor(email),
+              flexShrink: 0,
+              userSelect: "none",
+            }}
+          >
+            {initials(displayName || email)}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--fg)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayName}
+            </span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
+              {role ?? "Staff"}
+            </span>
+          </div>
+
+          {/* Sign out */}
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            title="Sign out"
+            style={{
+              width: 28,
+              height: 28,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-sm)",
+              color: "var(--fg-4)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              transition: "color var(--dur) var(--ease), background var(--dur) var(--ease)",
+              flexShrink: 0,
+            }}
+            className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg-2)]"
+          >
+            <LogOutIcon size={15} strokeWidth={1.5} />
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Right column ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        {/* Topbar */}
+        <header
+          style={{
+            height: "var(--topbar-h)",
+            borderBottom: "1px solid var(--line)",
+            background: "var(--bg)",
+            padding: "0 var(--s-5)",
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-3)",
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            flexShrink: 0,
+          }}
+        >
+          {/* ⌘K search trigger */}
+          <button
+            onClick={() => setCmdOpen(true)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              height: 34,
+              padding: "0 12px",
+              minWidth: 260,
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--r-md)",
+              fontSize: 13,
+              color: "var(--fg-4)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "border-color var(--dur) var(--ease)",
+            }}
+            className="hover:!border-[var(--line-strong)]"
+          >
+            <SearchIcon size={15} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>Jump to module, employee, document…</span>
+            <kbd
+              style={{
+                fontSize: 10,
+                fontFamily: "var(--font-mono)",
+                color: "var(--fg-4)",
+                background: "var(--bg-2)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-sm)",
+                padding: "1px 5px",
+              }}
+            >
+              ⌘K
+            </kbd>
+          </button>
+
+          <div style={{ flex: 1 }} />
+
+          {/* Shortcuts hint */}
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            title="Keyboard shortcuts"
+            style={{
+              width: 34,
+              height: 34,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-md)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              transition: "background var(--dur) var(--ease)",
+            }}
+            className="hover:!bg-[var(--row-hover)]"
+          >
+            <kbd
+              style={{
+                fontSize: 12,
+                fontFamily: "var(--font-mono)",
+                color: "var(--fg-3)",
+                background: "var(--bg-2)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-sm)",
+                padding: "2px 7px",
+                cursor: "pointer",
+              }}
+            >
+              ?
+            </kbd>
+          </button>
+
+          {/* Theme toggle */}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode (T)`}
+            style={{
+              width: 34,
+              height: 34,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-md)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
+            }}
+            className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg)]"
+          >
+            {mounted ? (
+              theme === "dark" ? (
+                <SunIcon size={16} strokeWidth={1.5} />
+              ) : (
+                <MoonIcon size={16} strokeWidth={1.5} />
+              )
+            ) : (
+              <MoonIcon size={16} strokeWidth={1.5} />
+            )}
+          </button>
+        </header>
+
+        {/* Module content */}
+        <main
+          style={{
+            flex: 1,
+            padding: "var(--s-5) var(--s-6) var(--s-7)",
+            maxWidth: "var(--content-max)",
+            width: "100%",
+            margin: "0 auto",
+            boxSizing: "border-box",
+          }}
+        >
           {children}
         </main>
       </div>
 
-      <footer className="border-t border-border bg-background/60 py-3 text-center text-[11px] text-muted-foreground/50 font-sans">
-        © {new Date().getFullYear()} Created by Léo Lecée — Nexus-Hub
-      </footer>
+      {/* ── Overlays ── */}
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

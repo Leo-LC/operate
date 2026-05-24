@@ -4,117 +4,244 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Operate — Design Tokens + Theme
+   Warm/beige internal ops app for Capybara Coffee Thailand
+   ============================================================ */
+
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-  /* Tabular numbers for all monetary/stat values */
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+  .text-balance { text-wrap: balance; }
+
+  /* Typography utilities */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+  .display { font-family: var(--font-display); font-style: italic; font-weight: 500; }
+  .script { font-family: var(--font-script); font-weight: 400; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-4);
+    font-weight: 500;
+    font-family: var(--font-sans);
   }
 }
 
 @layer base {
   *, *::before, *::after {
-    transition-property: color, background-color, border-color, fill, stroke;
-    transition-duration: 150ms;
-    transition-timing-function: ease;
+    box-sizing: border-box;
   }
 
   /* ═══════════════════════════════════════════
-     CAPYBARA COFFEE — default brand theme (light)
+     CAPYBARA COFFEE — LIGHT WARM (default)
   ═══════════════════════════════════════════ */
   :root {
-    --background: #F7F2E9;
-    --foreground: #2F2823;
-    --card: #FDFAF4;
-    --card-foreground: #2F2823;
-    --popover: #FEFCF8;
-    --popover-foreground: #2F2823;
+    /* ── Design tokens: surfaces ── */
+    --sand:        #f4ede0;
+    --sand-2:      #efe6d4;
+    --wheat:       #ebe2cf;
+    --paper:       #faf6ed;
+    --paper-2:     #f7f2e6;
+    --card:        #ffffff;
 
-    --primary: #B9854E;
-    --primary-foreground: #FFFFFF;
+    /* ── Design tokens: ink ── */
+    --ink:         #2b231b;
+    --ink-2:       #4a3f33;
+    --ink-3:       #6b5d4b;
+    --ink-4:       #8a7d6a;
+    --ink-5:       #b6a994;
+    --stone:       #6b5d4b;
 
-    --secondary: #EDE5D5;
-    --secondary-foreground: #4A3B32;
-    --muted: #EDE5D5;
-    --muted-foreground: #7A6A5A;
+    /* ── Design tokens: accent ── */
+    --bronze:      #b0875a;
+    --bronze-2:    #9a7448;
+    --bronze-soft: #e6d4ba;
 
-    --accent: #EDE5D5;
-    --accent-foreground: #2F2823;
+    /* ── Design tokens: status ── */
+    --good:        #6f8b5b;
+    --good-soft:   #dfe6cf;
+    --warn:        #c69748;
+    --warn-soft:   #f3e3c1;
+    --bad:         #b85a4a;
+    --bad-soft:    #f0d4cd;
+    --info:        #6a8cb8;
+    --info-soft:   #d6e1ed;
 
-    --destructive: oklch(0.55 0.18 25);
-    --border: rgba(185, 133, 78, 0.18);
-    --input: rgba(185, 133, 78, 0.12);
-    --ring: #B9854E;
+    /* ── Design tokens: lines ── */
+    --line:        rgba(43, 35, 27, 0.10);
+    --line-2:      rgba(43, 35, 27, 0.06);
+    --line-strong: rgba(43, 35, 27, 0.18);
+    --focus-ring:  rgba(176, 135, 90, 0.42);
 
-    --chart-1: #7C9A4D;
-    --chart-2: #B9854E;
-    --chart-3: oklch(0.58 0.14 220);
-    --chart-4: oklch(0.62 0.14 310);
-    --chart-5: oklch(0.55 0.15 25);
+    /* ── Design tokens: semantic surfaces ── */
+    --bg:          var(--sand);
+    --bg-2:        var(--sand-2);
+    --surface:     var(--card);
+    --surface-2:   var(--paper-2);
+    --row-hover:   rgba(176, 135, 90, 0.07);
+    --row-active:  rgba(176, 135, 90, 0.14);
 
-    --success: #7C9A4D;
-    --amber: #B9854E;
+    /* ── Design tokens: semantic foreground ── */
+    --fg:          var(--ink);
+    --fg-2:        var(--ink-2);
+    --fg-3:        var(--ink-3);
+    --fg-4:        var(--ink-4);
+    --fg-mute:     var(--ink-5);
 
-    --radius: 0.6rem;
+    /* ── Design tokens: shadows ── */
+    --shadow-1:      0 1px 2px rgba(43, 35, 27, 0.04);
+    --shadow-2:      0 6px 24px -10px rgba(43, 35, 27, 0.18);
+    --shadow-drawer: -18px 0 48px -20px rgba(43, 35, 27, 0.28);
 
-    --sidebar: #2F2823;
-    --sidebar-foreground: #EDE5D5;
-    --sidebar-primary: #D4A574;
-    --sidebar-primary-foreground: #2F2823;
-    --sidebar-accent: #3D3028;
-    --sidebar-accent-foreground: #F7F2E9;
-    --sidebar-border: rgba(255, 255, 255, 0.06);
-    --sidebar-ring: #D4A574;
+    /* ── Design tokens: spacing (8px grid) ── */
+    --s-1: 4px;
+    --s-2: 8px;
+    --s-3: 12px;
+    --s-4: 16px;
+    --s-5: 24px;
+    --s-6: 32px;
+    --s-7: 40px;
+    --s-8: 56px;
+    --s-9: 80px;
+
+    /* ── Design tokens: radius ── */
+    --r-sm:   6px;
+    --r-md:   10px;
+    --r-lg:   14px;
+    --r-xl:   20px;
+    --r-pill: 999px;
+
+    /* ── Design tokens: motion ── */
+    --ease:  cubic-bezier(0.22, 0.61, 0.36, 1);
+    --dur:   150ms;
+    --dur-2: 240ms;
+
+    /* ── Design tokens: layout ── */
+    --sidebar-w:   232px;
+    --topbar-h:    60px;
+    --content-max: 1280px;
+
+    /* ── Design tokens: type sizes ── */
+    --t-11: 11px;
+    --t-12: 12px;
+    --t-13: 13px;
+    --t-14: 14px;
+    --t-15: 15px;
+    --t-16: 16px;
+    --t-18: 18px;
+    --t-20: 20px;
+    --t-24: 24px;
+    --t-28: 28px;
+    --t-32: 32px;
+    --t-40: 40px;
+
+    /* ── Shadcn compatibility mappings ── */
+    --background:         var(--sand);
+    --foreground:         var(--ink);
+    --card-foreground:    var(--ink);
+    --popover:            #ffffff;
+    --popover-foreground: var(--ink);
+    --primary:            var(--bronze);
+    --primary-foreground: #ffffff;
+    --secondary:          var(--sand-2);
+    --secondary-foreground: var(--ink-2);
+    --muted:              var(--sand-2);
+    --muted-foreground:   var(--ink-4);
+    --accent:             var(--sand-2);
+    --accent-foreground:  var(--ink);
+    --destructive:        var(--bad);
+    --border:             var(--line);
+    --input:              var(--line-2);
+    --ring:               var(--bronze);
+    --radius:             var(--r-sm);
+
+    /* ── Chart tokens ── */
+    --chart-1: var(--good);
+    --chart-2: var(--bronze);
+    --chart-3: var(--info);
+    --chart-4: var(--warn);
+    --chart-5: var(--bad);
+
+    /* ── Sidebar tokens (light: warm cream) ── */
+    --sidebar:                   var(--surface-2);
+    --sidebar-foreground:        var(--fg);
+    --sidebar-primary:           var(--bronze);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent:            var(--row-active);
+    --sidebar-accent-foreground: var(--fg);
+    --sidebar-border:            var(--line);
+    --sidebar-ring:              var(--focus-ring);
   }
 
-  /* Capybara dark — warm slate */
+  /* ═══════════════════════════════════════════
+     CAPYBARA COFFEE — DARK WARM
+  ═══════════════════════════════════════════ */
   .dark {
-    --background: #252220;
-    --foreground: #EDE5D5;
-    --card: #2E2A26;
-    --card-foreground: #EDE5D5;
-    --popover: #2A2520;
-    --popover-foreground: #EDE5D5;
+    /* ── Design tokens: surfaces dark ── */
+    --sand:        #1f1a14;
+    --sand-2:      #1a1610;
+    --wheat:       #2a241c;
+    --paper:       #2a241c;
+    --paper-2:     #322b22;
+    --card:        #2a241c;
 
-    --primary: #D4A574;
-    --primary-foreground: #1A1410;
+    /* ── Design tokens: ink dark (inverted to creams) ── */
+    --ink:         #f0e7d5;
+    --ink-2:       #ddd2bd;
+    --ink-3:       #b8aa92;
+    --ink-4:       #918471;
+    --ink-5:       #6e6453;
+    --stone:       #b8aa92;
 
-    --secondary: #332D28;
-    --secondary-foreground: #C4B8A8;
-    --muted: #332D28;
-    --muted-foreground: #8A8078;
+    /* ── Design tokens: accent dark ── */
+    --bronze:      #d4a973;
+    --bronze-2:    #e6bf8c;
+    --bronze-soft: #4a3a26;
 
-    --accent: #3A3028;
-    --accent-foreground: #EDE5D5;
+    /* ── Design tokens: status dark ── */
+    --good:        #9bb87f;
+    --good-soft:   #3a4730;
+    --warn:        #e0b06a;
+    --warn-soft:   #4a3a22;
+    --bad:         #d27c6c;
+    --bad-soft:    #4a2a24;
+    --info:        #91afd1;
+    --info-soft:   #2c3a4a;
 
-    --destructive: oklch(0.62 0.17 25);
-    --border: rgba(255, 255, 255, 0.07);
-    --input: rgba(255, 255, 255, 0.06);
-    --ring: #D4A574;
+    /* ── Design tokens: lines dark ── */
+    --line:        rgba(240, 231, 213, 0.08);
+    --line-2:      rgba(240, 231, 213, 0.04);
+    --line-strong: rgba(240, 231, 213, 0.14);
+    --focus-ring:  rgba(212, 169, 115, 0.45);
 
-    --chart-1: #7C9A4D;
-    --chart-2: #D4A574;
-    --chart-3: oklch(0.62 0.14 220);
-    --chart-4: oklch(0.65 0.14 310);
-    --chart-5: oklch(0.60 0.15 25);
+    /* ── Design tokens: semantic dark ── */
+    --row-hover:  rgba(212, 169, 115, 0.08);
+    --row-active: rgba(212, 169, 115, 0.14);
 
-    --success: #7C9A4D;
-    --amber: #D4A574;
+    /* ── Design tokens: shadows dark ── */
+    --shadow-1:      0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-2:      0 6px 28px -10px rgba(0, 0, 0, 0.5);
+    --shadow-drawer: -18px 0 48px -20px rgba(0, 0, 0, 0.55);
 
-    --sidebar: #1E1C1A;
-    --sidebar-foreground: #D8D0C4;
-    --sidebar-primary: #D4A574;
-    --sidebar-primary-foreground: #1A1410;
-    --sidebar-accent: #2C2824;
-    --sidebar-accent-foreground: #F0E8D8;
-    --sidebar-border: rgba(255, 255, 255, 0.05);
-    --sidebar-ring: #D4A574;
+    /* ── Shadcn compatibility mappings dark ── */
+    --popover:            var(--card);
+    --popover-foreground: var(--ink);
+    --destructive:        var(--bad);
+
+    /* ── Sidebar tokens dark (deep warm brown) ── */
+    --sidebar:                   var(--surface-2);
+    --sidebar-foreground:        var(--fg);
+    --sidebar-primary:           var(--bronze);
+    --sidebar-primary-foreground: var(--sand);
+    --sidebar-accent:            var(--row-active);
+    --sidebar-accent-foreground: var(--fg);
+    --sidebar-border:            var(--line);
+    --sidebar-ring:              var(--focus-ring);
   }
 
   /* ═══════════════════════════════════════════
      FOREST — original green theme (light)
+     Kept for org-theme compatibility
   ═══════════════════════════════════════════ */
   [data-theme="forest"] {
     --background: oklch(0.972 0.010 85);
@@ -152,7 +279,6 @@
     --sidebar-ring: oklch(0.68 0.12 145);
   }
 
-  /* Forest dark */
   [data-theme="forest"].dark {
     --background: oklch(0.13 0.018 145);
     --foreground: oklch(0.94 0.010 80);
@@ -190,20 +316,39 @@
     --radius: 0.6rem;
   }
 
+  /* ── Base reset ── */
   * {
     border-color: var(--border);
     outline-color: var(--ring);
   }
 
-  body {
-    background-color: transparent;
-    color: var(--foreground);
-    font-size: 14px;
-    line-height: 1.6;
+  html {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: var(--t-14);
+    line-height: 1.5;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    background: var(--bg);
+    color: var(--fg);
   }
 
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+  }
+
+  button, input, textarea, select {
+    font: inherit;
+    color: inherit;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
   .font-mono, [data-numeric] {
-    font-family: var(--font-mono, ui-monospace, monospace);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
   }
 
   input[type="number"]::-webkit-inner-spin-button,
@@ -216,27 +361,6 @@
     appearance: textfield;
   }
 
-  html {
-    font-family: var(--font-sans), system-ui, sans-serif;
-    scroll-behavior: smooth;
-  }
-
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(185, 133, 78, 0.25);
-    border-radius: 3px;
-  }
-  .dark ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-  }
-  [data-theme="forest"] ::-webkit-scrollbar-thumb {
-    background: oklch(0.7 0.008 80 / 0.5);
-  }
-  [data-theme="forest"].dark ::-webkit-scrollbar-thumb {
-    background: oklch(0.35 0.015 145 / 0.6);
-  }
-
   input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0.5;
     cursor: pointer;
@@ -245,4 +369,13 @@
     filter: invert(1);
     opacity: 0.5;
   }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar       { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
 }

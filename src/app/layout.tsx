@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import localFont from "next/font/local";
-import { DM_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
@@ -21,16 +21,24 @@ const serif = localFont({
   display: "swap",
 });
 
-const decorative = localFont({
-  src: "../../public/brand/fonts/the_next_southerland/Next Southerland Serif.otf",
-  variable: "--font-decorative",
+const display = localFont({
+  src: "../../public/brand/fonts/the_next_southerland/Next Southerland Serif.ttf",
+  variable: "--font-display",
+  weight: "400 600",
   display: "swap",
 });
 
-const mono = DM_Mono({
+const script = localFont({
+  src: "../../public/brand/fonts/the_next_southerland/Next Southerland Script.ttf",
+  variable: "--font-script",
+  weight: "400",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -50,8 +58,15 @@ export default async function RootLayout({
     <html
       lang="en"
       data-theme={orgTheme}
-      className={cn("font-sans", sans.variable, serif.variable, decorative.variable, mono.variable)}
-      suppressHydrationWarning // next-themes mutates class on the client; data-theme is server-stable
+      className={cn(
+        "font-sans",
+        sans.variable,
+        serif.variable,
+        display.variable,
+        script.variable,
+        mono.variable,
+      )}
+      suppressHydrationWarning
     >
       <body className="antialiased">
         <Providers>
