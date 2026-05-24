@@ -1,6 +1,7 @@
 import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { getSupabaseServerClient } from "./supabase-server";
 
 const secret = process.env.NEXTAUTH_SECRET;
@@ -113,9 +114,27 @@ export const authOptions: NextAuthOptions = {
         },
       },
     }),
+    ...(process.env.PREVIEW_AUTH_PASSWORD
+      ? [
+          CredentialsProvider({
+            id: "preview",
+            name: "Preview",
+            credentials: { password: { label: "Password", type: "password" } },
+            async authorize(credentials) {
+              if (credentials?.password === process.env.PREVIEW_AUTH_PASSWORD) {
+                return { id: "preview-owner", name: "Léo Lecée", email: "preview@operate.local", image: null };
+              }
+              return null;
+            },
+          }),
+        ]
+      : []),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
+      // Always allow the preview credentials provider through
+      if (account?.provider === "preview") return true;
+
       const email = user?.email?.toLowerCase() ?? "";
       if (!email) return false;
 
@@ -132,6 +151,13 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account }) {
       // Initial sign-in
       if (account) {
+        // Preview credentials login — mock owner session, no Google tokens
+        if (account.provider === "preview") {
+          token.role = "owner";
+          token.userId = undefined;
+          return token;
+        }
+
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token ?? token.refreshToken;
         token.accessTokenExpires = account.expires_at
