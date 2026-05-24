@@ -33,7 +33,7 @@ export default async function AttendancePage() {
     if (locationIds.length === 0) {
       return (
         <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, fontSize: 13, color: "var(--fg-4)" }}>
-          You don't have access to any location yet. Ask your admin.
+          You don&apos;t have access to any location yet. Ask your admin.
         </div>
       );
     }

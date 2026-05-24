@@ -512,7 +512,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>5★ templates</p>
                     <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4 }}>
-                      These are used for 5-star reviews when "Use templates" is enabled for 5 stars.
+                      These are used for 5-star reviews when &quot;Use templates&quot; is enabled for 5 stars.
                     </p>
                   </div>
 
@@ -585,7 +585,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                       <div style={{ marginBottom: 4 }}>
                         <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>4★ templates</p>
                         <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4 }}>
-                          These are used for 4-star reviews when "Use templates" is enabled for 4 stars.
+                          These are used for 4-star reviews when &quot;Use templates&quot; is enabled for 4 stars.
                         </p>
                       </div>
                       {(templateConfig[4]?.[activeCategoryId] ?? []).map((t, idx) => (
@@ -812,7 +812,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           <div style={MODAL_PANEL}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Add a new theme</h2>
             <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 16 }}>
-              For example: "Drinks", "Food", "Events" or any other common topic you reply to often.
+              For example: &quot;Drinks&quot;, &quot;Food&quot;, &quot;Events&quot; or any other common topic you reply to often.
             </p>
             <input
               type="text"

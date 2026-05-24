@@ -225,7 +225,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
   }, [reviews, filters.locations]);
 
   const total = reviews.length;
-  const totalFiltered = filteredByLocation.length;
 
   const chronologicalList = useMemo(
     () =>
@@ -537,7 +536,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                     .
                   </p>
                   <p>
-                    Click "Sync reviews" to fetch unreplied reviews from all locations this
+                    Click &quot;Sync reviews&quot; to fetch unreplied reviews from all locations this
                     account manages.
                   </p>
                 </div>
