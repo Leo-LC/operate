@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import { BookOpenIcon, ChevronRightIcon, ClockIcon } from "lucide-react";
 import { WIKI_ARTICLES, WIKI_CATEGORIES } from "@/modules/wiki/registry";
