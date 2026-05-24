@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   DashboardFilters,
   getDefaultFilters,
@@ -20,8 +19,7 @@ import {
 } from "@/lib/constants";
 import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
-import { SlidersHorizontalIcon, ArrowUpIcon } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ArrowUpIcon } from "lucide-react";
 import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
 import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
 import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
@@ -328,35 +326,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
   return (
         <>
-          <div className="mb-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Mobile filters: only show after sync */}
-              {total > 0 && (
-              <Sheet>
-                <SheetTrigger
-                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background hover:bg-muted hover:text-foreground md:hidden"
-                >
-                  <SlidersHorizontalIcon className="size-4" />
-                  Filters
-                  {totalFiltered < total && (
-                    <span className="text-muted-foreground">({totalFiltered})</span>
-                  )}
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[280px]">
-                  <div className="py-4">
-                    <h2 className="mb-4 text-sm font-medium">Filters</h2>
-                    <DashboardFilters filters={filters} onChange={setFilters} locations={filterLocationOptions} />
-                  </div>
-                </SheetContent>
-              </Sheet>
-              )}
-            </div>
-          </div>
-
           {total > 0 && (
-            <div className="mt-4 grid gap-x-5 gap-y-3 md:grid-cols-[260px_minmax(0,1fr)]">
+            <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0,1fr)", gap: "12px 20px", marginTop: 16 }}>
               {/* Row 1: stats spans full width */}
-              <div className="dashboard-stats-wrapper flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm md:col-span-2">
+              <div className="dashboard-stats-wrapper" style={{ gridColumn: "span 2", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 16px" }}>
                 <div className="dashboard-stats">
                   <span className="dashboard-stat-item">
                     <span aria-hidden className="text-lg">
@@ -395,10 +368,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
               </div>
 
               {/* Row 2: labels/controls headers aligned */}
-              <div className="hidden md:flex md:items-center">
-                <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Filters
-                </h2>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <h2 className="eyebrow" style={{ color: "var(--fg-4)" }}>Filters</h2>
               </div>
               <ReviewsControlsBar
                 displayCount={
@@ -425,8 +396,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
               />
 
               {/* Row 3: actual filter panel + reviews content */}
-              <aside className="space-y-3">
-                <div className="rounded-lg border border-border bg-card/60 px-3 py-3">
+              <aside>
+                <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 12 }}>
                   <DashboardFilters
                     filters={filters}
                     onChange={setFilters}
@@ -434,7 +405,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                   />
                 </div>
               </aside>
-              <div className="space-y-6">
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                 {hasAnyFiltered ? (
                   <>
                     {allRatingsMode ? (
@@ -468,7 +439,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                     ) : (
                       <>
                         {fiveFiltered.length > 0 && filters.ratings.has("five") && (
-                          <section className="space-y-4" aria-label="5 star reviews">
+                          <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="5 star reviews">
                             <ReviewListVirtual
                               reviews={fiveDisplayed}
                               getComment={(id) => {
@@ -497,7 +468,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           </section>
                         )}
                         {fourFiltered.length > 0 && filters.ratings.has("four") && (
-                          <section className="space-y-4" aria-label="4 star reviews">
+                          <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="4 star reviews">
                             <ReviewListVirtual
                               reviews={fourDisplayed}
                               getComment={(id) => {
@@ -529,7 +500,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           (filters.ratings.has("one") ||
                             filters.ratings.has("two") ||
                             filters.ratings.has("three")) && (
-                            <section className="space-y-4" aria-label="1-3 star reviews">
+                            <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="1-3 star reviews">
                               <ReviewListVirtual
                                 reviews={attentionDisplayed}
                                 getComment={(id) => replyDrafts[id] ?? ""}
@@ -543,7 +514,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                     )}
                   </>
                 ) : (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
+                  <p style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
                     No reviews match the current filters.
                   </p>
                 )}
@@ -552,34 +523,32 @@ export function DashboardClient({ user }: DashboardClientProps) {
           )}
 
           {total === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-                <p className="text-muted-foreground">
-                  {syncing ? "Fetching reviews…" : "No reviews loaded."}
-                </p>
-                {!syncing && (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>
-                      Using Google account{" "}
-                      <span className="font-medium text-foreground">
-                        {user?.email ?? "unknown"}
-                      </span>
-                      .
-                    </p>
-                    <p>
-                      Click &quot;Sync reviews&quot; to fetch unreplied reviews from all locations this
-                      account manages.
-                    </p>
-                  </div>
-                )}
-                <SyncButton
-                  onSynced={handleSynced}
-                  syncing={syncing}
-                  setSyncing={setSyncing}
-                  userEmail={user?.email}
-                />
-              </CardContent>
-            </Card>
+            <div style={{ borderRadius: "var(--r-lg)", border: "1px dashed var(--line-strong)", background: "var(--surface)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "48px 24px", textAlign: "center", marginTop: 16 }}>
+              <p style={{ fontSize: 13, color: "var(--fg-4)" }}>
+                {syncing ? "Fetching reviews…" : "No reviews loaded."}
+              </p>
+              {!syncing && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13, color: "var(--fg-4)" }}>
+                  <p>
+                    Using Google account{" "}
+                    <span style={{ fontWeight: 500, color: "var(--fg)" }}>
+                      {user?.email ?? "unknown"}
+                    </span>
+                    .
+                  </p>
+                  <p>
+                    Click "Sync reviews" to fetch unreplied reviews from all locations this
+                    account manages.
+                  </p>
+                </div>
+              )}
+              <SyncButton
+                onSynced={handleSynced}
+                syncing={syncing}
+                setSyncing={setSyncing}
+                userEmail={user?.email}
+              />
+            </div>
           )}
 
       {total > 0 && <div className="dashboard-list-fade" aria-hidden />}
@@ -588,7 +557,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
         <Button
           variant="secondary"
           size="icon"
-          className="fixed bottom-6 right-6 z-20 h-10 w-10 rounded-full shadow-lg transition-opacity hover:opacity-90"
+          style={{ position: "fixed", bottom: 24, right: 24, zIndex: 20, width: 40, height: 40, borderRadius: "var(--r-pill)", boxShadow: "var(--shadow-2)", transition: "opacity var(--dur) var(--ease)" }}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Scroll to top"
         >

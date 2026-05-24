@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-type PillTone = "neutral" | "bronze" | "good" | "warn" | "bad" | "info" | "outline"
+export type PillTone = "neutral" | "bronze" | "good" | "warn" | "bad" | "info" | "outline"
 type PillSize = "sm" | "md"
 
 const TONE_STYLES: Record<PillTone, string> = {

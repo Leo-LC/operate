@@ -415,13 +415,12 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-start gap-3 justify-between">
-        <div className="flex flex-col gap-1">
-          {/* Editable title */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "var(--s-3)", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {editingName ? (
-            <div className="flex items-center gap-2">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 autoFocus
                 value={nameInput}
@@ -431,32 +430,28 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                   if (e.key === "Enter") void saveName();
                   if (e.key === "Escape") { setEditingName(false); setNameInput(localName); }
                 }}
-                className="text-xl font-semibold bg-transparent border-b border-ring outline-none w-64"
+                style={{ fontSize: 18, fontWeight: 600, background: "transparent", borderBottom: "1px solid var(--bronze)", outline: "none", width: 260, color: "var(--fg)" }}
               />
-              <button
-                type="button"
-                onClick={() => { setEditingName(false); setNameInput(localName); }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <XIcon className="size-4" />
+              <button type="button" onClick={() => { setEditingName(false); setNameInput(localName); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex" }}>
+                <XIcon style={{ width: 16, height: 16 }} />
               </button>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => { setNameInput(localName); setEditingName(true); }}
-              className="group flex items-center gap-1.5 text-left"
+              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0 }}
               title="Click to rename"
             >
-              <h1 className="text-xl font-semibold">{localName}</h1>
-              <PencilIcon className="size-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)", margin: 0 }}>{localName}</h1>
+              <PencilIcon style={{ width: 13, height: 13, color: "var(--fg-4)", opacity: 0.6 }} />
             </button>
           )}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg-3)", flexWrap: "wrap" }}>
             {schedule.location_name && <span>{schedule.location_name}</span>}
-            {schedule.location_name && <span className="text-muted-foreground/40">·</span>}
+            {schedule.location_name && <span style={{ color: "var(--fg-mute)" }}>·</span>}
             {editingWeek ? (
-              <div className="flex items-center gap-1.5">
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <DateInput
                   autoFocus
                   value={weekInput}
@@ -466,17 +461,16 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                     if (e.key === "Enter") void saveWeek();
                     if (e.key === "Escape") { setEditingWeek(false); setWeekInput(localWeekStart); }
                   }}
-                  className="h-7 text-xs"
                 />
-                <button type="button" onClick={() => { setEditingWeek(false); setWeekInput(localWeekStart); }} className="text-muted-foreground hover:text-foreground">
-                  <XIcon className="size-3.5" />
+                <button type="button" onClick={() => { setEditingWeek(false); setWeekInput(localWeekStart); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex" }}>
+                  <XIcon style={{ width: 13, height: 13 }} />
                 </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => { setWeekInput(localWeekStart); setEditingWeek(true); }}
-                className="group flex items-center gap-1 hover:text-foreground transition-colors"
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, color: "var(--fg-3)", padding: 0 }}
                 title="Click to change dates"
               >
                 <span>
@@ -484,57 +478,33 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                   {" – "}
                   {format(addDays(parseISO(localWeekStart), 6), "d MMM yyyy")}
                 </span>
-                <PencilIcon className="size-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                <PencilIcon style={{ width: 11, height: 11, opacity: 0.5 }} />
               </button>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => void handleDuplicate()}
-            disabled={duplicating}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
-            title="Duplicate this schedule"
-          >
-            <CopyIcon className="size-4" />
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+          <Button size="sm" variant="secondary" onClick={() => void handleDuplicate()} disabled={duplicating} title="Duplicate this schedule">
+            <CopyIcon style={{ width: 13, height: 13 }} />
             Duplicate
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={printSchedule}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
-            title="Download as PDF"
-          >
-            <PrinterIcon className="size-4" />
+          <Button size="sm" variant="secondary" onClick={printSchedule} title="Download as PDF">
+            <PrinterIcon style={{ width: 13, height: 13 }} />
             PDF
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={openManage}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <UserPlusIcon className="size-4" />
+          <Button size="sm" variant="secondary" onClick={openManage}>
+            <UserPlusIcon style={{ width: 13, height: 13 }} />
             Manage employees
           </Button>
           {saveState === "saved" ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-green-600 dark:text-green-400 font-medium rounded-md bg-green-500/8 dark:bg-green-400/8 border border-green-500/20 dark:border-green-400/20">
-              <CheckIcon className="size-4" />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", fontSize: 13, color: "var(--good)", fontWeight: 500, borderRadius: "var(--r-sm)", background: "var(--good-soft)", border: "1px solid var(--good)" }}>
+              <CheckIcon style={{ width: 14, height: 14 }} />
               Saved
             </div>
           ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void save()}
-              disabled={saveState === "saving"}
-              className="gap-1.5"
-            >
-              <SaveIcon className="size-4" />
+            <Button size="sm" variant="secondary" onClick={() => void save()} disabled={saveState === "saving"}>
+              <SaveIcon style={{ width: 13, height: 13 }} />
               {saveState === "saving" ? "Saving…" : "Save"}
             </Button>
           )}
@@ -543,10 +513,10 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
       {/* ── Overlap warning ────────────────────────────────────── */}
       {conflictNames.length > 0 && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-400 dark:border-amber-600 bg-amber-100 dark:bg-amber-900/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
-          <TriangleAlertIcon className="size-4 shrink-0 mt-0.5" />
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, borderRadius: "var(--r-md)", border: "1px solid var(--warn)", background: "var(--warn-soft)", padding: "12px 16px", fontSize: 13, color: "var(--fg-2)" }}>
+          <TriangleAlertIcon style={{ width: 15, height: 15, flexShrink: 0, marginTop: 1, color: "var(--warn)" }} />
           <div>
-            <span className="font-semibold">Scheduling overlap — </span>
+            <span style={{ fontWeight: 600 }}>Scheduling overlap — </span>
             <span>
               {conflictNames.length === 1
                 ? `"${conflictNames[0]}" also covers`
@@ -559,13 +529,13 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
       {/* ── No employees state ──────────────────────────────────── */}
       {employees.length === 0 && (
-        <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center space-y-3">
-          <p className="font-medium text-foreground text-sm">No employees assigned to this shop yet</p>
-          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px dashed var(--line-strong)", padding: "48px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <p style={{ fontWeight: 500, fontSize: 13, color: "var(--fg)" }}>No employees assigned to this shop yet</p>
+          <p style={{ fontSize: 12, color: "var(--fg-4)", maxWidth: 320 }}>
             Browse all organisation employees or create a new one with full details including salary, nationality, and work permit.
           </p>
-          <Button onClick={openManage} className="gap-1.5">
-            <UserPlusIcon className="size-4" />
+          <Button onClick={openManage}>
+            <UserPlusIcon style={{ width: 14, height: 14 }} />
             Manage employees for this shop
           </Button>
         </div>
@@ -573,36 +543,36 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
       {/* ── Schedule table ──────────────────────────────────────── */}
       {employees.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm border-collapse table-fixed">
-            <thead className="bg-muted/50 border-b-2 border-border">
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+            <thead style={{ background: "var(--bg-2)", borderBottom: "2px solid var(--line)" }}>
               <tr>
-                <th className="w-40 px-3 py-3 text-left text-xs font-semibold text-foreground/60 border-r border-border" />
+                <th style={{ width: 160, padding: "10px 12px", textAlign: "left", borderRight: "1px solid var(--line)" }} />
                 {weekDays.map((d) => {
                   const [dayName, dayNum] = d.label.split(" ");
                   return (
-                    <th key={d.iso} className="py-2.5 px-1 text-center border-l border-border/60">
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70">{dayName}</div>
-                      <div className="text-sm font-semibold text-foreground/90 leading-tight">{dayNum}</div>
+                    <th key={d.iso} style={{ padding: "10px 4px", textAlign: "center", borderLeft: "1px solid var(--line)" }}>
+                      <div className="eyebrow" style={{ color: "var(--fg-4)" }}>{dayName}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", lineHeight: 1.2 }}>{dayNum}</div>
                     </th>
                   );
                 })}
-                <th className="w-20 py-2.5 px-1 text-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70 border-l border-border/60">
+                <th className="eyebrow" style={{ width: 80, padding: "10px 4px", textAlign: "center", color: "var(--fg-4)", borderLeft: "1px solid var(--line)" }}>
                   Week
                 </th>
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => {
+              {employees.map((emp, empIdx) => {
                 let weeklyHours = 0;
                 return (
-                  <tr key={emp.id} className="group odd:bg-background even:bg-muted/15 hover:bg-accent/20 transition-colors border-b border-border/40 last:border-b-0">
-                    <td className="w-40 px-3 py-2.5 border-r border-border sticky left-0 bg-inherit">
-                      <div className="truncate font-semibold text-xs leading-tight text-foreground">
+                  <tr key={emp.id} style={{ background: empIdx % 2 === 0 ? "var(--surface)" : "var(--bg)", borderBottom: "1px solid var(--line)" }}>
+                    <td style={{ width: 160, padding: "10px 12px", borderRight: "1px solid var(--line)", verticalAlign: "middle" }}>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontSize: 12, color: "var(--fg)" }}>
                         {emp.first_name} {emp.last_name}
                       </div>
                       {emp.position && (
-                        <div className="truncate text-[10px] text-muted-foreground/70 leading-tight mt-0.5">
+                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 10, color: "var(--fg-4)", marginTop: 2 }}>
                           {emp.position}
                         </div>
                       )}
@@ -612,7 +582,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                       const hours = computeShiftHours(cell.start_time, cell.end_time, DEFAULT_BREAK_MINUTES);
                       weeklyHours += hours;
                       return (
-                        <td key={day.iso} className="p-0 align-top border-l border-border/50">
+                        <td key={day.iso} style={{ padding: 0, verticalAlign: "top", borderLeft: "1px solid var(--line)" }}>
                           <ShiftCell
                             data={cell}
                             hours={hours}
@@ -635,8 +605,8 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                         </td>
                       );
                     })}
-                    <td className="w-20 px-1.5 py-1.5 text-center align-middle border-l border-border/50">
-                      <span className={`inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums ${weeklyHours > 0 ? "bg-muted/70 text-foreground" : "text-muted-foreground/40"}`}>
+                    <td style={{ width: 80, padding: "6px", textAlign: "center", verticalAlign: "middle", borderLeft: "1px solid var(--line)" }}>
+                      <span className="mono tabular" style={{ fontSize: 11, fontWeight: 600, color: weeklyHours > 0 ? "var(--fg)" : "var(--fg-mute)" }}>
                         {weeklyHours > 0 ? `${weeklyHours.toFixed(1)}h` : "—"}
                       </span>
                     </td>
@@ -664,41 +634,45 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
           !(e.location_id === schedule.location_id && !e.employee_locations?.length)
         );
         return (
-          <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-            <div className="w-full max-w-2xl rounded-xl border border-border bg-background shadow-xl flex flex-col my-auto">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <h2 className="text-base font-semibold">Manage employees — {schedule.location_name}</h2>
-                <button type="button" onClick={() => { setShowManage(false); setShowManageCreate(false); }} className="text-muted-foreground hover:text-foreground">
-                  <XIcon className="size-5" />
+          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)", padding: "32px 16px", overflowY: "auto" }}>
+            <div style={{ width: "100%", maxWidth: 640, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow-drawer)", display: "flex", flexDirection: "column", margin: "auto" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
+                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", margin: 0 }}>Manage employees — {schedule.location_name}</h2>
+                <button type="button" onClick={() => { setShowManage(false); setShowManageCreate(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex" }}>
+                  <XIcon style={{ width: 18, height: 18 }} />
                 </button>
               </div>
 
               {manageLoading ? (
-                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                  <Loader2Icon className="size-4 animate-spin mr-2" />Loading…
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0", fontSize: 13, color: "var(--fg-4)", gap: 8 }}>
+                  <Loader2Icon style={{ width: 15, height: 15 }} className="animate-spin" />Loading…
                 </div>
               ) : (
-                <div className="flex flex-col divide-y divide-border">
-                  {/* At this location */}
-                  <div className="px-5 py-4 flex flex-col gap-3">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">At this location ({atLoc.length})</p>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12, borderBottom: "1px solid var(--line)" }}>
+                    <p className="eyebrow" style={{ color: "var(--fg-4)" }}>At this location ({atLoc.length})</p>
                     {atLoc.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-1">No employees assigned yet.</p>
+                      <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No employees assigned yet.</p>
                     ) : (
-                      <div className="flex flex-col gap-1">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         {atLoc.map((emp) => (
-                          <div key={emp.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                          <div key={emp.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "var(--r-sm)", padding: "8px 12px" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--row-hover)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
+                          >
                             <div>
-                              <span className="text-sm font-medium">{emp.first_name} {emp.last_name}</span>
-                              {emp.position && <span className="ml-2 text-xs text-muted-foreground">{emp.position}</span>}
+                              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{emp.first_name} {emp.last_name}</span>
+                              {emp.position && <span style={{ marginLeft: 8, fontSize: 11, color: "var(--fg-4)" }}>{emp.position}</span>}
                             </div>
                             <button
                               type="button"
-                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 px-2 py-1 rounded"
+                              style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: "var(--r-sm)" }}
                               disabled={manageBusy === emp.id}
                               onClick={() => void removeFromLocation(emp)}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--bad)"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--fg-4)"; }}
                             >
-                              {manageBusy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <MinusIcon className="size-3.5" />}
+                              {manageBusy === emp.id ? <Loader2Icon style={{ width: 13, height: 13 }} className="animate-spin" /> : <MinusIcon style={{ width: 13, height: 13 }} />}
                               Remove
                             </button>
                           </div>
@@ -707,26 +681,28 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                     )}
                   </div>
 
-                  {/* Other employees */}
-                  <div className="px-5 py-4 flex flex-col gap-3">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Other employees ({notAtLoc.length})</p>
+                  <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12, borderBottom: "1px solid var(--line)" }}>
+                    <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Other employees ({notAtLoc.length})</p>
                     {notAtLoc.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-1">All employees are already at this location.</p>
+                      <p style={{ fontSize: 13, color: "var(--fg-4)" }}>All employees are already at this location.</p>
                     ) : (
-                      <div className="flex flex-col gap-1">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         {notAtLoc.map((emp) => (
-                          <div key={emp.id} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/30 transition-colors">
+                          <div key={emp.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "var(--r-sm)", padding: "8px 12px" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--row-hover)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}
+                          >
                             <div>
-                              <span className="text-sm font-medium">{emp.first_name} {emp.last_name}</span>
-                              {emp.position && <span className="ml-2 text-xs text-muted-foreground">{emp.position}</span>}
+                              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{emp.first_name} {emp.last_name}</span>
+                              {emp.position && <span style={{ marginLeft: 8, fontSize: 11, color: "var(--fg-4)" }}>{emp.position}</span>}
                             </div>
                             <button
                               type="button"
-                              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 px-2 py-1 rounded"
+                              style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--bronze)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: "var(--r-sm)" }}
                               disabled={manageBusy === emp.id}
                               onClick={() => void assignToLocation(emp)}
                             >
-                              {manageBusy === emp.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <PlusIcon className="size-3.5" />}
+                              {manageBusy === emp.id ? <Loader2Icon style={{ width: 13, height: 13 }} className="animate-spin" /> : <PlusIcon style={{ width: 13, height: 13 }} />}
                               Add
                             </button>
                           </div>
@@ -735,16 +711,17 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                     )}
                   </div>
 
-                  {/* Create new employee */}
-                  <div className="px-5 py-4 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Create new employee</p>
+                  <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Create new employee</p>
                       <button
                         type="button"
                         onClick={() => setShowManageCreate((v) => !v)}
-                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer" }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--fg-4)"; }}
                       >
-                        {showManageCreate ? <XIcon className="size-3.5" /> : <PlusIcon className="size-3.5" />}
+                        {showManageCreate ? <XIcon style={{ width: 13, height: 13 }} /> : <PlusIcon style={{ width: 13, height: 13 }} />}
                         {showManageCreate ? "Cancel" : "New employee"}
                       </button>
                     </div>

@@ -3,40 +3,52 @@ import { ChevronRightIcon, ClockIcon } from "lucide-react";
 
 export default function PublicWikiIndexPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mb-10">
-        <h1 className="text-2xl font-bold text-[#2F2823]">Wiki</h1>
-        <p className="mt-1 text-sm text-[#7a6a5a]">Base de connaissances</p>
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px" }}>
+      <div style={{ marginBottom: 40 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--fg)", letterSpacing: "-0.02em" }}>Wiki</h1>
+        <p style={{ marginTop: 4, fontSize: 13, color: "var(--fg-3)" }}>Base de connaissances</p>
       </div>
 
       <section>
-        <div className="mb-3 flex items-center gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#B9854E]">
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <span className="eyebrow" style={{ color: "var(--bronze)" }}>
             Comptabilité &amp; Fiscalité
           </span>
-          <span className="h-px flex-1 bg-[#E8DDD0]" />
+          <span style={{ height: 1, flex: 1, background: "var(--line)" }} />
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(2, 1fr)" }}>
           <Link
             href="/wiki/thai-taxes"
             aria-label="Comptabilité & Taxes en Thaïlande"
-            className="group flex items-start justify-between rounded-lg border border-[#E8DDD0] bg-[#F7F2E9] p-4 transition-all hover:border-[#B9854E]/40 hover:shadow-sm"
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              borderRadius: "var(--r-lg)",
+              border: "1px solid var(--line)",
+              background: "var(--surface)",
+              padding: 16,
+              textDecoration: "none",
+              transition: "border-color 150ms, box-shadow 150ms",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--bronze)"; e.currentTarget.style.boxShadow = "var(--shadow-1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.boxShadow = "none"; }}
           >
-            <div className="min-w-0 flex-1">
-              <p className="font-medium leading-snug text-[#2F2823]">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ fontWeight: 500, color: "var(--fg)", lineHeight: 1.3, margin: 0 }}>
                 Comptabilité &amp; Taxes en Thaïlande
               </p>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#7a6a5a]">
+              <p style={{ marginTop: 4, fontSize: 12, color: "var(--fg-3)", lineHeight: 1.5 }}>
                 Vue d&apos;ensemble complète de la fiscalité thaïlandaise : VAT, retenues à la
                 source, impôt sur les sociétés, charges sociales, dividendes et calendrier des
                 déclarations.
               </p>
-              <div className="mt-3 flex items-center gap-1 text-[10px] text-[#7a6a5a]">
-                <ClockIcon className="h-3 w-3 shrink-0" />
+              <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--fg-4)" }}>
+                <ClockIcon style={{ width: 12, height: 12, flexShrink: 0 }} />
                 <time dateTime="2026-05-21">21 mai 2026</time>
               </div>
             </div>
-            <ChevronRightIcon className="ml-3 mt-0.5 h-4 w-4 shrink-0 text-[#7a6a5a] opacity-50 transition-opacity group-hover:opacity-100" />
+            <ChevronRightIcon style={{ marginLeft: 12, marginTop: 2, width: 16, height: 16, flexShrink: 0, color: "var(--fg-4)" }} />
           </Link>
         </div>
       </section>

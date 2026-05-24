@@ -1,4 +1,5 @@
 "use client";
+import { Stat } from "@/components/ui/stat";
 import {
   salesNetTotal,
   expCashTotal,
@@ -16,10 +17,14 @@ interface Props {
   year: number;
 }
 
-function fmt(n: number) {
-  return n === 0
-    ? "—"
-    : n.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+function thb(n: number): string {
+  if (n === 0) return "—";
+  return (n < 0 ? "−" : "") + "฿" + Math.round(Math.abs(n)).toLocaleString("en");
+}
+
+function fmtSigned(n: number): string {
+  if (n === 0) return "—";
+  return (n > 0 ? "+" : "−") + "฿" + Math.round(Math.abs(n)).toLocaleString("en");
 }
 
 export function AccountingSummaryCards({ entries, daysInMonth, today, month, year }: Props) {
@@ -35,68 +40,62 @@ export function AccountingSummaryCards({ entries, daysInMonth, today, month, yea
       hr:         acc.hr         + hrTotal(e),
       cashToBoss: acc.cashToBoss + e.cash_to_boss,
     }),
-    { salesNet: 0, payDelta: 0, expCash: 0, expBank: 0, hr: 0, cashToBoss: 0 }
+    { salesNet: 0, payDelta: 0, expCash: 0, expBank: 0, hr: 0, cashToBoss: 0 },
   );
 
-  const filled = entries.length;
+  const filled    = entries.length;
   const filledLow = filled < daysPassed;
   const deltaFlag = Math.abs(totals.payDelta) > 10;
 
-  const cards = [
+  const stats = [
     {
       label: "Sales total",
-      value: fmt(totals.salesNet),
-      cls: "border-border bg-muted/20",
-      valueCls: "",
+      value: thb(totals.salesNet),
+      deltaDir: undefined as "up" | "down" | "neutral" | undefined,
     },
     {
       label: "Payment delta",
-      value: totals.payDelta === 0 ? "—" : (totals.payDelta > 0 ? `+${fmt(totals.payDelta)}` : fmt(totals.payDelta)),
-      cls: deltaFlag
-        ? "border-destructive/40 bg-destructive/5"
-        : "border-border bg-muted/20",
-      valueCls: deltaFlag ? "text-destructive" : totals.payDelta === 0 ? "" : "text-green-600 dark:text-green-400",
+      value: fmtSigned(totals.payDelta),
+      deltaDir: deltaFlag ? "down" as const : totals.payDelta === 0 ? "neutral" as const : "up" as const,
+      hint: deltaFlag ? "Mismatch — check entries" : undefined,
     },
     {
       label: "Cash expenses",
-      value: fmt(totals.expCash),
-      cls: "border-border bg-muted/20",
-      valueCls: "",
+      value: thb(totals.expCash),
     },
     {
       label: "Bank expenses",
-      value: fmt(totals.expBank),
-      cls: "border-border bg-muted/20",
-      valueCls: "",
+      value: thb(totals.expBank),
     },
     {
       label: "HR total",
-      value: fmt(totals.hr),
-      cls: "border-border bg-muted/20",
-      valueCls: "",
+      value: thb(totals.hr),
     },
     {
       label: "Cash to boss",
-      value: fmt(totals.cashToBoss),
-      cls: "border-border bg-muted/20",
-      valueCls: "",
+      value: thb(totals.cashToBoss),
     },
     {
       label: "Days filled",
       value: `${filled} / ${daysInMonth}`,
-      cls: filledLow
-        ? "border-amber-500/40 bg-amber-500/5"
-        : "border-border bg-muted/20",
-      valueCls: filledLow ? "text-amber-600 dark:text-amber-400" : "",
+      deltaDir: filledLow ? "down" as const : "up" as const,
+      hint: filledLow ? `${daysPassed - filled} days missing` : undefined,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {cards.map(({ label, value, cls, valueCls }) => (
-        <div key={label} className={`rounded-lg border px-4 py-3 ${cls}`}>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">{label}</p>
-          <p className={`font-mono text-base font-medium tabular-nums ${valueCls}`}>{value}</p>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "var(--s-3)" }}>
+      {stats.map(({ label, value, deltaDir, hint }) => (
+        <div
+          key={label}
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--r-lg)",
+            padding: "var(--s-4)",
+          }}
+        >
+          <Stat label={label} value={value} deltaDir={deltaDir} hint={hint} />
         </div>
       ))}
     </div>

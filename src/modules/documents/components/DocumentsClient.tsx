@@ -1,21 +1,33 @@
 "use client";
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
+import type { PillTone } from "@/components/ui/pill";
 import {
   PlusIcon, ExternalLinkIcon, TrashIcon, XIcon,
   DownloadIcon, UploadIcon, ListIcon, CalendarIcon, RefreshCwIcon,
+  SearchIcon,
 } from "lucide-react";
 import { DocumentsCalendar } from "@/modules/documents/components/DocumentsCalendar";
 import { DateInput } from "@/components/ui/date-input";
 import {
   computeStatus, daysUntilExpiry,
-  DOCUMENT_TYPE_LABELS, STATUS_CLASSES, STATUS_LABELS,
+  DOCUMENT_TYPE_LABELS, STATUS_LABELS,
   type Document, type DocumentStatus, type DocumentType,
 } from "@/modules/documents/types";
 import { ALL_CATEGORIES, CATEGORY_ORDER } from "@/modules/documents/masterList";
 import type { AdminLocation } from "@/modules/admin/types";
+
+const STATUS_TONES: Record<DocumentStatus, PillTone> = {
+  valid: "good",
+  expiring: "warn",
+  expired: "bad",
+  missing: "bad",
+  not_relevant: "neutral",
+};
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -67,22 +79,17 @@ interface DocumentsClientProps {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function ExpiryCell({ expires_at }: { expires_at: string | null }) {
-  if (!expires_at) return <span className="text-muted-foreground/40">—</span>;
+  if (!expires_at) return <span style={{ color: "var(--fg-mute)" }}>—</span>;
   const days = daysUntilExpiry(expires_at);
-  if (days === null) return <span className="text-muted-foreground/40">—</span>;
-  if (days < 0) {
-    return <span className="text-[var(--destructive)] font-medium">{-days}d overdue</span>;
-  }
-  if (days === 0) return <span className="text-[var(--destructive)] font-medium">Today</span>;
-  if (days <= 30) return <span className="text-amber-600 font-medium">In {days}d</span>;
-  return <span className="text-muted-foreground">{new Date(expires_at).toLocaleDateString()}</span>;
+  if (days === null) return <span style={{ color: "var(--fg-mute)" }}>—</span>;
+  if (days < 0) return <span className="mono" style={{ color: "var(--bad)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{-days}d overdue</span>;
+  if (days === 0) return <span style={{ color: "var(--bad)", fontWeight: 500 }}>Today</span>;
+  if (days <= 30) return <span className="mono" style={{ color: "var(--warn)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>In {days}d</span>;
+  return <span className="mono" style={{ color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>{new Date(expires_at).toLocaleDateString()}</span>;
 }
 
 function HasDocBadge({ has_document }: { has_document: boolean }) {
-  if (has_document) {
-    return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Yes</span>;
-  }
-  return <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">—</span>;
+  return <Pill tone={has_document ? "good" : "neutral"} size="sm">{has_document ? "Yes" : "—"}</Pill>;
 }
 
 // ─── main component ───────────────────────────────────────────────────────────
@@ -296,175 +303,155 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13,
+    color: "var(--fg)", outline: "none", width: "100%",
+  };
+  const textareaStyle: React.CSSProperties = {
+    borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg)", padding: "var(--s-2) var(--s-3)", fontSize: 13,
+    color: "var(--fg)", outline: "none", width: "100%", resize: "none",
+  };
+
   // ── render ───────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-lg font-semibold">Documents</h1>
-          <p className="text-xs text-muted-foreground">
-            Track required documents, expiry dates, and compliance status by location.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex rounded-md border border-border overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setView("table")}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs ${view === "table" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
-            >
-              <ListIcon className="size-3.5" /> Table
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("calendar")}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs border-l border-border ${view === "calendar" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
-            >
-              <CalendarIcon className="size-3.5" /> Calendar
-            </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <PageHeader
+        eyebrow="Compliance"
+        title="Documents"
+        subtitle="Track required documents, expiry dates, and compliance status by location."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
+            {/* View toggle */}
+            <div style={{ display: "flex", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", overflow: "hidden" }}>
+              {(["table", "calendar"] as const).map((v, i) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "0 var(--s-3)", height: 32, fontSize: 12, cursor: "pointer", border: "none",
+                    borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+                    background: view === v ? "var(--row-active)" : "var(--bg)",
+                    color: view === v ? "var(--fg)" : "var(--fg-4)",
+                    transition: "background var(--dur) var(--ease)",
+                  }}
+                >
+                  {v === "table" ? <ListIcon style={{ width: 13, height: 13 }} /> : <CalendarIcon style={{ width: 13, height: 13 }} />}
+                  {v === "table" ? "Table" : "Calendar"}
+                </button>
+              ))}
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => void handleSync()} disabled={syncing} title="Generate missing checklist rows">
+              <RefreshCwIcon style={{ width: 13, height: 13 }} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "Syncing…" : "Sync checklist"}
+            </Button>
+            <a href="/api/documents/export" download style={{ textDecoration: "none" }}>
+              <Button size="sm" variant="secondary">
+                <DownloadIcon style={{ width: 13, height: 13 }} /> Export CSV
+              </Button>
+            </a>
+            <input ref={importInputRef} type="file" accept=".csv" style={{ display: "none" }} onChange={(e) => void handleImport(e)} />
+            <Button size="sm" variant="secondary" disabled={importing} onClick={() => importInputRef.current?.click()}>
+              <UploadIcon style={{ width: 13, height: 13 }} />
+              {importing ? "Importing…" : "Import CSV"}
+            </Button>
+            <Button size="sm" variant="primary" onClick={openAdd}>
+              <PlusIcon style={{ width: 13, height: 13 }} /> Add document
+            </Button>
           </div>
-          <Button
-            size="sm" variant="outline"
-            onClick={() => void handleSync()}
-            disabled={syncing}
-            className="gap-1.5"
-            title="Generate missing checklist rows for all active locations"
-          >
-            <RefreshCwIcon className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing…" : "Sync checklist"}
-          </Button>
-          <a href="/api/documents/export" download>
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <DownloadIcon className="size-4" />
-              Export CSV
-            </Button>
-          </a>
-          <a href="/api/documents/template" download>
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <DownloadIcon className="size-4" />
-              Import template
-            </Button>
-          </a>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".csv"
-            className="sr-only"
-            onChange={(e) => void handleImport(e)}
-          />
-          <Button
-            size="sm" variant="outline" className="gap-1.5"
-            disabled={importing}
-            onClick={() => importInputRef.current?.click()}
-          >
-            <UploadIcon className="size-4" />
-            {importing ? "Importing…" : "Import CSV"}
-          </Button>
-          <Button size="sm" onClick={openAdd} className="gap-1.5">
-            <PlusIcon className="size-4" />
-            Add document
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Summary cards */}
+      {/* Summary stat cards */}
       {documents.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Total tracked</p>
-            <p className="text-xl font-bold">{stats.total}</p>
-          </div>
-          <div className={`rounded-lg border p-3 ${stats.missing > 0 ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/30"}`}>
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Missing</p>
-            <p className={`text-xl font-bold ${stats.missing > 0 ? "text-[var(--destructive)]" : ""}`}>{stats.missing}</p>
-          </div>
-          <div className={`rounded-lg border p-3 ${stats.expiring > 0 ? "border-amber-500/30 bg-amber-500/5" : "border-border bg-muted/30"}`}>
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Expiring soon</p>
-            <p className={`text-xl font-bold ${stats.expiring > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{stats.expiring}</p>
-          </div>
-          <div className={`rounded-lg border p-3 ${stats.expired > 0 ? "border-red-500/30 bg-red-500/5" : "border-border bg-muted/30"}`}>
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Expired</p>
-            <p className={`text-xl font-bold ${stats.expired > 0 ? "text-[var(--destructive)]" : ""}`}>{stats.expired}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Valid</p>
-            <p className="text-xl font-bold">{stats.valid}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Not relevant</p>
-            <p className="text-xl font-bold text-muted-foreground">{stats.notRelevant}</p>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
+          {[
+            { label: "Total tracked", value: stats.total, tone: "neutral" as const },
+            { label: "Missing", value: stats.missing, tone: stats.missing > 0 ? "bad" as const : "neutral" as const },
+            { label: "Expiring soon", value: stats.expiring, tone: stats.expiring > 0 ? "warn" as const : "neutral" as const },
+            { label: "Expired", value: stats.expired, tone: stats.expired > 0 ? "bad" as const : "neutral" as const },
+            { label: "Valid", value: stats.valid, tone: stats.valid > 0 ? "good" as const : "neutral" as const },
+            { label: "Not relevant", value: stats.notRelevant, tone: "neutral" as const },
+          ].map(({ label, value, tone }) => (
+            <div
+              key={label}
+              style={{
+                borderRadius: "var(--r-lg)",
+                border: `1px solid ${tone === "bad" && value > 0 ? "var(--bad)" : tone === "warn" && value > 0 ? "var(--warn)" : "var(--line)"}`,
+                background: tone === "bad" && value > 0 ? "var(--bad-soft)" : tone === "warn" && value > 0 ? "var(--warn-soft)" : "var(--surface)",
+                padding: "var(--s-3) var(--s-4)",
+              }}
+            >
+              <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>{label}</p>
+              <p className="mono" style={{
+                fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                color: tone === "bad" && value > 0 ? "var(--bad)" : tone === "warn" && value > 0 ? "var(--warn)" : tone === "good" && value > 0 ? "var(--good)" : "var(--fg)",
+              }}>
+                {value}
+              </p>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search documents…"
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs w-44"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-        >
-          {STATUS_FILTERS.map(({ value, label }) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
+        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+          <SearchIcon style={{ position: "absolute", left: 8, width: 13, height: 13, color: "var(--fg-4)", pointerEvents: "none" }} />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search documents…"
+            style={{ ...inputStyle, width: 180, paddingLeft: 28 }}
+          />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)} style={{ ...inputStyle, width: "auto" }}>
+          {STATUS_FILTERS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <select
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-        >
+        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
           <option value="">All locations</option>
-          {locations.map((l) => (
-            <option key={l.id} value={l.id}>{l.name}</option>
-          ))}
+          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-        >
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
           <option value="">All categories</option>
-          {ALL_CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+          {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <span className="ml-auto self-center text-xs text-muted-foreground">
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--fg-4)" }}>
           {displayed.length} document{displayed.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Calendar view */}
-      {view === "calendar" && (
-        <DocumentsCalendar documents={displayed} onEdit={openEdit} />
-      )}
+      {view === "calendar" && <DocumentsCalendar documents={displayed} onEdit={openEdit} />}
 
       {/* Table view */}
       {view === "table" && (
         documents.length === 0 ? (
-          <div className="rounded-lg border border-border py-12 text-center">
-            <p className="text-sm font-medium text-foreground mb-1">No documents yet</p>
-            <p className="text-xs text-muted-foreground mb-4">
+          <div
+            style={{
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              padding: "48px var(--s-5)", textAlign: "center",
+            }}
+          >
+            <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No documents yet</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)", marginBottom: "var(--s-4)" }}>
               Start by syncing the master checklist to all locations.
             </p>
-            <Button size="sm" variant="outline" onClick={() => void handleSync()} disabled={syncing} className="gap-1.5">
-              <RefreshCwIcon className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+            <Button size="sm" variant="secondary" onClick={() => void handleSync()} disabled={syncing}>
+              <RefreshCwIcon style={{ width: 13, height: 13 }} className={syncing ? "animate-spin" : ""} />
               {syncing ? "Syncing…" : "Sync master checklist to all locations"}
             </Button>
           </div>
         ) : displayed.length === 0 ? (
-          <div className="rounded-lg border border-border py-10 text-center text-sm text-muted-foreground">
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "40px var(--s-5)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
             No documents match these filters.
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
             {groupedDisplayed.map(({ category, docs }) => {
               const attentionCount = docs.filter((d) => {
                 if (!d.is_relevant) return false;
@@ -472,111 +459,120 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                 return s === "missing" || s === "expired" || s === "expiring";
               }).length;
               return (
-                <div key={category} className="rounded-lg border border-border overflow-x-auto">
-                  <div className="flex items-center gap-2 bg-muted/40 px-4 py-2 border-b border-border">
-                    <span className="text-xs font-semibold text-foreground">{category}</span>
-                    <span className="text-xs text-muted-foreground">{docs.length}</span>
+                <div
+                  key={category}
+                  style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}
+                >
+                  <div
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      background: "var(--bg-2)", padding: "8px var(--s-5)",
+                      borderBottom: "1px solid var(--line)",
+                    }}
+                  >
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{category}</span>
+                    <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{docs.length}</span>
                     {attentionCount > 0 && (
-                      <span className="ml-auto inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      <Pill tone="bad" size="sm" style={{ marginLeft: "auto" }}>
                         {attentionCount} need attention
-                      </span>
+                      </Pill>
                     )}
                   </div>
-                  <table className="w-full text-sm min-w-[640px]">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/20">
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Code</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Document</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Location</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Has doc</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Status</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-medium text-muted-foreground">Expiry / due</th>
-                        <th className="px-4 py-2 w-16" />
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {docs.map((doc) => {
-                        const effectiveStatus = computeStatus(doc);
-                        const notRelevant = !doc.is_relevant;
-                        const urgent = !notRelevant && (effectiveStatus === "missing" || effectiveStatus === "expired");
-                        return (
-                          <tr
-                            key={doc.id}
-                            onClick={() => openEdit(doc)}
-                            className={[
-                              "hover:bg-muted/20 transition-colors group cursor-pointer",
-                              urgent ? "bg-red-50/30 dark:bg-red-950/10" : "",
-                              notRelevant ? "opacity-50" : "",
-                            ].filter(Boolean).join(" ")}
-                          >
-                            {/* Code */}
-                            <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                              {doc.code ?? <span className="text-muted-foreground/30">—</span>}
-                            </td>
-                            {/* Document + Thai form */}
-                            <td className="px-4 py-2.5">
-                              <div className="flex flex-col gap-0.5 min-w-[160px]">
-                                <div className="flex items-center gap-1.5 font-medium text-sm leading-none">
-                                  {doc.title}
-                                  {doc.drive_url && (
-                                    <a
-                                      href={doc.drive_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-muted-foreground/60 hover:text-foreground shrink-0"
-                                      onClick={(e) => e.stopPropagation()}
-                                      title="Open in Drive"
-                                    >
-                                      <ExternalLinkIcon className="size-3" />
-                                    </a>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
+                      <thead>
+                        <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
+                          {["Code", "Document", "Location", "Has doc", "Status", "Expiry / due", ""].map((h, i) => (
+                            <th
+                              key={i}
+                              style={{
+                                padding: "8px var(--s-4)", textAlign: "left",
+                                color: "var(--fg-3)", fontWeight: 500, fontSize: 11,
+                                width: i === 6 ? 48 : undefined,
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {docs.map((doc, docIdx) => {
+                          const effectiveStatus = computeStatus(doc);
+                          const notRelevant = !doc.is_relevant;
+                          const urgent = !notRelevant && (effectiveStatus === "missing" || effectiveStatus === "expired");
+                          return (
+                            <tr
+                              key={doc.id}
+                              style={{
+                                borderTop: docIdx > 0 ? "1px solid var(--line)" : undefined,
+                                cursor: "pointer",
+                                background: urgent ? "var(--bad-soft)" : "",
+                                opacity: notRelevant ? 0.5 : 1,
+                              }}
+                              onClick={() => openEdit(doc)}
+                              onMouseEnter={(e) => { if (!urgent) (e.currentTarget as HTMLElement).style.background = "var(--row-hover)"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = urgent ? "var(--bad-soft)" : ""; }}
+                            >
+                              <td className="mono" style={{ padding: "10px var(--s-4)", fontSize: 11, color: "var(--fg-3)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                                {doc.code ?? <span style={{ color: "var(--fg-mute)" }}>—</span>}
+                              </td>
+                              <td style={{ padding: "10px var(--s-4)" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 160 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 500, lineHeight: 1 }}>
+                                    {doc.title}
+                                    {doc.drive_url && (
+                                      <a
+                                        href={doc.drive_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color: "var(--fg-4)", flexShrink: 0 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        title="Open in Drive"
+                                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+                                      >
+                                        <ExternalLinkIcon style={{ width: 11, height: 11 }} />
+                                      </a>
+                                    )}
+                                  </div>
+                                  {doc.thai_form_name && (
+                                    <span style={{ fontSize: 11, color: "var(--fg-4)", lineHeight: 1 }}>{doc.thai_form_name}</span>
                                   )}
                                 </div>
-                                {doc.thai_form_name && (
-                                  <span className="text-[11px] text-muted-foreground/70 leading-none">{doc.thai_form_name}</span>
-                                )}
-                              </div>
-                            </td>
-                            {/* Location */}
-                            <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
-                              {doc.location_name ?? <span className="text-muted-foreground/40">Org-wide</span>}
-                            </td>
-                            {/* Has document */}
-                            <td className="px-4 py-2.5">
-                              <HasDocBadge has_document={doc.has_document} />
-                            </td>
-                            {/* Status */}
-                            <td className="px-4 py-2.5">
-                              {notRelevant ? (
-                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground/60">
-                                  Not relevant
-                                </span>
-                              ) : (
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[effectiveStatus]}`}>
-                                  {STATUS_LABELS[effectiveStatus]}
-                                </span>
-                              )}
-                            </td>
-                            {/* Expiry */}
-                            <td className="px-4 py-2.5 text-xs whitespace-nowrap">
-                              <ExpiryCell expires_at={doc.expires_at} />
-                            </td>
-                            {/* Actions */}
-                            <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              </td>
+                              <td style={{ padding: "10px var(--s-4)", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
+                                {doc.location_name ?? <span style={{ color: "var(--fg-mute)" }}>Org-wide</span>}
+                              </td>
+                              <td style={{ padding: "10px var(--s-4)" }}>
+                                <HasDocBadge has_document={doc.has_document} />
+                              </td>
+                              <td style={{ padding: "10px var(--s-4)" }}>
+                                <Pill tone={notRelevant ? "neutral" : STATUS_TONES[effectiveStatus]} size="sm">
+                                  {notRelevant ? "Not relevant" : STATUS_LABELS[effectiveStatus]}
+                                </Pill>
+                              </td>
+                              <td style={{ padding: "10px var(--s-4)", whiteSpace: "nowrap" }}>
+                                <ExpiryCell expires_at={doc.expires_at} />
+                              </td>
+                              <td style={{ padding: "10px var(--s-4)" }} onClick={(e) => e.stopPropagation()}>
                                 <button
                                   onClick={() => void handleDelete(doc.id)}
-                                  className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+                                  style={{ borderRadius: "var(--r-sm)", padding: 4, color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", display: "flex", opacity: 0 }}
                                   title="Delete"
+                                  onMouseEnter={(e) => { (e.currentTarget.style.color = "var(--bad)"); (e.currentTarget.style.opacity = "1"); }}
+                                  onMouseLeave={(e) => { (e.currentTarget.style.color = "var(--fg-4)"); (e.currentTarget.style.opacity = "0"); }}
+                                  className="group-hover/row:opacity-100"
                                 >
-                                  <TrashIcon className="size-3.5" />
+                                  <TrashIcon style={{ width: 13, height: 13 }} />
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               );
             })}
@@ -587,258 +583,187 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       {/* Add / Edit modal */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto"
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            padding: "var(--s-4)", overflowY: "auto",
+          }}
           onClick={closeForm}
         >
           <div
-            className="w-full max-w-2xl rounded-xl border border-border bg-background p-5 shadow-xl my-auto"
+            style={{
+              width: "100%", maxWidth: 640, margin: "auto",
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", padding: "var(--s-5)",
+              boxShadow: "var(--shadow-drawer)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-semibold">{editingId ? "Edit document" : "Add document"}</h2>
-              <button onClick={closeForm} className="text-muted-foreground hover:text-foreground">
-                <XIcon className="size-4" />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--s-5)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
+                {editingId ? "Edit document" : "Add document"}
+              </h2>
+              <button
+                onClick={closeForm}
+                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+              >
+                <XIcon style={{ width: 14, height: 14 }} />
               </button>
             </div>
 
-            <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-5">
+            <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
 
-              {/* Prominent relevance & has-document toggles */}
-              <div className="rounded-lg bg-muted/30 border border-border/50 p-4 flex flex-col gap-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.is_relevant}
-                    onChange={(e) => setForm((f) => ({ ...f, is_relevant: e.target.checked }))}
-                    className="size-4 rounded"
-                  />
-                  <div>
-                    <p className="text-sm font-medium">Relevant to this location</p>
-                    <p className="text-xs text-muted-foreground">Uncheck if this document doesn&apos;t apply to the selected shop</p>
-                  </div>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.has_document}
-                    onChange={(e) => setForm((f) => ({ ...f, has_document: e.target.checked }))}
-                    className="size-4 rounded"
-                  />
-                  <div>
-                    <p className="text-sm font-medium">We have this document</p>
-                    <p className="text-xs text-muted-foreground">Check when the physical or digital copy is in hand</p>
-                  </div>
-                </label>
+              {/* Relevance + has-doc toggles */}
+              <div
+                style={{
+                  borderRadius: "var(--r-md)", border: "1px solid var(--line)",
+                  background: "var(--bg-2)", padding: "var(--s-4)",
+                  display: "flex", flexDirection: "column", gap: "var(--s-3)",
+                }}
+              >
+                {[
+                  { field: "is_relevant" as const, label: "Relevant to this location", sub: "Uncheck if this document doesn't apply to the selected shop" },
+                  { field: "has_document" as const, label: "We have this document", sub: "Check when the physical or digital copy is in hand" },
+                ].map(({ field, label, sub }) => (
+                  <label key={field} style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={form[field]}
+                      onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.checked }))}
+                      style={{ marginTop: 2, flexShrink: 0 }}
+                    />
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 500, margin: 0 }}>{label}</p>
+                      <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>{sub}</p>
+                    </div>
+                  </label>
+                ))}
               </div>
 
-              {/* Section: Base document info (locked for non-owners) */}
+              {/* Document info */}
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Document info</p>
-                  {!isOwner ? (
-                    <span className="text-[10px] text-muted-foreground/60 italic">— managed centrally</span>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground/60 italic">— name/code changes apply to all locations</span>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2 flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Document name {isOwner && <span className="text-destructive">*</span>}</label>
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>
+                  Document info{" "}
+                  <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 10, color: "var(--fg-4)", opacity: 0.7 }}>
+                    {!isOwner ? "— managed centrally" : "— name/code changes apply to all locations"}
+                  </span>
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+                  <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Document name {isOwner && <span style={{ color: "var(--bad)" }}>*</span>}</label>
                     {isOwner ? (
-                      <input
-                        required
-                        value={form.title}
-                        onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                        placeholder="e.g. Restaurant License"
-                      />
+                      <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} style={inputStyle} placeholder="e.g. Restaurant License" />
                     ) : (
-                      <p className="h-8 flex items-center px-2 text-sm text-foreground">{form.title}</p>
+                      <p style={{ height: 32, display: "flex", alignItems: "center", fontSize: 13, margin: 0 }}>{form.title}</p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Thai form name</label>
+                  {[
+                    { field: "thai_form_name" as const, label: "Thai form name", placeholder: "e.g. ใบอนุญาต" },
+                    { field: "code" as const, label: "Document code", placeholder: "e.g. FOOD_LICENSE" },
+                    { field: "authority" as const, label: "Authority / issuer", placeholder: "e.g. District Office" },
+                    { field: "frequency" as const, label: "Frequency", placeholder: "e.g. Yearly, Monthly, Once" },
+                  ].map(({ field, label, placeholder }) => (
+                    <div key={field} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+                      {isOwner ? (
+                        <input
+                          value={form[field] as string}
+                          onChange={(e) => setForm((f) => ({ ...f, [field]: field === "code" ? e.target.value.toUpperCase() : e.target.value }))}
+                          style={field === "code" ? { ...inputStyle, fontFamily: "var(--font-mono)" } : inputStyle}
+                          placeholder={placeholder}
+                        />
+                      ) : (
+                        <p style={{ height: 32, display: "flex", alignItems: "center", fontSize: 13, color: "var(--fg-3)", margin: 0 }}>
+                          {(form[field] as string) || "—"}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Category</label>
                     {isOwner ? (
-                      <input
-                        value={form.thai_form_name}
-                        onChange={(e) => setForm((f) => ({ ...f, thai_form_name: e.target.value }))}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                        placeholder="e.g. ใบอนุญาต"
-                      />
-                    ) : (
-                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.thai_form_name || "—"}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Document code</label>
-                    {isOwner ? (
-                      <input
-                        value={form.code}
-                        onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-sm font-mono"
-                        placeholder="e.g. FOOD_LICENSE"
-                      />
-                    ) : (
-                      <p className="h-8 flex items-center px-2 text-sm font-mono text-muted-foreground">{form.code || "—"}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Category</label>
-                    {isOwner ? (
-                      <select
-                        value={form.category}
-                        onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                        className="h-8 rounded-md border border-input bg-background pl-2 pr-8 text-sm"
-                      >
+                      <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} style={inputStyle}>
                         <option value="">Select category</option>
                         {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                       </select>
                     ) : (
-                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.category || "—"}</p>
+                      <p style={{ height: 32, display: "flex", alignItems: "center", fontSize: 13, color: "var(--fg-3)", margin: 0 }}>{form.category || "—"}</p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Type</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Type</label>
                     {isOwner ? (
-                      <select
-                        value={form.document_type}
-                        onChange={(e) => setForm((f) => ({ ...f, document_type: e.target.value as DocumentType }))}
-                        className="h-8 rounded-md border border-input bg-background pl-2 pr-8 text-sm"
-                      >
-                        {ALL_TYPES.map((t) => (
-                          <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>
-                        ))}
+                      <select value={form.document_type} onChange={(e) => setForm((f) => ({ ...f, document_type: e.target.value as DocumentType }))} style={inputStyle}>
+                        {ALL_TYPES.map((t) => <option key={t} value={t}>{DOCUMENT_TYPE_LABELS[t]}</option>)}
                       </select>
                     ) : (
-                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{DOCUMENT_TYPE_LABELS[form.document_type]}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Authority / issuer</label>
-                    {isOwner ? (
-                      <input
-                        value={form.authority}
-                        onChange={(e) => setForm((f) => ({ ...f, authority: e.target.value }))}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                        placeholder="e.g. District Office"
-                      />
-                    ) : (
-                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.authority || "—"}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Frequency</label>
-                    {isOwner ? (
-                      <input
-                        value={form.frequency}
-                        onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}
-                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                        placeholder="e.g. Yearly, Monthly, Once"
-                      />
-                    ) : (
-                      <p className="h-8 flex items-center px-2 text-sm text-muted-foreground">{form.frequency || "—"}</p>
+                      <p style={{ height: 32, display: "flex", alignItems: "center", fontSize: 13, color: "var(--fg-3)", margin: 0 }}>{DOCUMENT_TYPE_LABELS[form.document_type]}</p>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Section: Shop tracking */}
+              {/* Shop tracking */}
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Shop tracking</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Location</label>
-                    <select
-                      value={form.location_id}
-                      onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background pl-2 pr-8 text-sm"
-                    >
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Shop tracking</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Location</label>
+                    <select value={form.location_id} onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))} style={inputStyle}>
                       <option value="">Org-wide</option>
-                      {locations.map((l) => (
-                        <option key={l.id} value={l.id}>{l.name}</option>
-                      ))}
+                      {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </div>
-                  <div className="col-span-2 flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Shop notes</label>
-                    <textarea
-                      value={form.shop_notes}
-                      onChange={(e) => setForm((f) => ({ ...f, shop_notes: e.target.value }))}
-                      rows={2}
-                      className="rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
-                      placeholder="Location-specific notes"
-                    />
+                  <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Shop notes</label>
+                    <textarea value={form.shop_notes} onChange={(e) => setForm((f) => ({ ...f, shop_notes: e.target.value }))} rows={2} style={textareaStyle} placeholder="Location-specific notes" />
                   </div>
                 </div>
               </div>
 
-              {/* Section: Dates */}
+              {/* Dates */}
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Dates</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Issue date</label>
-                    <DateInput
-                      value={form.issued_at}
-                      onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))}
-                    />
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Dates</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Issue date</label>
+                    <DateInput value={form.issued_at} onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))} />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Expiry / next due</label>
-                    <DateInput
-                      value={form.expires_at}
-                      onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))}
-                    />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Expiry / next due</label>
+                    <DateInput value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Reminder days before</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.reminder_days_override}
-                      onChange={(e) => setForm((f) => ({ ...f, reminder_days_override: e.target.value }))}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                      placeholder="e.g. 30"
-                    />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Reminder days before</label>
+                    <input type="number" min={1} value={form.reminder_days_override} onChange={(e) => setForm((f) => ({ ...f, reminder_days_override: e.target.value }))} style={inputStyle} placeholder="e.g. 30" />
                   </div>
                 </div>
               </div>
 
-              {/* Section: Storage */}
+              {/* Storage */}
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Storage</p>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Drive link</label>
-                  <input
-                    type="url"
-                    value={form.drive_url}
-                    onChange={(e) => setForm((f) => ({ ...f, drive_url: e.target.value }))}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs font-mono"
-                    placeholder="https://drive.google.com/…"
-                  />
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Storage</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Drive link</label>
+                  <input type="url" value={form.drive_url} onChange={(e) => setForm((f) => ({ ...f, drive_url: e.target.value }))} style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: 11 }} placeholder="https://drive.google.com/…" />
                 </div>
               </div>
 
-              {/* Section: Notes */}
+              {/* Notes */}
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">Notes</p>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">General notes</label>
-                  <textarea
-                    value={form.notes}
-                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                    rows={2}
-                    className="rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
-                    placeholder="Optional operational notes"
-                  />
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Notes</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label className="eyebrow" style={{ color: "var(--fg-4)" }}>General notes</label>
+                  <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} style={textareaStyle} placeholder="Optional operational notes" />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-1 border-t border-border">
-                <Button type="button" size="sm" variant="outline" onClick={closeForm}>
-                  Cancel
-                </Button>
-                <Button type="submit" size="sm" disabled={submitting}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)" }}>
+                <Button type="button" size="sm" variant="secondary" onClick={closeForm}>Cancel</Button>
+                <Button type="submit" size="sm" variant="primary" disabled={submitting}>
                   {submitting ? "Saving…" : editingId ? "Save changes" : "Add document"}
                 </Button>
               </div>

@@ -27,37 +27,27 @@ const TIME_OPTIONS = Array.from({ length: (22 - 6) * 2 }).map((_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-// Inline styles — guarantee colors render even when Tailwind scanner misses this file.
-function shiftBg(startTime: string): string {
-  // Morning: start 07:00 or 07:30 → blue
-  if (startTime <= "07:30") return "rgba(59, 130, 246, 0.18)";
-  // Middle: after 07:30, before 12:00 → orange
-  if (startTime < "12:00") return "rgba(249, 115, 22, 0.18)";
-  // Evening: 12:00+ → red
-  return "rgba(239, 68, 68, 0.18)";
-}
-
-function containerStyle(isOff: boolean, hours: number, startTime: string): React.CSSProperties {
-  if (isOff) return { backgroundColor: "rgba(107, 114, 128, 0.05)" };
-  if (hours === 0) return { backgroundColor: "rgba(245, 158, 11, 0.12)" };
-  return { backgroundColor: shiftBg(startTime) };
+function containerStyle(isOff: boolean, hours: number): React.CSSProperties {
+  if (isOff) return { backgroundColor: "transparent" };
+  if (hours === 0) return { backgroundColor: "var(--warn-soft)" };
+  return { backgroundColor: "var(--info-soft)" };
 }
 
 function hoursBadgeStyle(isOff: boolean, hours: number): React.CSSProperties {
-  if (isOff) return { color: "hsl(var(--muted-foreground))", opacity: 0.7, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" as const, fontWeight: 600 };
-  if (hours === 0) return { color: "hsl(var(--foreground))", opacity: 0.7, fontSize: 10, fontWeight: 700 };
-  return { color: "hsl(var(--foreground))", fontSize: 10, fontWeight: 700 };
+  if (isOff) return { color: "var(--fg-mute)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" as const, fontWeight: 600 };
+  if (hours === 0) return { color: "var(--warn)", fontSize: 10, fontWeight: 700 };
+  return { color: "var(--info)", fontSize: 10, fontWeight: 700 };
 }
 
 const SELECT_STYLE: React.CSSProperties = {
   width: "100%",
   height: 24,
-  borderRadius: 4,
-  border: "1px solid rgba(107, 114, 128, 0.3)",
-  backgroundColor: "rgba(0, 0, 0, 0.15)",
-  color: "inherit",
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--line)",
+  backgroundColor: "var(--bg)",
+  color: "var(--fg)",
   fontSize: 11,
-  fontFamily: "ui-monospace, SFMono-Regular, monospace",
+  fontFamily: "var(--font-mono)",
   padding: "0 2px",
   cursor: "pointer",
   boxSizing: "border-box" as const,
@@ -83,9 +73,9 @@ export function ShiftCell({
       onDragStart={onDragStart}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => { e.preventDefault(); onDrop(); }}
-      className="relative group"
+      className="group"
       style={{
-        ...containerStyle(isOff, hours, data.start_time ?? ""),
+        ...containerStyle(isOff, hours),
         display: "flex",
         flexDirection: "column",
         gap: 4,
@@ -100,19 +90,19 @@ export function ShiftCell({
       <div className="absolute top-0.5 right-0.5 hidden group-hover:flex gap-0.5 z-10">
         {!isOff && (
           <button type="button" title="Copy" onClick={onCopy}
-            className="rounded px-1 py-0.5 text-[9px] bg-background border border-border hover:bg-accent leading-none">
+            style={{ borderRadius: 4, padding: "2px 4px", fontSize: 9, background: "var(--bg)", border: "1px solid var(--line)", color: "var(--fg-3)", lineHeight: 1, cursor: "pointer" }}>
             C
           </button>
         )}
         {hasCopied && (
           <button type="button" title="Paste" onClick={onPaste}
-            className="rounded px-1 py-0.5 text-[9px] bg-background border border-border hover:bg-accent leading-none">
+            style={{ borderRadius: 4, padding: "2px 4px", fontSize: 9, background: "var(--bg)", border: "1px solid var(--line)", color: "var(--fg-3)", lineHeight: 1, cursor: "pointer" }}>
             P
           </button>
         )}
         {!isOff && (
           <button type="button" title="Clear" onClick={onClear}
-            className="rounded px-1 py-0.5 text-[9px] bg-background border border-border hover:bg-destructive hover:text-destructive-foreground leading-none">
+            style={{ borderRadius: 4, padding: "2px 4px", fontSize: 9, background: "var(--bg)", border: "1px solid var(--line)", color: "var(--fg-3)", lineHeight: 1, cursor: "pointer" }}>
             ✕
           </button>
         )}

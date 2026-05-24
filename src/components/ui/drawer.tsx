@@ -14,7 +14,7 @@ import {
 interface DrawerProps {
   open: boolean
   onClose: () => void
-  title?: string
+  title?: React.ReactNode
   description?: string
   side?: "right" | "left"
   children: React.ReactNode

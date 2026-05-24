@@ -1,77 +1,57 @@
 export function ThaiTaxFormulaHero() {
   return (
-    <div className="rounded-[14px] bg-[#2F2823] p-5">
+    <div style={{ borderRadius: "var(--r-lg)", background: "var(--bg-2)", padding: 20 }}>
       {/* Label */}
-      <p className="mb-3 text-[9.5px] font-bold uppercase tracking-[0.1em] text-[#7a6a5a]">
+      <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 12 }}>
         La formule fondamentale
       </p>
 
       {/* Formula row */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
         {/* Blue chip: CA */}
-        <div className="flex flex-col gap-0.5 rounded-lg bg-blue-900/20 px-3 py-2">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-blue-300/70">
-            Chiffre d&apos;affaires
-          </span>
-          <span className="font-mono text-[17px] font-extrabold leading-none text-blue-200">
-            CA
-          </span>
-          <span className="text-[9.5px] text-blue-300/70">hors VAT · top line</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, borderRadius: "var(--r-sm)", background: "var(--info-soft)", padding: "8px 12px" }}>
+          <span className="eyebrow" style={{ color: "var(--info)" }}>Chiffre d&apos;affaires</span>
+          <span className="mono" style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, color: "var(--info)" }}>CA</span>
+          <span style={{ fontSize: 9.5, color: "var(--info)" }}>hors VAT · top line</span>
         </div>
 
         {/* Operator − */}
-        <span className="text-2xl font-light text-[#7a6a5a]">−</span>
+        <span style={{ fontSize: 24, fontWeight: 300, color: "var(--fg-4)" }}>−</span>
 
         {/* Amber chip: Expenses */}
-        <div className="flex flex-col gap-0.5 rounded-lg bg-amber-900/20 px-3 py-2">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-300/70">
-            Charges
-          </span>
-          <span className="font-mono text-[17px] font-extrabold leading-none text-amber-200">
-            Expenses
-          </span>
-          <span className="text-[9.5px] text-amber-300/70">
-            salaires, loyers, fournisseurs…
-          </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, borderRadius: "var(--r-sm)", background: "var(--warn-soft)", padding: "8px 12px" }}>
+          <span className="eyebrow" style={{ color: "var(--warn)" }}>Charges</span>
+          <span className="mono" style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, color: "var(--warn)" }}>Expenses</span>
+          <span style={{ fontSize: 9.5, color: "var(--warn)" }}>salaires, loyers, fournisseurs…</span>
         </div>
 
         {/* Operator = */}
-        <span className="text-2xl font-light text-[#7a6a5a]">=</span>
+        <span style={{ fontSize: 24, fontWeight: 300, color: "var(--fg-4)" }}>=</span>
 
         {/* Green chip: Profit */}
-        <div className="flex flex-col gap-0.5 rounded-lg bg-green-900/20 px-3 py-2">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-green-300/70">
-            Bénéfice net
-          </span>
-          <span className="font-mono text-[17px] font-extrabold leading-none text-green-200">
-            Profit
-          </span>
-          <span className="text-[9.5px] text-green-300/70">
-            bottom line · base imposable
-          </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, borderRadius: "var(--r-sm)", background: "var(--good-soft)", padding: "8px 12px" }}>
+          <span className="eyebrow" style={{ color: "var(--good)" }}>Bénéfice net</span>
+          <span className="mono" style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, color: "var(--good)" }}>Profit</span>
+          <span style={{ fontSize: 9.5, color: "var(--good)" }}>bottom line · base imposable</span>
         </div>
 
         {/* Operator → */}
-        <span className="text-2xl font-light text-[#7a6a5a]">→</span>
+        <span style={{ fontSize: 24, fontWeight: 300, color: "var(--fg-4)" }}>→</span>
 
         {/* Red chip: CIT */}
-        <div className="flex flex-col gap-0.5 rounded-lg bg-red-900/20 px-3 py-2">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-red-300/70">
-            Impôt sociétés
-          </span>
-          <span className="font-mono text-[17px] font-extrabold leading-none text-red-200">
-            CIT
-          </span>
-          <span className="text-[9.5px] text-red-300/70">15–20% selon seuils</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, borderRadius: "var(--r-sm)", background: "var(--bad-soft)", padding: "8px 12px" }}>
+          <span className="eyebrow" style={{ color: "var(--bad)" }}>Impôt sociétés</span>
+          <span className="mono" style={{ fontSize: 17, fontWeight: 800, lineHeight: 1, color: "var(--bad)" }}>CIT</span>
+          <span style={{ fontSize: 9.5, color: "var(--bad)" }}>15–20% selon seuils</span>
         </div>
       </div>
 
       {/* Note */}
-      <p className="mt-4 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-[#7a6a5a]">
+      <p style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 12, fontSize: 11, lineHeight: 1.7, color: "var(--fg-3)" }}>
         Tout le reste sur cette page est un détail de l&apos;un de ces 4 éléments.{" "}
-        <strong className="text-[#B9854E]">La VAT n&apos;est pas du CA</strong> — tu
+        <strong style={{ color: "var(--bronze)" }}>La VAT n&apos;est pas du CA</strong> — tu
         la collectes pour l&apos;État, elle transite sans t&apos;appartenir.{" "}
-        <strong className="text-[#B9854E]">Seul le bénéfice net est taxé</strong> via
+        <strong style={{ color: "var(--bronze)" }}>Seul le bénéfice net est taxé</strong> via
         l&apos;impôt sur les sociétés.
       </p>
     </div>

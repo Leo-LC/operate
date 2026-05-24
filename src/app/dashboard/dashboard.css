@@ -14,32 +14,32 @@
   align-items: baseline;
   gap: 0.35rem;
   font-size: 0.8125rem;
-  color: var(--muted-foreground);
+  color: var(--fg-4);
 }
 
 .dashboard-stat-item strong {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--foreground);
+  color: var(--fg);
 }
 
 .dashboard-stat-item[data-variant="success"] strong {
-  color: oklch(0.45 0.14 145);
+  color: var(--good);
 }
 
 .dashboard-stat-item[data-variant="amber"] strong {
-  color: var(--amber);
+  color: var(--warn);
 }
 
 .dashboard-stat-item[data-variant="attention"] strong {
-  color: var(--destructive);
+  color: var(--bad);
 }
 
 .dashboard-stat-sep {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: var(--muted-foreground);
+  background: var(--fg-4);
   opacity: 0.6;
 }
 
@@ -80,21 +80,21 @@
 }
 
 .dashboard-stat-tab:hover {
-  background: var(--muted);
+  background: var(--bg-2);
 }
 
 .dashboard-stat-tab-active {
-  background: var(--muted);
+  background: var(--bg-2);
 }
 
 .dashboard-stat-tab:focus-visible {
-  outline: 1px solid var(--border);
+  outline: 1px solid var(--line);
   outline-offset: 2px;
 }
 
 /* Sidebar filter items: whole row is the control */
 .filter-item:focus-visible {
-  outline: 1px solid var(--border);
+  outline: 1px solid var(--line);
   outline-offset: -1px;
 }
 
@@ -125,8 +125,8 @@
   pointer-events: none;
   background: linear-gradient(
     to top,
-    var(--background) 0%,
-    var(--background) 15%,
+    var(--bg) 0%,
+    var(--bg) 15%,
     transparent 100%
   );
   opacity: 0.95;

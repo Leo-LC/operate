@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 export interface TaxTag {
   label: string;
@@ -16,23 +15,16 @@ export interface TaxCardProps {
   deadline?: string;
   href: string;
   variant?: "default" | "dark" | "highlighted";
-  className?: string;
+  style?: React.CSSProperties;
 }
 
-const tagVariantClasses: Record<TaxTag["variant"], string> = {
-  green: "bg-green-100 text-green-900",
-  amber: "bg-amber-100 text-amber-900",
-  red: "bg-red-100 text-red-900",
-  blue: "bg-blue-100 text-blue-900",
-  purple: "bg-purple-100 text-purple-900",
-  muted: "bg-[#EDE5D5] text-[#5c4d3c]",
-};
-
-const cardVariantClasses: Record<NonNullable<TaxCardProps["variant"]>, string> = {
-  default:
-    "bg-white border-[#E8DDD0] hover:border-[#B9854E] hover:shadow-[0_4px_20px_rgba(185,133,78,0.13)]",
-  dark: "bg-[#2F2823] border-[#2F2823] hover:border-[#B9854E]",
-  highlighted: "bg-[#FDF8F3] border-[#B9854E]",
+const TAG_STYLES: Record<TaxTag["variant"], { bg: string; color: string }> = {
+  green:  { bg: "var(--good-soft)",  color: "var(--good)" },
+  amber:  { bg: "var(--warn-soft)",  color: "var(--warn)" },
+  red:    { bg: "var(--bad-soft)",   color: "var(--bad)" },
+  blue:   { bg: "var(--info-soft)",  color: "var(--info)" },
+  purple: { bg: "var(--info-soft)",  color: "var(--info)" },
+  muted:  { bg: "var(--bg-2)",       color: "var(--fg-3)" },
 };
 
 export function TaxCard({
@@ -45,64 +37,74 @@ export function TaxCard({
   deadline,
   href,
   variant = "default",
-  className,
+  style,
 }: TaxCardProps) {
   const isDark = variant === "dark";
+  const isHighlighted = variant === "highlighted";
 
   return (
     <Link
       href={href}
-      className={cn(
-        "group flex flex-col gap-2.5 rounded-[11px] border p-4 transition-all duration-200 hover:-translate-y-px",
-        cardVariantClasses[variant],
-        className
-      )}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        borderRadius: "var(--r-lg)",
+        border: `1px solid ${isHighlighted ? "var(--bronze)" : isDark ? "var(--bg-2)" : "var(--line)"}`,
+        background: isHighlighted ? "var(--bronze-soft)" : isDark ? "var(--bg-2)" : "var(--surface)",
+        padding: 16,
+        transition: "border-color 200ms, box-shadow 200ms, transform 200ms",
+        textDecoration: "none",
+        ...style,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "var(--bronze)";
+        e.currentTarget.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = isHighlighted ? "var(--bronze)" : isDark ? "var(--bg-2)" : "var(--line)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       {/* Row 1: icon + rate */}
-      <div className="flex items-start justify-between">
-        <span className="text-xl leading-none">{icon}</span>
-        <span className="font-mono text-lg font-extrabold text-[#B9854E] leading-none">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
+        <span className="mono" style={{ fontSize: 18, fontWeight: 800, color: "var(--bronze)", lineHeight: 1 }}>
           {rate}
         </span>
       </div>
 
       {/* Row 2: name + subtitle */}
-      <div className="flex items-baseline gap-1.5">
-        <span
-          className={cn(
-            "text-[13px] font-bold leading-tight",
-            isDark ? "text-[#F7F2E9]" : "text-[#2F2823]"
-          )}
-        >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "var(--sand)" : "var(--fg)", lineHeight: "1.2" }}>
           {name}
         </span>
         {subtitle && (
-          <span className="text-[10px] text-[#7a6a5a] leading-tight shrink-0">
+          <span style={{ fontSize: 10, color: "var(--fg-3)", lineHeight: "1.2", flexShrink: 0 }}>
             {subtitle}
           </span>
         )}
       </div>
 
       {/* Row 3: description */}
-      <p
-        className={cn(
-          "text-[11.5px] leading-relaxed",
-          isDark ? "text-[#a08060]" : "text-[#7a6a5a]"
-        )}
-      >
+      <p style={{ fontSize: 11.5, lineHeight: 1.6, color: isDark ? "var(--fg-3)" : "var(--fg-3)", margin: 0 }}>
         {description}
       </p>
 
       {/* Row 4: tags */}
       {tags && tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {tags.map((tag) => (
             <span
               key={tag.label}
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                tagVariantClasses[tag.variant]
-              )}
+              style={{
+                borderRadius: "var(--r-pill)",
+                padding: "2px 8px",
+                fontSize: 10,
+                fontWeight: 500,
+                background: TAG_STYLES[tag.variant].bg,
+                color: TAG_STYLES[tag.variant].color,
+              }}
             >
               {tag.label}
             </span>
@@ -111,18 +113,9 @@ export function TaxCard({
       )}
 
       {/* Row 5: footer */}
-      <div
-        className={cn(
-          "flex items-center justify-between border-t pt-2.5 mt-0.5",
-          isDark ? "border-white/10" : "border-[#E8DDD0]"
-        )}
-      >
-        <span className="text-[10px] text-[#7a6a5a]">
-          {deadline ?? ""}
-        </span>
-        <span className="text-[10px] font-semibold text-[#B9854E] group-hover:underline">
-          Voir détails →
-        </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "var(--line)"}`, paddingTop: 10, marginTop: 2 }}>
+        <span style={{ fontSize: 10, color: "var(--fg-4)" }}>{deadline ?? ""}</span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--bronze)" }}>Voir détails →</span>
       </div>
     </Link>
   );

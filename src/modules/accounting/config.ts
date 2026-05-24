@@ -32,8 +32,8 @@ export interface AccountingField {
 export interface AccountingSection {
   id: "sales" | "payments" | "expenses" | "hr" | "treasury";
   label: string;
-  badgeClass: string;
-  headerClass: string;
+  headerBg: string;
+  headerColor: string;
   fields: AccountingField[];
 }
 
@@ -54,8 +54,8 @@ export const DAILY_ENTRY_SECTIONS: AccountingSection[] = [
   {
     id: "sales",
     label: "Sales",
-    badgeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    headerClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+    headerBg: "var(--good-soft)",
+    headerColor: "var(--good)",
     fields: [
       { key: "sales_drinks_net",     label: "Drinks",         shortLabel: "Drinks",    calculated: false, visibleInOverview: false, exportable: true },
       { key: "sales_ticket_net",     label: "Tickets",        shortLabel: "Tickets",   calculated: false, visibleInOverview: false, exportable: true },
@@ -68,8 +68,8 @@ export const DAILY_ENTRY_SECTIONS: AccountingSection[] = [
   {
     id: "payments",
     label: "Payments",
-    badgeClass: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    headerClass: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+    headerBg: "var(--info-soft)",
+    headerColor: "var(--info)",
     fields: [
       { key: "vat_7",               label: "VAT 7% (manual)", shortLabel: "VAT",       calculated: false, visibleInOverview: false, exportable: true },
       { key: "payment_cash",        label: "Cash",            shortLabel: "Cash",      calculated: false, visibleInOverview: true,  exportable: true },
@@ -81,8 +81,8 @@ export const DAILY_ENTRY_SECTIONS: AccountingSection[] = [
   {
     id: "expenses",
     label: "Expenses",
-    badgeClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    headerClass: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+    headerBg: "var(--warn-soft)",
+    headerColor: "var(--warn)",
     fields: [
       { key: "exp_staff_food_cash",  label: "Staff food",     shortLabel: "Staff food", calculated: false, visibleInOverview: false, exportable: true },
       { key: "exp_drinks_cash",      label: "Drinks",         shortLabel: "Drinks",     calculated: false, visibleInOverview: false, exportable: true },
@@ -101,8 +101,8 @@ export const DAILY_ENTRY_SECTIONS: AccountingSection[] = [
   {
     id: "hr",
     label: "HR",
-    badgeClass: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
-    headerClass: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+    headerBg: "var(--bad-soft)",
+    headerColor: "var(--bad)",
     fields: [
       { key: "hr_salary_cash",         label: "Salary cash",    shortLabel: "Salary",    calculated: false, visibleInOverview: false, exportable: true },
       { key: "hr_salary_bank",         label: "Salary bank",    shortLabel: "Sal. bank", calculated: false, visibleInOverview: false, exportable: true },
@@ -115,8 +115,8 @@ export const DAILY_ENTRY_SECTIONS: AccountingSection[] = [
   {
     id: "treasury",
     label: "Treasury",
-    badgeClass: "bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300",
-    headerClass: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+    headerBg: "var(--bronze-soft)",
+    headerColor: "var(--bronze)",
     fields: [
       { key: "cash_end_day", label: "Cash end of day", shortLabel: "EOD cash", calculated: true,  visibleInOverview: false, exportable: true },
       { key: "cash_to_boss", label: "Cash to boss",    shortLabel: "→ Boss",   calculated: false, visibleInOverview: true,  exportable: true },

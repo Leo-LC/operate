@@ -199,71 +199,122 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
   const locationName = locations.find((l) => l.id === locationId)?.name ?? "";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       {/* Year navigation + admin actions */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setYear((y) => y - 1)}>
-            <ChevronLeftIcon className="size-4" />
-          </Button>
-          <span className="text-sm font-semibold w-12 text-center">{year}</span>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setYear((y) => y + 1)}>
-            <ChevronRightIcon className="size-4" />
-          </Button>
-          {locationName && <span className="text-xs text-muted-foreground">— {locationName}</span>}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-2)", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+          <button
+            style={{
+              width: 28, height: 28,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+              background: "var(--surface)", color: "var(--fg-3)", cursor: "pointer",
+            }}
+            onClick={() => setYear((y) => y - 1)}
+          >
+            <ChevronLeftIcon style={{ width: 14, height: 14 }} />
+          </button>
+          <span className="mono tabular-nums" style={{ fontSize: 13, fontWeight: 500, width: 48, textAlign: "center", color: "var(--fg)" }}>
+            {year}
+          </span>
+          <button
+            style={{
+              width: 28, height: 28,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+              background: "var(--surface)", color: "var(--fg-3)", cursor: "pointer",
+            }}
+            onClick={() => setYear((y) => y + 1)}
+          >
+            <ChevronRightIcon style={{ width: 14, height: 14 }} />
+          </button>
+          {locationName && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>— {locationName}</span>}
         </div>
         {canManageCategories && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`gap-1.5 text-xs h-7 ${showCatManager ? "text-foreground" : "text-muted-foreground"}`}
+          <button
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              height: 28, padding: "0 10px",
+              borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+              background: showCatManager ? "var(--bronze-soft)" : "var(--surface)",
+              color: showCatManager ? "var(--bronze)" : "var(--fg-4)",
+              fontSize: 12, cursor: "pointer",
+              transition: "all var(--dur) var(--ease)",
+            }}
             onClick={() => setShowCatManager((v) => !v)}
           >
-            <SettingsIcon className="size-3.5" />
+            <SettingsIcon style={{ width: 13, height: 13 }} />
             Manage categories
-          </Button>
+          </button>
         )}
       </div>
 
       {/* Category manager panel */}
       {canManageCategories && showCatManager && (
-        <div className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fixed Expense Categories — Company level</p>
-          <p className="text-xs text-muted-foreground -mt-2">
+        <div
+          style={{
+            borderRadius: "var(--r-lg)",
+            border: "1px solid var(--line)",
+            background: "var(--surface)",
+            padding: "var(--s-4)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--s-3)",
+          }}
+        >
+          <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600 }}>Fixed Expense Categories — Company level</p>
+          <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: -8 }}>
             These categories apply to all locations. Adding or removing a category updates all monthly tables immediately.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)" }}>
             {categories.map((cat) => (
               <div
                 key={cat.key}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs"
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                  background: "var(--bg-2)",
+                  padding: "4px 10px",
+                  fontSize: 12,
+                }}
               >
-                <span className="font-medium">{cat.label}</span>
+                <span style={{ fontWeight: 500, color: "var(--fg)" }}>{cat.label}</span>
                 <button
                   type="button"
                   disabled={deletingCat === cat.key}
                   onClick={() => void handleDeleteCategory(cat.key, cat.label)}
-                  className="text-muted-foreground/50 hover:text-destructive transition-colors disabled:opacity-30"
+                  style={{
+                    color: "var(--fg-4)", background: "none", border: "none",
+                    cursor: "pointer", lineHeight: 1, opacity: deletingCat === cat.key ? 0.3 : 1,
+                    transition: "color var(--dur) var(--ease)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bad)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
                   title={`Remove "${cat.label}"`}
                 >
                   {deletingCat === cat.key
-                    ? <Loader2Icon className="size-3 animate-spin" />
-                    : <Trash2Icon className="size-3" />}
+                    ? <Loader2Icon style={{ width: 12, height: 12 }} className="animate-spin" />
+                    : <Trash2Icon style={{ width: 12, height: 12 }} />}
                 </button>
               </div>
             ))}
-            {categories.length === 0 && <p className="text-xs text-muted-foreground">No categories yet.</p>}
+            {categories.length === 0 && <p style={{ fontSize: 12, color: "var(--fg-4)" }}>No categories yet.</p>}
           </div>
-          <form onSubmit={(e) => void handleAddCategory(e)} className="flex items-center gap-2">
+          <form onSubmit={(e) => void handleAddCategory(e)} style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             <input
               type="text"
               value={newCatLabel}
               onChange={(e) => setNewCatLabel(e.target.value)}
               placeholder="New category name…"
-              className="h-8 flex-1 max-w-xs rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              style={{
+                height: 32, flex: 1, maxWidth: 280,
+                borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                background: "var(--bg-2)", padding: "0 var(--s-3)",
+                fontSize: 13, color: "var(--fg)", outline: "none",
+              }}
             />
-            <Button type="submit" size="sm" disabled={addingCat || !newCatLabel.trim()} className="gap-1.5">
-              <PlusIcon className="size-3.5" />
+            <Button type="submit" size="sm" disabled={addingCat || !newCatLabel.trim()} style={{ gap: 6 }}>
+              <PlusIcon style={{ width: 13, height: 13 }} />
               {addingCat ? "Adding…" : "Add"}
             </Button>
           </form>
@@ -271,40 +322,81 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
       )}
 
       {/* Table */}
-      <div className="rounded-lg border border-border overflow-x-auto">
+      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflowX: "auto" }}>
         <table className="text-xs border-collapse" style={{ tableLayout: "auto" }}>
           <thead>
-            {/* Spanning section header */}
+            {/* Section header band */}
             <tr>
               <th
                 colSpan={categories.length + 2}
-                className="px-3 py-1.5 text-left text-[10px] font-semibold tracking-wide border-b border-slate-500/20"
-                style={{ background: "color-mix(in oklch, var(--color-slate-500, #64748b) 12%, transparent)", color: "color-mix(in oklch, var(--color-slate-500, #64748b) 80%, var(--foreground))" }}
+                style={{
+                  padding: "6px 12px",
+                  textAlign: "left",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  borderBottom: "1px solid var(--line)",
+                  background: "var(--bronze-soft)",
+                  color: "var(--bronze)",
+                }}
               >
                 Monthly Fixed Expenses
               </th>
             </tr>
 
-            {/* Column headers — border-b-2 separates headers from first data row */}
-            <tr className="bg-muted/40 border-b-2 border-border">
-              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground sticky left-0 z-10 whitespace-nowrap border-r border-border/20 w-28 min-w-[7rem]"
-                style={{ background: "var(--background)" }}>
+            {/* Column headers */}
+            <tr style={{ borderBottom: "2px solid var(--line)", background: "var(--bg-2)" }}>
+              <th
+                className="sticky left-0 z-10 whitespace-nowrap"
+                style={{
+                  padding: "10px 12px",
+                  textAlign: "left",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "var(--fg-4)",
+                  borderRight: "1px solid var(--line)",
+                  width: "7rem", minWidth: "7rem",
+                  background: "var(--bg-2)",
+                }}
+              >
                 Month
               </th>
               {categories.map((cat) => (
                 <th
                   key={cat.key}
-                  className="px-3 py-2.5 text-center font-medium text-muted-foreground whitespace-nowrap border-r border-border/20 min-w-[5rem]"
+                  style={{
+                    padding: "10px 12px",
+                    textAlign: "center",
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--fg-4)",
+                    borderRight: "1px solid var(--line)",
+                    minWidth: "5rem",
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {cat.label}
                 </th>
               ))}
-              <th className="px-3 py-2.5 text-center font-medium text-muted-foreground/60 italic border-r border-border/20 bg-slate-500/[0.07] dark:bg-slate-400/[0.07] min-w-[5rem]">
+              <th
+                style={{
+                  padding: "10px 12px",
+                  textAlign: "center",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: "var(--fg-4)",
+                  fontStyle: "italic",
+                  borderRight: "1px solid var(--line)",
+                  background: "var(--bg-2)",
+                  minWidth: "5rem",
+                }}
+              >
                 Total
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/30">
+          <tbody>
             {MONTH_NAMES.map((monthName, idx) => {
               const monthNum = idx + 1;
               const row = rowMap.get(monthNum);
@@ -313,21 +405,36 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
               const isEditingRow = editingCell?.month === monthNum;
 
               return (
-                <tr key={monthNum} className="transition-colors">
-                  {/* Month cell — click opens modal */}
+                <tr
+                  key={monthNum}
+                  style={{ borderBottom: "1px solid var(--line)", transition: "background var(--dur) var(--ease)" }}
+                >
+                  {/* Month cell */}
                   <td
-                    className={`px-3 py-2 sticky left-0 z-10 whitespace-nowrap border-r border-border/20 w-28 min-w-[7rem] transition-colors ${isEditingRow ? "bg-accent text-accent-foreground" : ""}`}
-                    style={isEditingRow ? undefined : { background: "var(--background)" }}
+                    className="sticky left-0 z-10 whitespace-nowrap"
+                    style={{
+                      padding: "8px 12px",
+                      borderRight: "1px solid var(--line)",
+                      width: "7rem", minWidth: "7rem",
+                      background: isEditingRow ? "var(--bronze-soft)" : "var(--surface)",
+                      transition: "background var(--dur) var(--ease)",
+                    }}
                   >
                     <button
                       type="button"
                       onClick={() => openModal(monthNum)}
-                      className="font-medium hover:underline focus:outline-none"
+                      style={{
+                        fontSize: 12, fontWeight: 500,
+                        color: "var(--fg)", background: "none", border: "none",
+                        cursor: "pointer", textDecoration: "none",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                      onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                       title="Edit all expenses for this month"
                     >
                       {monthName}
                     </button>
-                    {isSaving && <Loader2Icon className="inline ml-1.5 size-2.5 animate-spin text-muted-foreground" />}
+                    {isSaving && <Loader2Icon style={{ width: 10, height: 10, display: "inline", marginLeft: 6, color: "var(--fg-4)" }} className="animate-spin" />}
                   </td>
 
                   {categories.map((cat) => {
@@ -336,8 +443,20 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
 
                     if (isEditing) {
                       return (
-                        <td key={cat.key} className="px-3 h-8 text-right text-xs tabular-nums border-r border-border/20 min-w-[5rem] relative">
-                          <span aria-hidden="true" className="invisible">{fmt(val)}</span>
+                        <td
+                          key={cat.key}
+                          className="mono tabular-nums"
+                          style={{
+                            padding: "0 12px",
+                            height: 32,
+                            textAlign: "right",
+                            fontSize: 12,
+                            borderRight: "1px solid var(--line)",
+                            minWidth: "5rem",
+                            position: "relative",
+                          }}
+                        >
+                          <span aria-hidden="true" style={{ visibility: "hidden" }}>{fmt(val)}</span>
                           <input
                             type="number"
                             step="0.01"
@@ -350,9 +469,9 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
                               if (e.key === "Escape") { setEditingCell(null); }
                               if (e.key === "Tab") {
                                 e.preventDefault();
-                                const idx = categories.findIndex((c) => c.key === cat.key);
+                                const catIdx = categories.findIndex((c) => c.key === cat.key);
                                 const dir = e.shiftKey ? -1 : 1;
-                                const nextIdx = idx + dir;
+                                const nextIdx = catIdx + dir;
                                 void commitEdit();
                                 if (nextIdx >= 0 && nextIdx < categories.length) {
                                   const nextCat = categories[nextIdx];
@@ -363,7 +482,16 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
                                 }
                               }
                             }}
-                            className="absolute inset-0 px-2 h-full w-full border border-ring bg-background text-xs text-right focus:outline-none"
+                            style={{
+                              position: "absolute", inset: 0,
+                              paddingInline: "var(--s-2)",
+                              height: "100%", width: "100%",
+                              border: "1px solid var(--focus-ring)",
+                              background: "var(--surface)",
+                              fontSize: 12,
+                              textAlign: "right",
+                              outline: "none",
+                            }}
                           />
                         </td>
                       );
@@ -372,7 +500,19 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
                     return (
                       <td
                         key={cat.key}
-                        className="px-3 h-8 text-right tabular-nums cursor-pointer hover:bg-accent/20 hover:outline hover:outline-1 hover:outline-border/60 hover:[outline-offset:-1px] transition-colors select-none border-r border-border/20 min-w-[5rem]"
+                        className="mono tabular-nums"
+                        style={{
+                          padding: "0 12px",
+                          height: 32,
+                          textAlign: "right",
+                          fontSize: 12,
+                          cursor: "pointer",
+                          borderRight: "1px solid var(--line)",
+                          minWidth: "5rem",
+                          color: "var(--fg)",
+                          userSelect: "none",
+                          transition: "background var(--dur) var(--ease)",
+                        }}
                         onClick={() => {
                           setEditingCell({ month: monthNum, catKey: cat.key });
                           setEditValue(val === 0 ? "" : String(val));
@@ -383,7 +523,19 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
                     );
                   })}
 
-                  <td className="px-3 py-2 text-right tabular-nums text-muted-foreground/70 italic border-r border-border/20 bg-slate-500/[0.07] dark:bg-slate-400/[0.07] min-w-[5rem]">
+                  <td
+                    className="mono tabular-nums"
+                    style={{
+                      padding: "8px 12px",
+                      textAlign: "right",
+                      fontSize: 12,
+                      color: "var(--fg-4)",
+                      fontStyle: "italic",
+                      borderRight: "1px solid var(--line)",
+                      background: "var(--bg-2)",
+                      minWidth: "5rem",
+                    }}
+                  >
                     {fmt(total)}
                   </td>
                 </tr>
@@ -391,78 +543,156 @@ export function MonthlyFixedExpensesTable({ locationId, locations, canManageCate
             })}
 
             {/* Column totals row */}
-            <tr className="bg-muted/30 font-semibold border-t-2 border-border">
-              <td className="px-3 py-2 text-xs sticky left-0 z-10 border-r border-border/20"
-                style={{ background: "var(--background)" }}>Total</td>
+            <tr style={{ borderTop: "2px solid var(--line)", background: "var(--bronze-soft)" }}>
+              <td
+                className="sticky left-0 z-10"
+                style={{
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--bronze)",
+                  borderRight: "1px solid var(--line)",
+                  background: "var(--bronze-soft)",
+                }}
+              >
+                Total
+              </td>
               {categories.map((cat) => (
-                <td key={cat.key} className="px-3 py-2 text-right text-xs tabular-nums border-r border-border/20">
+                <td
+                  key={cat.key}
+                  className="mono tabular-nums"
+                  style={{
+                    padding: "8px 12px",
+                    textAlign: "right",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--fg)",
+                    borderRight: "1px solid var(--line)",
+                  }}
+                >
                   {fmt(catTotals[cat.key] ?? 0)}
                 </td>
               ))}
-              <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground/70 italic border-r border-border/20 bg-slate-500/[0.07] dark:bg-slate-400/[0.07]">
+              <td
+                className="mono tabular-nums"
+                style={{
+                  padding: "8px 12px",
+                  textAlign: "right",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--bronze)",
+                  fontStyle: "italic",
+                  borderRight: "1px solid var(--line)",
+                  background: "var(--bg-2)",
+                }}
+              >
                 {fmt(grandTotal)}
               </td>
             </tr>
           </tbody>
         </table>
 
-        {loading && <div className="px-4 py-6 text-center text-xs text-muted-foreground">Loading…</div>}
+        {loading && (
+          <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 12, color: "var(--fg-4)" }}>Loading…</div>
+        )}
         {!loading && rows.length === 0 && categories.length > 0 && (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">No fixed expenses for {year}</p>
-            <p className="text-xs">Click a month name or any cell to start.</p>
+          <div style={{ padding: "48px 16px", textAlign: "center" }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)", marginBottom: 4 }}>No fixed expenses for {year}</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)" }}>Click a month name or any cell to start.</p>
           </div>
         )}
         {!loading && categories.length === 0 && (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">No categories configured</p>
-            <p className="text-xs">Categories are managed at company level.</p>
+          <div style={{ padding: "48px 16px", textAlign: "center" }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)", marginBottom: 4 }}>No categories configured</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)" }}>Categories are managed at company level.</p>
           </div>
         )}
       </div>
 
       {/* Month modal */}
       {modalMonth !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-5 shadow-xl my-auto">
-            <div className="flex items-center justify-between mb-4">
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)",
+            backdropFilter: "blur(2px)",
+            padding: "var(--s-4)",
+            overflowY: "auto",
+          }}
+        >
+          <div
+            style={{
+              width: "100%", maxWidth: 400,
+              borderRadius: "var(--r-lg)",
+              border: "1px solid var(--line)",
+              background: "var(--surface)",
+              padding: "var(--s-5)",
+              boxShadow: "var(--shadow-2)",
+              margin: "auto",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "var(--s-4)" }}>
               <div>
-                <h2 className="text-sm font-semibold">{MONTH_NAMES[modalMonth - 1]} {year}</h2>
-                <p className="text-xs text-muted-foreground">Fixed expenses — {locationName}</p>
+                <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>{MONTH_NAMES[modalMonth - 1]} {year}</h2>
+                <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>Fixed expenses — {locationName}</p>
               </div>
-              <button onClick={() => setModalMonth(null)} className="text-muted-foreground hover:text-foreground">
-                <XIcon className="size-4" />
+              <button
+                onClick={() => setModalMonth(null)}
+                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1, flexShrink: 0 }}
+              >
+                <XIcon style={{ width: 16, height: 16 }} />
               </button>
             </div>
 
-            <form onSubmit={(e) => void handleModalSave(e)} className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <form onSubmit={(e) => void handleModalSave(e)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-2) var(--s-4)" }}>
                 {categories.map((cat) => (
-                  <div key={cat.key} className="flex flex-col gap-0.5">
-                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                      {cat.label}
-                    </label>
+                  <div key={cat.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{cat.label}</label>
                     <input
                       type="number"
                       step="0.01"
                       value={modalForm[cat.key] ?? "0"}
                       onChange={(e) => setModalForm((f) => ({ ...f, [cat.key]: e.target.value }))}
-                      className="h-7 rounded border border-border bg-muted/30 px-2 text-xs text-right text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="mono tabular-nums"
+                      style={{
+                        height: 32,
+                        borderRadius: "var(--r-sm)",
+                        border: "1px solid var(--line)",
+                        background: "var(--bg-2)",
+                        padding: "0 var(--s-2)",
+                        fontSize: 13,
+                        textAlign: "right",
+                        color: "var(--fg)",
+                        outline: "none",
+                      }}
                     />
                   </div>
                 ))}
               </div>
 
               {/* Live total */}
-              <div className="rounded-lg bg-muted/30 border border-border/40 px-3 py-2 text-xs flex items-center justify-between">
-                <span className="text-muted-foreground">Month total</span>
-                <span className="font-semibold tabular-nums">
+              <div
+                style={{
+                  borderRadius: "var(--r-md)",
+                  border: "1px solid var(--line)",
+                  background: "var(--bg-2)",
+                  padding: "var(--s-2) var(--s-3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontSize: 12,
+                }}
+              >
+                <span style={{ color: "var(--fg-4)" }}>Month total</span>
+                <span className="mono tabular-nums" style={{ fontWeight: 600, color: "var(--fg)" }}>
                   {fmt(categories.reduce((s, c) => s + (parseFloat(modalForm[c.key] ?? "0") || 0), 0))}
                 </span>
               </div>
 
-              <div className="flex justify-end gap-2 pt-1">
-                <Button type="button" size="sm" variant="outline" onClick={() => setModalMonth(null)}>Cancel</Button>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", paddingTop: 4 }}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => setModalMonth(null)}>Cancel</Button>
                 <Button type="submit" size="sm" disabled={modalSaving}>{modalSaving ? "Saving…" : "Save"}</Button>
               </div>
             </form>

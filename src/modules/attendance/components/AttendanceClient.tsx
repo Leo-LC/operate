@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeftIcon, ChevronRightIcon,
@@ -16,6 +16,7 @@ import {
   buildSummary,
 } from "@/modules/attendance/types";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface ShiftEntry {
   employee_id: string;
@@ -345,27 +346,30 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
     }
   }
 
-  function getCellStyle(empId: string, dateStr: string): string {
+  function getCellInlineStyle(empId: string, dateStr: string): React.CSSProperties {
     const key = schedKey(empId, dateStr);
     const sched = schedMap.get(key);
     const exc = excMap.get(key);
-    const base = "flex h-7 w-7 items-center justify-center rounded text-[9px] font-semibold transition-opacity select-none cursor-pointer";
-
+    const base: React.CSSProperties = {
+      display: "flex", width: 26, height: 26, flexShrink: 0,
+      alignItems: "center", justifyContent: "center",
+      borderRadius: "var(--r-sm)", fontSize: 9, fontWeight: 600,
+      cursor: "pointer", userSelect: "none", transition: "opacity var(--dur) var(--ease)",
+    };
     if (exc) {
       if (OT_TYPES.includes(exc.record_type))
-        return `${base} bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 hover:opacity-75`;
+        return { ...base, background: "var(--info-soft)", color: "var(--info)" };
       if (exc.record_type === "absence")
-        return `${base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:opacity-75`;
+        return { ...base, background: "var(--bad-soft)", color: "var(--bad)" };
       if (exc.record_type === "sick_leave")
-        return `${base} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:opacity-75`;
+        return { ...base, background: "var(--warn-soft)", color: "var(--warn)" };
       if (DEDUCTIBLE.has(exc.record_type))
-        return `${base} bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 hover:opacity-75`;
-      return `${base} bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 hover:opacity-75`;
+        return { ...base, background: "var(--warn-soft)", color: "var(--warn)" };
+      return { ...base, background: "var(--good-soft)", color: "var(--good)" };
     }
-
-    if (!sched) return `${base} bg-muted/20 text-transparent hover:bg-muted/40`;
-    if (sched === "off") return `${base} bg-muted/50 text-muted-foreground/60 hover:opacity-75`;
-    return `${base} bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 hover:opacity-75`;
+    if (!sched) return { ...base, background: "transparent", color: "transparent" };
+    if (sched === "off") return { ...base, background: "var(--bg-2)", color: "var(--fg-4)" };
+    return { ...base, background: "var(--good-soft)", color: "var(--good)" };
   }
 
   function getCellLabel(empId: string, dateStr: string): string {
@@ -393,102 +397,103 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
       })
     : "";
 
+  const inputSm: React.CSSProperties = {
+    height: 28, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg)", padding: "0 var(--s-2)", fontSize: 12,
+    color: "var(--fg)", outline: "none",
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold">Attendance</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Click any day to log overtime or leave
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background pl-2 pr-7 text-sm"
-          >
-            {initialLocations.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth}>
-              <ChevronLeftIcon className="size-4" />
-            </Button>
-            <span className="text-sm font-medium w-36 text-center tabular-nums">{monthName}</span>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth}>
-              <ChevronRightIcon className="size-4" />
-            </Button>
-          </div>
-          {isOwner && (
-            <Button
-              variant="ghost" size="sm" className="h-8 w-8 p-0"
-              onClick={() => setShowSettings((v) => !v)}
-              title="HR Settings"
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+      <PageHeader
+        eyebrow={monthName}
+        title="Attendance"
+        subtitle="Click any day cell to log overtime or leave."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            <select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13, color: "var(--fg)", outline: "none" }}
             >
-              <SettingsIcon className="size-4" />
-            </Button>
-          )}
-        </div>
-      </div>
+              {initialLocations.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Button variant="ghost" size="sm" onClick={prevMonth}>
+                <ChevronLeftIcon style={{ width: 14, height: 14 }} />
+              </Button>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{monthName}</span>
+              <Button variant="ghost" size="sm" onClick={nextMonth}>
+                <ChevronRightIcon style={{ width: 14, height: 14 }} />
+              </Button>
+            </div>
+            {isOwner && (
+              <Button variant="ghost" size="sm" onClick={() => setShowSettings((v) => !v)} title="HR Settings">
+                <SettingsIcon style={{ width: 14, height: 14 }} />
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* HR Settings panel */}
       {isOwner && showSettings && (
         <form
           onSubmit={(e) => void saveSettings(e)}
-          className="rounded-lg border border-border bg-card p-5 flex flex-wrap gap-4 items-end"
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--bg-2)", padding: "var(--s-5)",
+            display: "flex", flexWrap: "wrap", gap: "var(--s-4)", alignItems: "flex-end",
+          }}
         >
-          <p className="w-full text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            HR Settings
-          </p>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Monthly hours divisor</label>
+          <p className="eyebrow" style={{ color: "var(--fg-4)", width: "100%" }}>HR Settings</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Monthly hours divisor</label>
             <input
               type="number" min="1" step="1" value={settingsForm.monthly_hours_divisor}
-              onChange={(e) =>
-                setSettingsForm((f) => ({ ...f, monthly_hours_divisor: parseFloat(e.target.value) || 208 }))
-              }
-              className="h-8 w-24 rounded-md border border-input bg-background px-2 text-sm"
+              onChange={(e) => setSettingsForm((f) => ({ ...f, monthly_hours_divisor: parseFloat(e.target.value) || 208 }))}
+              style={{ ...inputSm, width: 80 }}
             />
-            <p className="text-[10px] text-muted-foreground">Base salary ÷ divisor = hourly rate</p>
+            <p style={{ fontSize: 10, color: "var(--fg-4)" }}>Base salary ÷ divisor = hourly rate</p>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">OT rate ×</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label className="eyebrow" style={{ color: "var(--fg-4)" }}>OT rate ×</label>
             <input
               type="number" min="1" max="5" step="0.1" value={settingsForm.overtime_weekday_multiplier}
-              onChange={(e) =>
-                setSettingsForm((f) => ({
-                  ...f,
-                  overtime_weekday_multiplier: parseFloat(e.target.value) || 1.5,
-                  overtime_weekend_multiplier: parseFloat(e.target.value) || 1.5,
-                  overtime_holiday_multiplier: parseFloat(e.target.value) || 1.5,
-                }))
-              }
-              className="h-8 w-20 rounded-md border border-input bg-background px-2 text-sm"
+              onChange={(e) => setSettingsForm((f) => ({
+                ...f,
+                overtime_weekday_multiplier: parseFloat(e.target.value) || 1.5,
+                overtime_weekend_multiplier: parseFloat(e.target.value) || 1.5,
+                overtime_holiday_multiplier: parseFloat(e.target.value) || 1.5,
+              }))}
+              style={{ ...inputSm, width: 72 }}
             />
-            <p className="text-[10px] text-muted-foreground">Applied to all overtime (default 1.5×)</p>
+            <p style={{ fontSize: 10, color: "var(--fg-4)" }}>Applied to all overtime (default 1.5×)</p>
           </div>
-          <div className="flex gap-2 items-end">
-            <Button type="submit" size="sm" disabled={settingsSaving}>
+          <div style={{ display: "flex", gap: "var(--s-2)", alignItems: "flex-end" }}>
+            <Button type="submit" size="sm" variant="primary" disabled={settingsSaving}>
               {settingsSaving ? "Saving…" : "Save settings"}
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setShowSettings(false)}>
-              Cancel
-            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => setShowSettings(false)}>Cancel</Button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin mr-2" />Loading…
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 0", color: "var(--fg-4)", fontSize: 14, gap: 8 }}>
+          <Loader2Icon style={{ width: 14, height: 14 }} className="animate-spin" />Loading…
         </div>
       ) : locationEmployees.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+        <div
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px dashed var(--line)",
+            padding: 40, textAlign: "center", color: "var(--fg-4)", fontSize: 13,
+          }}
+        >
           {employees.length === 0 ? (
-            <>No employees yet — <a href="/dashboard/admin/employees" className="underline hover:text-foreground">add your first employee</a>.</>
+            <>No employees yet — <a href="/dashboard/admin/employees" style={{ color: "var(--bronze)", textDecoration: "underline" }}>add your first employee</a>.</>
           ) : (
             "No employees assigned to this location."
           )}
@@ -496,43 +501,52 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
       ) : (
         <>
           {/* Calendar grid */}
-          <div className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1">
-              <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                Schedule — {monthName}
-              </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-3)", marginBottom: 2 }}>
+              <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Schedule — {monthName}</p>
               {!hasSchedule && (
-                <span className="text-[11px] text-muted-foreground">
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>
                   No published schedule —{" "}
-                  <a href="/dashboard/scheduling" className="underline hover:text-foreground">create one</a>
+                  <a href="/dashboard/scheduling" style={{ color: "var(--bronze)", textDecoration: "underline" }}>create one</a>
                 </span>
               )}
-              <div className="ml-auto flex items-center gap-3 text-[10px] text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-emerald-100 dark:bg-emerald-900/30" />Work</span>
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-muted/50" />Off</span>
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-blue-100 dark:bg-blue-900/40" />OT</span>
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-orange-100 dark:bg-orange-900/30" />Unpaid</span>
-                <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-emerald-200 dark:bg-emerald-700/40" />Paid leave</span>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "var(--fg-4)" }}>
+                {[
+                  { bg: "var(--good-soft)", label: "Work" },
+                  { bg: "var(--bg-2)", label: "Off" },
+                  { bg: "var(--info-soft)", label: "OT" },
+                  { bg: "var(--warn-soft)", label: "Unpaid" },
+                  { bg: "var(--good-soft)", label: "Paid leave" },
+                ].map(({ bg, label }) => (
+                  <span key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 3, background: bg }} />
+                    {label}
+                  </span>
+                ))}
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <div className="min-w-max">
+            <div style={{ overflowX: "auto", borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
+              <div style={{ minWidth: "max-content" }}>
                 {/* Day header */}
-                <div className="flex border-b border-border bg-muted/30">
-                  <div className="w-32 shrink-0 border-r border-border" />
+                <div style={{ display: "flex", borderBottom: "1px solid var(--line)", background: "var(--bg-2)" }}>
+                  <div style={{ width: 128, flexShrink: 0, borderRight: "1px solid var(--line)" }} />
                   {dayNumbers.map((d) => {
                     const dow = dayOfWeek(year, month, d);
                     const isWeekend = dow === 0 || dow === 6;
                     return (
                       <div
                         key={d}
-                        className={`flex h-9 w-8 shrink-0 flex-col items-center justify-center text-[10px] font-medium border-l border-border/40 ${
-                          isWeekend ? "text-muted-foreground/40" : "text-muted-foreground"
-                        }`}
+                        style={{
+                          display: "flex", width: 32, height: 36, flexShrink: 0,
+                          flexDirection: "column", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, fontWeight: 500,
+                          borderLeft: "1px solid var(--line)",
+                          color: isWeekend ? "var(--fg-mute)" : "var(--fg-3)",
+                        }}
                       >
                         <span>{d}</span>
-                        <span className="text-[8px] uppercase">
+                        <span style={{ fontSize: 8, textTransform: "uppercase" }}>
                           {new Date(year, month - 1, d).toLocaleDateString("en", { weekday: "narrow" })}
                         </span>
                       </div>
@@ -541,21 +555,44 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                 </div>
 
                 {/* Employee rows */}
-                {locationEmployees.map((emp) => (
-                  <div key={emp.id} className="flex border-b border-border last:border-b-0 hover:bg-muted/10">
-                    <div className="flex w-32 shrink-0 items-center border-r border-border px-3 py-1.5">
-                      <span className="truncate text-xs font-medium">
+                {locationEmployees.map((emp, empIdx) => (
+                  <div
+                    key={emp.id}
+                    style={{
+                      display: "flex",
+                      borderTop: empIdx > 0 ? "1px solid var(--line)" : undefined,
+                    }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+                  >
+                    <div
+                      style={{
+                        display: "flex", width: 128, flexShrink: 0,
+                        alignItems: "center", borderRight: "1px solid var(--line)",
+                        padding: "6px var(--s-3)",
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {emp.first_name} {emp.last_name ?? ""}
                       </span>
                     </div>
                     {dayNumbers.map((d) => {
                       const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                       return (
-                        <div key={d} className="flex w-8 shrink-0 items-center justify-center py-1.5 border-l border-border/40">
+                        <div
+                          key={d}
+                          style={{
+                            display: "flex", width: 32, flexShrink: 0,
+                            alignItems: "center", justifyContent: "center",
+                            padding: "4px 0", borderLeft: "1px solid var(--line)",
+                          }}
+                        >
                           <div
-                            className={getCellStyle(emp.id, dateStr)}
+                            style={getCellInlineStyle(emp.id, dateStr)}
                             onClick={() => handleCellClick(emp, dateStr)}
                             title={dateStr}
+                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.7")}
+                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
                           >
                             {getCellLabel(emp.id, dateStr)}
                           </div>
@@ -569,35 +606,42 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
           </div>
 
           {/* Summary table */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-              Summary — {monthName}
-            </h2>
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm min-w-[580px]">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground sticky left-0 bg-muted/40">Employee</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Scheduled</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">OT hours</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">OT pay</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Unpaid leave</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Deduction</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground text-xs border-l border-border/40">Delta</th>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Summary — {monthName}</p>
+            <div style={{ overflowX: "auto", borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 580 }}>
+                <thead>
+                  <tr style={{ background: "var(--bg-2)" }}>
+                    {["Employee", "Scheduled", "OT hours", "OT pay", "Unpaid leave", "Deduction", "Delta"].map((h, i) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: "10px var(--s-4)", textAlign: i === 0 ? "left" : "right",
+                          color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
+                          borderBottom: "1px solid var(--line)",
+                          borderLeft: i > 0 ? "1px solid var(--line)" : undefined,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
-                  {summaries.map((sm) => (
-                    <tr key={sm.employee_id} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-2.5 font-medium sticky left-0 bg-card text-sm">{sm.employee_name}</td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums text-muted-foreground border-l border-border/40">
-                        {sm.scheduledDays > 0
-                          ? `${sm.scheduledDays}d`
-                          : <span className="text-muted-foreground/40">—</span>}
+                <tbody>
+                  {summaries.map((sm, rowIdx) => (
+                    <tr
+                      key={sm.employee_id}
+                      style={{ borderTop: rowIdx > 0 ? "1px solid var(--line)" : undefined }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+                    >
+                      <td style={{ padding: "10px var(--s-4)", fontWeight: 500 }}>{sm.employee_name}</td>
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
+                        {sm.scheduledDays > 0 ? `${sm.scheduledDays}d` : <span style={{ color: "var(--fg-mute)" }}>—</span>}
                       </td>
-                      <td className="px-3 py-2 text-right text-xs tabular-nums border-l border-border/40">
+                      <td className="mono" style={{ padding: "6px var(--s-4)", textAlign: "right", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {summaryOtEditId === sm.employee_id ? (
-                          <div className="flex items-center gap-1 justify-center">
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
                             <input
                               type="number" min="0" step="0.5" autoFocus
                               value={summaryOtValue}
@@ -606,16 +650,16 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                                 if (e.key === "Enter") void saveSummaryOt(sm.employee_id);
                                 if (e.key === "Escape") setSummaryOtEditId(null);
                               }}
-                              className="h-6 w-16 rounded border border-input bg-background px-1.5 text-xs text-center"
+                              style={{ ...inputSm, width: 60, textAlign: "center" }}
                               disabled={summarySaving}
                             />
-                            <button type="button" className="text-emerald-600 hover:text-emerald-700 text-xs font-medium" onClick={() => void saveSummaryOt(sm.employee_id)} disabled={summarySaving}>✓</button>
-                            <button type="button" className="text-muted-foreground hover:text-foreground text-xs" onClick={() => setSummaryOtEditId(null)}>✕</button>
+                            <button type="button" style={{ fontSize: 12, color: "var(--good)", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }} onClick={() => void saveSummaryOt(sm.employee_id)} disabled={summarySaving}>✓</button>
+                            <button type="button" style={{ fontSize: 12, color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer" }} onClick={() => setSummaryOtEditId(null)}>✕</button>
                           </div>
                         ) : (
                           <button
                             type="button"
-                            className={`hover:underline transition-colors ${sm.totalOtHours > 0 ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground/40"}`}
+                            style={{ fontSize: 12, color: sm.totalOtHours > 0 ? "var(--info)" : "var(--fg-mute)", background: "none", border: "none", cursor: "pointer", fontVariantNumeric: "tabular-nums" }}
                             onClick={() => { setSummaryOtEditId(sm.employee_id); setSummaryOtValue(String(sm.totalOtHours || "")); }}
                             title="Set OT hours total"
                           >
@@ -623,14 +667,14 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           </button>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {sm.ot_pay > 0
-                          ? <span className="text-blue-600 dark:text-blue-400 font-medium">{fmtThb(sm.ot_pay)}</span>
-                          : <span className="text-muted-foreground/40">—</span>}
+                          ? <span style={{ color: "var(--info)", fontWeight: 500 }}>{fmtThb(sm.ot_pay)}</span>
+                          : <span style={{ color: "var(--fg-mute)" }}>—</span>}
                       </td>
-                      <td className="px-3 py-2 text-right text-xs tabular-nums border-l border-border/40">
+                      <td className="mono" style={{ padding: "6px var(--s-4)", textAlign: "right", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {summaryLeaveEditId === sm.employee_id ? (
-                          <div className="flex items-center gap-1 justify-center">
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
                             <input
                               type="number" min="0" step="0.5" autoFocus
                               value={summaryLeaveValue}
@@ -639,16 +683,16 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                                 if (e.key === "Enter") void saveSummaryLeave(sm.employee_id);
                                 if (e.key === "Escape") setSummaryLeaveEditId(null);
                               }}
-                              className="h-6 w-16 rounded border border-input bg-background px-1.5 text-xs text-center"
+                              style={{ ...inputSm, width: 60, textAlign: "center" }}
                               disabled={summarySaving}
                             />
-                            <button type="button" className="text-emerald-600 hover:text-emerald-700 text-xs font-medium" onClick={() => void saveSummaryLeave(sm.employee_id)} disabled={summarySaving}>✓</button>
-                            <button type="button" className="text-muted-foreground hover:text-foreground text-xs" onClick={() => setSummaryLeaveEditId(null)}>✕</button>
+                            <button type="button" style={{ fontSize: 12, color: "var(--good)", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }} onClick={() => void saveSummaryLeave(sm.employee_id)} disabled={summarySaving}>✓</button>
+                            <button type="button" style={{ fontSize: 12, color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer" }} onClick={() => setSummaryLeaveEditId(null)}>✕</button>
                           </div>
                         ) : (
                           <button
                             type="button"
-                            className={`hover:underline transition-colors ${sm.totalUnpaidDays > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground/40"}`}
+                            style={{ fontSize: 12, color: sm.totalUnpaidDays > 0 ? "var(--warn)" : "var(--fg-mute)", background: "none", border: "none", cursor: "pointer", fontVariantNumeric: "tabular-nums" }}
                             onClick={() => { setSummaryLeaveEditId(sm.employee_id); setSummaryLeaveValue(String(sm.totalUnpaidDays || "")); }}
                             title="Set unpaid leave days total"
                           >
@@ -656,51 +700,51 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                           </button>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {sm.deduction > 0
-                          ? <span className="text-destructive font-medium">{fmtThb(sm.deduction)}</span>
-                          : <span className="text-muted-foreground/40">—</span>}
+                          ? <span style={{ color: "var(--bad)", fontWeight: 500 }}>{fmtThb(sm.deduction)}</span>
+                          : <span style={{ color: "var(--fg-mute)" }}>—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-xs tabular-nums font-semibold border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {sm.ot_pay === 0 && sm.deduction === 0 ? (
-                          <span className="text-muted-foreground/40">—</span>
+                          <span style={{ color: "var(--fg-mute)" }}>—</span>
                         ) : sm.delta >= 0 ? (
-                          <span className="text-emerald-700 dark:text-emerald-400">฿ +{Math.round(sm.delta).toLocaleString()}</span>
+                          <span style={{ color: "var(--good)" }}>฿ +{Math.round(sm.delta).toLocaleString()}</span>
                         ) : (
-                          <span className="text-destructive">฿ {Math.round(sm.delta).toLocaleString()}</span>
+                          <span style={{ color: "var(--bad)" }}>฿ {Math.round(sm.delta).toLocaleString()}</span>
                         )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 {summaries.length > 0 && (
-                  <tfoot className="border-t-2 border-border bg-muted/20">
-                    <tr className="font-semibold text-xs">
-                      <td className="px-4 py-2.5 sticky left-0 bg-muted/20">Total</td>
-                      <td className="border-l border-border/40" />
-                      <td className="px-3 py-2.5 text-right tabular-nums text-blue-600 dark:text-blue-400 border-l border-border/40">
+                  <tfoot>
+                    <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)", fontWeight: 600, fontSize: 12 }}>
+                      <td style={{ padding: "10px var(--s-4)", color: "var(--bronze)" }}>Total</td>
+                      <td style={{ borderLeft: "1px solid var(--line)" }} />
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", color: "var(--info)", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {summaries.reduce((s, sm) => s + sm.totalOtHours, 0) > 0
                           ? `${summaries.reduce((s, sm) => s + sm.totalOtHours, 0)}h` : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-blue-600 dark:text-blue-400 border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", color: "var(--info)", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {summaries.reduce((s, sm) => s + sm.ot_pay, 0) > 0
                           ? fmtThb(summaries.reduce((s, sm) => s + sm.ot_pay, 0)) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-orange-600 dark:text-orange-400 border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", color: "var(--warn)", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {summaries.reduce((s, sm) => s + sm.totalUnpaidDays, 0) > 0
                           ? `${summaries.reduce((s, sm) => s + sm.totalUnpaidDays, 0)}d` : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-destructive border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", color: "var(--bad)", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {summaries.reduce((s, sm) => s + sm.deduction, 0) > 0
                           ? fmtThb(summaries.reduce((s, sm) => s + sm.deduction, 0)) : "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums border-l border-border/40">
+                      <td className="mono" style={{ padding: "10px var(--s-4)", textAlign: "right", fontVariantNumeric: "tabular-nums", borderLeft: "1px solid var(--line)" }}>
                         {(() => {
                           const d = summaries.reduce((s, sm) => s + sm.delta, 0);
-                          if (d === 0) return "—";
+                          if (d === 0) return <span style={{ color: "var(--fg-mute)" }}>—</span>;
                           return d >= 0
-                            ? <span className="text-emerald-700 dark:text-emerald-400">฿ +{Math.round(d).toLocaleString()}</span>
-                            : <span className="text-destructive">฿ {Math.round(d).toLocaleString()}</span>;
+                            ? <span style={{ color: "var(--good)" }}>฿ +{Math.round(d).toLocaleString()}</span>
+                            : <span style={{ color: "var(--bad)" }}>฿ {Math.round(d).toLocaleString()}</span>;
                         })()}
                       </td>
                     </tr>
@@ -708,7 +752,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                 )}
               </table>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
               Delta = OT pay − unpaid leave deduction · reported to Payments on Calculate period
             </p>
           </div>
@@ -718,41 +762,59 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
       {/* Cell modal */}
       {modal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+          }}
+          onKeyDown={(e) => { if (e.key === "Escape") setModal(null); }}
           onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}
         >
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card shadow-xl mx-4">
-            <div className="flex items-start justify-between border-b border-border p-4">
+          <div
+            style={{
+              width: "100%", maxWidth: 360,
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", boxShadow: "var(--shadow-drawer)", margin: "0 var(--s-4)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+                borderBottom: "1px solid var(--line)", padding: "var(--s-4)",
+              }}
+            >
               <div>
-                <p className="font-semibold text-sm">
+                <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
                   {modal.emp.first_name} {modal.emp.last_name ?? ""}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{modalDateLabel}</p>
+                <p style={{ fontSize: 12, color: "var(--fg-3)", marginTop: 2, marginBottom: 0 }}>{modalDateLabel}</p>
                 {modalShift ? (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2, marginBottom: 0 }}>
                     {modalSched === "off" || !modalShift.start_time
                       ? "Day off"
                       : `Shift: ${fmtTime(modalShift.start_time)} – ${fmtTime(modalShift.end_time)}`}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground/60 mt-0.5">Not scheduled</p>
+                  <p style={{ fontSize: 12, color: "var(--fg-mute)", marginTop: 2, marginBottom: 0 }}>Not scheduled</p>
                 )}
               </div>
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", marginTop: 2 }}
                 onClick={() => setModal(null)}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
               >
-                <XIcon className="size-4" />
+                <XIcon style={{ width: 14, height: 14 }} />
               </button>
             </div>
-            <div className="p-4 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Exception</label>
+            <div style={{ padding: "var(--s-4)", display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Exception</label>
                 <select
                   value={modalType}
                   onChange={(e) => setModalType(e.target.value as "none" | RecordType)}
-                  className="h-9 rounded-md border border-input bg-background pl-3 pr-7 text-sm"
+                  style={{ height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13, color: "var(--fg)", outline: "none" }}
                 >
                   {MODAL_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -760,29 +822,21 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                 </select>
               </div>
               {modalType !== "none" && OT_TYPES.includes(modalType) && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Overtime hours</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Overtime hours</label>
                   <input
                     type="number" min="0.5" max="24" step="0.5"
                     value={modalHours}
                     onChange={(e) => setModalHours(e.target.value)}
-                    className="h-9 w-28 rounded-md border border-input bg-background px-3 text-sm"
+                    style={{ height: 34, width: 100, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13, color: "var(--fg)", outline: "none" }}
                   />
                 </div>
               )}
-              <div className="flex gap-2 pt-1">
-                <Button
-                  size="sm" className="flex-1"
-                  disabled={modalSaving}
-                  onClick={() => void saveModal()}
-                >
-                  {modalSaving
-                    ? <><Loader2Icon className="size-3.5 animate-spin mr-1.5" />Saving…</>
-                    : "Save"}
+              <div style={{ display: "flex", gap: "var(--s-2)", paddingTop: 4 }}>
+                <Button size="sm" variant="primary" style={{ flex: 1 }} disabled={modalSaving} onClick={() => void saveModal()}>
+                  {modalSaving ? <><Loader2Icon style={{ width: 13, height: 13 }} className="animate-spin" /> Saving…</> : "Save"}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setModal(null)}>
-                  Cancel
-                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setModal(null)}>Cancel</Button>
               </div>
             </div>
           </div>

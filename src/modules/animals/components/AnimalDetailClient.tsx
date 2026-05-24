@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -13,7 +14,6 @@ import {
   XIcon,
 } from "lucide-react";
 import {
-  EVENT_TYPE_CLASSES,
   EVENT_TYPE_LABELS,
   ANIMAL_SPECIES,
   type Animal,
@@ -23,6 +23,7 @@ import {
 } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DateInput } from "@/components/ui/date-input";
+import type { PillTone } from "@/components/ui/pill";
 
 const ALL_EVENT_TYPES: EventType[] = [
   "health_check", "vet_visit", "vaccine", "transfer", "feeding_note", "incident", "note", "other",
@@ -44,22 +45,69 @@ function getVaccineStatus(nextDate: string | null): { key: VaccineStatusKey; lab
   return { key: "ok", label: "Up to date" };
 }
 
-const VACCINE_BADGE: Record<VaccineStatusKey, string> = {
-  ok: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  soon: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  unknown: "bg-muted text-muted-foreground",
+const VACCINE_TONE: Record<VaccineStatusKey, PillTone> = {
+  ok: "good",
+  soon: "warn",
+  overdue: "bad",
+  unknown: "neutral",
 };
 
-const EVENT_DOT: Record<EventType, string> = {
-  health_check: "bg-blue-500",
-  vet_visit: "bg-purple-500",
-  vaccine: "bg-indigo-500",
-  transfer: "bg-zinc-400",
-  feeding_note: "bg-green-500",
-  incident: "bg-red-500",
-  note: "bg-zinc-400",
-  other: "bg-zinc-400",
+const EVENT_TYPE_TONE: Record<EventType, PillTone> = {
+  health_check: "info",
+  vet_visit: "info",
+  vaccine: "good",
+  transfer: "neutral",
+  feeding_note: "good",
+  incident: "bad",
+  note: "neutral",
+  other: "neutral",
+};
+
+const EVENT_DOT_COLOR: Record<EventType, string> = {
+  health_check: "var(--info)",
+  vet_visit: "var(--info)",
+  vaccine: "var(--good)",
+  transfer: "var(--fg-4)",
+  feeding_note: "var(--good)",
+  incident: "var(--bad)",
+  note: "var(--fg-4)",
+  other: "var(--fg-4)",
+};
+
+const inputStyle: React.CSSProperties = {
+  height: 32,
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--line-strong)",
+  background: "var(--bg)",
+  color: "var(--fg)",
+  padding: "0 10px",
+  fontSize: 13,
+  width: "100%",
+  outline: "none",
+};
+
+const selectStyle: React.CSSProperties = {
+  ...inputStyle,
+  cursor: "pointer",
+};
+
+const textareaStyle: React.CSSProperties = {
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--line-strong)",
+  background: "var(--bg)",
+  color: "var(--fg)",
+  padding: "8px 10px",
+  fontSize: 13,
+  width: "100%",
+  resize: "none",
+  outline: "none",
+};
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: "var(--r-lg)",
+  border: "1px solid var(--line)",
+  background: "var(--surface)",
+  padding: 20,
 };
 
 interface AnimalDetailClientProps {
@@ -183,37 +231,37 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
   // ── Edit mode ──────────────────────────────────────────────────────────────
   if (editing) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setEditing(false)} className="gap-1.5 text-muted-foreground -ml-2">
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
             <ArrowLeftIcon className="size-4" />
             Cancel
           </Button>
-          <h1 className="text-lg font-semibold">Edit — {animal.name}</h1>
+          <h1 style={{ fontSize: 17, fontWeight: 600, color: "var(--fg)" }}>Edit — {animal.name}</h1>
         </div>
 
-        <form onSubmit={(e) => void handleSaveEdit(e)} className="flex flex-col gap-4">
+        <form onSubmit={(e) => void handleSaveEdit(e)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Basic information */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Basic information</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Name <span className="text-destructive">*</span>
+          <div style={cardStyle}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 16 }}>Basic information</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>
+                  Name <span style={{ color: "var(--bad)" }}>*</span>
                 </label>
                 <input
                   required
                   value={editForm.name ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
+                  style={inputStyle}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Species</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Species</label>
                 <select
                   value={editForm.species ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, species: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
+                  style={selectStyle}
                 >
                   <option value="">— select —</option>
                   {ANIMAL_SPECIES.map((s) => (
@@ -221,12 +269,12 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Sex</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Sex</label>
                 <select
                   value={editForm.sex ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, sex: (e.target.value || null) as AnimalSex | null }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
+                  style={selectStyle}
                 >
                   <option value="">Unknown</option>
                   <option value="male">Male</option>
@@ -237,22 +285,22 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
           </div>
 
           {/* Location */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Location</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Location</label>
+          <div style={cardStyle}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 16 }}>Location</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Location</label>
                 <select
                   value={editForm.location_id ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, location_id: e.target.value || undefined }))}
-                  className="h-8 rounded-md border border-input bg-background px-2.5 text-sm"
+                  style={selectStyle}
                 >
                   <option value="">No location</option>
                   {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Est. birth date</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Est. birth date</label>
                 <DateInput
                   value={editForm.estimated_birth_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, estimated_birth_date: e.target.value || undefined }))}
@@ -262,69 +310,68 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
           </div>
 
           {/* Health & vaccines */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Health & vaccines</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
+          <div style={cardStyle}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 16 }}>Health &amp; vaccines</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Last vaccine</label>
                 <DateInput
                   value={editForm.last_vaccination_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, last_vaccination_date: e.target.value || undefined }))}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Next vaccine</label>
                 <DateInput
                   value={editForm.next_vaccination_date ?? ""}
                   onChange={(e) => setEditForm((f) => ({ ...f, next_vaccination_date: e.target.value || undefined }))}
                 />
               </div>
-              <div className="flex flex-col gap-1.5 justify-end">
-                <label className="text-xs font-medium text-muted-foreground">Vaccination passport</label>
-                <div className="flex items-center h-8 gap-2">
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, justifyContent: "flex-end" }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Vaccination passport</label>
+                <div style={{ display: "flex", alignItems: "center", height: 32, gap: 8 }}>
                   <input
                     type="checkbox"
                     id="edit_vacc_passport"
                     checked={editForm.vaccination_passport ?? false}
                     onChange={(e) => setEditForm((f) => ({ ...f, vaccination_passport: e.target.checked }))}
-                    className="size-4 rounded"
+                    style={{ width: 16, height: 16, borderRadius: "var(--r-sm)", cursor: "pointer" }}
                   />
-                  <label htmlFor="edit_vacc_passport" className="text-sm text-muted-foreground">Has passport</label>
+                  <label htmlFor="edit_vacc_passport" style={{ fontSize: 13, color: "var(--fg-3)", cursor: "pointer" }}>Has passport</label>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Notes */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Notes</h2>
+          <div style={cardStyle}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 16 }}>Notes</p>
             <textarea
               value={editForm.notes ?? ""}
               onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value || undefined }))}
               rows={3}
-              className="w-full rounded-md border border-input bg-background px-2.5 py-2 text-sm resize-none"
+              style={textareaStyle}
               placeholder="Optional notes about this animal"
             />
           </div>
 
           {/* Form actions */}
-          <div className="flex items-center justify-between pt-1">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
             {isOwner ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="danger"
                 size="sm"
-                className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60 gap-1.5"
                 onClick={() => setShowDeleteConfirm(true)}
               >
                 <TrashIcon className="size-3.5" />
                 Delete animal
               </Button>
             ) : (
-              <span className="text-xs text-muted-foreground/60">Only admins can delete animals</span>
+              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Only admins can delete animals</span>
             )}
-            <div className="flex gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
               <Button type="submit" size="sm" disabled={savingEdit}>{savingEdit ? "Saving…" : "Save changes"}</Button>
             </div>
           </div>
@@ -332,22 +379,30 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
 
         {/* Delete confirmation modal */}
         {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
-              <h2 className="text-base font-semibold mb-1">Delete {animal.name}?</h2>
-              <p className="text-sm text-muted-foreground mb-5">
+          <div
+            style={{
+              position: "fixed", inset: 0, zIndex: 50,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+              padding: "0 16px",
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
+          >
+            <div style={{
+              width: "100%", maxWidth: 400,
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", padding: 24,
+              boxShadow: "var(--shadow-2)",
+            }}>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete {animal.name}?</h2>
+              <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
                 This cannot be undone. The animal record and all associated events will be permanently removed.
               </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <Button variant="secondary" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
                   Cancel
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => void handleDelete()}
-                  disabled={deleting}
-                >
+                <Button variant="danger" size="sm" onClick={() => void handleDelete()} disabled={deleting}>
                   {deleting ? "Deleting…" : "Delete"}
                 </Button>
               </div>
@@ -360,36 +415,36 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
 
   // ── View mode ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Page header */}
       <div>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/dashboard/animals")}
-          className="gap-1.5 text-muted-foreground mb-3 -ml-2"
+          style={{ marginBottom: 12 }}
         >
           <ArrowLeftIcon className="size-4" />
           Animals
         </Button>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{animal.name}</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-              <span className="capitalize">{animal.species}</span>
-              <span className="text-muted-foreground/30">·</span>
-              <span className="flex items-center gap-1">
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--fg)", letterSpacing: "-0.02em" }}>{animal.name}</h1>
+            <p style={{ marginTop: 6, fontSize: 13, color: "var(--fg-3)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ textTransform: "capitalize" }}>{animal.species}</span>
+              <span style={{ color: "var(--fg-4)" }}>·</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <MapPinIcon className="size-3.5 shrink-0" />
-                {animal.location_name ?? <span className="italic">No location</span>}
+                {animal.location_name ?? <span style={{ fontStyle: "italic", color: "var(--fg-4)" }}>No location</span>}
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" variant="outline" onClick={startEdit} className="gap-1.5">
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Button size="sm" variant="secondary" onClick={startEdit}>
               <PencilIcon className="size-3.5" />
               Edit
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setShowEventForm((v) => !v)} className="gap-1.5">
+            <Button size="sm" variant="secondary" onClick={() => setShowEventForm((v) => !v)}>
               <PlusIcon className="size-3.5" />
               Add event
             </Button>
@@ -398,102 +453,98 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-[11px] font-medium text-muted-foreground mb-1">Species</p>
-          <p className="text-sm font-semibold capitalize">{animal.species}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-[11px] font-medium text-muted-foreground mb-1">Location</p>
-          {animal.location_name ? (
-            <p className="text-sm font-semibold">{animal.location_name}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground/60 italic">No location assigned</p>
-          )}
-        </div>
-        <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-[11px] font-medium text-muted-foreground mb-1">Sex</p>
-          <p className="text-sm font-semibold capitalize">{animal.sex ?? "Unknown"}</p>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {[
+          { label: "Species", value: animal.species, capitalize: true },
+          { label: "Location", value: animal.location_name },
+          { label: "Sex", value: animal.sex ? animal.sex.charAt(0).toUpperCase() + animal.sex.slice(1) : null, empty: "Unknown" },
+        ].map(({ label, value, capitalize, empty }) => (
+          <div key={label} style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: 12 }}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>{label}</p>
+            {value ? (
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", textTransform: capitalize ? "capitalize" : undefined }}>{value}</p>
+            ) : (
+              <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>{empty ?? "No location assigned"}</p>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Health & vaccines */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <ShieldCheckIcon className="size-4 text-muted-foreground" />
-            Health & vaccines
+      <div style={cardStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: 8 }}>
+            <ShieldCheckIcon className="size-4" style={{ color: "var(--fg-3)" }} />
+            Health &amp; vaccines
           </h2>
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${VACCINE_BADGE[vaccStatus.key]}`}>
-            {vaccStatus.label}
-          </span>
+          <Pill tone={VACCINE_TONE[vaccStatus.key]}>{vaccStatus.label}</Pill>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Last vaccine</p>
-            <p className="text-sm">{fmtDate(animal.last_vaccination_date) ?? <span className="text-muted-foreground/60 italic text-xs">Not recorded</span>}</p>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>Last vaccine</p>
+            <p style={{ fontSize: 13, color: "var(--fg)" }}>{fmtDate(animal.last_vaccination_date) ?? <span style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>Not recorded</span>}</p>
           </div>
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Next vaccine</p>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>Next vaccine</p>
             {animal.next_vaccination_date ? (
-              <p className="text-sm">{fmtDate(animal.next_vaccination_date)}</p>
+              <p style={{ fontSize: 13, color: "var(--fg)" }}>{fmtDate(animal.next_vaccination_date)}</p>
             ) : (
-              <p className="text-xs text-muted-foreground/60 italic">No date recorded</p>
+              <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>No date recorded</p>
             )}
           </div>
           <div>
-            <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Passport</p>
-            <p className="text-sm">{animal.vaccination_passport ? "Yes" : "No"}</p>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>Passport</p>
+            <p style={{ fontSize: 13, color: "var(--fg)" }}>{animal.vaccination_passport ? "Yes" : "No"}</p>
           </div>
         </div>
       </div>
 
       {/* Profile details */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold mb-3">Profile details</h2>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 text-sm">
+      <div style={cardStyle}>
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", marginBottom: 12 }}>Profile details</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px 24px", fontSize: 13 }}>
           {(
             [
               { label: "Name", value: animal.name },
-              { label: "Species", value: animal.species, className: "capitalize" },
+              { label: "Species", value: animal.species, capitalize: true },
               { label: "Sex", value: animal.sex ? animal.sex.charAt(0).toUpperCase() + animal.sex.slice(1) : null, empty: "Unknown" },
               { label: "Location", value: animal.location_name, empty: "No location assigned" },
               { label: "Est. birth date", value: fmtDate(animal.estimated_birth_date), empty: "Not recorded" },
-            ] as Array<{ label: string; value: string | null; empty?: string; className?: string }>
-          ).map(({ label, value, empty, className }) => (
+            ] as Array<{ label: string; value: string | null; empty?: string; capitalize?: boolean }>
+          ).map(({ label, value, empty, capitalize }) => (
             <div key={label}>
-              <p className="text-[11px] font-medium text-muted-foreground mb-0.5">{label}</p>
+              <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>{label}</p>
               {value ? (
-                <p className={`text-sm font-medium ${className ?? ""}`}>{value}</p>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)", textTransform: capitalize ? "capitalize" : undefined }}>{value}</p>
               ) : (
-                <p className="text-xs text-muted-foreground/60 italic">{empty ?? "Not recorded"}</p>
+                <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>{empty ?? "Not recorded"}</p>
               )}
             </div>
           ))}
-          <div className="col-span-2 sm:col-span-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Notes</p>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>Notes</p>
             {animal.notes ? (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{animal.notes}</p>
+              <p style={{ fontSize: 13, color: "var(--fg-3)", whiteSpace: "pre-wrap" }}>{animal.notes}</p>
             ) : (
-              <p className="text-xs text-muted-foreground/60 italic">No notes yet</p>
+              <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>No notes yet</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Event timeline */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">
+      <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: 8 }}>
             Event timeline
             {events.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-muted-foreground">
+              <span style={{ fontSize: 12, fontWeight: 400, color: "var(--fg-4)" }}>
                 {events.length} event{events.length !== 1 ? "s" : ""}
               </span>
             )}
           </h2>
           {!showEventForm && (
-            <Button size="sm" variant="outline" onClick={() => setShowEventForm(true)} className="gap-1.5">
+            <Button size="sm" variant="secondary" onClick={() => setShowEventForm(true)}>
               <PlusIcon className="size-3.5" />
               Add event
             </Button>
@@ -501,106 +552,144 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
         </div>
 
         {showEventForm && (
-          <form onSubmit={(e) => void handleAddEvent(e)} className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium">New event</span>
-              <button type="button" onClick={() => setShowEventForm(false)} className="text-muted-foreground hover:text-foreground">
+          <form
+            onSubmit={(e) => void handleAddEvent(e)}
+            style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>New event</span>
+              <button
+                type="button"
+                onClick={() => setShowEventForm(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex", alignItems: "center" }}
+              >
                 <XIcon className="size-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">Type</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Type</label>
                 <select
                   value={eventForm.event_type}
                   onChange={(e) => setEventForm((f) => ({ ...f, event_type: e.target.value as EventType }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  style={selectStyle}
                 >
                   {ALL_EVENT_TYPES.map((t) => <option key={t} value={t}>{EVENT_TYPE_LABELS[t]}</option>)}
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">Date</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Date</label>
                 <DateInput
                   required
                   value={eventForm.event_date}
                   onChange={(e) => setEventForm((f) => ({ ...f, event_date: e.target.value }))}
                 />
               </div>
-              <div className="col-span-2 sm:col-span-1 flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Title <span className="text-destructive">*</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>
+                  Title <span style={{ color: "var(--bad)" }}>*</span>
                 </label>
                 <input
                   required
                   value={eventForm.title}
                   onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  style={inputStyle}
                   placeholder="e.g. Annual check-up"
                 />
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Notes</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Notes</label>
               <textarea
                 value={eventForm.notes}
                 onChange={(e) => setEventForm((f) => ({ ...f, notes: e.target.value }))}
                 rows={2}
-                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
+                style={textareaStyle}
                 placeholder="Optional details"
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setShowEventForm(false)}>Cancel</Button>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setShowEventForm(false)}>Cancel</Button>
               <Button type="submit" size="sm" disabled={submittingEvent}>{submittingEvent ? "Adding…" : "Add event"}</Button>
             </div>
           </form>
         )}
 
         {events.length === 0 ? (
-          <div className="rounded-lg border border-border border-dashed py-8 px-6 text-center">
-            <p className="text-sm font-medium text-foreground mb-1">No events recorded yet</p>
-            <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
+          <div style={{
+            borderRadius: "var(--r-lg)", border: "1px dashed var(--line-strong)",
+            padding: "32px 24px", textAlign: "center",
+          }}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)", marginBottom: 4 }}>No events recorded yet</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)", marginBottom: 16, maxWidth: 320, margin: "0 auto 16px" }}>
               Add vaccines, health checks, transfers, notes, or important incidents to build this animal&apos;s history.
             </p>
             {!showEventForm && (
-              <Button size="sm" variant="outline" onClick={() => setShowEventForm(true)} className="gap-1.5">
+              <Button size="sm" variant="secondary" onClick={() => setShowEventForm(true)}>
                 <PlusIcon className="size-3.5" />
                 Add event
               </Button>
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {events.map((ev) => (
-              <div key={ev.id} className="flex gap-3 group rounded-lg border border-border bg-card p-3 hover:bg-muted/20 transition-colors">
-                <div className="flex flex-col items-center pt-[5px] shrink-0">
-                  <div className={`size-2 rounded-full ${EVENT_DOT[ev.event_type]}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${EVENT_TYPE_CLASSES[ev.event_type]}`}>
-                      {EVENT_TYPE_LABELS[ev.event_type]}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(ev.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium">{ev.title}</p>
-                  {ev.notes && <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{ev.notes}</p>}
-                </div>
-                <button
-                  onClick={() => void handleDeleteEvent(ev.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/60 hover:text-destructive self-start mt-0.5 shrink-0"
-                  title="Delete event"
-                >
-                  <TrashIcon className="size-3.5" />
-                </button>
-              </div>
+              <EventRow
+                key={ev.id}
+                ev={ev}
+                onDelete={() => void handleDeleteEvent(ev.id)}
+              />
             ))}
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function EventRow({ ev, onDelete }: { ev: AnimalEvent; onDelete: () => void }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        borderRadius: "var(--r-lg)",
+        border: "1px solid var(--line)",
+        background: hovered ? "var(--row-hover)" : "var(--surface)",
+        padding: 12,
+        transition: "background 150ms",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 5 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: EVENT_DOT_COLOR[ev.event_type], flexShrink: 0 }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+          <Pill tone={EVENT_TYPE_TONE[ev.event_type]} size="sm">{EVENT_TYPE_LABELS[ev.event_type]}</Pill>
+          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
+            {new Date(ev.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        </div>
+        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{ev.title}</p>
+        {ev.notes && <p style={{ fontSize: 12, color: "var(--fg-3)", marginTop: 2, whiteSpace: "pre-wrap" }}>{ev.notes}</p>}
+      </div>
+      <button
+        onClick={onDelete}
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          color: hovered ? "var(--bad)" : "transparent",
+          transition: "color 150ms",
+          alignSelf: "flex-start", marginTop: 2, flexShrink: 0,
+          display: "flex", alignItems: "center",
+        }}
+        title="Delete event"
+      >
+        <TrashIcon className="size-3.5" />
+      </button>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -446,299 +446,276 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     }));
   };
 
+  const CARD_STYLE: React.CSSProperties = {
+    borderRadius: "var(--r-lg)",
+    border: "1px solid var(--line)",
+    background: "var(--surface)",
+    overflow: "hidden",
+  };
+  const CARD_HEADER: React.CSSProperties = {
+    padding: "16px 20px 12px",
+    borderBottom: "1px solid var(--line)",
+  };
+  const CARD_BODY: React.CSSProperties = { padding: "16px 20px 20px" };
+  const MODAL_PANEL: React.CSSProperties = {
+    width: "100%", maxWidth: 400,
+    borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+    background: "var(--surface)", padding: 20,
+    boxShadow: "var(--shadow-drawer)",
+  };
+  const MODAL_BACKDROP: React.CSSProperties = {
+    position: "fixed", inset: 0, zIndex: 50,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+    padding: "0 16px",
+  };
+  const GHOST_BTN: React.CSSProperties = {
+    display: "inline-flex", height: 28, alignItems: "center", justifyContent: "center",
+    borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg-2)", padding: "0 8px",
+    fontSize: 11, color: "var(--fg-4)", cursor: "pointer",
+    transition: "background var(--dur) var(--ease)",
+  };
+  const SELECT_SM: React.CSSProperties = {
+    height: 28, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg)", color: "var(--fg)", padding: "0 8px",
+    fontSize: 12, outline: "none", cursor: "pointer",
+  };
+  const MODAL_INPUT: React.CSSProperties = {
+    width: "100%", height: 32, borderRadius: "var(--r-sm)",
+    border: "1px solid var(--line-strong)", background: "var(--bg)",
+    color: "var(--fg)", padding: "0 10px", fontSize: 13, outline: "none",
+    boxSizing: "border-box", marginBottom: 12,
+  };
+
   return (
     <>
-      <main className="w-full py-2">
+      <main style={{ width: "100%", paddingTop: 8, paddingBottom: 8 }}>
         {activeSection === "templates" ? (
-          <section
-            aria-label="Reply templates"
-            className="space-y-6 config-section-animate"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Pre-written messages</CardTitle>
-                <CardDescription>
-                  Default reply text per rating &amp; theme. Staff can still edit each reply before
-                  sending.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid items-start gap-4 md:grid-cols-[12rem_1px_minmax(0,1fr)]">
-                  <div className="w-full">
-                    <p className="mb-2 text-xs font-medium text-muted-foreground">Themes</p>
-                    <p className="mb-2 text-xs text-muted-foreground">
+          <section aria-label="Reply templates" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={CARD_STYLE}>
+              <div style={CARD_HEADER}>
+                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Pre-written messages</h2>
+                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
+                  Default reply text per rating &amp; theme. Staff can still edit each reply before sending.
+                </p>
+              </div>
+              <div style={CARD_BODY}>
+                <div style={{ display: "grid", gridTemplateColumns: "12rem 1px 1fr", alignItems: "start", gap: 16 }}>
+                  <div>
+                    <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 6 }}>Themes</p>
+                    <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
                       Choose the theme used for your 4★ and 5★ template sets.
                     </p>
                   </div>
-                  <div
-                    className="hidden md:block w-px self-stretch bg-border"
-                    aria-hidden="true"
-                  />
-                  <div className="w-full">
-                    <Label className="text-sm">5★ templates</Label>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      These are used for 5-star reviews when &quot;Use templates&quot; is enabled
-                      for 5 stars.
+                  <div style={{ width: 1, alignSelf: "stretch", background: "var(--line)" }} aria-hidden="true" />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>5★ templates</p>
+                    <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4 }}>
+                      These are used for 5-star reviews when "Use templates" is enabled for 5 stars.
                     </p>
                   </div>
 
-                  <div className="w-full space-y-1.5">
-                    <div className="flex flex-col gap-1.5">
-                      {categories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setActiveCategoryId(cat.id)}
-                          className={`w-full rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors ${
-                            activeCategoryId === cat.id
-                              ? "border-border/70 bg-muted text-foreground"
-                              : "border-border/30 text-muted-foreground hover:border-border/60 hover:bg-muted/40"
-                          }`}
-                        >
-                          <span className="block font-medium text-sm">{cat.label}</span>
-                          {cat.description && (
-                            <span className="block text-[11px] text-muted-foreground">
-                              {cat.description}
-                            </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setActiveCategoryId(cat.id)}
+                        style={{
+                          width: "100%", borderRadius: "var(--r-sm)",
+                          border: `1px solid ${activeCategoryId === cat.id ? "var(--line)" : "var(--line)"}`,
+                          padding: "6px 10px", textAlign: "left", fontSize: 12, cursor: "pointer",
+                          background: activeCategoryId === cat.id ? "var(--bg-2)" : "transparent",
+                          color: activeCategoryId === cat.id ? "var(--fg)" : "var(--fg-4)",
+                          transition: "background var(--dur) var(--ease)",
+                        }}
+                      >
+                        <span style={{ display: "block", fontWeight: 500, fontSize: 13 }}>{cat.label}</span>
+                        {cat.description && (
+                          <span style={{ display: "block", fontSize: 11, color: "var(--fg-4)" }}>
+                            {cat.description}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                    {isOwner && (
+                      <button type="button" onClick={addCategory} style={{ ...GHOST_BTN, marginTop: 4, alignSelf: "flex-start" }}>
+                        + Add theme
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ width: 1, alignSelf: "stretch", background: "var(--line)" }} aria-hidden="true" />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingLeft: 16 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {(templateConfig[5]?.[activeCategoryId] ?? []).map((t, idx) => (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <Textarea
+                            rows={2}
+                            data-autogrow="true"
+                            style={{ minHeight: 64, resize: "none", overflow: "hidden", fontSize: 13, flex: 1 }}
+                            value={t}
+                            onChange={(e) => {
+                              handleTemplateChange(5, activeCategoryId, idx, e.target.value);
+                              autoGrowTextarea(e.currentTarget);
+                            }}
+                            disabled={!isOwner}
+                          />
+                          {isOwner && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              style={{ width: 28, height: 28, color: "var(--fg-4)", borderRadius: "var(--r-pill)" }}
+                              onClick={() => setDeleteConfirm({ rating: 5, index: idx })}
+                              aria-label="Delete this template"
+                            >
+                              <Trash2Icon className="size-3.5" />
+                            </Button>
                           )}
-                        </button>
+                        </div>
                       ))}
                       {isOwner && (
-                        <button
-                          type="button"
-                          onClick={addCategory}
-                          className="mt-2 inline-flex h-7 items-center justify-center rounded-md border border-border/50 bg-muted/30 px-2 text-[11px] text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
-                        >
-                          + Add theme
+                        <button type="button" style={{ ...GHOST_BTN, alignSelf: "flex-start" }} onClick={() => openAddMessage(5)} disabled={syncingFromConfig}>
+                          + Add message
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ marginBottom: 4 }}>
+                        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>4★ templates</p>
+                        <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4 }}>
+                          These are used for 4-star reviews when "Use templates" is enabled for 4 stars.
+                        </p>
+                      </div>
+                      {(templateConfig[4]?.[activeCategoryId] ?? []).map((t, idx) => (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <Textarea
+                            rows={2}
+                            data-autogrow="true"
+                            style={{ minHeight: 64, resize: "none", overflow: "hidden", fontSize: 13, flex: 1 }}
+                            value={t}
+                            onChange={(e) => {
+                              handleTemplateChange(4, activeCategoryId, idx, e.target.value);
+                              autoGrowTextarea(e.currentTarget);
+                            }}
+                            disabled={!isOwner}
+                          />
+                          {isOwner && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              style={{ width: 28, height: 28, color: "var(--fg-4)", borderRadius: "var(--r-pill)" }}
+                              onClick={() => setDeleteConfirm({ rating: 4, index: idx })}
+                              aria-label="Delete this template"
+                            >
+                              <Trash2Icon className="size-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {isOwner && (
+                        <button type="button" style={{ ...GHOST_BTN, alignSelf: "flex-start" }} onClick={() => openAddMessage(4)} disabled={syncingFromConfig}>
+                          + Add message
                         </button>
                       )}
                     </div>
                   </div>
-                  <div
-                    className="h-px w-full bg-border/80 my-1 md:my-0 md:h-auto md:w-0 md:self-stretch md:border-l md:border-border"
-                    aria-hidden="true"
-                  />
-                  <div className="flex-1 space-y-4 md:pl-4">
-                    <div className="space-y-2">
-                      <div className="space-y-2">
-                        {(templateConfig[5]?.[activeCategoryId] ?? []).map((t, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Textarea
-                              rows={2}
-                              data-autogrow="true"
-                              className="min-h-[64px] resize-none overflow-hidden text-sm"
-                              value={t}
-                              onChange={(e) => {
-                                handleTemplateChange(5, activeCategoryId, idx, e.target.value);
-                                autoGrowTextarea(e.currentTarget);
-                              }}
-                              disabled={!isOwner}
-                            />
-                            {isOwner && (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-full"
-                                onClick={() => setDeleteConfirm({ rating: 5, index: idx })}
-                                aria-label="Delete this template"
-                              >
-                                <Trash2Icon className="size-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                        {isOwner && (
-                          <button
-                            type="button"
-                            className="inline-flex h-7 items-center justify-center rounded-md border border-border/50 bg-muted/30 px-2 text-[11px] text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
-                            onClick={() => openAddMessage(5)}
-                            disabled={syncingFromConfig}
-                          >
-                            + Add message
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="mb-2 space-y-1">
-                        <Label className="text-sm">4★ templates</Label>
-                        <p className="text-xs text-muted-foreground">
-                          These are used for 4-star reviews when &quot;Use templates&quot; is enabled
-                          for 4 stars.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        {(templateConfig[4]?.[activeCategoryId] ?? []).map((t, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Textarea
-                              rows={2}
-                              data-autogrow="true"
-                              className="min-h-[64px] resize-none overflow-hidden text-sm"
-                              value={t}
-                              onChange={(e) => {
-                                handleTemplateChange(4, activeCategoryId, idx, e.target.value);
-                                autoGrowTextarea(e.currentTarget);
-                              }}
-                              disabled={!isOwner}
-                            />
-                            {isOwner && (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-full"
-                                onClick={() => setDeleteConfirm({ rating: 4, index: idx })}
-                                aria-label="Delete this template"
-                              >
-                                <Trash2Icon className="size-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                        {isOwner && (
-                          <button
-                            type="button"
-                            className="inline-flex h-7 items-center justify-center rounded-md border border-border/50 bg-muted/30 px-2 text-[11px] text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
-                            onClick={() => openAddMessage(4)}
-                            disabled={syncingFromConfig}
-                          >
-                            + Add message
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
-                <div className="flex items-center justify-between pt-2">
-                  <p className="text-xs text-muted-foreground">
-                    Only owners can change templates. Staff always see the latest version when
-                    replying.
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 16, marginTop: 16, borderTop: "1px solid var(--line)" }}>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
+                    Only owners can change templates. Staff always see the latest version when replying.
                   </p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="rounded-lg px-3 text-xs"
-                    onClick={saveTemplates}
-                    disabled={!isOwner || sharedConfigLoading}
-                  >
+                  <Button type="button" size="sm" onClick={saveTemplates} disabled={!isOwner || sharedConfigLoading}>
                     Save templates
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </section>
         ) : activeSection === "rules" ? (
-          <section
-            aria-label="Rating rules"
-            className="space-y-6 config-section-animate"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Rating rules</CardTitle>
-                <CardDescription>
-                  For each rating, choose whether to pre-fill with templates or require custom
-                  replies, and whether bulk sending is allowed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[5, 4, 3, 2, 1].map((rating) => {
-                  const rule = ratingRules[rating as Rating];
-                  return (
-                    <div
-                      key={rating}
-                      className="flex flex-col gap-2 rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-semibold">
-                          {rating}★
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {rating >= 4 ? "Positive" : "Needs attention"}
-                        </span>
-                      </div>
-                      <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center md:justify-end">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-muted-foreground">Reply mode</span>
-                          <select
-                            className="h-7 rounded-md border border-border bg-background px-2 text-xs"
-                            value={rule?.mode ?? "custom"}
-                            onChange={(e) =>
-                              updateRule(
-                                rating as Rating,
-                                "mode",
-                                e.target.value as RatingRule["mode"]
-                              )
-                            }
-                            disabled={!isOwner}
-                          >
-                            <option value="template">Use templates</option>
-                            <option value="custom">Custom replies only</option>
-                          </select>
+          <section aria-label="Rating rules" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={CARD_STYLE}>
+              <div style={CARD_HEADER}>
+                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Rating rules</h2>
+                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
+                  For each rating, choose whether to pre-fill with templates or require custom replies, and whether bulk sending is allowed.
+                </p>
+              </div>
+              <div style={CARD_BODY}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[5, 4, 3, 2, 1].map((rating) => {
+                    const rule = ratingRules[rating as Rating];
+                    return (
+                      <div
+                        key={rating}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: "8px 12px", fontSize: 12 }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ display: "inline-flex", width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--bg)", fontSize: 12, fontWeight: 600, color: "var(--fg)" }}>
+                            {rating}★
+                          </span>
+                          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
+                            {rating >= 4 ? "Positive" : "Needs attention"}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Checkbox
-                            id={`bulk-${rating}`}
-                            checked={rule?.allowBulk ?? false}
-                            onCheckedChange={(checked) =>
-                              updateRule(
-                                rating as Rating,
-                                "allowBulk",
-                                Boolean(checked) as RatingRule["allowBulk"]
-                              )
-                            }
-                            disabled={!isOwner}
-                          />
-                          <Label
-                            htmlFor={`bulk-${rating}`}
-                            className="text-[11px] text-muted-foreground"
-                          >
-                            Allow bulk send
-                          </Label>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Reply mode</span>
+                            <select
+                              style={SELECT_SM}
+                              value={rule?.mode ?? "custom"}
+                              onChange={(e) => updateRule(rating as Rating, "mode", e.target.value as RatingRule["mode"])}
+                              disabled={!isOwner}
+                            >
+                              <option value="template">Use templates</option>
+                              <option value="custom">Custom replies only</option>
+                            </select>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <Checkbox
+                              id={`bulk-${rating}`}
+                              checked={rule?.allowBulk ?? false}
+                              onCheckedChange={(checked) => updateRule(rating as Rating, "allowBulk", Boolean(checked) as RatingRule["allowBulk"])}
+                              disabled={!isOwner}
+                            />
+                            <Label htmlFor={`bulk-${rating}`} style={{ fontSize: 11, color: "var(--fg-4)", cursor: "pointer" }}>
+                              Allow bulk send
+                            </Label>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-                <div className="flex items-center justify-between pt-1">
-                  <p className="text-xs text-muted-foreground">
-                    Rating rules affect which reviews are pre-filled and which can be bulk-sent on
-                    the dashboard.
+                    );
+                  })}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginTop: 12, borderTop: "1px solid var(--line)" }}>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
+                    Rating rules affect which reviews are pre-filled and which can be bulk-sent on the dashboard.
                   </p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="rounded-lg px-3 text-xs"
-                    onClick={saveRules}
-                    disabled={!isOwner || sharedConfigLoading}
-                  >
+                  <Button type="button" size="sm" onClick={saveRules} disabled={!isOwner || sharedConfigLoading}>
                     Save rules
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </section>
         ) : (
-          <section
-            aria-label="Locations"
-            className="space-y-6 config-section-animate"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Locations</CardTitle>
-                <CardDescription>
+          <section aria-label="Locations" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={CARD_STYLE}>
+              <div style={CARD_HEADER}>
+                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Locations</h2>
+                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
                   Choose which locations to include when syncing unreplied reviews.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </p>
+              </div>
+              <div style={CARD_BODY}>
                 {loadingLocations ? (
-                  <p className="text-sm text-muted-foreground">Loading locations…</p>
+                  <p style={{ fontSize: 13, color: "var(--fg-4)" }}>Loading locations…</p>
                 ) : locations.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No locations found for this account.
-                  </p>
+                  <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No locations found for this account.</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <AllNoneToggle
                       className="mt-0.5 justify-start"
                       allSelected={selectedIds.size === locations.length}
@@ -747,7 +724,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                       onSelectAll={() => setSelectedIds(new Set(locations.map((l) => l.id)))}
                       onSelectNone={() => setSelectedIds(new Set())}
                     />
-                    <div className="space-y-2">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {locations.map((loc) => {
                         const isSelected = selectedIds.has(loc.id);
                         return (
@@ -756,15 +733,19 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                             key={loc.id}
                             onClick={() => toggleLocation(loc.id)}
                             disabled={syncingFromConfig}
-                            className={`flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                              isSelected
-                                ? "border-border/60 bg-muted hover:bg-muted/70"
-                                : "border-border/30 bg-muted/20 hover:border-border/60 hover:bg-muted/40"
-                            }`}
+                            style={{
+                              display: "flex", width: "100%", alignItems: "flex-start", gap: 8,
+                              borderRadius: "var(--r-sm)",
+                              border: `1px solid ${isSelected ? "var(--line)" : "var(--line)"}`,
+                              padding: "8px 12px", textAlign: "left", fontSize: 13, cursor: "pointer",
+                              background: isSelected ? "var(--bg-2)" : "transparent",
+                              color: "var(--fg)",
+                              transition: "background var(--dur) var(--ease)",
+                            }}
                           >
-                            <span className="flex flex-col">
-                              <span className="font-medium">{loc.title}</span>
-                              <span className="text-xs text-muted-foreground">
+                            <span style={{ display: "flex", flexDirection: "column" }}>
+                              <span style={{ fontWeight: 500 }}>{loc.title}</span>
+                              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
                                 {loc.locality ? `${loc.locality} · ` : ""}
                                 {loc.id}
                               </span>
@@ -775,87 +756,51 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                     </div>
                   </div>
                 )}
-                <div className="pt-2 flex justify-between items-center gap-2">
-                  <p className="text-xs text-muted-foreground">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 12, marginTop: 12, borderTop: "1px solid var(--line)" }}>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
                     Save your selection, then sync unreplied reviews for these locations.
                   </p>
-                  <Button
-                    size="sm"
-                    className="rounded-lg px-3 text-xs"
-                    onClick={openConfirm}
-                    disabled={locations.length === 0 || syncingFromConfig}
-                  >
+                  <Button size="sm" onClick={openConfirm} disabled={locations.length === 0 || syncingFromConfig}>
                     Save &amp; sync
                   </Button>
                 </div>
                 {syncingFromConfig && (
-                  <div className="mt-3 flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, borderRadius: "var(--r-sm)", background: "var(--bg-2)", padding: "8px 12px", fontSize: 12, color: "var(--fg-4)" }}>
                     <Loader2Icon className="size-3 animate-spin" />
                     <span>Syncing reviews and preparing your dashboard. You’ll be redirected in a moment…</span>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </section>
         )}
       </main>
+
+      {/* ── Modals ─────────────────────────────────────────────── */}
       {confirmOpen && !syncingFromConfig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Save locations &amp; sync reviews?</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              We&apos;ll use the currently selected locations to fetch all unreplied reviews and
-              prepare your dashboard. This may take a few seconds.
+        <div style={MODAL_BACKDROP}>
+          <div style={MODAL_PANEL}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Save locations &amp; sync reviews?</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+              We’ll use the currently selected locations to fetch all unreplied reviews and prepare your dashboard. This may take a few seconds.
             </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => setConfirmOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={() => {
-                  setConfirmOpen(false);
-                  performSaveAndSync();
-                }}
-              >
-                Continue &amp; sync
-              </Button>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button size="sm" variant="secondary" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={() => { setConfirmOpen(false); performSaveAndSync(); }}>Continue &amp; sync</Button>
             </div>
           </div>
         </div>
       )}
-      {deleteConfirm && isOwner && !syncingFromConfig && deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Delete this template?</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Are you sure you want to delete this reply template? This action only affects this
-              browser and can&apos;t be undone.
+      {deleteConfirm && isOwner && !syncingFromConfig && (
+        <div style={MODAL_BACKDROP}>
+          <div style={MODAL_PANEL}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete this template?</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+              Are you sure you want to delete this reply template? This action only affects this browser and can’t be undone.
             </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-destructive/40 bg-destructive/5 text-destructive hover:bg-destructive/10"
-                onClick={() => {
-                  handleRemoveTemplate(deleteConfirm.rating, activeCategoryId, deleteConfirm.index);
-                }}
-              >
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button size="sm" variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button size="sm" variant="danger" onClick={() => { handleRemoveTemplate(deleteConfirm.rating, activeCategoryId, deleteConfirm.index); }}>
                 Delete template
               </Button>
             </div>
@@ -863,81 +808,44 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
         </div>
       )}
       {addThemeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Add a new theme</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              For example: &quot;Drinks&quot;, &quot;Food&quot;, &quot;Events&quot; or any other
-              common topic you reply to often.
+        <div style={MODAL_BACKDROP}>
+          <div style={MODAL_PANEL}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Add a new theme</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 16 }}>
+              For example: "Drinks", "Food", "Events" or any other common topic you reply to often.
             </p>
             <input
               type="text"
-              className="mb-3 w-full rounded-md border border-border bg-background px-2 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              style={MODAL_INPUT}
               placeholder="Theme name"
               value={newThemeName}
               onChange={(e) => setNewThemeName(e.target.value)}
             />
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => {
-                  setAddThemeOpen(false);
-                  setNewThemeName("");
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={confirmAddCategory}
-              >
-                Add theme
-              </Button>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button size="sm" variant="secondary" onClick={() => { setAddThemeOpen(false); setNewThemeName(""); }}>Cancel</Button>
+              <Button size="sm" onClick={confirmAddCategory}>Add theme</Button>
             </div>
           </div>
         </div>
       )}
       {addMessageOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Add a new message</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
+        <div style={MODAL_BACKDROP}>
+          <div style={{ ...MODAL_PANEL, maxWidth: 520 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Add a new message</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 16 }}>
               This will be added to the {addMessageRating}★ templates for the current theme.
             </p>
             <Textarea
               rows={4}
-              className="mb-3 min-h-[96px] resize-none text-sm"
+              style={{ minHeight: 96, resize: "none", fontSize: 13, marginBottom: 16, width: "100%" }}
               placeholder="Write the reply message…"
               value={newMessageText}
               onChange={(e) => setNewMessageText(e.target.value)}
               disabled={syncingFromConfig}
             />
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
-                onClick={() => {
-                  setAddMessageOpen(false);
-                  setNewMessageText("");
-                }}
-                disabled={syncingFromConfig}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={confirmAddMessage}
-                disabled={syncingFromConfig}
-              >
-                Add message
-              </Button>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button size="sm" variant="secondary" onClick={() => { setAddMessageOpen(false); setNewMessageText(""); }} disabled={syncingFromConfig}>Cancel</Button>
+              <Button size="sm" onClick={confirmAddMessage} disabled={syncingFromConfig}>Add message</Button>
             </div>
           </div>
         </div>

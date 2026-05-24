@@ -1,18 +1,26 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, ListIcon, EyeIcon, TableIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { AccountingSummaryCards } from "@/modules/accounting/components/AccountingSummaryCards";
 import { DailyEntriesTable } from "@/modules/accounting/components/DailyEntriesTable";
+import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFocusDay";
 import { MonthlyFixedExpensesTable } from "@/modules/accounting/components/MonthlyFixedExpensesTable";
 import type { DailyEntry } from "@/modules/accounting/types";
 import type { AdminLocation } from "@/modules/admin/types";
 
-type MainTab = "daily" | "fixed";
+type MainView = "smart" | "focus" | "fixed";
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
+
+const VIEWS: Array<{ id: MainView; label: string; icon: typeof ListIcon }> = [
+  { id: "smart", label: "Smart table", icon: ListIcon },
+  { id: "focus", label: "Focus day",   icon: EyeIcon  },
+  { id: "fixed", label: "Fixed costs", icon: TableIcon },
+];
 
 interface Props {
   locations: AdminLocation[];
@@ -21,16 +29,16 @@ interface Props {
 
 export function AccountingClient({ locations, canManage }: Props) {
   const today = new Date();
-  const [year, setYear]           = useState(today.getFullYear());
-  const [month, setMonth]         = useState(today.getMonth() + 1);
+  const [year, setYear]             = useState(today.getFullYear());
+  const [month, setMonth]           = useState(today.getMonth() + 1);
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
-  const [activeTab, setActiveTab] = useState<MainTab>("daily");
-  const [entries, setEntries]     = useState<DailyEntry[]>([]);
-  const [loading, setLoading]     = useState(false);
+  const [view, setView]             = useState<MainView>("smart");
+  const [entries, setEntries]       = useState<DailyEntry[]>([]);
+  const [loading, setLoading]       = useState(false);
 
-  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
-  const days = daysInMonth(year, month);
-  const filled = entries.length;
+  const monthStr  = `${year}-${String(month).padStart(2, "0")}`;
+  const days      = daysInMonth(year, month);
+  const filled    = entries.length;
   const monthName = new Date(year, month - 1, 1).toLocaleString("en", { month: "long", year: "numeric" });
 
   const fetchEntries = useCallback(async () => {
@@ -69,107 +77,153 @@ export function AccountingClient({ locations, canManage }: Props) {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
-  const exportHref = activeTab === "daily"
-    ? `/api/accounting/export?month=${monthStr}&location_id=${locationId}`
-    : `/api/accounting/export?type=fixed&year=${year}&location_id=${locationId}`;
+  const isBehind = filled < today.getDate() && year === today.getFullYear() && month === today.getMonth() + 1;
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Accounting</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Track daily sales, payments, expenses, HR, and cash movements by shop.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Location selector */}
-          <select
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-          >
-            {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <PageHeader
+        eyebrow={monthName}
+        title="Accounting"
+        subtitle="Daily roll-up by shop. Click any row to view or edit."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            {/* Location selector */}
+            {locations.length > 1 && (
+              <select
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                style={{
+                  height: 34, borderRadius: "var(--r-sm)",
+                  border: "1px solid var(--line)", background: "var(--surface)",
+                  color: "var(--fg)", padding: "0 var(--s-3)", fontSize: 13,
+                  fontFamily: "var(--font-sans)", outline: "none",
+                }}
+              >
+                {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            )}
 
-          {/* Month navigation (visible for both tabs, month used for daily) */}
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth}>
-              <ChevronLeftIcon className="size-4" />
-            </Button>
-            <span className="text-sm font-medium w-36 text-center tabular-nums">{monthName}</span>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth}>
-              <ChevronRightIcon className="size-4" />
-            </Button>
+            {/* Month navigation */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <button
+                onClick={prevMonth}
+                style={{
+                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                  color: "var(--fg-3)", cursor: "pointer",
+                }}
+              >
+                <ChevronLeftIcon size={14} />
+              </button>
+              <span
+                className="mono tabular-nums"
+                style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
+              >
+                {monthName}
+              </span>
+              <button
+                onClick={nextMonth}
+                style={{
+                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                  color: "var(--fg-3)", cursor: "pointer",
+                }}
+              >
+                <ChevronRightIcon size={14} />
+              </button>
+            </div>
+
+            {/* Days filled badge */}
+            {view !== "fixed" && (
+              <span style={{
+                fontSize: 11, fontWeight: 500, padding: "3px 8px",
+                borderRadius: "var(--r-pill)",
+                border: `1px solid ${isBehind ? "var(--warn)" : "var(--line)"}`,
+                background: isBehind ? "var(--warn-soft)" : "var(--bg-2)",
+                color: isBehind ? "var(--warn)" : "var(--fg-4)",
+                fontFamily: "var(--font-mono)",
+              }}>
+                {filled} / {days} days
+              </span>
+            )}
+
+            {/* CSV export */}
+            {view !== "fixed" && (
+              <a href={`/api/accounting/export?month=${monthStr}&location_id=${locationId}`} download>
+                <Button size="sm" variant="secondary">
+                  <DownloadIcon size={13} />
+                  CSV
+                </Button>
+              </a>
+            )}
           </div>
+        }
+      />
 
-          {/* Days filled badge (daily tab only) */}
-          {activeTab === "daily" && (
-            <span className={`text-xs px-2 py-1 rounded-md border ${
-              filled < today.getDate() && year === today.getFullYear() && month === today.getMonth() + 1
-                ? "border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                : "border-border bg-muted/20 text-muted-foreground"
-            }`}>
-              {filled} / {days} days
-            </span>
-          )}
-
-          {/* CSV export */}
-          <a href={exportHref} download>
-            <Button size="sm" variant="outline" className="gap-1.5 h-8">
-              <DownloadIcon className="size-3.5" />
-              CSV
-            </Button>
-          </a>
-        </div>
-      </div>
-
-      {/* Main tab switcher */}
-      <div className="flex rounded-md border border-border overflow-hidden w-fit text-xs">
-        {(["daily", "fixed"] as MainTab[]).map((tab, i) => (
+      {/* View toggle */}
+      <div style={{
+        display: "inline-flex", borderRadius: "var(--r-md)",
+        border: "1px solid var(--line)", background: "var(--bg-2)",
+        padding: 3, gap: 2, alignSelf: "flex-start",
+      }}>
+        {VIEWS.map(({ id, label, icon: Icon }) => (
           <button
-            key={tab}
+            key={id}
             type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 ${i > 0 ? "border-l border-border" : ""} ${
-              activeTab === tab
-                ? "bg-accent text-foreground font-medium"
-                : "text-muted-foreground hover:bg-muted/40"
-            }`}
+            onClick={() => setView(id)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
+              fontSize: 12, fontWeight: view === id ? 500 : 400,
+              color: view === id ? "var(--fg)" : "var(--fg-4)",
+              background: view === id ? "var(--surface)" : "transparent",
+              border: `1px solid ${view === id ? "var(--line)" : "transparent"}`,
+              boxShadow: view === id ? "var(--shadow-1)" : "none",
+              cursor: "pointer", transition: "all var(--dur) var(--ease)",
+            }}
           >
-            {tab === "daily" ? "Daily Entries" : "Monthly Fixed Expenses"}
+            <Icon size={12} strokeWidth={1.5} />
+            {label}
           </button>
         ))}
       </div>
 
-      {/* Daily entries view */}
-      {activeTab === "daily" && (
-        <>
-          {filled > 0 && (
-            <AccountingSummaryCards
-              entries={entries}
-              daysInMonth={days}
-              today={today}
-              month={month}
-              year={year}
-            />
-          )}
-          <DailyEntriesTable
-            year={year}
-            month={month}
-            locationId={locationId}
-            locations={locations}
-            entries={entries}
-            loading={loading}
-            onEntryUpdate={handleEntryUpdate}
-            onEntryDelete={handleEntryDelete}
-          />
-        </>
+      {/* Summary stats band */}
+      {(view === "smart" || view === "focus") && filled > 0 && (
+        <AccountingSummaryCards
+          entries={entries}
+          daysInMonth={days}
+          today={today}
+          month={month}
+          year={year}
+        />
       )}
 
-      {/* Monthly fixed expenses view */}
-      {activeTab === "fixed" && (
+      {/* Smart table */}
+      {view === "smart" && (
+        <DailyEntriesTable
+          year={year}
+          month={month}
+          locationId={locationId}
+          locations={locations}
+          entries={entries}
+          loading={loading}
+          onEntryUpdate={handleEntryUpdate}
+          onEntryDelete={handleEntryDelete}
+        />
+      )}
+
+      {/* Focus day */}
+      {view === "focus" && (
+        <AccountingFocusDay
+          year={year}
+          month={month}
+          entries={entries}
+        />
+      )}
+
+      {/* Monthly fixed expenses */}
+      {view === "fixed" && (
         <MonthlyFixedExpensesTable
           locationId={locationId}
           locations={locations}

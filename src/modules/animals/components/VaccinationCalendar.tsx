@@ -23,11 +23,11 @@ function vaccinationUrgency(next: string | null): "overdue" | "soon" | "ok" | "n
   return "ok";
 }
 
-const URGENCY_DOT: Record<string, string> = {
-  overdue: "bg-red-500",
-  soon: "bg-amber-400",
-  ok: "bg-green-500",
-  none: "bg-muted",
+const URGENCY_COLOR: Record<string, string> = {
+  overdue: "var(--bad)",
+  soon: "var(--warn)",
+  ok: "var(--good)",
+  none: "var(--fg-4)",
 };
 
 export function VaccinationCalendar({ animals }: Props) {
@@ -86,16 +86,15 @@ export function VaccinationCalendar({ animals }: Props) {
       </div>
 
       {/* Grid */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-border bg-muted/40">
+      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--line)", background: "var(--bg-2)" }}>
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-            <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
+            <div key={d} className="eyebrow" style={{ padding: "8px 0", textAlign: "center", color: "var(--fg-4)" }}>{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
-          {/* Empty cells for offset */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
           {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-16 border-b border-r border-border last:border-r-0 bg-muted/10" />
+            <div key={`empty-${i}`} style={{ height: 64, borderBottom: "1px solid var(--line)", borderRight: "1px solid var(--line)", background: "var(--bg)" }} />
           ))}
           {days.map(({ date, due }) => {
             const isToday = isSameDay(date, new Date());
@@ -105,32 +104,43 @@ export function VaccinationCalendar({ animals }: Props) {
               <div
                 key={date.toISOString()}
                 onClick={() => due.length > 0 ? setSelected(isSelected ? null : date) : undefined}
-                className={[
-                  "h-16 border-b border-r border-border last:border-r-0 p-1.5 flex flex-col gap-0.5 transition-colors",
-                  due.length > 0 ? "cursor-pointer hover:bg-muted/30" : "",
-                  isSelected ? "bg-accent" : "",
-                  colIdx === 6 ? "border-r-0" : "",
-                ].join(" ")}
+                style={{
+                  height: 64,
+                  borderBottom: "1px solid var(--line)",
+                  borderRight: colIdx === 6 ? "none" : "1px solid var(--line)",
+                  padding: 6,
+                  display: "flex", flexDirection: "column", gap: 2,
+                  cursor: due.length > 0 ? "pointer" : "default",
+                  background: isSelected ? "var(--bronze-soft)" : "var(--surface)",
+                  transition: "background 150ms",
+                }}
               >
-                <span className={`text-xs w-5 h-5 flex items-center justify-center rounded-full ${isToday ? "bg-foreground text-background font-semibold" : "text-muted-foreground"}`}>
+                <span style={{
+                  fontSize: 11, width: 20, height: 20,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "var(--r-pill)",
+                  background: isToday ? "var(--fg)" : "transparent",
+                  color: isToday ? "var(--surface)" : "var(--fg-4)",
+                  fontWeight: isToday ? 600 : 400,
+                }}>
                   {date.getDate()}
                 </span>
-                <div className="flex flex-wrap gap-0.5">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
                   {due.slice(0, 3).map((a) => (
                     <span
                       key={a.id}
                       title={a.name}
-                      className={`inline-block rounded-full h-1.5 w-1.5 ${URGENCY_DOT[vaccinationUrgency(a.next_vaccination_date)]}`}
+                      style={{ display: "inline-block", borderRadius: "var(--r-pill)", height: 6, width: 6, background: URGENCY_COLOR[vaccinationUrgency(a.next_vaccination_date)] }}
                     />
                   ))}
                   {due.length > 3 && (
-                    <span className="text-[9px] text-muted-foreground">+{due.length - 3}</span>
+                    <span style={{ fontSize: 9, color: "var(--fg-4)" }}>+{due.length - 3}</span>
                   )}
                 </div>
                 {due.length > 0 && due.length <= 2 && (
-                  <div className="mt-0.5 space-y-0.5">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {due.map((a) => (
-                      <div key={a.id} className="text-[10px] text-foreground truncate leading-none">{a.name}</div>
+                      <div key={a.id} style={{ fontSize: 10, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{a.name}</div>
                     ))}
                   </div>
                 )}
@@ -142,16 +152,16 @@ export function VaccinationCalendar({ animals }: Props) {
 
       {/* Selected day detail */}
       {selected && selectedAnimals && selectedAnimals.length > 0 && (
-        <div className="rounded-lg border border-border p-3 flex flex-col gap-2">
-          <p className="text-sm font-medium">{format(selected, "EEEE, d MMMM yyyy")}</p>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{format(selected, "EEEE, d MMMM yyyy")}</p>
           {selectedAnimals.map((a) => (
-            <div key={a.id} className="flex items-center gap-2 text-sm">
-              <span className={`inline-block rounded-full h-2 w-2 shrink-0 ${URGENCY_DOT[vaccinationUrgency(a.next_vaccination_date)]}`} />
-              <span className="font-medium">{a.name}</span>
-              <span className="text-muted-foreground capitalize text-xs">{a.species}</span>
-              <span className="text-muted-foreground text-xs">{a.location_name ?? ""}</span>
+            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <span style={{ display: "inline-block", borderRadius: "var(--r-pill)", height: 8, width: 8, flexShrink: 0, background: URGENCY_COLOR[vaccinationUrgency(a.next_vaccination_date)] }} />
+              <span style={{ fontWeight: 500, color: "var(--fg)" }}>{a.name}</span>
+              <span style={{ color: "var(--fg-4)", textTransform: "capitalize", fontSize: 12 }}>{a.species}</span>
+              <span style={{ color: "var(--fg-4)", fontSize: 12 }}>{a.location_name ?? ""}</span>
               {a.vaccination_passport && (
-                <span className="ml-auto text-[10px] rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5">Passport ✓</span>
+                <span style={{ marginLeft: "auto", fontSize: 10, borderRadius: "var(--r-pill)", background: "var(--good-soft)", color: "var(--good)", padding: "2px 6px" }}>Passport ✓</span>
               )}
             </div>
           ))}
@@ -159,14 +169,14 @@ export function VaccinationCalendar({ animals }: Props) {
       )}
 
       {/* Legend */}
-      <div className="flex gap-4 text-xs text-muted-foreground">
+      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--fg-4)" }}>
         {[
-          { color: "bg-red-500", label: "Overdue" },
-          { color: "bg-amber-400", label: "Within 30 days" },
-          { color: "bg-green-500", label: "Scheduled (>30d)" },
+          { color: "var(--bad)", label: "Overdue" },
+          { color: "var(--warn)", label: "Within 30 days" },
+          { color: "var(--good)", label: "Scheduled (>30d)" },
         ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`inline-block rounded-full h-2 w-2 ${color}`} />
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", borderRadius: "var(--r-pill)", height: 8, width: 8, background: color }} />
             {label}
           </div>
         ))}

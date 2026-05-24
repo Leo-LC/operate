@@ -41,15 +41,15 @@ export function AppearanceClient({ currentTheme }: AppearanceClientProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
-        <h2 className="text-lg font-semibold">Appearance</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--fg)" }}>Appearance</h2>
+        <p style={{ fontSize: 13, color: "var(--fg-3)", marginTop: 4 }}>
           Choose a color theme for your organization. Changes apply for all users after they reload.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
         {THEMES.map((theme) => {
           const preview = THEME_PREVIEWS[theme.id];
           const isActive = active === theme.id;
@@ -59,49 +59,43 @@ export function AppearanceClient({ currentTheme }: AppearanceClientProps) {
               key={theme.id}
               onClick={() => void handleSelect(theme.id)}
               disabled={saving}
-              className={[
-                "group relative rounded-xl border-2 p-4 text-left transition-all",
-                isActive
-                  ? "border-primary shadow-md"
-                  : "border-border hover:border-primary/50",
-              ].join(" ")}
+              style={{
+                position: "relative",
+                borderRadius: "var(--r-lg)",
+                border: isActive ? "2px solid var(--bronze)" : "2px solid var(--line)",
+                padding: 16,
+                textAlign: "left",
+                background: "var(--surface)",
+                cursor: "pointer",
+                transition: "border-color 150ms, box-shadow 150ms",
+                boxShadow: isActive ? "var(--shadow-1)" : "none",
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = "var(--bronze)"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = "var(--line)"; }}
             >
               {/* Mini preview */}
               <div
-                className="mb-3 h-24 w-full overflow-hidden rounded-lg"
-                style={{ background: preview.bg }}
+                style={{ marginBottom: 12, height: 96, width: "100%", overflow: "hidden", borderRadius: "var(--r-md)", background: preview.bg }}
               >
-                <div className="flex h-full">
-                  <div
-                    className="h-full w-10 flex-shrink-0"
-                    style={{ background: preview.sidebar }}
-                  />
-                  <div className="flex-1 p-2 space-y-1.5">
-                    <div
-                      className="h-2 w-3/4 rounded-full opacity-30"
-                      style={{ background: preview.text }}
-                    />
-                    <div
-                      className="h-2 w-1/2 rounded-full opacity-20"
-                      style={{ background: preview.text }}
-                    />
-                    <div
-                      className="mt-2 h-5 w-16 rounded"
-                      style={{ background: preview.accent }}
-                    />
+                <div style={{ display: "flex", height: "100%" }}>
+                  <div style={{ height: "100%", width: 40, flexShrink: 0, background: preview.sidebar }} />
+                  <div style={{ flex: 1, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ height: 8, width: "75%", borderRadius: 999, opacity: 0.3, background: preview.text }} />
+                    <div style={{ height: 8, width: "50%", borderRadius: 999, opacity: 0.2, background: preview.text }} />
+                    <div style={{ marginTop: 8, height: 20, width: 64, borderRadius: "var(--r-sm)", background: preview.accent }} />
                   </div>
                 </div>
               </div>
 
               {/* Label */}
-              <div className="flex items-center justify-between">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <p className="text-sm font-semibold">{theme.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{theme.description}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{theme.label}</p>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>{theme.description}</p>
                 </div>
                 {isActive && (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <CheckIcon className="h-3 w-3" />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", background: "var(--bronze)", color: "#fff" }}>
+                    <CheckIcon style={{ width: 12, height: 12 }} />
                   </div>
                 )}
               </div>
@@ -110,7 +104,7 @@ export function AppearanceClient({ currentTheme }: AppearanceClientProps) {
         })}
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
         More themes coming soon. Custom branding will be available in a future update.
       </p>
     </div>

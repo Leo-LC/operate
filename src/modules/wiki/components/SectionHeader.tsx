@@ -5,14 +5,14 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, count }: SectionHeaderProps) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[#B9854E]" />
-      <span className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B9854E]">
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 7, height: 7, flexShrink: 0, borderRadius: "50%", background: "var(--bronze)" }} />
+      <span className="eyebrow" style={{ color: "var(--bronze)" }}>
         {title}
       </span>
-      <span className="h-px flex-1 bg-[#D4C4B0]" />
+      <span style={{ height: 1, flex: 1, background: "var(--line-strong)" }} />
       {count !== undefined && (
-        <span className="text-[10px] text-[#b0a090]">{count} taxes</span>
+        <span style={{ fontSize: 10, color: "var(--fg-4)" }}>{count} taxes</span>
       )}
     </div>
   );

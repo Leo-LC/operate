@@ -2,17 +2,9 @@
 
 import Link from "next/link";
 import {
-  StarIcon,
-  FileTextIcon,
-  PawPrintIcon,
-  CalculatorIcon,
-  CalendarDaysIcon,
-  BarChart2Icon,
-  ShieldIcon,
-  ArrowRightIcon,
-  AlertTriangleIcon,
-  UsersIcon,
-  BookOpenIcon,
+  StarIcon, FileTextIcon, PawPrintIcon, CalculatorIcon,
+  CalendarDaysIcon, BarChart2Icon, ShieldIcon, ArrowRightIcon,
+  UsersIcon, BookOpenIcon, AlertTriangleIcon,
 } from "lucide-react";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import type { ModuleKey } from "@/core/permissions/types";
@@ -31,7 +23,8 @@ interface ModuleCard {
   description: string;
   href: string;
   icon: React.ElementType;
-  accent: string;
+  accentBg: string;
+  accentColor: string;
 }
 
 const OPERATIONS_KEYS: ModuleKey[] = ["accounting", "documents", "animals", "schedules"];
@@ -43,7 +36,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Reply to Google reviews with templates and smart rating rules.",
     href: "/dashboard/reviews",
     icon: StarIcon,
-    accent: "oklch(0.78 0.14 75)",
+    accentBg: "oklch(0.78 0.14 75 / 0.15)",
+    accentColor: "oklch(0.58 0.14 75)",
   },
   {
     key: "schedules",
@@ -51,7 +45,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Manage staff shifts, weekly schedules, and payroll across locations.",
     href: "/dashboard/scheduling",
     icon: CalendarDaysIcon,
-    accent: "oklch(0.60 0.14 220)",
+    accentBg: "oklch(0.60 0.14 220 / 0.15)",
+    accentColor: "oklch(0.60 0.14 220)",
   },
   {
     key: "animals",
@@ -59,7 +54,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Animal records, health tracking, and upcoming vaccination reminders.",
     href: "/dashboard/animals",
     icon: PawPrintIcon,
-    accent: "oklch(0.60 0.16 145)",
+    accentBg: "oklch(0.60 0.16 145 / 0.15)",
+    accentColor: "oklch(0.60 0.16 145)",
   },
   {
     key: "documents",
@@ -67,7 +63,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Permits, certificates, and compliance documents with expiry tracking.",
     href: "/dashboard/documents",
     icon: FileTextIcon,
-    accent: "oklch(0.62 0.14 300)",
+    accentBg: "oklch(0.62 0.14 300 / 0.15)",
+    accentColor: "oklch(0.62 0.14 300)",
   },
   {
     key: "accounting",
@@ -75,7 +72,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Daily revenue and costs per shop, monthly summaries and KPIs.",
     href: "/dashboard/accounting",
     icon: CalculatorIcon,
-    accent: "oklch(0.58 0.15 170)",
+    accentBg: "oklch(0.58 0.15 170 / 0.15)",
+    accentColor: "oklch(0.58 0.15 170)",
   },
   {
     key: "reports",
@@ -83,7 +81,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Cross-module overview — compliance, finances, and operations at a glance.",
     href: "/dashboard/reports",
     icon: BarChart2Icon,
-    accent: "oklch(0.56 0.16 250)",
+    accentBg: "oklch(0.56 0.16 250 / 0.15)",
+    accentColor: "oklch(0.56 0.16 250)",
   },
   {
     key: "contacts",
@@ -91,7 +90,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Suppliers, partners, and shop contacts with billing and delivery info.",
     href: "/dashboard/contacts",
     icon: UsersIcon,
-    accent: "oklch(0.60 0.13 30)",
+    accentBg: "oklch(0.60 0.13 30 / 0.15)",
+    accentColor: "oklch(0.60 0.13 30)",
   },
   {
     key: "admin",
@@ -99,7 +99,8 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Users, locations, module permissions, and audit logs.",
     href: "/dashboard/admin",
     icon: ShieldIcon,
-    accent: "oklch(0.55 0.16 20)",
+    accentBg: "oklch(0.55 0.16 20 / 0.15)",
+    accentColor: "oklch(0.55 0.16 20)",
   },
   {
     key: "wiki",
@@ -107,20 +108,24 @@ const ALL_MODULES: ModuleCard[] = [
     description: "Internal knowledge base, SOPs, and shared documentation.",
     href: "/dashboard/wiki",
     icon: BookOpenIcon,
-    accent: "oklch(0.58 0.14 200)",
+    accentBg: "oklch(0.58 0.14 200 / 0.15)",
+    accentColor: "oklch(0.58 0.14 200)",
   },
 ];
 
 const PULSE_KEYS: ModuleKey[] = ["accounting", "animals", "documents", "schedules"];
 
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} }: HomeClientProps) {
   const permissions = derivePermissionsFromRole(role);
   const firstName = name.split(" ")[0];
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const alerts: Partial<Record<ModuleKey, { count: number; label: string }>> = {
     ...(docsAlert > 0    ? { documents: { count: docsAlert,    label: `${docsAlert} doc${docsAlert !== 1 ? "s" : ""} expiring or expired` } }    : {}),
@@ -132,7 +137,6 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
   const operationsModules = visibleModules.filter((m) => OPERATIONS_KEYS.includes(m.key));
   const toolsModules = visibleModules.filter((m) => !OPERATIONS_KEYS.includes(m.key));
 
-  // Today's pulse: owner-only, show if any snippet has data
   const pulseStats = PULSE_KEYS
     .filter((key) => hasModuleAccess(permissions, key) && snippets[key])
     .map((key) => {
@@ -142,27 +146,54 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
   const showPulse = permissions.global_role === "owner" && pulseStats.length > 0;
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Zone 1 — Greeting */}
-      <div className="rounded-xl border border-border bg-card px-6 py-7 shadow-sm">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-7)" }}>
+      {/* Greeting hero */}
+      <div
+        style={{
+          borderRadius: "var(--r-lg)",
+          border: "1px solid var(--line)",
+          background: "var(--surface)",
+          padding: "var(--s-6) var(--s-6)",
+        }}
+      >
+        <span className="eyebrow" style={{ color: "var(--fg-4)", display: "block", marginBottom: 8 }}>
           {today}
-        </p>
-        <h1 className="mt-2 font-serif text-4xl text-foreground">
-          Good to see you, <em>{firstName}.</em>
+        </span>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 40,
+            fontWeight: 400,
+            fontStyle: "italic",
+            color: "var(--fg)",
+            fontFamily: "var(--font-display)",
+            letterSpacing: "-0.005em",
+            lineHeight: 1.05,
+          }}
+        >
+          {timeGreeting()}, {firstName}.
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p
+          className="script"
+          style={{
+            margin: 0,
+            marginTop: 10,
+            fontSize: 28,
+            color: "var(--bronze)",
+            lineHeight: 1,
+          }}
+        >
           {totalAlerts > 0
-            ? `You have ${totalAlerts} item${totalAlerts !== 1 ? "s" : ""} that need your attention.`
-            : "Everything looks good — here's your overview."}
+            ? `${totalAlerts} item${totalAlerts !== 1 ? "s" : ""} need your eye today.`
+            : "Everything looks good — sharp eye today."}
         </p>
       </div>
 
-      {/* Zone 2 — Needs Attention (only when alerts > 0) */}
+      {/* Needs attention */}
       {totalAlerts > 0 && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-foreground">Needs attention</p>
-          <div className="flex flex-wrap gap-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+          <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Needs attention</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-3)" }}>
             {Object.entries(alerts).map(([key, alert]) => {
               const mod = ALL_MODULES.find((m) => m.key === key);
               if (!mod) return null;
@@ -171,16 +202,34 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
                 <Link
                   key={key}
                   href={mod.href}
-                  className="flex items-center gap-3 rounded-lg border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/30"
+                  style={{
+                    display: "flex", alignItems: "center", gap: "var(--s-3)",
+                    borderRadius: "var(--r-lg)",
+                    border: "1px solid var(--warn)",
+                    background: "var(--warn-soft)",
+                    padding: "var(--s-3) var(--s-4)",
+                    color: "var(--warn)",
+                    textDecoration: "none",
+                    transition: "opacity var(--dur) var(--ease)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-500/15">
-                    <Icon className="size-4" />
+                  <div
+                    style={{
+                      width: 32, height: 32, flexShrink: 0,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      borderRadius: "var(--r-sm)",
+                      background: "rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <Icon style={{ width: 16, height: 16 }} />
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-semibold leading-none">{mod.label}</span>
-                    <span className="text-xs leading-none opacity-80">{alert.label}</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1 }}>{mod.label}</span>
+                    <span style={{ fontSize: 12, lineHeight: 1, opacity: 0.8 }}>{alert.label}</span>
                   </div>
-                  <ArrowRightIcon className="ml-2 size-3.5 shrink-0 opacity-60" />
+                  <ArrowRightIcon style={{ width: 13, height: 13, marginLeft: 4, opacity: 0.6, flexShrink: 0 }} />
                 </Link>
               );
             })}
@@ -188,82 +237,117 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
         </div>
       )}
 
-      {/* Zone 3a — Today's pulse (owner only) */}
+      {/* Today's pulse (owner only) */}
       {showPulse && (
-        <div className="border-t border-border/40 pt-4">
-          <div className="flex items-center gap-6 flex-wrap">
+        <div style={{ borderTop: "1px solid var(--line)", paddingTop: "var(--s-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-6)", flexWrap: "wrap" }}>
             {pulseStats.map(({ key, label, value }) => (
-              <div key={key} className="flex flex-col gap-0.5">
-                <span className="font-mono text-xs text-muted-foreground">{label}</span>
-                <span className="text-sm font-medium text-foreground">{value}</span>
+              <div key={key} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>{value}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Zone 3b — Module grid (two-tier) */}
-      <div className="flex flex-col gap-6">
-        {/* Tier 1 — Operations */}
+      {/* Module grid */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+        {/* Operations tier */}
         {operationsModules.length > 0 && (
           <div>
-            <p className="mb-4 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/60">
-              Operations
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-4)", display: "block" }}>Operations</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
               {operationsModules.map((mod) => {
                 const Icon = mod.icon;
                 const alert = alerts[mod.key];
                 const snippet = snippets[mod.key];
                 return (
-                  <Link key={mod.key} href={mod.href} className="group">
+                  <Link
+                    key={mod.key}
+                    href={mod.href}
+                    style={{ textDecoration: "none" }}
+                    className="group"
+                  >
                     <div
-                      className={`flex h-full flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                        alert
-                          ? "border-amber-200/80 bg-amber-50/50 dark:border-amber-800/40 dark:bg-amber-900/10"
-                          : "border-border hover:border-border/60"
-                      }`}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--s-4)",
+                        borderRadius: "var(--r-lg)",
+                        border: `1px solid ${alert ? "var(--warn)" : "var(--line)"}`,
+                        background: alert ? "var(--warn-soft)" : "var(--surface)",
+                        padding: "var(--s-5)",
+                        height: "100%",
+                        transition: "all var(--dur-2) var(--ease)",
+                        boxSizing: "border-box",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+                        (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-2)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.transform = "none";
+                        (e.currentTarget as HTMLElement).style.boxShadow = "none";
+                      }}
                     >
-                      {/* Icon + arrow row */}
-                      <div className="flex items-start justify-between">
+                      {/* Icon + arrow */}
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                         <div
-                          className="flex h-9 w-9 items-center justify-center rounded-lg"
-                          style={{ background: `color-mix(in oklch, ${mod.accent} 15%, transparent)` }}
+                          style={{
+                            width: 36, height: 36, flexShrink: 0,
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            borderRadius: "var(--r-sm)",
+                            background: alert ? "rgba(0,0,0,0.06)" : mod.accentBg,
+                          }}
                         >
-                          <Icon
-                            className="size-4"
-                            style={{ color: mod.accent }}
-                          />
+                          <Icon style={{ width: 16, height: 16, color: alert ? "var(--warn)" : mod.accentColor }} />
                         </div>
-                        <ArrowRightIcon className="size-4 text-muted-foreground/30 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-muted-foreground/70" />
+                        <ArrowRightIcon
+                          style={{ width: 14, height: 14, color: "var(--fg-4)", flexShrink: 0, transition: "transform var(--dur) var(--ease)" }}
+                          className="group-hover:translate-x-0.5"
+                        />
                       </div>
 
                       {/* Content */}
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{mod.label}</span>
+                      <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: alert ? "var(--warn)" : "var(--fg)" }}>
+                            {mod.label}
+                          </span>
                           {alert && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200">
-                              <AlertTriangleIcon className="size-2.5" />
+                            <span
+                              style={{
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                borderRadius: "var(--r-pill)",
+                                padding: "2px 6px",
+                                fontSize: 10, fontWeight: 600,
+                                background: "rgba(0,0,0,0.1)",
+                                color: "var(--warn)",
+                              }}
+                            >
+                              <AlertTriangleIcon style={{ width: 10, height: 10 }} />
                               {alert.count}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs leading-relaxed text-muted-foreground">{mod.description}</p>
+                        <p style={{ fontSize: 12, lineHeight: 1.5, color: alert ? "var(--warn)" : "var(--fg-4)", margin: 0 }}>
+                          {mod.description}
+                        </p>
                       </div>
 
                       {/* Footer */}
-                      <div className="border-t border-border/40 pt-3">
+                      <div style={{ borderTop: `1px solid ${alert ? "rgba(0,0,0,0.1)" : "var(--line)"}`, paddingTop: "var(--s-3)" }}>
                         {alert ? (
-                          <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--warn)" }}>
                             {alert.label} →
                           </span>
                         ) : snippet ? (
-                          <span className="font-mono text-xs font-medium text-foreground/70 transition-colors group-hover:text-foreground">
+                          <span className="mono" style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-3)" }}>
                             {snippet}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground/50 transition-colors group-hover:text-muted-foreground">
+                          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
                             Open {mod.label.toLowerCase()} →
                           </span>
                         )}
@@ -276,22 +360,31 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
           </div>
         )}
 
-        {/* Tier 2 — Tools */}
+        {/* Tools tier */}
         {toolsModules.length > 0 && (
           <div>
-            <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/60">
-              Tools
-            </p>
-            <div className="flex flex-wrap gap-2">
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)", display: "block" }}>Tools</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)" }}>
               {toolsModules.map((mod) => {
                 const Icon = mod.icon;
                 return (
                   <Link
                     key={mod.key}
                     href={mod.href}
-                    className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      borderRadius: "var(--r-lg)",
+                      border: "1px solid var(--line)",
+                      background: "var(--surface)",
+                      padding: "var(--s-2) var(--s-3)",
+                      fontSize: 13, color: "var(--fg)",
+                      textDecoration: "none",
+                      transition: "all var(--dur) var(--ease)",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
                   >
-                    <Icon className="size-3.5" />
+                    <Icon style={{ width: 14, height: 14 }} />
                     <span>{mod.label}</span>
                   </Link>
                 );

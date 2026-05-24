@@ -54,20 +54,17 @@ function countAtSlot(
   return n;
 }
 
-// Inline styles for colors — NOT Tailwind classes — so they render regardless of
-// which source files are included in the Tailwind content config.
-// Monochrome blue gradient: 0 = transparent (shows background), 4+ = dark navy.
 const CELL_BORDER: React.CSSProperties = {
-  border: "1px solid rgba(148,163,184,0.28)",
+  border: "1px solid var(--line)",
   boxSizing: "border-box",
 };
 
 function cellStyle(count: number): React.CSSProperties {
-  if (count === 0) return { backgroundColor: "transparent", color: "transparent", ...CELL_BORDER };
-  if (count === 1) return { backgroundColor: "#bfdbfe", color: "#1e40af", ...CELL_BORDER };
-  if (count === 2) return { backgroundColor: "#60a5fa", color: "#ffffff", ...CELL_BORDER };
-  if (count === 3) return { backgroundColor: "#2563eb", color: "#ffffff", ...CELL_BORDER };
-  return               { backgroundColor: "#1e3a8a", color: "#bfdbfe", ...CELL_BORDER };
+  if (count === 0) return { backgroundColor: "var(--bg-2)", color: "transparent", ...CELL_BORDER };
+  if (count === 1) return { backgroundColor: "var(--bronze-soft)", color: "var(--bronze)", ...CELL_BORDER };
+  if (count === 2) return { backgroundColor: "var(--info-soft)", color: "var(--info)", ...CELL_BORDER };
+  if (count === 3) return { backgroundColor: "var(--info)", color: "var(--surface)", ...CELL_BORDER };
+  return               { backgroundColor: "var(--bronze)", color: "var(--surface)", ...CELL_BORDER };
 }
 
 const DAY_LABEL_STYLE: React.CSSProperties = {
@@ -77,7 +74,7 @@ const DAY_LABEL_STYLE: React.CSSProperties = {
   paddingRight: 10,
   fontSize: 11,
   fontWeight: 500,
-  color: "var(--muted-foreground)",
+  color: "var(--fg-4)",
   whiteSpace: "nowrap",
   userSelect: "none",
 };
@@ -89,13 +86,13 @@ export function ScheduleHeatmap({ grid, weekDays, employees }: Props) {
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <h2 className="text-sm font-semibold text-foreground">Staffing coverage</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">30-minute coverage by day</p>
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", margin: 0 }}>Staffing coverage</h2>
+        <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>30-minute coverage by day</p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card p-4">
+      <div style={{ overflowX: "auto", borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16 }}>
 
         {/* ── Time label header ─────────────────────────────────────
             One label per full hour, left-aligned to the :00 cell's edge
@@ -119,7 +116,7 @@ export function ScheduleHeatmap({ grid, weekDays, employees }: Props) {
                   textAlign: "left",
                   fontSize: 9,
                   fontWeight: 600,
-                  color: "var(--muted-foreground)",
+                  color: "var(--fg-4)",
                   opacity: 0.75,
                   lineHeight: 1,
                   paddingBottom: 3,
@@ -195,7 +192,7 @@ export function ScheduleHeatmap({ grid, weekDays, employees }: Props) {
           <span
             style={{
               fontSize: 10,
-              color: "var(--muted-foreground)",
+              color: "var(--fg-4)",
               opacity: 0.7,
               marginRight: 2,
             }}
@@ -225,7 +222,7 @@ export function ScheduleHeatmap({ grid, weekDays, employees }: Props) {
                 <span
                   style={{
                     fontSize: 10,
-                    color: "var(--muted-foreground)",
+                    color: "var(--fg-4)",
                     opacity: 0.6,
                   }}
                 >

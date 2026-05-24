@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { ChevronDownIcon } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
+import { Stat } from "@/components/ui/stat";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,40 +102,59 @@ function ShopSelector({
     : `${selected.length} shops`;
 
   return (
-    <div className="relative">
+    <div style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-between gap-2 h-8 min-w-[120px] px-3 rounded-md border border-border bg-background text-xs font-medium hover:bg-muted/40 transition-colors"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          height: 32, minWidth: 120, padding: "0 var(--s-3)",
+          borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+          background: "var(--bg)", fontSize: 13, color: "var(--fg)",
+          cursor: "pointer", transition: "background var(--dur) var(--ease)",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg)")}
       >
-        {label}
-        <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+        <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+        <ChevronDownIcon style={{ width: 13, height: 13, color: "var(--fg-4)", flexShrink: 0 }} />
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-9 z-20 min-w-[160px] rounded-lg border border-border bg-popover shadow-lg p-1.5 flex flex-col gap-0.5">
-            <label className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent/40 cursor-pointer text-xs font-medium">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={toggleAll}
-                className="rounded"
-              />
+          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
+          <div
+            style={{
+              position: "absolute", left: 0, top: 36, zIndex: 20,
+              minWidth: 160, borderRadius: "var(--r-md)", border: "1px solid var(--line)",
+              background: "var(--surface)", boxShadow: "var(--shadow-2)",
+              padding: "var(--s-1)", display: "flex", flexDirection: "column", gap: 2,
+            }}
+          >
+            <label
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "6px var(--s-3)", borderRadius: "var(--r-sm)",
+                fontSize: 13, fontWeight: 500, cursor: "pointer",
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+            >
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
               All shops
             </label>
-            <div className="h-px bg-border/50 my-1" />
+            <div style={{ height: 1, background: "var(--line)", margin: "2px 0" }} />
             {locations.map((loc) => (
               <label
                 key={loc.id}
-                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent/40 cursor-pointer text-xs"
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px var(--s-3)", borderRadius: "var(--r-sm)",
+                  fontSize: 13, cursor: "pointer",
+                }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
               >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(loc.id)}
-                  onChange={() => toggle(loc.id)}
-                  className="rounded"
-                />
+                <input type="checkbox" checked={selected.includes(loc.id)} onChange={() => toggle(loc.id)} />
                 {loc.name}
               </label>
             ))}
@@ -149,26 +171,37 @@ function KpiCard({
   label,
   value,
   sub,
-  color = "default",
+  tone = "neutral",
 }: {
   label: string;
   value: string;
   sub?: string;
-  color?: "default" | "green" | "red" | "blue";
+  tone?: "neutral" | "good" | "bad" | "info";
 }) {
-  const valueColor =
-    color === "green"
-      ? "text-emerald-700 dark:text-emerald-400"
-      : color === "red"
-      ? "text-destructive"
-      : color === "blue"
-      ? "text-blue-600 dark:text-blue-400"
-      : "text-foreground";
+  const deltaDir = tone === "good" ? "up" as const : tone === "bad" ? "down" as const : "neutral" as const;
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1">
-      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
-      <p className={`text-2xl font-bold tabular-nums ${valueColor}`}>{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+    <div
+      style={{
+        borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+        background: "var(--surface)", padding: "var(--s-5)",
+      }}
+    >
+      <Stat label={label} value={value} deltaDir={deltaDir} hint={sub} />
+    </div>
+  );
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+
+function SectionHeader({ label, bg, color }: { label: string; bg: string; color: string }) {
+  return (
+    <div
+      style={{
+        padding: "10px var(--s-5)", borderBottom: "1px solid var(--line)",
+        background: bg,
+      }}
+    >
+      <h3 className="eyebrow" style={{ color, margin: 0 }}>{label}</h3>
     </div>
   );
 }
@@ -208,22 +241,16 @@ function Controls({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
       {quickBtns.map((b) => (
-        <Button key={b.label} variant="outline" size="sm" className="h-8 text-xs" onClick={b.fn}>
+        <Button key={b.label} variant="secondary" size="sm" onClick={b.fn}>
           {b.label}
         </Button>
       ))}
-      <div className="flex items-center gap-1 ml-1">
-        <DateInput
-          value={from}
-          onChange={(e) => onFromChange(e.target.value)}
-        />
-        <span className="text-xs text-muted-foreground">–</span>
-        <DateInput
-          value={to}
-          onChange={(e) => onToChange(e.target.value)}
-        />
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
+        <DateInput value={from} onChange={(e) => onFromChange(e.target.value)} />
+        <span style={{ fontSize: 12, color: "var(--fg-4)" }}>–</span>
+        <DateInput value={to} onChange={(e) => onToChange(e.target.value)} />
       </div>
       {locations.length > 0 && (
         <ShopSelector locations={locations} selected={selectedShops} onChange={onShopsChange} />
@@ -245,69 +272,74 @@ function OperationsView({ data }: { data: AccountingData }) {
   const sortedShops = [...byShop].sort((a, b) => b.revenue - a.revenue);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* KPI Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
         <KpiCard label="Total Revenue" value={`฿${fmtN(o.revenue)}`} />
-        <KpiCard label="Total Expenses" value={`฿${fmtN(o.expenses + o.hrCosts)}`} color="red" />
+        <KpiCard label="Total Expenses" value={`฿${fmtN(o.expenses + o.hrCosts)}`} tone="bad" />
         <KpiCard
           label="Net Profit"
           value={`฿${fmtN(o.netProfit)}`}
-          color={o.netProfit >= 0 ? "green" : "red"}
+          tone={o.netProfit >= 0 ? "good" : "bad"}
         />
         <KpiCard
           label="Net Margin"
           value={fmtPct(o.margin)}
-          color={o.margin >= 20 ? "green" : o.margin >= 0 ? "default" : "red"}
+          tone={o.margin >= 20 ? "good" : o.margin >= 0 ? "neutral" : "bad"}
         />
       </div>
 
       {/* Revenue by category */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-emerald-500/[0.12]">
-          <h3 className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Revenue by category</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="text-xs w-full border-collapse">
-            <thead className="bg-muted/30">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Category</th>
+      <div
+        style={{
+          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+          background: "var(--surface)", overflow: "hidden",
+        }}
+      >
+        <SectionHeader label="Revenue by category" bg="var(--good-soft)" color="var(--good)" />
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "var(--bg-2)" }}>
+                <th style={{ padding: "8px var(--s-5)", textAlign: "left", color: "var(--fg-3)", fontWeight: 500 }}>Category</th>
                 {sortedShops.map((s) => (
-                  <th key={s.locationId} className="px-4 py-2 text-right font-medium text-muted-foreground whitespace-nowrap">
+                  <th key={s.locationId} style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500, whiteSpace: "nowrap" }}>
                     {s.locationName}
                   </th>
                 ))}
-                <th className="px-4 py-2 text-right font-semibold text-foreground">Total</th>
+                <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg)", fontWeight: 600 }}>Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/30">
-              {[
-                { key: "drinks" as const, label: "Drinks" },
-                { key: "tickets" as const, label: "Tickets" },
-                { key: "snacks" as const, label: "Snacks" },
-                { key: "goodies" as const, label: "Goodies" },
-                { key: "surcharge" as const, label: "Card surcharge" },
-              ].map(({ key, label }) => (
-                <tr key={key} className="hover:bg-muted/10 transition-colors">
-                  <td className="px-4 py-2 text-muted-foreground">{label}</td>
-                  {sortedShops.map((s) => (
-                    <td key={s.locationId} className="px-4 py-2 text-right tabular-nums">
-                      {s[key] > 0 ? fmtN(s[key]) : <span className="text-muted-foreground/30">—</span>}
+            <tbody>
+              {(["drinks", "tickets", "snacks", "goodies", "surcharge"] as const).map((key, i) => {
+                const labels: Record<string, string> = { drinks: "Drinks", tickets: "Tickets", snacks: "Snacks", goodies: "Goodies", surcharge: "Card surcharge" };
+                return (
+                  <tr
+                    key={key}
+                    style={{ borderTop: i === 0 ? "1px solid var(--line)" : "1px solid var(--line)" }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+                  >
+                    <td style={{ padding: "8px var(--s-5)", color: "var(--fg-3)" }}>{labels[key]}</td>
+                    {sortedShops.map((s) => (
+                      <td key={s.locationId} className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        {s[key] > 0 ? fmtN(s[key]) : <span style={{ color: "var(--fg-mute)" }}>—</span>}
+                      </td>
+                    ))}
+                    <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                      {fmtN(sortedShops.reduce((sum, s) => sum + s[key], 0))}
                     </td>
-                  ))}
-                  <td className="px-4 py-2 text-right tabular-nums font-medium">
-                    {fmtN(sortedShops.reduce((sum, s) => sum + s[key], 0))}
-                  </td>
-                </tr>
-              ))}
-              <tr className="bg-muted/20 font-semibold border-t-2 border-border">
-                <td className="px-4 py-2">Total revenue</td>
+                  </tr>
+                );
+              })}
+              <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
+                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total revenue</td>
                 {sortedShops.map((s) => (
-                  <td key={s.locationId} className="px-4 py-2 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
+                  <td key={s.locationId} className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)", fontWeight: 500 }}>
                     {fmtN(s.revenue)}
                   </td>
                 ))}
-                <td className="px-4 py-2 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
+                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)", fontWeight: 700 }}>
                   {fmtN(o.revenue)}
                 </td>
               </tr>
@@ -317,105 +349,113 @@ function OperationsView({ data }: { data: AccountingData }) {
       </div>
 
       {/* Payment method split */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-blue-500/[0.12]">
-          <h3 className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Payment methods</h3>
-        </div>
-        <div className="p-4 grid grid-cols-3 gap-4">
+      <div
+        style={{
+          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+          background: "var(--surface)", overflow: "hidden",
+        }}
+      >
+        <SectionHeader label="Payment methods" bg="var(--info-soft)" color="var(--info)" />
+        <div style={{ padding: "var(--s-5)", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-5)" }}>
           {[
             { label: "Cash", value: o.cash },
             { label: "Scan / QR", value: o.scan },
             { label: "Credit card", value: o.creditCard },
           ].map(({ label, value }) => (
-            <div key={label} className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-lg font-bold tabular-nums">฿{fmtN(value)}</p>
-              <p className="text-xs text-muted-foreground">{pct(value)} of payments</p>
+            <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{label}</p>
+              <p className="mono" style={{ fontSize: 20, fontWeight: 700, margin: 0, fontVariantNumeric: "tabular-nums" }}>฿{fmtN(value)}</p>
+              <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{pct(value)} of payments</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Expenses + HR */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-amber-500/[0.12]">
-          <h3 className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Expenses &amp; HR</h3>
-        </div>
-        <div className="p-4 grid grid-cols-3 gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-muted-foreground">Expenses</p>
-            <p className="text-lg font-bold tabular-nums text-destructive">฿{fmtN(o.expenses)}</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-muted-foreground">HR costs</p>
-            <p className="text-lg font-bold tabular-nums text-destructive">฿{fmtN(o.hrCosts)}</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-muted-foreground">Grand total costs</p>
-            <p className="text-lg font-bold tabular-nums text-destructive">฿{fmtN(o.expenses + o.hrCosts)}</p>
-          </div>
+      <div
+        style={{
+          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+          background: "var(--surface)", overflow: "hidden",
+        }}
+      >
+        <SectionHeader label="Expenses &amp; HR" bg="var(--warn-soft)" color="var(--warn)" />
+        <div style={{ padding: "var(--s-5)", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-5)" }}>
+          {[
+            { label: "Expenses", value: o.expenses },
+            { label: "HR costs", value: o.hrCosts },
+            { label: "Grand total costs", value: o.expenses + o.hrCosts },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{label}</p>
+              <p className="mono" style={{ fontSize: 20, fontWeight: 700, color: "var(--bad)", margin: 0, fontVariantNumeric: "tabular-nums" }}>฿{fmtN(value)}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Per-shop comparison */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-slate-500/[0.12]">
-          <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Per-shop comparison</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="text-xs w-full border-collapse">
-            <thead className="bg-muted/30">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium text-muted-foreground">Shop</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Revenue</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Expenses</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">HR</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Net Profit</th>
-                <th className="px-4 py-2 text-right font-medium text-muted-foreground">Margin</th>
+      <div
+        style={{
+          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+          background: "var(--surface)", overflow: "hidden",
+        }}
+      >
+        <SectionHeader label="Per-shop comparison" bg="var(--bg-2)" color="var(--fg-3)" />
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "var(--bg-2)" }}>
+                {["Shop", "Revenue", "Expenses", "HR", "Net Profit", "Margin"].map((h, i) => (
+                  <th
+                    key={h}
+                    style={{
+                      padding: "8px var(--s-5)", textAlign: i === 0 ? "left" : "right",
+                      color: "var(--fg-3)", fontWeight: 500, borderTop: "1px solid var(--line)",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/30">
+            <tbody>
               {sortedShops.map((s) => (
-                <tr key={s.locationId} className="hover:bg-muted/10 transition-colors">
-                  <td className="px-4 py-2 font-medium">{s.locationName}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">฿{fmtN(s.revenue)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(s.expenses)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(s.hrCosts)}</td>
-                  <td className={`px-4 py-2 text-right tabular-nums font-medium ${s.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                <tr
+                  key={s.locationId}
+                  style={{ borderTop: "1px solid var(--line)" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+                >
+                  <td style={{ padding: "10px var(--s-5)", fontWeight: 500 }}>{s.locationName}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.revenue)}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.expenses)}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.hrCosts)}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontWeight: 500, color: s.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
                     ฿{fmtN(s.netProfit)}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums ${
-                      s.margin >= 20
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : s.margin >= 0
-                        ? "bg-muted text-muted-foreground"
-                        : "bg-destructive/10 text-destructive"
-                    }`}>
+                  <td style={{ padding: "10px var(--s-5)", textAlign: "right" }}>
+                    <Pill
+                      tone={s.margin >= 20 ? "good" : s.margin >= 0 ? "neutral" : "bad"}
+                      size="sm"
+                    >
                       {fmtPct(s.margin)}
-                    </span>
+                    </Pill>
                   </td>
                 </tr>
               ))}
               {sortedShops.length > 1 && (
-                <tr className="bg-muted/20 font-semibold border-t-2 border-border text-xs">
-                  <td className="px-4 py-2">Total</td>
-                  <td className="px-4 py-2 text-right tabular-nums">฿{fmtN(o.revenue)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(o.expenses)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">฿{fmtN(o.hrCosts)}</td>
-                  <td className={`px-4 py-2 text-right tabular-nums font-bold ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
+                  <td style={{ padding: "10px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)" }}>฿{fmtN(o.revenue)}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.expenses)}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.hrCosts)}</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontWeight: 700, color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
                     ฿{fmtN(o.netProfit)}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
-                      o.margin >= 20
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : o.margin >= 0
-                        ? "bg-muted text-muted-foreground"
-                        : "bg-destructive/10 text-destructive"
-                    }`}>
+                  <td style={{ padding: "10px var(--s-5)", textAlign: "right" }}>
+                    <Pill tone={o.margin >= 20 ? "good" : o.margin >= 0 ? "neutral" : "bad"} size="sm">
                       {fmtPct(o.margin)}
-                    </span>
+                    </Pill>
                   </td>
                 </tr>
               )}
@@ -427,9 +467,9 @@ function OperationsView({ data }: { data: AccountingData }) {
   );
 }
 
-// ── CEO View ──────────────────────────────────────────────────────────────────
+// ── Treasury (CEO) View ───────────────────────────────────────────────────────
 
-function CeoView({ data }: { data: AccountingData }) {
+function TreasuryView({ data }: { data: AccountingData }) {
   const { overview: o, byShop } = data;
 
   const sortedShops = [...byShop].sort((a, b) => b.revenue - a.revenue);
@@ -438,82 +478,101 @@ function CeoView({ data }: { data: AccountingData }) {
   const bottom = sortedShops[sortedShops.length - 1];
 
   return (
-    <div className="flex flex-col gap-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       {/* 3 large KPI tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Revenue</p>
-          <p className="text-4xl font-extrabold tabular-nums">฿{fmtN(o.revenue)}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-4)" }}>
+        <div
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--surface)", padding: "var(--s-6)",
+            display: "flex", flexDirection: "column", gap: 8,
+          }}
+        >
+          <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Revenue</p>
+          <p className="mono" style={{ fontSize: 36, fontWeight: 800, margin: 0, fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.revenue)}</p>
         </div>
-        <div className={`rounded-xl border border-border p-6 flex flex-col gap-2 ${o.netProfit >= 0 ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50" : "bg-destructive/5 border-destructive/20"}`}>
-          <p className={`text-xs font-semibold uppercase tracking-widest ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>Net Profit</p>
-          <p className={`text-4xl font-extrabold tabular-nums ${o.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-destructive"}`}>
+        <div
+          style={{
+            borderRadius: "var(--r-lg)",
+            border: `1px solid ${o.netProfit >= 0 ? "var(--good)" : "var(--bad)"}`,
+            background: o.netProfit >= 0 ? "var(--good-soft)" : "var(--bad-soft)",
+            padding: "var(--s-6)", display: "flex", flexDirection: "column", gap: 8,
+          }}
+        >
+          <p className="eyebrow" style={{ color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", margin: 0 }}>Net Profit</p>
+          <p className="mono" style={{ fontSize: 36, fontWeight: 800, margin: 0, color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
             ฿{fmtN(o.netProfit)}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Margin</p>
-          <p className={`text-4xl font-extrabold tabular-nums ${o.margin >= 20 ? "text-emerald-700 dark:text-emerald-400" : o.margin >= 0 ? "text-foreground" : "text-destructive"}`}>
+        <div
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--surface)", padding: "var(--s-6)",
+            display: "flex", flexDirection: "column", gap: 8,
+          }}
+        >
+          <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Margin</p>
+          <p className="mono" style={{ fontSize: 36, fontWeight: 800, margin: 0, color: o.margin >= 20 ? "var(--good)" : o.margin >= 0 ? "var(--fg)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
             {fmtPct(o.margin)}
           </p>
         </div>
       </div>
 
-      {/* Revenue vs Expenses per shop — CSS bars */}
+      {/* Revenue vs Expenses per shop */}
       {sortedShops.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
-          <h3 className="text-sm font-semibold text-foreground">Revenue vs. Expenses by shop</h3>
-          <div className="flex flex-col gap-5">
+        <div
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--surface)", padding: "var(--s-5)",
+            display: "flex", flexDirection: "column", gap: "var(--s-5)",
+          }}
+        >
+          <h3 style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>Revenue vs. Expenses by shop</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
             {sortedShops.map((s) => {
               const revPct = (s.revenue / maxRevenue) * 100;
-              const expPct = (((s.expenses + s.hrCosts) / maxRevenue) * 100);
+              const expPct = ((s.expenses + s.hrCosts) / maxRevenue) * 100;
               return (
-                <div key={s.locationId} className="flex flex-col gap-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-medium">{s.locationName}</span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                <div key={s.locationId} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500 }}>{s.locationName}</span>
+                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>
                         {o.revenue > 0 ? fmtPct((s.revenue / o.revenue) * 100) : "—"} of revenue
                       </span>
                     </div>
-                    <span className={`text-xs font-semibold tabular-nums ${s.netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}`}>
+                    <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: s.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
                       {s.netProfit >= 0 ? "+" : ""}฿{fmtN(s.netProfit)}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground w-14 text-right">฿{fmtN(s.revenue)}</span>
-                      <div className="flex-1 h-4 rounded-full bg-muted/40 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-emerald-500/80"
-                          style={{ width: `${revPct}%` }}
-                        />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)", width: 64, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.revenue)}</span>
+                      <div style={{ flex: 1, height: 14, borderRadius: "var(--r-pill)", background: "var(--bg-2)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: "var(--r-pill)", background: "var(--good)", opacity: 0.7, width: `${revPct}%` }} />
                       </div>
-                      <span className="text-[10px] text-muted-foreground w-10">Rev</span>
+                      <span style={{ fontSize: 11, color: "var(--fg-4)", width: 40 }}>Rev</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground w-14 text-right">฿{fmtN(s.expenses + s.hrCosts)}</span>
-                      <div className="flex-1 h-4 rounded-full bg-muted/40 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-rose-400/80"
-                          style={{ width: `${expPct}%` }}
-                        />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)", width: 64, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.expenses + s.hrCosts)}</span>
+                      <div style={{ flex: 1, height: 14, borderRadius: "var(--r-pill)", background: "var(--bg-2)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: "var(--r-pill)", background: "var(--bad)", opacity: 0.6, width: `${expPct}%` }} />
                       </div>
-                      <span className="text-[10px] text-muted-foreground w-10">Exp+HR</span>
+                      <span style={{ fontSize: 11, color: "var(--fg-4)", width: 40 }}>Exp+HR</span>
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div className="flex gap-4 pt-1 border-t border-border/40">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-              <span className="text-xs text-muted-foreground">Revenue</span>
+          <div style={{ display: "flex", gap: "var(--s-4)", paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 12, height: 12, borderRadius: "var(--r-pill)", background: "var(--good)", opacity: 0.7 }} />
+              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Revenue</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-rose-400/80" />
-              <span className="text-xs text-muted-foreground">Expenses + HR</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 12, height: 12, borderRadius: "var(--r-pill)", background: "var(--bad)", opacity: 0.6 }} />
+              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Expenses + HR</span>
             </div>
           </div>
         </div>
@@ -521,19 +580,33 @@ function CeoView({ data }: { data: AccountingData }) {
 
       {/* Top / bottom callouts */}
       {sortedShops.length >= 2 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-4)" }}>
           {top && (
-            <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 p-5">
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-2">Top performer</p>
-              <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{top.locationName}</p>
-              <p className="text-sm text-emerald-700/80 dark:text-emerald-400/80 mt-1">฿{fmtN(top.revenue)} revenue · {fmtPct(top.margin)} margin</p>
+            <div
+              style={{
+                borderRadius: "var(--r-lg)", border: "1px solid var(--good)",
+                background: "var(--good-soft)", padding: "var(--s-5)",
+              }}
+            >
+              <p className="eyebrow" style={{ color: "var(--good)", marginBottom: 8, marginTop: 0 }}>Top performer</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--good)", margin: 0 }}>{top.locationName}</p>
+              <p style={{ fontSize: 13, color: "var(--good)", opacity: 0.8, marginTop: 4, marginBottom: 0 }}>
+                ฿{fmtN(top.revenue)} revenue · {fmtPct(top.margin)} margin
+              </p>
             </div>
           )}
           {bottom && bottom.locationId !== top?.locationId && (
-            <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 p-5">
-              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2">Needs attention</p>
-              <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{bottom.locationName}</p>
-              <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mt-1">฿{fmtN(bottom.revenue)} revenue · {fmtPct(bottom.margin)} margin</p>
+            <div
+              style={{
+                borderRadius: "var(--r-lg)", border: "1px solid var(--warn)",
+                background: "var(--warn-soft)", padding: "var(--s-5)",
+              }}
+            >
+              <p className="eyebrow" style={{ color: "var(--warn)", marginBottom: 8, marginTop: 0 }}>Needs attention</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--warn)", margin: 0 }}>{bottom.locationName}</p>
+              <p style={{ fontSize: 13, color: "var(--warn)", opacity: 0.8, marginTop: 4, marginBottom: 0 }}>
+                ฿{fmtN(bottom.revenue)} revenue · {fmtPct(bottom.margin)} margin
+              </p>
             </div>
           )}
         </div>
@@ -544,8 +617,15 @@ function CeoView({ data }: { data: AccountingData }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+type ReportsTab = "operations" | "treasury";
+
+const TABS: { value: ReportsTab; label: string }[] = [
+  { value: "operations", label: "Operations" },
+  { value: "treasury", label: "Treasury" },
+];
+
 export function ReportsClient() {
-  const [activeTab, setActiveTab] = useState<"operations" | "ceo">("operations");
+  const [activeTab, setActiveTab] = useState<ReportsTab>("operations");
   const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
@@ -570,13 +650,11 @@ export function ReportsClient() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     void fetchData(from, to, [], []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-fetch on param changes (skip initial)
   const [initialized, setInitialized] = useState(false);
   useEffect(() => {
     if (!initialized) { setInitialized(true); return; }
@@ -585,27 +663,32 @@ export function ReportsClient() {
   }, [from, to, selectedShops]);
 
   return (
-    <div className="flex flex-col gap-6 p-6 w-full">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Reports</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Financial performance across all shops</p>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+      <PageHeader
+        eyebrow="Financial performance"
+        title="Reports"
+        subtitle="Revenue, costs, and shop comparison across the selected period."
+      />
 
-      {/* Tabs */}
-      <div className="flex rounded-md border border-border overflow-hidden text-xs w-fit">
-        {(["operations", "ceo"] as const).map((tab, i) => (
+      {/* Tab bar */}
+      <div style={{ display: "flex", borderBottom: "1px solid var(--line)", gap: 0 }}>
+        {TABS.map((tab) => (
           <button
-            key={tab}
+            key={tab.value}
             type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 ${i > 0 ? "border-l border-border" : ""} ${
-              activeTab === tab
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "text-muted-foreground hover:bg-muted/40"
-            }`}
+            onClick={() => setActiveTab(tab.value)}
+            style={{
+              padding: "0 var(--s-4)", height: 36, fontSize: 13, fontWeight: 500,
+              border: "none", background: "none", cursor: "pointer",
+              color: activeTab === tab.value ? "var(--fg)" : "var(--fg-4)",
+              borderBottom: activeTab === tab.value ? "2px solid var(--bronze)" : "2px solid transparent",
+              marginBottom: -1,
+              transition: "color var(--dur) var(--ease)",
+            }}
+            onMouseEnter={(e) => { if (activeTab !== tab.value) (e.currentTarget.style.color = "var(--fg-2)"); }}
+            onMouseLeave={(e) => { if (activeTab !== tab.value) (e.currentTarget.style.color = "var(--fg-4)"); }}
           >
-            {tab === "operations" ? "Operations" : "CEO View"}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -623,19 +706,19 @@ export function ReportsClient() {
 
       {/* Content */}
       {loading && (
-        <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
           Loading…
         </div>
       )}
       {!loading && !data && (
-        <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
           No data
         </div>
       )}
       {!loading && data && (
         activeTab === "operations"
           ? <OperationsView data={data} />
-          : <CeoView data={data} />
+          : <TreasuryView data={data} />
       )}
     </div>
   );

@@ -10,7 +10,7 @@ export default async function ReviewsLayout({ children }: { children: React.Reac
   const role = session.user?.role;
 
   return (
-    <div className="space-y-0">
+    <div>
       <ReviewsTabNav role={role} />
       {children}
     </div>

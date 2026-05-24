@@ -23,19 +23,24 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
   ];
 
   return (
-    <div className="mb-4 flex gap-1 border-b border-border pb-0">
+    <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--line)", marginBottom: 24 }}>
       {tabs.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={[
-              "relative px-3 pb-2 pt-1 text-sm font-medium transition-colors",
-              active
-                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
+            style={{
+              position: "relative",
+              padding: "8px 12px 10px",
+              fontSize: 13,
+              fontWeight: 500,
+              color: active ? "var(--fg)" : "var(--fg-4)",
+              textDecoration: "none",
+              borderBottom: active ? "2px solid var(--bronze)" : "2px solid transparent",
+              marginBottom: -1,
+              transition: "color 150ms, border-color 150ms",
+            }}
           >
             {tab.label}
           </Link>

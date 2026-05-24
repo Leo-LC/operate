@@ -1,18 +1,17 @@
 import { ReactNode } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 export interface DetailHeroTag {
   label: string;
   variant: "green" | "amber" | "red" | "blue" | "muted";
 }
 
-const heroTagVariantClasses: Record<DetailHeroTag["variant"], string> = {
-  green: "bg-green-900/30 text-green-300",
-  amber: "bg-amber-900/30 text-amber-300",
-  red: "bg-red-900/30 text-red-300",
-  blue: "bg-blue-900/30 text-blue-300",
-  muted: "bg-white/10 text-[#a08060]",
+const TAG_STYLES: Record<DetailHeroTag["variant"], { bg: string; color: string }> = {
+  green:  { bg: "var(--good-soft)",  color: "var(--good)" },
+  amber:  { bg: "var(--warn-soft)",  color: "var(--warn)" },
+  red:    { bg: "var(--bad-soft)",   color: "var(--bad)" },
+  blue:   { bg: "var(--info-soft)",  color: "var(--info)" },
+  muted:  { bg: "rgba(255,255,255,0.1)", color: "var(--fg-3)" },
 };
 
 export interface DetailHeroProps {
@@ -35,26 +34,20 @@ interface Props {
 
 export function WikiDetailLayout({ breadcrumbs, hero, children }: Props) {
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[11.5px] text-[#a08060]">
+      <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--fg-3)" }}>
         {breadcrumbs.map((item, i) => {
           const isLast = i === breadcrumbs.length - 1;
           return (
-            <span key={item.label} className="flex items-center gap-1.5">
-              {i > 0 && <span className="text-[#D4C4B0]">›</span>}
+            <span key={item.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {i > 0 && <span style={{ color: "var(--line-strong)" }}>›</span>}
               {item.href ? (
-                <Link
-                  href={item.href}
-                  className="transition-colors hover:text-[#B9854E]"
-                >
+                <Link href={item.href} style={{ color: "var(--fg-3)", textDecoration: "none" }}>
                   {item.label}
                 </Link>
               ) : (
-                <span
-                  aria-current={isLast ? "page" : undefined}
-                  className="font-semibold text-[#2F2823]"
-                >
+                <span aria-current={isLast ? "page" : undefined} style={{ fontWeight: 600, color: "var(--fg)" }}>
                   {item.label}
                 </span>
               )}
@@ -64,33 +57,37 @@ export function WikiDetailLayout({ breadcrumbs, hero, children }: Props) {
       </nav>
 
       {/* Hero block */}
-      <div className="flex items-start justify-between gap-4 rounded-[14px] bg-[#2F2823] p-5">
-        <div className="min-w-0">
-          <p className="mb-1 text-[13px] font-bold text-[#F7F2E9]">{hero.name}</p>
-          <p className="mb-3 max-w-md text-[11px] leading-relaxed text-[#7a6a5a]">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, borderRadius: "var(--r-lg)", background: "var(--bg-2)", padding: 20 }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ marginBottom: 4, fontSize: 13, fontWeight: 700, color: "var(--fg)" }}>{hero.name}</p>
+          <p style={{ marginBottom: 12, maxWidth: 440, fontSize: 11, lineHeight: 1.6, color: "var(--fg-4)" }}>
             {hero.subtitle}
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {hero.tags.map((tag) => (
               <span
                 key={tag.label}
-                className={cn(
-                  "rounded px-2 py-0.5 text-[8.5px] font-medium",
-                  heroTagVariantClasses[tag.variant]
-                )}
+                style={{
+                  borderRadius: "var(--r-sm)",
+                  padding: "2px 8px",
+                  fontSize: 8.5,
+                  fontWeight: 500,
+                  background: TAG_STYLES[tag.variant].bg,
+                  color: TAG_STYLES[tag.variant].color,
+                }}
               >
                 {tag.label}
               </span>
             ))}
           </div>
         </div>
-        <span className="shrink-0 font-mono text-[34px] font-extrabold leading-none text-[#B9854E]">
+        <span className="mono" style={{ flexShrink: 0, fontSize: 34, fontWeight: 800, lineHeight: 1, color: "var(--bronze)" }}>
           {hero.rate}
         </span>
       </div>
 
       {/* Page content */}
-      <div className="space-y-8">{children}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>{children}</div>
     </div>
   );
 }
@@ -104,12 +101,10 @@ interface DetailSectionProps {
 
 export function DetailSection({ title, children }: DetailSectionProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[9px] font-bold uppercase tracking-[0.09em] text-[#B9854E]">
-          {title}
-        </span>
-        <span className="h-px flex-1 bg-[#D4C4B0]" />
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="eyebrow" style={{ color: "var(--bronze)" }}>{title}</span>
+        <span style={{ height: 1, flex: 1, background: "var(--line)" }} />
       </div>
       {children}
     </div>
@@ -122,7 +117,7 @@ interface FormulaBlockProps {
 
 export function FormulaBlock({ children }: FormulaBlockProps) {
   return (
-    <div className="rounded-md border border-[#D4C4B0] bg-white px-3 py-2 font-mono text-[13px] text-[#2F2823]">
+    <div className="mono" style={{ borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", padding: "8px 12px", fontSize: 13, color: "var(--fg)" }}>
       {children}
     </div>
   );
@@ -135,10 +130,8 @@ interface ExampleBlockProps {
 
 export function ExampleBlock({ label, children }: ExampleBlockProps) {
   return (
-    <div className="rounded-lg bg-[#F7F2E9] p-3.5">
-      <p className="mb-2 text-[8px] font-bold uppercase tracking-[0.07em] text-[#7a6a5a]">
-        {label}
-      </p>
+    <div style={{ borderRadius: "var(--r-md)", background: "var(--bronze-soft)", padding: 14 }}>
+      <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 8 }}>{label}</p>
       {children}
     </div>
   );
@@ -150,11 +143,11 @@ interface ExampleFlowProps {
 
 export function ExampleFlow({ items }: ExampleFlowProps) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
       {items.map((item, i) => (
-        <span key={item} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-[#B9854E]">→</span>}
-          <span className="rounded border border-[#D4C4B0] bg-white px-2 py-0.5 text-[11px]">
+        <span key={item} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {i > 0 && <span style={{ color: "var(--bronze)" }}>→</span>}
+          <span style={{ borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)", padding: "2px 8px", fontSize: 11 }}>
             {item}
           </span>
         </span>
@@ -170,14 +163,15 @@ interface ThresholdTableProps {
 
 export function ThresholdTable({ headers, rows }: ThresholdTableProps) {
   return (
-    <table className="w-full text-left">
+    <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
       <thead>
         <tr>
           {headers.map((h) => (
             <th
               key={h}
               scope="col"
-              className="border-b border-[#E8DDD0] pb-1.5 text-[8px] font-bold uppercase tracking-[0.06em] text-[#7a6a5a]"
+              className="eyebrow"
+              style={{ borderBottom: "1px solid var(--line)", paddingBottom: 6, color: "var(--fg-3)" }}
             >
               {h}
             </th>
@@ -190,7 +184,7 @@ export function ThresholdTable({ headers, rows }: ThresholdTableProps) {
             {row.map((cell, ci) => (
               <td
                 key={ci}
-                className="border-b border-[#F0E8DC] py-1.5 text-[11.5px] text-[#5c4d3c] last:border-0"
+                style={{ borderBottom: ci < row.length - 1 ? "1px solid var(--line)" : "none", padding: "6px 0", fontSize: 11.5, color: "var(--fg-2)" }}
               >
                 {cell}
               </td>
@@ -208,21 +202,15 @@ interface DeadlineCardsProps {
 
 export function DeadlineCards({ items }: DeadlineCardsProps) {
   return (
-    <div className="flex gap-2">
+    <div style={{ display: "flex", gap: 8 }}>
       {items.map((item) => (
         <div
           key={item.label}
-          className="flex-1 rounded-lg border border-[#E8DDD0] bg-white p-2.5"
+          style={{ flex: 1, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)", padding: 10 }}
         >
-          <p className="mb-0.5 text-[7px] uppercase tracking-[0.07em] text-[#7a6a5a]">
-            {item.label}
-          </p>
-          <p className="font-mono text-[11px] font-bold text-[#2F2823]">
-            {item.value}
-          </p>
-          {item.sub && (
-            <p className="mt-0.5 text-[8.5px] text-[#7a6a5a]">{item.sub}</p>
-          )}
+          <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>{item.label}</p>
+          <p className="mono" style={{ fontSize: 11, fontWeight: 700, color: "var(--fg)" }}>{item.value}</p>
+          {item.sub && <p style={{ marginTop: 2, fontSize: 8.5, color: "var(--fg-4)" }}>{item.sub}</p>}
         </div>
       ))}
     </div>
@@ -235,17 +223,19 @@ interface RelatedCardsProps {
 
 export function RelatedCards({ items }: RelatedCardsProps) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
-          className="flex items-center justify-between rounded-lg border border-[#E8DDD0] bg-white px-3 py-2 text-[10px] font-semibold text-[#2F2823] transition-colors hover:border-[#B9854E] hover:text-[#B9854E]"
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)", padding: "8px 12px", fontSize: 10, fontWeight: 600, color: "var(--fg)", textDecoration: "none", transition: "border-color 150ms, color 150ms" }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--bronze)"; e.currentTarget.style.color = "var(--bronze)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.color = "var(--fg)"; }}
         >
           <span>
             <span aria-hidden="true">{item.icon} </span>{item.label}
           </span>
-          <span aria-hidden="true" className="text-[#B9854E]">→</span>
+          <span aria-hidden="true" style={{ color: "var(--bronze)" }}>→</span>
         </Link>
       ))}
     </div>

@@ -48,34 +48,30 @@ const columns: CalendarColumn[] = [
 
 export function ThaiTaxCalendarStrip() {
   return (
-    <div className="overflow-hidden rounded-[11px] border border-[#E8DDD0]">
+    <div style={{ overflow: "hidden", borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
       {/* Header row */}
-      <div className="grid grid-cols-4 bg-[#2F2823]">
-        {columns.map((col) => (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "var(--bg-2)" }}>
+        {columns.map((col, i) => (
           <div
             key={col.label}
-            className="border-r border-white/[0.08] px-3 py-2.5 last:border-0"
+            style={{ borderRight: i < columns.length - 1 ? "1px solid var(--line)" : "none", padding: "10px 12px" }}
           >
-            <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#B9854E]">
-              {col.label}
-            </p>
-            <p className="text-[8.5px] text-[#7a6a5a]">{col.sub}</p>
+            <p className="eyebrow" style={{ color: "var(--bronze)" }}>{col.label}</p>
+            <p style={{ fontSize: 8.5, color: "var(--fg-4)" }}>{col.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Content row */}
-      <div className="grid grid-cols-4 bg-white">
-        {columns.map((col) => (
-          <div key={col.label} className="border-r border-[#EDE5D5] p-2.5 last:border-0">
-            {col.entries.map((entry) => (
-              <div key={entry.code} className="mb-2 flex items-start gap-1.5 last:mb-0">
-                <span className="mt-1.5 h-[5px] w-[5px] shrink-0 rounded-full bg-[#B9854E]" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "var(--surface)" }}>
+        {columns.map((col, i) => (
+          <div key={col.label} style={{ borderRight: i < columns.length - 1 ? "1px solid var(--line)" : "none", padding: 10 }}>
+            {col.entries.map((entry, j) => (
+              <div key={entry.code} style={{ marginBottom: j < col.entries.length - 1 ? 8 : 0, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                <span style={{ marginTop: 6, width: 5, height: 5, flexShrink: 0, borderRadius: "50%", background: "var(--bronze)" }} />
                 <div>
-                  <p className="font-mono text-[9.5px] font-bold text-[#2F2823]">
-                    {entry.code}
-                  </p>
-                  <p className="text-[8.5px] text-[#7a6a5a]">{entry.description}</p>
+                  <p className="mono" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--fg)" }}>{entry.code}</p>
+                  <p style={{ fontSize: 8.5, color: "var(--fg-3)" }}>{entry.description}</p>
                 </div>
               </div>
             ))}

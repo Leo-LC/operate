@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -149,57 +149,51 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
   const grantedLocationIds = new Set(user.location_access.map((la) => la.location_id));
   const hasFullAccess = user.global_role === "owner" || user.global_role === "admin";
 
+  const selectSm: React.CSSProperties = {
+    height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)",
+    background: "var(--bg)", color: "var(--fg)", padding: "0 8px", fontSize: 13, outline: "none",
+  };
+  const sectionStyle: React.CSSProperties = {
+    borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+    background: "var(--surface)", padding: 16,
+    display: "flex", flexDirection: "column", gap: 12,
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/dashboard/admin/users")}
-            className="gap-1.5 text-muted-foreground"
-          >
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/admin/users")} style={{ color: "var(--fg-4)", gap: 6 }}>
             <ArrowLeftIcon className="size-4" />
             Users
           </Button>
-          <h1 className="text-lg font-semibold">{user.email}</h1>
+          <h1 style={{ fontSize: 17, fontWeight: 600, color: "var(--fg)" }}>{user.email}</h1>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-destructive hover:text-destructive border-destructive/40 hover:bg-destructive/5"
-          onClick={() => setShowDeleteConfirm(true)}
-        >
+        <Button variant="danger" size="sm" onClick={() => setShowDeleteConfirm(true)} style={{ gap: 6 }}>
           <TrashIcon className="size-3.5" />
           Delete user
         </Button>
       </div>
 
       {/* Role */}
-      <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Global Role</h2>
-        <div className="flex items-center gap-3">
-          <select
-            value={user.global_role}
-            onChange={(e) => void handleRoleChange(e.target.value)}
-            disabled={savingRole}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-          >
+      <section style={sectionStyle}>
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Global Role</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <select value={user.global_role} onChange={(e) => void handleRoleChange(e.target.value)} disabled={savingRole} style={selectSm}>
             {ROLE_OPTIONS.map(({ value, label }) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
-          {savingRole && <span className="text-xs text-muted-foreground">Saving…</span>}
+          {savingRole && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Saving…</span>}
         </div>
       </section>
 
-      {/* Full-access notice for owner/admin */}
       {hasFullAccess && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-start gap-3">
-          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-[10px] font-bold">✓</span>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--bronze)", background: "var(--bronze-soft)", padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <span style={{ marginTop: 2, display: "inline-flex", width: 20, height: 20, flexShrink: 0, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--bronze)", color: "var(--surface)", fontSize: 10, fontWeight: 700 }}>✓</span>
           <div>
-            <p className="text-sm font-medium text-foreground">Full access granted</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Full access granted</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>
               {user.global_role === "owner" ? "Owner" : "Admin"} role gives full access to all modules and locations automatically — no per-module or per-location grants needed.
             </p>
           </div>
@@ -207,30 +201,30 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       )}
 
       {/* Module access */}
-      <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Module Access</h2>
-          {hasFullAccess && <span className="text-[10px] text-muted-foreground/60 italic">Overridden by role</span>}
+      <section style={sectionStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Module Access</h2>
+          {hasFullAccess && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {ALL_MODULES.map((mod) => {
             const granted = hasFullAccess || grantedModuleKeys.has(mod);
             return (
               <label
                 key={mod}
-                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  granted
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:border-border/80"
-                } ${hasFullAccess ? "cursor-default opacity-60" : "cursor-pointer"}`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  borderRadius: "var(--r-sm)",
+                  border: `1px solid ${granted ? "var(--bronze)" : "var(--line)"}`,
+                  padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: hasFullAccess ? "default" : "pointer",
+                  background: granted ? "var(--bronze-soft)" : "var(--bg)",
+                  color: granted ? "var(--bronze)" : "var(--fg-4)",
+                  opacity: hasFullAccess ? 0.6 : 1,
+                  transition: "all 150ms",
+                }}
               >
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={granted}
-                  disabled={hasFullAccess}
-                  onChange={() => !hasFullAccess && (granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true))}
-                />
+                <input type="checkbox" className="sr-only" checked={granted} disabled={hasFullAccess}
+                  onChange={() => !hasFullAccess && (granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true))} />
                 {mod}
               </label>
             );
@@ -239,33 +233,33 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       </section>
 
       {/* Location access */}
-      <section className="rounded-lg border border-border p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Location Access</h2>
-          {hasFullAccess && <span className="text-[10px] text-muted-foreground/60 italic">Overridden by role</span>}
+      <section style={sectionStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Location Access</h2>
+          {hasFullAccess && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
         </div>
         {allLocations.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No locations available.</p>
+          <p style={{ fontSize: 12, color: "var(--fg-4)" }}>No locations available.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {allLocations.map((loc) => {
               const granted = hasFullAccess || grantedLocationIds.has(loc.id);
               return (
                 <label
                   key={loc.id}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    granted
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:border-border/80"
-                  } ${hasFullAccess ? "cursor-default opacity-60" : "cursor-pointer"}`}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    borderRadius: "var(--r-sm)",
+                    border: `1px solid ${granted ? "var(--bronze)" : "var(--line)"}`,
+                    padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: hasFullAccess ? "default" : "pointer",
+                    background: granted ? "var(--bronze-soft)" : "var(--bg)",
+                    color: granted ? "var(--bronze)" : "var(--fg-4)",
+                    opacity: hasFullAccess ? 0.6 : 1,
+                    transition: "all 150ms",
+                  }}
                 >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={granted}
-                    disabled={hasFullAccess}
-                    onChange={() => !hasFullAccess && (granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id))}
-                  />
+                  <input type="checkbox" className="sr-only" checked={granted} disabled={hasFullAccess}
+                    onChange={() => !hasFullAccess && (granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id))} />
                   {loc.name}
                 </label>
               );
@@ -275,17 +269,15 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       </section>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
-            <h2 className="text-base font-semibold mb-1">Delete user</h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              Permanently delete <span className="font-medium text-foreground">{user.email}</span>? This cannot be undone.
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)", padding: "0 16px" }}>
+          <div style={{ width: "100%", maxWidth: 400, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, boxShadow: "var(--shadow-2)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete user</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+              Permanently delete <strong style={{ color: "var(--fg)" }}>{user.email}</strong>? This cannot be undone.
             </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
-                Cancel
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => void handleDelete()} disabled={deleting}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button variant="secondary" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>Cancel</Button>
+              <Button variant="danger" size="sm" onClick={() => void handleDelete()} disabled={deleting}>
                 {deleting ? "Deleting…" : "Delete"}
               </Button>
             </div>

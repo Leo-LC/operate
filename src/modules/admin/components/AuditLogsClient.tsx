@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { toast } from "sonner";
@@ -19,6 +20,17 @@ const MODULE_OPTIONS = [
   { value: "reports", label: "Reports" },
   { value: "admin", label: "Admin" },
 ];
+
+const inputSm: React.CSSProperties = {
+  height: 32,
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--line-strong)",
+  background: "var(--bg)",
+  color: "var(--fg)",
+  padding: "0 8px",
+  fontSize: 12,
+  outline: "none",
+};
 
 export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }) {
   const [logs, setLogs] = useState(initialLogs);
@@ -82,109 +94,65 @@ export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold">Audit Logs</h1>
-          <p className="text-xs text-muted-foreground">
-            {filtered.length} of {logs.length} entries · auto-deleted after 90 days
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search action, user, entity…"
-            className="h-8 w-52 rounded-md border border-input bg-background px-2 text-xs"
-          />
-          <select
-            value={moduleFilter}
-            onChange={(e) => handleFilterChange(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-          >
-            {MODULE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/50"
-            onClick={() => setShowClearModal(true)}
-          >
-            <Trash2Icon className="size-3.5" />
-            Clear old logs
-          </Button>
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <PageHeader
+        title="Audit Logs"
+        subtitle={`${filtered.length} of ${logs.length} entries · auto-deleted after 90 days`}
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search action, user, entity…"
+              style={{ ...inputSm, width: 208 }}
+            />
+            <select
+              value={moduleFilter}
+              onChange={(e) => handleFilterChange(e.target.value)}
+              style={{ ...inputSm, cursor: "pointer" }}
+            >
+              {MODULE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <Button size="sm" variant="secondary" onClick={() => setShowClearModal(true)}>
+              <Trash2Icon className="size-3.5" />
+              Clear old logs
+            </Button>
+          </div>
+        }
+      />
 
       {visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No matching entries.</p>
+        <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No matching entries.</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40">
+          <div style={{ overflowX: "auto", borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
+            <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+              <thead style={{ background: "var(--bg-2)" }}>
                 <tr>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Time</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Actor</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Module</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Action</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Entity</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Details</th>
+                  {["Time", "Actor", "Module", "Action", "Entity", "Details"].map((h) => (
+                    <th key={h} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {visible.map((log) => (
-                  <tr key={log.id} className="transition-colors hover:bg-muted/20">
-                    <td className="px-4 py-2.5 text-[11px] text-muted-foreground whitespace-nowrap">
-                      {new Date(log.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs">
-                      {log.user_email ?? <span className="text-muted-foreground/50">system</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-[11px] text-muted-foreground">
-                      {log.module_key ?? "—"}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-xs">{log.action}</td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {log.entity_type ?? "—"}
-                      {log.entity_id && (
-                        <span className="ml-1 font-mono text-[10px]">
-                          {log.entity_id.slice(0, 8)}…
-                        </span>
-                      )}
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-2.5 font-mono text-[10px] text-muted-foreground">
-                      {log.payload ? JSON.stringify(log.payload) : "—"}
-                    </td>
-                  </tr>
+              <tbody>
+                {visible.map((log, i) => (
+                  <AuditRow key={log.id} log={log} isLast={i === visible.length - 1} />
                 ))}
               </tbody>
             </table>
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12, color: "var(--fg-4)" }}>
               <span>Page {safePage + 1} of {totalPages}</span>
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={safePage === 0}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Button size="sm" variant="secondary" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>
                   <ChevronLeftIcon className="size-3.5" />
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={safePage >= totalPages - 1}
-                >
+                <Button size="sm" variant="secondary" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}>
                   <ChevronRightIcon className="size-3.5" />
                 </Button>
               </div>
@@ -195,29 +163,24 @@ export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }
 
       {/* Clear logs modal */}
       {showClearModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
-            <h2 className="text-base font-semibold mb-1">Clear audit logs</h2>
-            <p className="text-sm text-muted-foreground mb-4">
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)", padding: "0 16px" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowClearModal(false); }}
+        >
+          <div style={{ width: "100%", maxWidth: 400, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, boxShadow: "var(--shadow-2)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Clear audit logs</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
               Permanently delete all logs older than the selected date. This cannot be undone.
             </p>
-            <div className="mb-5 flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Delete logs before</label>
-              <DateInput
-                value={clearBefore}
-                onChange={(e) => setClearBefore(e.target.value)}
-              />
+            <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Delete logs before</label>
+              <DateInput value={clearBefore} onChange={(e) => setClearBefore(e.target.value)} />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowClearModal(false)} disabled={clearing}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button variant="secondary" size="sm" onClick={() => setShowClearModal(false)} disabled={clearing}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => void handleClear()}
-                disabled={clearing || !clearBefore}
-              >
+              <Button variant="danger" size="sm" onClick={() => void handleClear()} disabled={clearing || !clearBefore}>
                 {clearing ? "Clearing…" : "Clear logs"}
               </Button>
             </div>
@@ -225,5 +188,38 @@ export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }
         </div>
       )}
     </div>
+  );
+}
+
+function AuditRow({ log }: { log: AuditLogEntry; isLast?: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <tr
+      style={{ background: hovered ? "var(--row-hover)" : "var(--surface)", borderTop: "1px solid var(--line)" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <td className="mono" style={{ padding: "10px 16px", fontSize: 11, color: "var(--fg-4)", whiteSpace: "nowrap" }}>
+        {new Date(log.created_at).toLocaleString()}
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg)" }}>
+        {log.user_email ?? <span style={{ color: "var(--fg-4)" }}>system</span>}
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 11, color: "var(--fg-3)" }}>
+        {log.module_key ?? "—"}
+      </td>
+      <td className="mono" style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg)" }}>{log.action}</td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
+        {log.entity_type ?? "—"}
+        {log.entity_id && (
+          <span className="mono" style={{ marginLeft: 4, fontSize: 10 }}>
+            {log.entity_id.slice(0, 8)}…
+          </span>
+        )}
+      </td>
+      <td className="mono" style={{ maxWidth: 240, padding: "10px 16px", fontSize: 10, color: "var(--fg-4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {log.payload ? JSON.stringify(log.payload) : "—"}
+      </td>
+    </tr>
   );
 }

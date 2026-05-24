@@ -11,9 +11,9 @@ interface Props {
 }
 
 function dayColor(docs: Document[]): string {
-  if (docs.some((d) => computeStatus(d) === "expired")) return "bg-red-500";
-  if (docs.some((d) => computeStatus(d) === "expiring")) return "bg-amber-400";
-  return "bg-blue-400";
+  if (docs.some((d) => computeStatus(d) === "expired")) return "var(--bad)";
+  if (docs.some((d) => computeStatus(d) === "expiring")) return "var(--warn)";
+  return "var(--info)";
 }
 
 export function DocumentsCalendar({ documents, onEdit }: Props) {
@@ -43,39 +43,39 @@ export function DocumentsCalendar({ documents, onEdit }: Props) {
   const expiringCount = documents.filter((d) => computeStatus(d) === "expiring").length;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {expiredCount > 0 && (
-        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 px-4 py-2.5 text-sm text-red-700 dark:text-red-400">
-          <span className="font-medium">{expiredCount} expired document{expiredCount !== 1 ? "s" : ""}</span>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--bad)", background: "var(--bad-soft)", padding: "10px 16px", fontSize: 13, color: "var(--bad)" }}>
+          <span style={{ fontWeight: 500 }}>{expiredCount} expired document{expiredCount !== 1 ? "s" : ""}</span>
         </div>
       )}
       {expiringCount > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400">
-          <span className="font-medium">{expiringCount} document{expiringCount !== 1 ? "s" : ""} expiring within 30 days</span>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--warn)", background: "var(--warn-soft)", padding: "10px 16px", fontSize: 13, color: "var(--warn)" }}>
+          <span style={{ fontWeight: 500 }}>{expiringCount} document{expiringCount !== 1 ? "s" : ""} expiring within 30 days</span>
         </div>
       )}
 
       {/* Month nav */}
-      <div className="flex items-center gap-3">
-        <Button size="icon" variant="ghost" className="size-8" onClick={() => setMonth((m) => subMonths(m, 1))}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Button size="icon" variant="ghost" onClick={() => setMonth((m) => subMonths(m, 1))}>
           <ChevronLeftIcon className="size-4" />
         </Button>
-        <span className="flex-1 text-center text-sm font-medium">{format(month, "MMMM yyyy")}</span>
-        <Button size="icon" variant="ghost" className="size-8" onClick={() => setMonth((m) => addMonths(m, 1))}>
+        <span style={{ flex: 1, textAlign: "center", fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{format(month, "MMMM yyyy")}</span>
+        <Button size="icon" variant="ghost" onClick={() => setMonth((m) => addMonths(m, 1))}>
           <ChevronRightIcon className="size-4" />
         </Button>
       </div>
 
       {/* Grid */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-border bg-muted/40">
+      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--line)", background: "var(--bg-2)" }}>
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-            <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
+            <div key={d} className="eyebrow" style={{ padding: "8px 0", textAlign: "center", color: "var(--fg-4)" }}>{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
           {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-            <div key={`e-${i}`} className="h-16 border-b border-r border-border bg-muted/10" />
+            <div key={`e-${i}`} style={{ height: 64, borderBottom: "1px solid var(--line)", borderRight: "1px solid var(--line)", background: "var(--bg)" }} />
           ))}
           {days.map(({ date, due }) => {
             const isToday = isSameDay(date, new Date());
@@ -85,26 +85,36 @@ export function DocumentsCalendar({ documents, onEdit }: Props) {
               <div
                 key={date.toISOString()}
                 onClick={() => due.length > 0 ? setSelected(isSelected ? null : date) : undefined}
-                className={[
-                  "h-16 border-b border-r border-border p-1.5 flex flex-col gap-0.5 transition-colors",
-                  due.length > 0 ? "cursor-pointer hover:bg-muted/30" : "",
-                  isSelected ? "bg-accent" : "",
-                  colIdx === 6 ? "border-r-0" : "",
-                ].join(" ")}
+                style={{
+                  height: 64, padding: 6,
+                  borderBottom: "1px solid var(--line)",
+                  borderRight: colIdx === 6 ? "none" : "1px solid var(--line)",
+                  display: "flex", flexDirection: "column", gap: 2,
+                  cursor: due.length > 0 ? "pointer" : "default",
+                  background: isSelected ? "var(--bronze-soft)" : "var(--surface)",
+                  transition: "background 150ms",
+                }}
               >
-                <span className={`text-xs w-5 h-5 flex items-center justify-center rounded-full ${isToday ? "bg-foreground text-background font-semibold" : "text-muted-foreground"}`}>
+                <span style={{
+                  fontSize: 11, width: 20, height: 20,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "var(--r-pill)",
+                  background: isToday ? "var(--fg)" : "transparent",
+                  color: isToday ? "var(--surface)" : "var(--fg-4)",
+                  fontWeight: isToday ? 600 : 400,
+                }}>
                   {date.getDate()}
                 </span>
                 {due.length > 0 && (
-                  <div className="flex flex-wrap gap-0.5 mt-0.5">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
                     {due.slice(0, 3).map((d) => (
-                      <span key={d.id} title={d.title} className={`inline-block rounded-full h-1.5 w-1.5 ${dayColor([d])}`} />
+                      <span key={d.id} title={d.title} style={{ display: "inline-block", borderRadius: "var(--r-pill)", height: 6, width: 6, background: dayColor([d]) }} />
                     ))}
-                    {due.length > 3 && <span className="text-[9px] text-muted-foreground">+{due.length - 3}</span>}
+                    {due.length > 3 && <span style={{ fontSize: 9, color: "var(--fg-4)" }}>+{due.length - 3}</span>}
                   </div>
                 )}
                 {due.length === 1 && (
-                  <div className="text-[10px] text-foreground truncate leading-none">{due[0].title}</div>
+                  <div style={{ fontSize: 10, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{due[0].title}</div>
                 )}
               </div>
             );
@@ -114,25 +124,26 @@ export function DocumentsCalendar({ documents, onEdit }: Props) {
 
       {/* Day detail */}
       {selected && selectedDocs && selectedDocs.length > 0 && (
-        <div className="rounded-lg border border-border p-3 flex flex-col gap-2">
-          <p className="text-sm font-medium">{format(selected, "EEEE, d MMMM yyyy")}</p>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{format(selected, "EEEE, d MMMM yyyy")}</p>
           {selectedDocs.map((d) => {
             const status = computeStatus(d);
             return (
-              <div key={d.id} className="flex items-center gap-2 text-sm flex-wrap">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[status]}`}>
+              <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, flexWrap: "wrap" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", borderRadius: "var(--r-pill)", padding: "2px 8px", fontSize: 11, fontWeight: 500 }}
+                  className={STATUS_CLASSES[status]}>
                   {STATUS_LABELS[status]}
                 </span>
                 <button
                   type="button"
                   onClick={() => onEdit?.(d)}
-                  className="font-medium hover:underline text-left"
+                  style={{ fontWeight: 500, color: "var(--fg)", textDecoration: "none", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
                 >
                   {d.title}
                 </button>
-                <span className="text-muted-foreground text-xs">{d.location_name ?? ""}</span>
+                <span style={{ color: "var(--fg-4)", fontSize: 12 }}>{d.location_name ?? ""}</span>
                 {d.drive_url && (
-                  <a href={d.drive_url} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs text-muted-foreground hover:text-foreground underline">Drive ↗</a>
+                  <a href={d.drive_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--fg-4)" }}>Drive ↗</a>
                 )}
               </div>
             );
@@ -141,14 +152,14 @@ export function DocumentsCalendar({ documents, onEdit }: Props) {
       )}
 
       {/* Legend */}
-      <div className="flex gap-4 text-xs text-muted-foreground">
+      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--fg-4)" }}>
         {[
-          { color: "bg-red-500", label: "Expired" },
-          { color: "bg-amber-400", label: "Expiring soon" },
-          { color: "bg-blue-400", label: "Future" },
+          { color: "var(--bad)", label: "Expired" },
+          { color: "var(--warn)", label: "Expiring soon" },
+          { color: "var(--info)", label: "Future" },
         ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`inline-block rounded-full h-2 w-2 ${color}`} />
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", borderRadius: "var(--r-pill)", height: 8, width: 8, background: color }} />
             {label}
           </div>
         ))}

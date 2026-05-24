@@ -45,26 +45,25 @@ export function ReviewsControlsBar({
   onBulkConfirm,
 }: ReviewsControlsBarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-muted-foreground text-sm">
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 13, color: "var(--fg-3)" }}>
           Reply to {displayCount} reviews
         </span>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
-          className="h-8 gap-1.5 rounded-md border-border bg-card text-foreground hover:bg-card/80"
           onClick={onSortToggle}
         >
           <ArrowUpDownIcon className="size-4" />
-          <span className="text-xs">
+          <span style={{ fontSize: 12 }}>
             {sortOrder === "desc" ? "Newest first" : "Oldest first"}
           </span>
         </Button>
-        <span className="text-muted-foreground text-sm">Limit:</span>
+        <span style={{ fontSize: 13, color: "var(--fg-3)" }}>Limit:</span>
         <select
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+          style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 8px", fontSize: 12 }}
           value={displayLimit == null ? "all" : String(displayLimit)}
           onChange={(e) => {
             const value = e.target.value;
@@ -82,13 +81,13 @@ export function ReviewsControlsBar({
       </div>
 
       {allRatingsMode && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
           {fiveInDisplay.length > 0 && fiveAllowBulk && (
             <Button
               onClick={() => onBulkConfirm(fiveInDisplay, "5★")}
               disabled={bulkSending}
               size="sm"
-              className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
+              style={{ background: "var(--good)", color: "#fff" }}
             >
               Send all {fiveInDisplay.length} (5★)
             </Button>
@@ -98,7 +97,7 @@ export function ReviewsControlsBar({
               onClick={() => onBulkConfirm(fourInDisplay, "4★")}
               disabled={bulkSending}
               size="sm"
-              className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
+              style={{ background: "var(--warn-soft)", color: "var(--warn)" }}
             >
               Send all {fourInDisplay.length} (4★)
             </Button>
@@ -107,7 +106,7 @@ export function ReviewsControlsBar({
             onClick={() => onBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
             disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
             size="sm"
-            className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
+            style={{ background: "var(--bad-soft)", color: "var(--bad)" }}
           >
             Send all {attentionWithRepliesInDisplay.length} (1–3★)
           </Button>
@@ -119,7 +118,7 @@ export function ReviewsControlsBar({
           onClick={() => onBulkConfirm(fiveDisplayed, "5★")}
           disabled={bulkSending}
           size="sm"
-          className="rounded-md gap-1.5 bg-[var(--success)] text-primary-foreground hover:opacity-90"
+          style={{ background: "var(--good)", color: "#fff" }}
         >
           Send all {fiveDisplayed.length} replies
         </Button>
@@ -129,7 +128,7 @@ export function ReviewsControlsBar({
           onClick={() => onBulkConfirm(fourDisplayed, "4★")}
           disabled={bulkSending}
           size="sm"
-          className="rounded-md gap-1.5 bg-[var(--amber)] text-black/90 hover:opacity-90"
+          style={{ background: "var(--warn-soft)", color: "var(--warn)" }}
         >
           Send all {fourDisplayed.length} replies
         </Button>
@@ -140,7 +139,7 @@ export function ReviewsControlsBar({
             onClick={() => onBulkConfirm(attentionWithRepliesInDisplay, "1–3★")}
             disabled={bulkSending || attentionWithRepliesInDisplay.length === 0}
             size="sm"
-            className="rounded-md gap-1.5 bg-[color-mix(in oklch, var(--destructive) 16%, transparent)] text-[var(--destructive)] transition-colors hover:bg-[color-mix(in oklch, var(--destructive) 26%, transparent)] hover:text-[color-mix(in oklch, var(--destructive) 88%, black)] disabled:opacity-50"
+            style={{ background: "var(--bad-soft)", color: "var(--bad)" }}
           >
             Send all {attentionWithRepliesInDisplay.length} replies
           </Button>

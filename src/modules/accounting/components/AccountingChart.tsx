@@ -48,36 +48,38 @@ export function AccountingChart({ entries, year, month }: Props) {
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)}k` : String(n);
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs font-medium text-muted-foreground">Daily sales vs expenses</p>
-      <div className="overflow-x-auto">
-        <div className="flex items-end gap-0.5 min-w-max" style={{ height: `${BAR_H + 24}px` }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Daily sales vs expenses</p>
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, minWidth: "max-content", height: BAR_H + 24 }}>
           {data.map(({ day, sales, exp }) => (
-            <div key={day} className="flex flex-col items-center gap-0" style={{ width: "20px" }}>
-              <div className="flex items-end gap-0.5" style={{ height: `${BAR_H}px` }}>
-                {/* Sales bar */}
+            <div key={day} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 20 }}>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: BAR_H }}>
                 <div
                   title={sales != null ? `Day ${day}: Sales ${fmt(sales)}` : `Day ${day}: no data`}
-                  style={{ height: `${barH(sales)}px`, width: "8px" }}
-                  className={`rounded-t transition-all ${sales != null ? "bg-green-500 dark:bg-green-400" : "bg-muted/30"}`}
+                  style={{ height: barH(sales), width: 8, borderRadius: "2px 2px 0 0", background: sales != null ? "var(--good)" : "var(--bg-2)", transition: "height 200ms" }}
                 />
-                {/* Expenses bar */}
                 <div
                   title={exp != null ? `Day ${day}: Expenses ${fmt(exp)}` : ""}
-                  style={{ height: `${barH(exp)}px`, width: "8px" }}
-                  className={`rounded-t transition-all ${exp != null ? "bg-red-400 dark:bg-red-500" : "bg-muted/20"}`}
+                  style={{ height: barH(exp), width: 8, borderRadius: "2px 2px 0 0", background: exp != null ? "var(--bad)" : "var(--bg-2)", transition: "height 200ms" }}
                 />
               </div>
               {(day === 1 || day % 5 === 0 || day === days) && (
-                <span className="text-[9px] text-muted-foreground/60 mt-0.5">{day}</span>
+                <span style={{ fontSize: 9, color: "var(--fg-4)", marginTop: 2, opacity: 0.6 }}>{day}</span>
               )}
             </div>
           ))}
         </div>
       </div>
-      <div className="flex gap-4 text-[10px] text-muted-foreground">
-        <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-400" /> Sales net</div>
-        <div className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-400" /> Expenses + HR</div>
+      <div style={{ display: "flex", gap: 16, fontSize: 10, color: "var(--fg-4)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: "var(--good)" }} />
+          Sales net
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: "var(--bad)" }} />
+          Expenses + HR
+        </div>
       </div>
     </div>
   );

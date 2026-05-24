@@ -1,8 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
+import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "./EmployeeForm";
@@ -13,6 +15,20 @@ interface Props {
 
 type FormState = EmployeeFormState;
 const EMPTY_FORM: FormState = EMPTY_EMPLOYEE_FORM;
+
+const MODAL_BACKDROP: React.CSSProperties = {
+  position: "fixed", inset: 0, zIndex: 50,
+  display: "flex", alignItems: "center", justifyContent: "center",
+  background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+  padding: "0 16px",
+};
+
+const MODAL_PANEL: React.CSSProperties = {
+  width: "100%", maxWidth: 400,
+  borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+  background: "var(--surface)", padding: 24,
+  boxShadow: "var(--shadow-2)",
+};
 
 function empToForm(emp: Employee): FormState {
   return {
@@ -36,17 +52,8 @@ function WorkPermitBadge({ expiresAt }: { expiresAt: string | null }) {
   if (!expiresAt) return null;
   const days = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 86400000);
   const label = days < 0 ? "Expired" : days === 0 ? "Expires today" : `${days}d left`;
-  const cls =
-    days > 90
-      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-      : days > 0
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${cls}`}>
-      Permit · {label}
-    </span>
-  );
+  const tone = days > 90 ? "good" as const : days > 0 ? "warn" as const : "bad" as const;
+  return <Pill tone={tone} size="sm">Permit · {label}</Pill>;
 }
 
 export function EmployeesListClient({ locations }: Props) {
@@ -70,10 +77,7 @@ export function EmployeesListClient({ locations }: Props) {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/employees", { cache: "no-store" });
-      if (!res.ok) {
-        toast.error("Failed to load employees");
-        return;
-      }
+      if (!res.ok) { toast.error("Failed to load employees"); return; }
       const data: unknown = await res.json();
       if (Array.isArray(data)) setEmployees(data as Employee[]);
     } catch {
@@ -230,14 +234,16 @@ export function EmployeesListClient({ locations }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Employees</h1>
-        <Button size="sm" onClick={() => { setShowAdd((v) => !v); setEditingId(null); }} className="gap-1.5">
-          <PlusIcon className="size-4" />
-          Add employee
-        </Button>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <PageHeader
+        title="Employees"
+        actions={
+          <Button size="sm" onClick={() => { setShowAdd((v) => !v); setEditingId(null); }}>
+            <PlusIcon className="size-4" />
+            Add employee
+          </Button>
+        }
+      />
 
       {showAdd && (
         <EmployeeForm
@@ -256,29 +262,25 @@ export function EmployeesListClient({ locations }: Props) {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin mr-2" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0", fontSize: 13, color: "var(--fg-4)", gap: 8 }}>
+          <Loader2Icon className="size-4 animate-spin" />
           Loading…
         </div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+          <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+            <thead style={{ background: "var(--bg-2)" }}>
               <tr>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Position</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Nationality</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Work Permit</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Locations</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground">Contact</th>
-                <th className="px-4 py-2.5" />
+                {["Name", "Position", "Nationality", "Work Permit", "Locations", "Contact", ""].map((h) => (
+                  <th key={h} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {employees.map((emp) =>
                 editingId === emp.id ? (
                   <tr key={emp.id}>
-                    <td colSpan={7} className="px-4 py-3">
+                    <td colSpan={7} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
                       <EmployeeForm
                         form={editForm}
                         locIds={editLocIds}
@@ -295,88 +297,37 @@ export function EmployeesListClient({ locations }: Props) {
                     </td>
                   </tr>
                 ) : (
-                  <tr
+                  <EmployeeRow
                     key={emp.id}
-                    className={`transition-colors ${emp.archived_at ? "opacity-60 bg-muted/10" : "hover:bg-muted/20 cursor-pointer"}`}
-                    onClick={() => { if (!emp.archived_at) startEdit(emp); }}
-                  >
-                    <td className="px-4 py-2.5 font-medium">
-                      {emp.first_name} {emp.last_name}
-                      {emp.archived_at && (
-                        <span className="ml-2 inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Archived</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.position ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{emp.nationality ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-xs">
-                      {emp.work_permit_expires_at
-                        ? <WorkPermitBadge expiresAt={emp.work_permit_expires_at} />
-                        : <span className="text-muted-foreground/50">—</span>
-                      }
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                      {(emp.employee_locations && emp.employee_locations.length > 0)
-                        ? emp.employee_locations.map((el) => (
-                            <span key={el.location_id} className="inline-block mr-1">
-                              {el.location_name}{el.is_primary ? " ★" : ""}
-                            </span>
-                          ))
-                        : (emp.location_name ?? <span className="text-muted-foreground/50">—</span>)
-                      }
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                      {emp.email && <div>{emp.email}</div>}
-                      {emp.phone && <div>{emp.phone}</div>}
-                      {!emp.email && !emp.phone && "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" className="size-7" onClick={() => startEdit(emp)} title="Edit">
-                          <PencilIcon className="size-3.5" />
-                        </Button>
-                        <Button
-                          size="icon" variant="ghost"
-                          className="size-7 text-muted-foreground hover:text-foreground"
-                          title={emp.archived_at ? "Unarchive" : "Archive"}
-                          onClick={() => setArchiveTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}`, isArchived: !!emp.archived_at })}
-                        >
-                          {emp.archived_at ? <ArchiveRestoreIcon className="size-3.5" /> : <ArchiveIcon className="size-3.5" />}
-                        </Button>
-                        <Button
-                          size="icon" variant="ghost"
-                          className="size-7 text-destructive hover:text-destructive"
-                          title="Delete permanently"
-                          onClick={() => setDeleteTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
-                        >
-                          <Trash2Icon className="size-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+                    emp={emp}
+                    onEdit={() => { if (!emp.archived_at) startEdit(emp); }}
+                    onArchive={() => setArchiveTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}`, isArchived: !!emp.archived_at })}
+                    onDelete={() => setDeleteTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
+                  />
                 )
               )}
             </tbody>
           </table>
           {employees.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">No employees yet.</div>
+            <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees yet.</div>
           )}
         </div>
       )}
 
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
-            <h2 className="text-base font-semibold mb-1">
+        <div style={MODAL_BACKDROP} onClick={(e) => { if (e.target === e.currentTarget) setArchiveTarget(null); }}>
+          <div style={MODAL_PANEL}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>
               {archiveTarget.isArchived ? "Unarchive" : "Archive"} employee
             </h2>
-            <p className="text-sm text-muted-foreground mb-5">
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
               {archiveTarget.isArchived
-                ? <>Restore <span className="font-medium text-foreground">{archiveTarget.name}</span> to active status?</>
-                : <>Archive <span className="font-medium text-foreground">{archiveTarget.name}</span>? They will be hidden from scheduling but their record will be kept.</>
+                ? <>Restore <strong style={{ color: "var(--fg)" }}>{archiveTarget.name}</strong> to active status?</>
+                : <>Archive <strong style={{ color: "var(--fg)" }}>{archiveTarget.name}</strong>? They will be hidden from scheduling but their record will be kept.</>
               }
             </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setArchiveTarget(null)} disabled={actionBusy}>Cancel</Button>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button variant="secondary" size="sm" onClick={() => setArchiveTarget(null)} disabled={actionBusy}>Cancel</Button>
               <Button size="sm" onClick={() => void executeArchiveToggle()} disabled={actionBusy}>
                 {actionBusy ? "Saving…" : archiveTarget.isArchived ? "Unarchive" : "Archive"}
               </Button>
@@ -386,15 +337,15 @@ export function EmployeesListClient({ locations }: Props) {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
-            <h2 className="text-base font-semibold mb-1">Delete employee</h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              Permanently delete <span className="font-medium text-foreground">{deleteTarget.name}</span>? This cannot be undone.
+        <div style={MODAL_BACKDROP} onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}>
+          <div style={MODAL_PANEL}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete employee</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+              Permanently delete <strong style={{ color: "var(--fg)" }}>{deleteTarget.name}</strong>? This cannot be undone.
             </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={actionBusy}>Cancel</Button>
-              <Button variant="destructive" size="sm" onClick={() => void executeDelete()} disabled={actionBusy}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)} disabled={actionBusy}>Cancel</Button>
+              <Button variant="danger" size="sm" onClick={() => void executeDelete()} disabled={actionBusy}>
                 {actionBusy ? "Deleting…" : "Delete"}
               </Button>
             </div>
@@ -402,5 +353,73 @@ export function EmployeesListClient({ locations }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
+  emp: Employee;
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const isArchived = !!emp.archived_at;
+
+  return (
+    <tr
+      style={{
+        background: hovered && !isArchived ? "var(--row-hover)" : "var(--surface)",
+        opacity: isArchived ? 0.6 : 1,
+        borderTop: "1px solid var(--line)",
+        cursor: isArchived ? "default" : "pointer",
+        transition: "background 150ms",
+      }}
+      onClick={onEdit}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)" }}>
+        {emp.first_name} {emp.last_name}
+        {isArchived && (
+          <Pill tone="neutral" size="sm" style={{ marginLeft: 8 }}>Archived</Pill>
+        )}
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>{emp.position ?? "—"}</td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>{emp.nationality ?? "—"}</td>
+      <td style={{ padding: "10px 16px", fontSize: 12 }}>
+        {emp.work_permit_expires_at
+          ? <WorkPermitBadge expiresAt={emp.work_permit_expires_at} />
+          : <span style={{ color: "var(--fg-4)" }}>—</span>
+        }
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
+        {(emp.employee_locations && emp.employee_locations.length > 0)
+          ? emp.employee_locations.map((el) => (
+              <span key={el.location_id} style={{ marginRight: 4 }}>
+                {el.location_name}{el.is_primary ? " ★" : ""}
+              </span>
+            ))
+          : (emp.location_name ?? <span style={{ color: "var(--fg-4)" }}>—</span>)
+        }
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
+        {emp.email && <div>{emp.email}</div>}
+        {emp.phone && <div>{emp.phone}</div>}
+        {!emp.email && !emp.phone && "—"}
+      </td>
+      <td style={{ padding: "10px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
+          <Button size="sm" variant="ghost" onClick={onEdit} title="Edit">
+            <PencilIcon className="size-3.5" />
+          </Button>
+          <Button size="sm" variant="ghost" title={isArchived ? "Unarchive" : "Archive"} onClick={onArchive}>
+            {isArchived ? <ArchiveRestoreIcon className="size-3.5" /> : <ArchiveIcon className="size-3.5" />}
+          </Button>
+          <Button size="sm" variant="ghost" title="Delete permanently" onClick={onDelete} style={{ color: "var(--bad)" }}>
+            <Trash2Icon className="size-3.5" />
+          </Button>
+        </div>
+      </td>
+    </tr>
   );
 }

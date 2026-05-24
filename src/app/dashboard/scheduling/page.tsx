@@ -51,7 +51,7 @@ export default async function SchedulingPage() {
   }));
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
+    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24 }}>
       <ScheduleListClient initialSchedules={schedules} locations={locations} />
     </div>
   );

@@ -6,39 +6,31 @@ interface WikiProseProps {
   updatedAt?: string;
 }
 
-export function WikiProse({
-  title,
-  eyebrow,
-  subtitle,
-  sections,
-  updatedAt,
-}: WikiProseProps) {
+export function WikiProse({ title, eyebrow, subtitle, sections, updatedAt }: WikiProseProps) {
   return (
-    <article className="space-y-6">
-      <header className="space-y-1.5">
+    <article style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <header style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {eyebrow && (
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#B9854E]">
-            {eyebrow}
-          </p>
+          <p className="eyebrow" style={{ color: "var(--bronze)" }}>{eyebrow}</p>
         )}
-        <h1 className="text-2xl font-extrabold tracking-tight text-[#2F2823]">
+        <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--fg)" }}>
           {title}
         </h1>
         {subtitle && (
-          <p className="text-sm leading-relaxed text-[#7a6a5a]">{subtitle}</p>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--fg-3)" }}>{subtitle}</p>
         )}
         {updatedAt && (
-          <p className="text-xs text-[#b0a090]">Mis à jour le {updatedAt}</p>
+          <p style={{ fontSize: 12, color: "var(--fg-4)" }}>Mis à jour le {updatedAt}</p>
         )}
       </header>
 
-      <div className="space-y-5">
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {sections.map((section, i) => (
           <section key={i}>
-            <h2 className="mb-2 text-base font-bold text-[#2F2823]">
+            <h2 style={{ marginBottom: 8, fontSize: 15, fontWeight: 700, color: "var(--fg)" }}>
               {section.heading}
             </h2>
-            <p className="text-sm leading-relaxed text-[#5c4d3c]">{section.body}</p>
+            <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--fg-2)" }}>{section.body}</p>
           </section>
         ))}
       </div>

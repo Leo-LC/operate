@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -68,19 +68,28 @@ function InfoRow({
 }) {
   if (!value) return null;
   return (
-    <div className="flex gap-3 py-2.5 border-b border-border/50 last:border-0">
-      <Icon className="size-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-        {multiline ? (
-          <p className="text-sm whitespace-pre-wrap break-words">{value}</p>
-        ) : (
-          <p className="text-sm break-words">{value}</p>
-        )}
+    <div style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+      <Icon style={{ width: 16, height: 16, color: "var(--fg-4)", marginTop: 2, flexShrink: 0 }} />
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p style={{ fontSize: 11, color: "var(--fg-4)", marginBottom: 2 }}>{label}</p>
+        <p style={{ fontSize: 13, color: "var(--fg)", whiteSpace: multiline ? "pre-wrap" : undefined, wordBreak: "break-word" }}>{value}</p>
       </div>
     </div>
   );
 }
+
+const FIELD_INPUT: React.CSSProperties = {
+  width: "100%",
+  height: 32,
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--line-strong)",
+  background: "var(--bg)",
+  color: "var(--fg)",
+  padding: "0 10px",
+  fontSize: 13,
+  outline: "none",
+  boxSizing: "border-box",
+};
 
 function FormField({
   label,
@@ -100,15 +109,15 @@ function FormField({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <label className="eyebrow" style={{ color: "var(--fg-3)" }}>
         {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
+        {required && <span style={{ color: "var(--bad)", marginLeft: 2 }}>*</span>}
       </label>
       {multiline ? (
         <textarea
           name={name}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+          style={{ ...FIELD_INPUT, height: "auto", padding: "6px 10px", resize: "none" }}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -117,7 +126,7 @@ function FormField({
       ) : (
         <input
           name={name}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          style={FIELD_INPUT}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -125,6 +134,33 @@ function FormField({
         />
       )}
     </div>
+  );
+}
+
+function LocationListItem({ loc, active, onClick }: { loc: AdminLocation; active: boolean; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <li style={{ borderBottom: "1px solid var(--line)" }}>
+      <button
+        style={{
+          width: "100%",
+          textAlign: "left",
+          padding: "10px 12px",
+          fontSize: 13,
+          fontWeight: active ? 500 : 400,
+          color: active ? "var(--bronze)" : hovered ? "var(--fg)" : "var(--fg-3)",
+          background: active ? "var(--bronze-soft)" : hovered ? "var(--row-hover)" : "transparent",
+          border: "none",
+          cursor: "pointer",
+          transition: "background 150ms, color 150ms",
+        }}
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {loc.name}
+      </button>
+    </li>
   );
 }
 
@@ -276,13 +312,13 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
   const formPanel = (
     <form
       onSubmit={isAdding ? handleAdd : handleSaveEdit}
-      className="flex flex-col gap-4 h-full"
+      style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}
     >
-      <div className="flex items-center justify-between pb-2 border-b border-border">
-        <h2 className="text-sm font-semibold">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 12, borderBottom: "1px solid var(--line)" }}>
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
           {isAdding ? "New location" : `Edit — ${selected?.name}`}
         </h2>
-        <div className="flex gap-2">
+        <div style={{ display: "flex", gap: 8 }}>
           <Button type="submit" size="sm" disabled={submitting}>
             <CheckIcon className="mr-1.5 size-3.5" />
             {submitting ? "Saving…" : "Save"}
@@ -291,16 +327,13 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => {
-              setIsAdding(false);
-              setIsEditing(false);
-            }}
+            onClick={() => { setIsAdding(false); setIsEditing(false); }}
           >
             <XIcon className="size-3.5" />
           </Button>
         </div>
       </div>
-      <div className="space-y-3 overflow-y-auto flex-1">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
         <FormField
           label="Name"
           name="name"
@@ -309,7 +342,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           placeholder="Branch name"
           required
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <FormField
             label="Phone"
             name="phone"
@@ -361,113 +394,70 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
   );
 
   const detailPanel = selected && !isEditing && !isAdding && (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-start justify-between pb-2 border-b border-border">
-        <div>
-          <h2 className="text-base font-semibold">{selected.name}</h2>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openEdit(selected)}
-          >
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: 12, borderBottom: "1px solid var(--line)" }}>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>{selected.name}</h2>
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          <Button size="sm" variant="secondary" onClick={() => openEdit(selected)}>
             <PencilIcon className="mr-1.5 size-3.5" />
             Edit
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            className="text-destructive hover:text-destructive"
+            style={{ color: "var(--bad)" }}
             disabled={deletingId === selected.id}
-            onClick={() => handleDelete(selected)}
+            onClick={() => void handleDelete(selected)}
           >
             <Trash2Icon className="size-3.5" />
           </Button>
         </div>
       </div>
 
-      <div className="overflow-y-auto flex-1 space-y-1">
-        {!selected.address_en &&
-          !selected.address_th &&
-          !selected.phone &&
-          !selected.vat_number &&
-          !selected.google_maps_url &&
-          !selected.notes && (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No information added yet. Click Edit to fill in the details.
-            </p>
-          )}
+      <div style={{ overflowY: "auto", flex: 1 }}>
+        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.google_maps_url && !selected.notes && (
+          <p style={{ fontSize: 13, color: "var(--fg-4)", padding: "16px 0", textAlign: "center" }}>
+            No information added yet. Click Edit to fill in the details.
+          </p>
+        )}
 
-        <InfoRow
-          icon={PhoneIcon}
-          label="Phone"
-          value={selected.phone}
-        />
-        <InfoRow
-          icon={ReceiptIcon}
-          label="VAT number"
-          value={selected.vat_number}
-        />
-        <InfoRow
-          icon={MapPinIcon}
-          label="Address (English)"
-          value={selected.address_en}
-          multiline
-        />
-        <InfoRow
-          icon={MapPinIcon}
-          label="Address (Thai)"
-          value={selected.address_th}
-          multiline
-        />
+        <InfoRow icon={PhoneIcon} label="Phone" value={selected.phone} />
+        <InfoRow icon={ReceiptIcon} label="VAT number" value={selected.vat_number} />
+        <InfoRow icon={MapPinIcon} label="Address (English)" value={selected.address_en} multiline />
+        <InfoRow icon={MapPinIcon} label="Address (Thai)" value={selected.address_th} multiline />
         {selected.google_maps_url && (
-          <div className="flex gap-3 py-2.5 border-b border-border/50">
-            <GlobeIcon className="size-4 text-muted-foreground mt-0.5 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground mb-0.5">Google Maps</p>
+          <div style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+            <GlobeIcon style={{ width: 16, height: 16, color: "var(--fg-4)", marginTop: 2, flexShrink: 0 }} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ fontSize: 11, color: "var(--fg-4)", marginBottom: 2 }}>Google Maps</p>
               <a
                 href={selected.google_maps_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline break-all"
+                style={{ fontSize: 13, color: "var(--bronze)", wordBreak: "break-all" }}
               >
                 Open in Maps
               </a>
             </div>
           </div>
         )}
-        <InfoRow
-          icon={FileTextIcon}
-          label="Notes"
-          value={selected.notes}
-          multiline
-        />
+        <InfoRow icon={FileTextIcon} label="Notes" value={selected.notes} multiline />
 
-        {/* Staff section */}
-        <div className="pt-2">
-          <div className="flex items-center gap-2 py-2.5">
-            <UsersIcon className="size-4 text-muted-foreground shrink-0" />
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Current staff ({locationStaff.length})
-            </span>
+        <div style={{ paddingTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0" }}>
+            <UsersIcon style={{ width: 16, height: 16, color: "var(--fg-4)", flexShrink: 0 }} />
+            <span className="eyebrow" style={{ color: "var(--fg-4)" }}>Current staff ({locationStaff.length})</span>
           </div>
           {locationStaff.length === 0 ? (
-            <p className="text-sm text-muted-foreground pl-7">
+            <p style={{ fontSize: 13, color: "var(--fg-4)", paddingLeft: 24 }}>
               No active employees assigned to this location.
             </p>
           ) : (
-            <ul className="pl-7 space-y-1.5">
+            <ul style={{ paddingLeft: 24, display: "flex", flexDirection: "column", gap: 6, listStyle: "none", margin: 0 }}>
               {locationStaff.map((emp) => (
-                <li key={emp.id} className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">
-                    {emp.first_name} {emp.last_name}
-                  </span>
-                  {emp.position && (
-                    <span className="text-muted-foreground text-xs">
-                      — {emp.position}
-                    </span>
-                  )}
+                <li key={emp.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                  <span style={{ fontWeight: 500, color: "var(--fg)" }}>{emp.first_name} {emp.last_name}</span>
+                  {emp.position && <span style={{ color: "var(--fg-4)", fontSize: 12 }}>— {emp.position}</span>}
                 </li>
               ))}
             </ul>
@@ -478,55 +468,43 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
   );
 
   const emptyPanel = !selected && !isAdding && (
-    <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-      <BuildingIcon className="size-8 opacity-30" />
-      <p className="text-sm">Select a location to view details</p>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, color: "var(--fg-4)" }}>
+      <BuildingIcon style={{ width: 32, height: 32, opacity: 0.3 }} />
+      <p style={{ fontSize: 13 }}>Select a location to view details</p>
     </div>
   );
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Locations</h1>
-        <Button size="sm" variant="outline" onClick={openAdd}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h1 style={{ fontSize: 17, fontWeight: 600, color: "var(--fg)" }}>Locations</h1>
+        <Button size="sm" variant="secondary" onClick={openAdd}>
           <PlusIcon className="mr-1.5 size-3.5" />
           Add location
         </Button>
       </div>
 
-      <div className="flex gap-4 flex-1 min-h-0" style={{ minHeight: "500px" }}>
+      <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
         {/* Left: location list */}
-        <div className="w-48 shrink-0 rounded-lg border border-border overflow-hidden flex flex-col">
+        <div style={{ width: 192, flexShrink: 0, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {locations.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground text-center">
-              No locations yet.
-            </p>
+            <p style={{ padding: 16, fontSize: 13, color: "var(--fg-4)", textAlign: "center" }}>No locations yet.</p>
           ) : (
-            <ul className="divide-y divide-border overflow-y-auto flex-1">
+            <ul style={{ overflowY: "auto", flex: 1, listStyle: "none", margin: 0, padding: 0 }}>
               {locations.map((loc) => (
-                <li key={loc.id}>
-                  <button
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${
-                      selectedId === loc.id && !isAdding
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "hover:bg-muted/40 text-foreground"
-                    }`}
-                    onClick={() => {
-                      setSelectedId(loc.id);
-                      setIsAdding(false);
-                      setIsEditing(false);
-                    }}
-                  >
-                    {loc.name}
-                  </button>
-                </li>
+                <LocationListItem
+                  key={loc.id}
+                  loc={loc}
+                  active={selectedId === loc.id && !isAdding}
+                  onClick={() => { setSelectedId(loc.id); setIsAdding(false); setIsEditing(false); }}
+                />
               ))}
             </ul>
           )}
         </div>
 
         {/* Right: detail / form panel */}
-        <div className="flex-1 rounded-lg border border-border p-5 overflow-hidden flex flex-col">
+        <div style={{ flex: 1, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {(isAdding || isEditing) && formPanel}
           {detailPanel}
           {emptyPanel}

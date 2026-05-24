@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
-import { XIcon, TrashIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrashIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
+import { Drawer } from "@/components/ui/drawer";
 import {
   EMPTY_ENTRY,
   fromFormState,
@@ -24,16 +26,15 @@ interface Props {
   form: EntryFormState;
   saving: boolean;
   existingId?: string;
-  /** Auto-computed cash end of day (payment_cash − exp_cash_total) */
   computedCashEndDay?: number;
-  /** Auto-computed cash safe (prev_safe + cash_end_day − cash_to_boss) */
   computedCashSafe?: number;
-  /** Open the modal on this section tab (matches the table's current tab) */
   initialSection?: string;
   onChange: (field: keyof typeof EMPTY_ENTRY, val: string) => void;
   onSave: (e: React.FormEvent) => void;
   onDelete?: () => void;
   onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 function NumInput({
@@ -48,39 +49,67 @@ function NumInput({
   onChange: (field: keyof typeof EMPTY_ENTRY, val: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
       <input
         type="number"
         step="0.01"
         value={form[field] as string}
         onChange={(e) => onChange(field, e.target.value)}
-        className="h-7 rounded border border-border bg-muted/30 px-2 text-xs text-right text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        className="mono tabular-nums"
+        style={{
+          height: 32,
+          borderRadius: "var(--r-sm)",
+          border: "1px solid var(--line)",
+          background: "var(--bg-2)",
+          padding: "0 var(--s-2)",
+          fontSize: 13,
+          textAlign: "right",
+          color: "var(--fg)",
+          outline: "none",
+          width: "100%",
+        }}
       />
     </div>
   );
 }
 
 function CalcRow({ label, value }: { label: string; value: number }) {
-  const fmt = (n: number) => n === 0 ? "—" : n.toLocaleString("en", { maximumFractionDigits: 0 });
+  const fmtV = (n: number) => n === 0 ? "—" : "฿" + n.toLocaleString("en", { maximumFractionDigits: 0 });
   return (
-    <div className="flex items-center justify-between text-xs py-0.5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums">{fmt(value)}</span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 0" }}>
+      <span style={{ fontSize: 12, color: "var(--fg-3)" }}>{label}</span>
+      <span className="mono tabular-nums" style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>{fmtV(value)}</span>
     </div>
   );
 }
 
 function ReadOnlyRow({ label, value, hint }: { label: string; value: number; hint?: string }) {
-  const fmt = (n: number) => n === 0 ? "—" : n.toLocaleString("en", { maximumFractionDigits: 0 });
+  const fmtV = (n: number) => n === 0 ? "—" : "฿" + n.toLocaleString("en", { maximumFractionDigits: 0 });
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1.5">
-        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
-        {hint && <span className="text-[9px] text-muted-foreground/60 italic">{hint}</span>}
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+        {hint && <span style={{ fontSize: 9, color: "var(--fg-4)", fontStyle: "italic" }}>{hint}</span>}
       </div>
-      <div className="h-7 rounded border border-border/40 bg-muted/10 px-2 text-xs text-right text-muted-foreground italic flex items-center justify-end">
-        {fmt(value)}
+      <div
+        className="mono tabular-nums"
+        style={{
+          height: 32,
+          borderRadius: "var(--r-sm)",
+          border: "1px solid var(--line)",
+          background: "var(--bg-2)",
+          padding: "0 var(--s-2)",
+          fontSize: 13,
+          textAlign: "right",
+          color: "var(--fg-4)",
+          fontStyle: "italic",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+        }}
+      >
+        {fmtV(value)}
       </div>
     </div>
   );
@@ -99,10 +128,23 @@ export function DailyEntryModal({
   onSave,
   onDelete,
   onClose,
+  onPrev,
+  onNext,
 }: Props) {
   const [activeSection, setActiveSection] = useState<SectionId>(
     (initialSection as SectionId | undefined) ?? "sales"
   );
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); onNext?.(); }
+      if (e.key === "k" || e.key === "ArrowUp")   { e.preventDefault(); onPrev?.(); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onPrev, onNext]);
 
   const preview = fromFormState(form) as unknown as DailyEntry;
 
@@ -130,135 +172,216 @@ export function DailyEntryModal({
   };
 
   const currentSection = DAILY_ENTRY_SECTIONS.find((s) => s.id === activeSection)!;
-  // Editable fields for this section (exclude calculated + treasury computed fields)
   const editableFields = currentSection.fields.filter(
     (f) => !f.calculated && f.key !== "cash_end_day" && f.key !== "cash_safe"
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-      <div className="w-full max-w-xl rounded-xl border border-border bg-background p-5 shadow-xl my-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-semibold">{date}</h2>
-            <p className="text-xs text-muted-foreground">{locationName}</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <XIcon className="size-4" />
+  const footer = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {existingId && onDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              fontSize: 12, color: "var(--fg-4)", background: "none", border: "none",
+              cursor: "pointer", transition: "color var(--dur) var(--ease)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bad)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+          >
+            <TrashIcon style={{ width: 13, height: 13 }} />
+            Delete entry
           </button>
+        ) : null}
+        <div style={{ display: "flex", gap: 4, fontSize: 11, color: "var(--fg-4)", alignItems: "center" }}>
+          {(onPrev ?? onNext) ? (
+            <>
+              <Kbd>k</Kbd><span>prev</span>
+              <span style={{ marginLeft: 4 }}><Kbd>j</Kbd></span><span>next</span>
+              <span style={{ marginLeft: 4 }}><Kbd>esc</Kbd></span><span>close</span>
+            </>
+          ) : null}
         </div>
-
-        {/* Section tabs — active tab uses same color as main table */}
-        <div className="flex rounded-md border border-border overflow-hidden mb-4 text-xs">
-          {DAILY_ENTRY_SECTIONS.map((s, i) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setActiveSection(s.id as SectionId)}
-              className={`flex-1 px-2 py-1.5 ${i > 0 ? "border-l border-border" : ""} ${
-                activeSection === s.id
-                  ? `${s.badgeClass} font-medium`
-                  : "text-muted-foreground hover:bg-muted/40"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={onSave} className="flex flex-col gap-4">
-          {/* Section editable fields */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-            {editableFields.map((f) => (
-              <NumInput
-                key={f.key as string}
-                field={f.key as keyof typeof EMPTY_ENTRY}
-                label={f.label}
-                form={form}
-                onChange={onChange}
-              />
-            ))}
-
-            {/* Treasury section: show computed fields as read-only */}
-            {activeSection === "treasury" && (
-              <>
-                <ReadOnlyRow
-                  label="Cash end of day"
-                  value={computedCashEndDay ?? 0}
-                  hint="auto"
-                />
-                <NumInput
-                  field="cash_to_boss"
-                  label="Cash to boss"
-                  form={form}
-                  onChange={onChange}
-                />
-                <ReadOnlyRow
-                  label="Cash safe"
-                  value={computedCashSafe ?? 0}
-                  hint="auto"
-                />
-              </>
-            )}
-          </div>
-
-          {/* Calculated summary for the section */}
-          {sectionCalcs[activeSection] && (
-            <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs border border-border/40">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Calculated</p>
-              {sectionCalcs[activeSection]}
-            </div>
-          )}
-
-          {/* Notes */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => onChange("notes" as keyof typeof EMPTY_ENTRY, e.target.value)}
-              rows={2}
-              className="rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
-            />
-          </div>
-
-          {/* Global live totals */}
-          <div className="grid grid-cols-4 gap-2 rounded-lg bg-muted/20 border border-border/40 px-3 py-2 text-xs">
-            {[
-              { label: "Sales",    value: salesNetTotal(preview) },
-              { label: "Exp cash", value: expCashTotal(preview) },
-              { label: "Exp bank", value: expBankTotal(preview) },
-              { label: "HR",       value: hrTotal(preview) },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                <p className="font-semibold tabular-nums">
-                  {value === 0 ? "—" : value.toLocaleString("en", { maximumFractionDigits: 0 })}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-1">
-            {existingId && onDelete ? (
-              <button
-                type="button"
-                onClick={onDelete}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <TrashIcon className="size-3.5" />
-                Delete entry
-              </button>
-            ) : (
-              <span />
-            )}
-            <div className="flex gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save entry"}</Button>
-            </div>
-          </div>
-        </form>
+      </div>
+      <div style={{ display: "flex", gap: "var(--s-2)" }}>
+        <Button type="button" size="sm" variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button type="submit" size="sm" form="daily-entry-form" disabled={saving}>
+          {saving ? "Saving…" : "Save entry"}
+        </Button>
       </div>
     </div>
+  );
+
+  const titleNode = (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div>
+        <div style={{ fontSize: 13, color: "var(--fg-4)", marginBottom: 1 }}>{locationName}</div>
+        <div style={{ fontSize: 15, fontWeight: 500, color: "var(--fg)" }}>{date}</div>
+      </div>
+      <div style={{ display: "flex", gap: 2, marginLeft: 4 }}>
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={!onPrev}
+          style={{
+            width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
+            color: onPrev ? "var(--fg-3)" : "var(--fg-mute)", cursor: onPrev ? "pointer" : "default",
+          }}
+        >
+          <ChevronLeftIcon style={{ width: 14, height: 14 }} />
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!onNext}
+          style={{
+            width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
+            color: onNext ? "var(--fg-3)" : "var(--fg-mute)", cursor: onNext ? "pointer" : "default",
+          }}
+        >
+          <ChevronRightIcon style={{ width: 14, height: 14 }} />
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      title={titleNode}
+      footer={footer}
+    >
+      <form id="daily-entry-form" onSubmit={onSave} style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+        {/* Section tabs */}
+        <div
+          style={{
+            display: "flex",
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--line)",
+            overflow: "hidden",
+          }}
+        >
+          {DAILY_ENTRY_SECTIONS.map((s, i) => {
+            const isActive = activeSection === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActiveSection(s.id as SectionId)}
+                style={{
+                  flex: 1,
+                  padding: "6px 4px",
+                  fontSize: 12,
+                  fontWeight: isActive ? 500 : 400,
+                  color: isActive ? s.headerColor : "var(--fg-4)",
+                  background: isActive ? s.headerBg : "transparent",
+                  borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all var(--dur) var(--ease)",
+                }}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Section fields */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "var(--s-3) var(--s-4)",
+          }}
+        >
+          {editableFields.map((f) => (
+            <NumInput
+              key={f.key as string}
+              field={f.key as keyof typeof EMPTY_ENTRY}
+              label={f.label}
+              form={form}
+              onChange={onChange}
+            />
+          ))}
+
+          {activeSection === "treasury" && (
+            <>
+              <ReadOnlyRow label="Cash end of day" value={computedCashEndDay ?? 0} hint="auto" />
+              <NumInput field="cash_to_boss" label="Cash to boss" form={form} onChange={onChange} />
+              <ReadOnlyRow label="Cash safe" value={computedCashSafe ?? 0} hint="auto" />
+            </>
+          )}
+        </div>
+
+        {/* Calculated summary for this section */}
+        {sectionCalcs[activeSection] && (
+          <div
+            style={{
+              borderRadius: "var(--r-md)",
+              border: "1px solid var(--line)",
+              background: "var(--bg-2)",
+              padding: "var(--s-3) var(--s-4)",
+            }}
+          >
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 6 }}>Calculated</p>
+            {sectionCalcs[activeSection]}
+          </div>
+        )}
+
+        {/* Notes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Notes</label>
+          <textarea
+            value={form.notes}
+            onChange={(e) => onChange("notes" as keyof typeof EMPTY_ENTRY, e.target.value)}
+            rows={2}
+            style={{
+              borderRadius: "var(--r-sm)",
+              border: "1px solid var(--line)",
+              background: "var(--bg-2)",
+              padding: "var(--s-2) var(--s-3)",
+              fontSize: 13,
+              color: "var(--fg)",
+              resize: "none",
+              outline: "none",
+              fontFamily: "var(--font-sans)",
+            }}
+          />
+        </div>
+
+        {/* Global live totals */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "var(--s-2)",
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--line)",
+            background: "var(--surface)",
+            padding: "var(--s-3) var(--s-4)",
+          }}
+        >
+          {[
+            { label: "Sales",    value: salesNetTotal(preview),  color: "var(--good)" },
+            { label: "Exp cash", value: expCashTotal(preview),   color: "var(--warn)" },
+            { label: "Exp bank", value: expBankTotal(preview),   color: "var(--warn)" },
+            { label: "HR",       value: hrTotal(preview),        color: "var(--bad)" },
+          ].map(({ label, value, color }) => (
+            <div key={label}>
+              <p className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</p>
+              <p className="mono tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: value === 0 ? "var(--fg-4)" : color }}>
+                {value === 0 ? "—" : "฿" + value.toLocaleString("en", { maximumFractionDigits: 0 })}
+              </p>
+            </div>
+          ))}
+        </div>
+      </form>
+    </Drawer>
   );
 }

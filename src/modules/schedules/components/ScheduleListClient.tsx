@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon, T
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DateInput } from "@/components/ui/date-input";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
 
 interface Props {
   initialSchedules: Schedule[];
@@ -346,91 +348,107 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
     }
   }, [schedules, locationFilter, locations]);
 
+  const inputStyle: React.CSSProperties = {
+    height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13,
+    color: "var(--fg)", outline: "none", width: "100%",
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Schedules</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Weekly shift plans by shop.</p>
-        </div>
-        <div className="flex gap-2">
-          {locations.length > 1 && (
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-            >
-              <option value="">All shops</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
-          )}
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void exportMonthPdf()} disabled={exportingPdf}>
-            {exportingPdf ? <Loader2Icon className="size-4 animate-spin" /> : <PrinterIcon className="size-4" />}
-            Export month
-          </Button>
-          <Button size="sm" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }} className="gap-1.5">
-            <PlusIcon className="size-4" />
-            New schedule
-          </Button>
-        </div>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+      <PageHeader
+        eyebrow="Weekly shifts"
+        title="Schedules"
+        subtitle="Weekly shift plans by shop."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            {locations.length > 1 && (
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                style={{ ...inputStyle, width: "auto", minWidth: 120 }}
+              >
+                <option value="">All shops</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            )}
+            <Button size="sm" variant="secondary" onClick={() => void exportMonthPdf()} disabled={exportingPdf}>
+              {exportingPdf ? <Loader2Icon style={{ width: 14, height: 14 }} className="animate-spin" /> : <PrinterIcon style={{ width: 14, height: 14 }} />}
+              Export month
+            </Button>
+            <Button size="sm" variant="primary" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }}>
+              <PlusIcon style={{ width: 14, height: 14 }} />
+              New schedule
+            </Button>
+          </div>
+        }
+      />
 
       {/* ── Create form ─────────────────────────────────────────── */}
       {showCreate && (
         <form
           onSubmit={(e) => void handleCreate(e)}
-          className="rounded-lg border border-border bg-muted/20 p-4 flex flex-col gap-3"
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--bg-2)", padding: "var(--s-4)",
+            display: "flex", flexDirection: "column", gap: "var(--s-3)",
+          }}
         >
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex flex-col gap-1 min-w-[220px]">
-              <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-3)", alignItems: "flex-end" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 220 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Schedule name</label>
               <input
                 type="text"
                 required
                 value={createName}
                 onChange={(e) => setCreateNameOverride(e.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                style={inputStyle}
                 placeholder="e.g. Week of 5 May 2026"
               />
             </div>
-            <div className="flex flex-col gap-1 min-w-[160px]">
-              <label className="text-xs font-medium text-muted-foreground">Shop</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 160 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Shop</label>
               <select
                 value={createLocation}
                 onChange={(e) => setCreateLocation(e.target.value)}
                 required
-                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                style={inputStyle}
               >
                 {locations.map((l) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
               </select>
             </div>
-            <div className="flex flex-col gap-1 min-w-[160px]">
-              <label className="text-xs font-medium text-muted-foreground">Week starting (Monday)</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 160 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Week starting (Monday)</label>
               <DateInput
                 required
                 value={createWeek}
                 onChange={(e) => {
                   setCreateWeek(e.target.value);
-                  // Reset name override so it auto-updates with the new week
                   setCreateNameOverride(null);
                 }}
               />
             </div>
           </div>
-          <div className="flex items-center justify-between w-full pt-1 border-t border-border/40 mt-0.5">
+          <div
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)",
+            }}
+          >
             <button
               type="button"
               onClick={() => { setShowCreate(false); setCreateNameOverride(null); }}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              style={{ fontSize: 13, color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
             >
               Cancel
             </button>
-            <Button type="submit" size="sm" disabled={submitting} className="gap-1.5">
+            <Button type="submit" size="sm" variant="primary" disabled={submitting}>
               {submitting ? "Creating…" : "Create schedule"}
             </Button>
           </div>
@@ -438,79 +456,66 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
       )}
 
       {/* ── Schedules table ─────────────────────────────────────── */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Shop</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Week</th>
-              <th className="px-4 py-3 w-28" />
+      <div
+        style={{
+          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+          background: "var(--surface)", overflow: "hidden",
+        }}
+      >
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "var(--bg-2)" }}>
+              {["Name", "Shop", "Week", ""].map((h, i) => (
+                <th
+                  key={i}
+                  style={{
+                    padding: "10px var(--s-5)", textAlign: i === 3 ? "right" : "left",
+                    color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
+                    borderBottom: "1px solid var(--line)",
+                    width: i === 3 ? 120 : undefined,
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {filtered.map((s) => (
+          <tbody>
+            {filtered.map((s, idx) => (
               <tr
                 key={s.id}
-                className="hover:bg-muted/20 transition-colors cursor-pointer"
+                style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined, cursor: "pointer" }}
                 onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
               >
-                <td className="px-4 py-3 font-medium">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                <td style={{ padding: "12px var(--s-5)", fontWeight: 500 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CalendarIcon style={{ width: 13, height: 13, color: "var(--fg-4)", flexShrink: 0 }} />
                     {s.name}
                     {conflictIds.has(s.id) && (
-                      <span
-                        title="Another schedule covers the same shop and week — hours may be double-counted in payroll"
-                        className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-200"
-                      >
-                        <TriangleAlertIcon className="size-3" />
+                      <Pill tone="warn" size="sm">
+                        <TriangleAlertIcon style={{ width: 10, height: 10 }} />
                         Overlap
-                      </span>
+                      </Pill>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{s.location_name ?? "—"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{weekLabel(s.week_start_date)}</td>
-                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      title="Duplicate"
-                      disabled={submitting}
-                      onClick={() => openDuplicate(s)}
-                    >
-                      <CopyIcon className="size-3.5" />
+                <td style={{ padding: "12px var(--s-5)", color: "var(--fg-3)" }}>{s.location_name ?? "—"}</td>
+                <td style={{ padding: "12px var(--s-5)", color: "var(--fg-3)" }}>{weekLabel(s.week_start_date)}</td>
+                <td style={{ padding: "12px var(--s-5)" }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
+                    <Button size="icon" variant="ghost" title="Duplicate" disabled={submitting} onClick={() => openDuplicate(s)}>
+                      <CopyIcon style={{ width: 13, height: 13 }} />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      title="Download as PDF"
-                      disabled={printingId === s.id}
-                      onClick={() => void printSchedule(s)}
-                    >
-                      <PrinterIcon className="size-3.5" />
+                    <Button size="icon" variant="ghost" title="Download as PDF" disabled={printingId === s.id} onClick={() => void printSchedule(s)}>
+                      <PrinterIcon style={{ width: 13, height: 13 }} />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      title="Edit schedule"
-                      onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}
-                    >
-                      <PencilIcon className="size-3.5" />
+                    <Button size="icon" variant="ghost" title="Edit schedule" onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}>
+                      <PencilIcon style={{ width: 13, height: 13 }} />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7 text-destructive hover:text-destructive"
-                      title="Delete"
-                      onClick={() => setDeleteTarget(s)}
-                    >
-                      <TrashIcon className="size-3.5" />
+                    <Button size="icon" variant="danger" title="Delete" onClick={() => setDeleteTarget(s)}>
+                      <TrashIcon style={{ width: 13, height: 13 }} />
                     </Button>
                   </div>
                 </td>
@@ -519,9 +524,9 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+          <div style={{ padding: "40px var(--s-5)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
             {schedules.length === 0
-              ? "No schedules yet. Create your first one above."
+              ? "No schedules yet — create your first one above."
               : "No schedules for this shop."}
           </div>
         )}
@@ -529,14 +534,27 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
 
       {/* ── Duplicate modal ─────────────────────────────────────── */}
       {dupTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            padding: "0 var(--s-4)",
+          }}
+          onKeyDown={(e) => { if (e.key === "Escape") setDupTarget(null); }}
+        >
           <form
             onSubmit={(e) => void handleDuplicateConfirm(e)}
-            className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl flex flex-col gap-4"
+            style={{
+              width: "100%", maxWidth: 440,
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", padding: "var(--s-6)",
+              boxShadow: "var(--shadow-drawer)", display: "flex", flexDirection: "column", gap: "var(--s-4)",
+            }}
           >
-            <h2 className="text-base font-semibold">Duplicate schedule</h2>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">New week starting (Monday)</label>
+            <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Duplicate schedule</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>New week starting (Monday)</label>
               <DateInput
                 required
                 value={dupWeek}
@@ -546,21 +564,15 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                 }}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Schedule name</label>
-              <input
-                type="text"
-                required
-                value={dupName}
-                onChange={(e) => setDupName(e.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-              />
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Schedule name</label>
+              <input type="text" required value={dupName} onChange={(e) => setDupName(e.target.value)} style={inputStyle} />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" type="button" onClick={() => setDupTarget(null)} disabled={submitting}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)" }}>
+              <Button variant="secondary" size="sm" type="button" onClick={() => setDupTarget(null)} disabled={submitting}>
                 Cancel
               </Button>
-              <Button size="sm" type="submit" disabled={submitting}>
+              <Button size="sm" variant="primary" type="submit" disabled={submitting}>
                 {submitting ? "Duplicating…" : "Duplicate"}
               </Button>
             </div>
@@ -570,24 +582,34 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
 
       {/* ── Delete confirmation modal ────────────────────────────── */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-xl">
-            <h2 className="text-base font-semibold mb-1">Delete schedule?</h2>
-            <p className="text-sm text-muted-foreground mb-1">
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            padding: "0 var(--s-4)",
+          }}
+          onKeyDown={(e) => { if (e.key === "Escape") setDeleteTarget(null); }}
+        >
+          <div
+            style={{
+              width: "100%", maxWidth: 380,
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", padding: "var(--s-6)",
+              boxShadow: "var(--shadow-drawer)",
+            }}
+          >
+            <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Delete schedule?</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 4 }}>
               You&apos;re about to permanently delete{" "}
-              <span className="font-medium text-foreground">{deleteTarget.name}</span>.
+              <span style={{ fontWeight: 500, color: "var(--fg)" }}>{deleteTarget.name}</span>.
             </p>
-            <p className="text-xs text-muted-foreground mb-5">This cannot be undone.</p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            <p style={{ fontSize: 12, color: "var(--fg-4)", marginBottom: "var(--s-5)" }}>This cannot be undone.</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)" }}>
+              <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleting}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => void executeDelete()}
-                disabled={deleting}
-              >
+              <Button variant="danger" size="sm" onClick={() => void executeDelete()} disabled={deleting}>
                 {deleting ? "Deleting…" : "Delete"}
               </Button>
             </div>

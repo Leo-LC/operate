@@ -1,22 +1,29 @@
 import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
 
 interface NoteBoxProps {
   icon?: string;
   children: ReactNode;
-  className?: string;
+  style?: React.CSSProperties;
 }
 
-export function NoteBox({ icon = "💡", children, className }: NoteBoxProps) {
+export function NoteBox({ icon = "💡", children, style }: NoteBoxProps) {
   return (
     <div
-      className={cn(
-        "flex gap-2.5 rounded-r-lg border-y border-r border-[#fcd34d] border-l-2 border-l-[#B9854E] bg-[#fff8ee] p-3.5",
-        className
-      )}
+      style={{
+        display: "flex",
+        gap: 10,
+        borderRadius: "0 var(--r-md) var(--r-md) 0",
+        borderTop: "1px solid var(--warn)",
+        borderRight: "1px solid var(--warn)",
+        borderBottom: "1px solid var(--warn)",
+        borderLeft: "2px solid var(--bronze)",
+        background: "var(--bronze-soft)",
+        padding: 14,
+        ...style,
+      }}
     >
-      <span aria-hidden="true" className="mt-0.5 shrink-0 text-sm">{icon}</span>
-      <div className="text-[12px] leading-relaxed text-[#5c4d3c]">{children}</div>
+      <span aria-hidden="true" style={{ marginTop: 2, flexShrink: 0, fontSize: 14 }}>{icon}</span>
+      <div style={{ fontSize: 12, lineHeight: 1.6, color: "var(--fg-2)" }}>{children}</div>
     </div>
   );
 }

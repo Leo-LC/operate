@@ -4,10 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
-  CheckIcon, BanknoteIcon, BuildingIcon, PrinterIcon, XIcon,
+  CheckIcon, BanknoteIcon, BuildingIcon, PrinterIcon, XIcon, EyeIcon, ListIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type PaymentRecord, type PaymentStatus, totalPayment, STATUS_LABELS, STATUS_COLORS } from "@/modules/payments/types";
+import { PageHeader } from "@/components/ui/page-header";
+import { Stat } from "@/components/ui/stat";
+import { Pill } from "@/components/ui/pill";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import {
+  type PaymentRecord, type PaymentStatus,
+  totalPayment, STATUS_LABELS,
+} from "@/modules/payments/types";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "@/modules/admin/components/EmployeeForm";
 
@@ -19,6 +26,15 @@ function fmtThb(n: number) {
   return `฿${Math.round(n).toLocaleString()}`;
 }
 
+type View = "table" | "detail";
+type StatusFilter = "all" | PaymentStatus;
+
+const STATUS_TONE: Record<PaymentStatus, "warn" | "info" | "good"> = {
+  draft:     "warn",
+  confirmed: "info",
+  paid:      "good",
+};
+
 type EditableField =
   | "bonus_amount" | "bonus_note"
   | "deductions" | "deduction_note"
@@ -28,36 +44,42 @@ type EditableField =
 
 export function PaymentsClient({ initialLocations }: Props) {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear]         = useState(now.getFullYear());
+  const [month, setMonth]       = useState(now.getMonth() + 1);
   const [locationId, setLocationId] = useState(initialLocations[0]?.id ?? "");
+  const [view, setView]         = useState<View>("table");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const [records, setRecords] = useState<PaymentRecord[]>([]);
+  const [records, setRecords]   = useState<PaymentRecord[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [calculating, setCalculating] = useState(false);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editField, setEditField] = useState<EditableField | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [editingId, setEditingId]   = useState<string | null>(null);
+  const [editField, setEditField]   = useState<EditableField | null>(null);
+  const [editValue, setEditValue]   = useState("");
+  const [savingId, setSavingId]     = useState<string | null>(null);
 
-  // Employee modal (item 8)
-  const [employeeModal, setEmployeeModal] = useState<Employee | null>(null);
-  const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(EMPTY_EMPLOYEE_FORM);
-  const [employeeLocIds, setEmployeeLocIds] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Employee modal
+  const [employeeModal, setEmployeeModal]     = useState<Employee | null>(null);
+  const [employeeForm, setEmployeeForm]       = useState<EmployeeFormState>(EMPTY_EMPLOYEE_FORM);
+  const [employeeLocIds, setEmployeeLocIds]   = useState<Set<string>>(new Set());
   const [employeePrimaryLoc, setEmployeePrimaryLoc] = useState("");
   const [employeeSubmitting, setEmployeeSubmitting] = useState(false);
 
-  // OT/Deductions edit modal (item 9)
+  // OT/Deductions edit modal
   type EditModalState = { type: "ot" | "deduct"; record: PaymentRecord; emp: Employee } | null;
-  const [editModal, setEditModal] = useState<EditModalState>(null);
-  const [modalMode, setModalMode] = useState<"units" | "amount">("units");
-  const [modalUnits, setModalUnits] = useState("");
+  const [editModal, setEditModal]     = useState<EditModalState>(null);
+  const [modalMode, setModalMode]     = useState<"units" | "amount">("units");
+  const [modalUnits, setModalUnits]   = useState("");
   const [modalAmount, setModalAmount] = useState("");
   const [modalSaving, setModalSaving] = useState(false);
 
   const monthName = new Date(year, month - 1, 1).toLocaleDateString("en", { month: "long", year: "numeric" });
+  const monthDays = new Date(year, month, 0).getDate();
+  const dueIn = monthDays - now.getDate();
 
   const loadData = useCallback(async () => {
     if (!locationId) return;
@@ -95,6 +117,30 @@ export function PaymentsClient({ initialLocations }: Props) {
     })),
     [locationEmployees, records]
   );
+
+  const stats = useMemo(() => {
+    const withRecord = rows.filter((r) => r.record);
+    const total   = withRecord.reduce((s, r) => s + totalPayment(r.record!), 0);
+    const drafts  = withRecord.filter((r) => r.record?.status === "draft");
+    const draftAmt = drafts.reduce((s, r) => s + totalPayment(r.record!), 0);
+    const paid    = withRecord.filter((r) => r.record?.status === "paid").reduce((s, r) => s + totalPayment(r.record!), 0);
+    return { total, draftCount: drafts.length, draftAmt, paid, headcount: withRecord.length };
+  }, [rows]);
+
+  const grouped = useMemo(() => {
+    const filter = (s: PaymentStatus) =>
+      rows.filter((r) => r.record?.status === s && (statusFilter === "all" || statusFilter === s));
+    return {
+      draft:     filter("draft"),
+      confirmed: filter("confirmed"),
+      paid:      filter("paid"),
+    };
+  }, [rows, statusFilter]);
+
+  const selectedRecord  = records.find((r) => r.id === selectedId) ?? null;
+  const selectedEmployee = selectedRecord
+    ? employees.find((e) => e.id === selectedRecord.employee_id) ?? null
+    : null;
 
   function prevMonth() {
     if (month === 1) { setYear((y) => y - 1); setMonth(12); }
@@ -152,25 +198,17 @@ export function PaymentsClient({ initialLocations }: Props) {
   }
 
   function startEdit(recordId: string, field: EditableField, currentValue: string | number) {
-    setEditingId(recordId);
-    setEditField(field);
-    setEditValue(String(currentValue));
+    setEditingId(recordId); setEditField(field); setEditValue(String(currentValue));
   }
-
   function cancelEdit() { setEditingId(null); setEditField(null); }
 
   function openEmployeeModal(emp: Employee) {
     setEmployeeForm({
-      first_name: emp.first_name,
-      last_name: emp.last_name ?? "",
-      position: emp.position ?? "",
-      nationality: emp.nationality ?? "",
-      national_id: emp.national_id ?? "",
-      work_permit_number: emp.work_permit_number ?? "",
-      work_permit_expires_at: emp.work_permit_expires_at ?? "",
-      email: emp.email ?? "",
-      phone: emp.phone ?? "",
-      notes: emp.notes ?? "",
+      first_name: emp.first_name, last_name: emp.last_name ?? "",
+      position: emp.position ?? "", nationality: emp.nationality ?? "",
+      national_id: emp.national_id ?? "", work_permit_number: emp.work_permit_number ?? "",
+      work_permit_expires_at: emp.work_permit_expires_at ?? "", email: emp.email ?? "",
+      phone: emp.phone ?? "", notes: emp.notes ?? "",
       base_salary_monthly: emp.base_salary_monthly ? String(emp.base_salary_monthly) : "",
       has_thai_bank_account: emp.has_thai_bank_account ?? false,
       credit_note: emp.credit_note ?? "",
@@ -199,7 +237,7 @@ export function PaymentsClient({ initialLocations }: Props) {
       });
       if (!res.ok) { const err = await res.json().catch(() => ({})) as { error?: string }; toast.error(err.error ?? "Failed to save employee"); return; }
       const updated = await res.json() as Employee;
-      setEmployees((prev) => prev.map((e) => e.id === updated.id ? updated : e));
+      setEmployees((prev) => prev.map((emp) => emp.id === updated.id ? updated : emp));
       setEmployeeModal(null);
       toast.success("Employee updated");
     } finally {
@@ -232,34 +270,21 @@ export function PaymentsClient({ initialLocations }: Props) {
       } else {
         const units = parseFloat(modalUnits) || 0;
         const dailyRate = (emp.base_salary_monthly ?? 0) / 30;
-        const month = `${record.period_year}-${String(record.period_month).padStart(2, "0")}`;
-
-        // Fetch existing OT/leave records for this employee+month to delete them
-        const existingRes = await fetch(`/api/attendance?month=${month}&employee_id=${emp.id}`);
+        const monthStr = `${record.period_year}-${String(record.period_month).padStart(2, "0")}`;
+        const existingRes = await fetch(`/api/attendance?month=${monthStr}&employee_id=${emp.id}`);
         const existing = (await existingRes.json()) as Array<{ id: string; record_type: string }>;
-
         const targetType = type === "ot" ? "overtime_weekday" : "unpaid_leave";
         const toDelete = existing.filter((r) => r.record_type === targetType);
         await Promise.all(toDelete.map((r) => fetch(`/api/attendance/${r.id}`, { method: "DELETE" })));
-
         if (units > 0) {
-          // For OT: create one record per OT hour block on the last day of the month
-          // For simplicity: create a single record with the total hours
           const lastDay = new Date(record.period_year, record.period_month, 0).getDate();
-          const recordDate = `${month}-${String(lastDay).padStart(2, "0")}`;
+          const recordDate = `${monthStr}-${String(lastDay).padStart(2, "0")}`;
           await fetch("/api/attendance", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              location_id: record.location_id,
-              employee_id: emp.id,
-              record_date: recordDate,
-              record_type: targetType,
-              hours: units,
-            }),
+            body: JSON.stringify({ location_id: record.location_id, employee_id: emp.id, record_date: recordDate, record_type: targetType, hours: units }),
           });
         }
-
         const amt = type === "ot" ? units * dailyRate * 1.5 : units * dailyRate;
         await patchRecord(record.id, type === "ot" ? { overtime_pay: Math.round(amt) } : { deductions: Math.round(amt) });
       }
@@ -275,19 +300,12 @@ export function PaymentsClient({ initialLocations }: Props) {
     toast.success(`${drafts.length} record${drafts.length !== 1 ? "s" : ""} confirmed`);
   }
 
-  async function handlePayAll() {
-    const confirmed = rows.filter((r) => r.record?.status === "confirmed");
-    await Promise.all(confirmed.map((r) => patchRecord(r.record!.id, { status: "paid" as PaymentStatus })));
-    toast.success(`${confirmed.length} record${confirmed.length !== 1 ? "s" : ""} marked paid`);
-  }
 
   function exportPaymentsPdf() {
     const locationName = initialLocations.find((l) => l.id === locationId)?.name ?? "";
     const fmtB = (n: number) => `฿${Math.round(n).toLocaleString()}`;
-    const methodLabel = (emp: Employee, record: PaymentRecord | null) => {
-      const isBank = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
-      return isBank ? "Bank" : "Cash";
-    };
+    const methodLabel = (emp: Employee, record: PaymentRecord | null) =>
+      (record?.payment_method === "bank_transfer" || emp.has_thai_bank_account) ? "Bank" : "Cash";
 
     const tableRows = rows.filter((r) => r.record).map((r, idx) => {
       const rec = r.record!;
@@ -332,41 +350,6 @@ export function PaymentsClient({ initialLocations }: Props) {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 
-  function InlineNumber({ record, field, value, color, emptyLabel }: {
-    record: PaymentRecord;
-    field: EditableField;
-    value: number;
-    color?: string;
-    emptyLabel?: string;
-  }) {
-    const isEditing = editingId === record.id && editField === field;
-    if (isEditing) {
-      return (
-        <input
-          type="number" min="0" step="100" autoFocus
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={() => void patchRecord(record.id, { [field]: parseFloat(editValue) || 0 } as Partial<PaymentRecord>)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void patchRecord(record.id, { [field]: parseFloat(editValue) || 0 } as Partial<PaymentRecord>);
-            if (e.key === "Escape") cancelEdit();
-          }}
-          className="w-24 h-6 text-right text-xs rounded border border-ring bg-background px-1 focus:outline-none"
-        />
-      );
-    }
-    return (
-      <span
-        className="cursor-pointer hover:underline"
-        onClick={() => startEdit(record.id, field, value)}
-      >
-        {value > 0
-          ? <span className={color}>{fmtThb(value)}</span>
-          : <span className="text-muted-foreground/60 text-[10px]">{emptyLabel ?? "—"}</span>}
-      </span>
-    );
-  }
-
   const totals = useMemo(() => {
     const paid = rows.filter((r) => r.record);
     return {
@@ -379,266 +362,677 @@ export function PaymentsClient({ initialLocations }: Props) {
     };
   }, [rows]);
 
+  const COL_GRID = "28px 1.5fr 1fr 100px 100px 100px 100px 120px 100px 80px";
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold">Payments</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Monthly employee payment summary</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background pl-2 pr-7 text-sm"
-          >
-            {initialLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth}>
-              <ChevronLeftIcon className="size-4" />
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <PageHeader
+        eyebrow={monthName}
+        title="Payments"
+        subtitle="Wages, tips and deductions for the period."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            {/* Location selector */}
+            <select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              style={{
+                height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                background: "var(--surface)", color: "var(--fg)",
+                padding: "0 var(--s-3)", fontSize: 13, fontFamily: "var(--font-sans)", outline: "none",
+              }}
+            >
+              {initialLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+
+            {/* Month nav */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <button
+                onClick={prevMonth}
+                style={{
+                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                  color: "var(--fg-3)", cursor: "pointer",
+                }}
+              >
+                <ChevronLeftIcon size={14} />
+              </button>
+              <span
+                className="mono tabular-nums"
+                style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
+              >
+                {monthName}
+              </span>
+              <button
+                onClick={nextMonth}
+                style={{
+                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                  color: "var(--fg-3)", cursor: "pointer",
+                }}
+              >
+                <ChevronRightIcon size={14} />
+              </button>
+            </div>
+
+            {/* View toggle */}
+            <div
+              style={{
+                display: "inline-flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)",
+                background: "var(--bg-2)", padding: 3, gap: 2,
+              }}
+            >
+              {([
+                { id: "table" as View, label: "Table",  Icon: ListIcon },
+                { id: "detail" as View, label: "Detail", Icon: EyeIcon },
+              ]).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setView(id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    height: 26, padding: "0 10px",
+                    borderRadius: "var(--r-sm)", fontSize: 12,
+                    fontWeight: view === id ? 500 : 400,
+                    color: view === id ? "var(--fg)" : "var(--fg-4)",
+                    background: view === id ? "var(--surface)" : "transparent",
+                    border: `1px solid ${view === id ? "var(--line)" : "transparent"}`,
+                    boxShadow: view === id ? "var(--shadow-1)" : "none",
+                    cursor: "pointer", transition: "all var(--dur) var(--ease)",
+                  }}
+                >
+                  <Icon size={12} strokeWidth={1.5} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              size="sm" variant="secondary" style={{ gap: 6 }}
+              onClick={() => void handleCalculate()} disabled={calculating || !locationId}
+            >
+              {calculating ? <Loader2Icon size={13} className="animate-spin" /> : <CalculatorIcon size={13} />}
+              Calculate
             </Button>
-            <span className="text-sm font-medium w-36 text-center tabular-nums">{monthName}</span>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth}>
-              <ChevronRightIcon className="size-4" />
+
+            <Button
+              size="sm"
+              style={{ gap: 6 }}
+              onClick={() => void handleConfirmAll()}
+              disabled={calculating || stats.draftCount === 0}
+            >
+              <CheckIcon size={13} />
+              Confirm {stats.draftCount > 0 ? stats.draftCount : ""} drafts
+            </Button>
+
+            <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
+              <PrinterIcon size={13} />
+              PDF
             </Button>
           </div>
-          <Button
-            size="sm" variant="outline" className="gap-1.5"
-            onClick={() => void handleCalculate()} disabled={calculating || !locationId}
+        }
+      />
+
+      {/* Stats band */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--s-3)" }}>
+        {[
+          {
+            label: "Total payroll",
+            value: stats.total > 0 ? fmtThb(stats.total) : "—",
+            hint: `${stats.headcount} ${stats.headcount === 1 ? "person" : "people"}`,
+          },
+          {
+            label: "Drafts",
+            value: String(stats.draftCount),
+            delta: stats.draftAmt > 0 ? fmtThb(stats.draftAmt) : undefined,
+            deltaDir: "neutral" as const,
+            hint: "Awaiting confirmation",
+          },
+          {
+            label: "Paid so far",
+            value: stats.paid > 0 ? fmtThb(stats.paid) : "—",
+            hint: monthName,
+          },
+          {
+            label: "Due in",
+            value: dueIn > 0 ? String(dueIn) : "today",
+            hint: `${new Date(year, month - 1, monthDays).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}`,
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              background: "var(--surface)", border: "1px solid var(--line)",
+              borderRadius: "var(--r-lg)", padding: "var(--s-4)",
+            }}
           >
-            {calculating ? <Loader2Icon className="size-4 animate-spin" /> : <CalculatorIcon className="size-4" />}
-            Calculate period
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5"
-            onClick={() => void handleConfirmAll()}
-            disabled={calculating || !rows.some((r) => r.record?.status === "draft")}>
-            <CheckIcon className="size-4" />Confirm all
-          </Button>
-          <Button size="sm" className="gap-1.5 bg-green-700 hover:bg-green-800"
-            onClick={() => void handlePayAll()}
-            disabled={calculating || !rows.some((r) => r.record?.status === "confirmed")}>
-            <CheckIcon className="size-4" />Pay all
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => exportPaymentsPdf()}>
-            <PrinterIcon className="size-4" />Export PDF
-          </Button>
-        </div>
+            <Stat {...s} />
+          </div>
+        ))}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin mr-2" />Loading…
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 16px", gap: 8, fontSize: 13, color: "var(--fg-4)" }}>
+          <Loader2Icon size={16} className="animate-spin" />
+          Loading…
         </div>
-      ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
-          <table className="w-full text-sm min-w-[1080px]">
-            <thead className="bg-muted/40">
-              <tr>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground sticky left-0 bg-muted/40">Employee</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Deductions</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">OT pay</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Svc charge</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Bonus</th>
-                <th className="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs">Total</th>
-                <th className="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs">Method</th>
-                <th className="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs">Status</th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    {employees.length === 0
-                      ? <><a href="/dashboard/admin/employees" className="underline hover:text-foreground">Add your first employee</a> to start tracking payments.</>
-                      : <>No employees assigned to this location. Assign employees, then use <strong>Calculate period</strong> to generate records.</>}
-                  </td>
-                </tr>
-              ) : rows.map(({ employee: emp, record }, rowIdx) => {
-                const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
-                const rowBg = rowIdx % 2 === 1 ? "bg-muted/15" : "";
-                const total = record ? totalPayment(record) : 0;
+      ) : view === "table" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+          {/* Status filter */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div
+              style={{
+                display: "inline-flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)",
+                background: "var(--bg-2)", padding: 3, gap: 2,
+              }}
+            >
+              {(["all", "draft", "confirmed", "paid"] as StatusFilter[]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setStatusFilter(f)}
+                  style={{
+                    height: 24, padding: "0 10px",
+                    borderRadius: "var(--r-sm)", fontSize: 12,
+                    fontWeight: statusFilter === f ? 500 : 400,
+                    color: statusFilter === f ? "var(--fg)" : "var(--fg-4)",
+                    background: statusFilter === f ? "var(--surface)" : "transparent",
+                    border: `1px solid ${statusFilter === f ? "var(--line)" : "transparent"}`,
+                    cursor: "pointer", transition: "all var(--dur) var(--ease)",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {f === "all" ? "All" : STATUS_LABELS[f as PaymentStatus]}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
+              Due {new Date(year, month - 1, monthDays).toLocaleDateString("en", { day: "numeric", month: "short" })}
+            </span>
+          </div>
 
-                return (
-                  <tr key={emp.id} className={`transition-colors ${rowBg} hover:bg-muted/25`}>
-                    {/* Employee name + salary + credit badge */}
-                    <td className={`px-4 py-2.5 font-medium sticky left-0 ${rowBg || "bg-background"}`}>
-                      <div className="flex flex-col gap-0.5">
-                        <span>
-                          <button type="button" onClick={() => openEmployeeModal(emp)} className="hover:underline text-left">
-                            {emp.first_name} {emp.last_name}
-                          </button>
-                          {!emp.base_salary_monthly && (
-                            <span className="ml-1.5 text-[10px] text-amber-600">no salary set</span>
-                          )}
-                        </span>
-                        {emp.base_salary_monthly ? (
-                          <span className="text-[10px] font-normal text-muted-foreground">
-                            {fmtThb(emp.base_salary_monthly)}/mo
-                          </span>
-                        ) : null}
-                        {emp.credit_note && (
-                          <span className="text-[10px] font-normal text-muted-foreground">{emp.credit_note}</span>
-                        )}
-                      </div>
-                    </td>
+          {/* Table */}
+          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
+            {/* Column headers */}
+            <div
+              style={{
+                display: "grid", gridTemplateColumns: COL_GRID,
+                padding: "10px var(--s-4)", background: "var(--bg-2)",
+                borderBottom: "1px solid var(--line)", gap: 12, alignItems: "center",
+              }}
+            >
+              {["", "Employee", "Shop · Role", "Base", "Deduct.", "OT pay", "Svc chg", "Bonus", "Total", ""].map((h, i) => (
+                <div
+                  key={i}
+                  className="eyebrow"
+                  style={{
+                    color: "var(--fg-4)",
+                    textAlign: i > 2 && i < 9 ? "right" : "left",
+                  }}
+                >
+                  {h}
+                </div>
+              ))}
+            </div>
 
-                    {/* Deductions — click to open modal */}
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (
-                        <button type="button" onClick={() => openDeductModal(record, emp)}
-                          className="hover:underline cursor-pointer">
-                          {record.deductions > 0
-                            ? <span className="text-destructive">{fmtThb(record.deductions)}</span>
-                            : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
-                        </button>
-                      ) : <span className="text-muted-foreground/60">—</span>}
-                    </td>
+            {/* Status groups */}
+            {(["draft", "confirmed", "paid"] as PaymentStatus[])
+              .filter((g) => grouped[g].length > 0)
+              .map((group) => (
+                <div key={group}>
+                  {/* Group header */}
+                  <div
+                    style={{
+                      padding: "8px var(--s-4)",
+                      background: "var(--surface-2)",
+                      borderBottom: "1px solid var(--line)",
+                      display: "flex", alignItems: "center", gap: 8,
+                      fontSize: 12, color: "var(--fg-3)", fontWeight: 500,
+                    }}
+                  >
+                    <Pill tone={STATUS_TONE[group]} size="sm" dot>
+                      {STATUS_LABELS[group].toUpperCase()}
+                    </Pill>
+                    <span>
+                      {grouped[group].length} · {fmtThb(grouped[group].reduce((s, r) => s + (r.record ? totalPayment(r.record) : 0), 0))}
+                    </span>
+                  </div>
 
-                    {/* OT pay — click to open modal */}
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (
-                        <button type="button" onClick={() => openOtModal(record, emp)}
-                          className="hover:underline cursor-pointer">
-                          {record.overtime_pay > 0
-                            ? <span className="text-blue-600 dark:text-blue-400">{fmtThb(record.overtime_pay)}</span>
-                            : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
-                        </button>
-                      ) : <span className="text-muted-foreground/60">—</span>}
-                    </td>
+                  {/* Rows */}
+                  {grouped[group].map(({ employee: emp, record }) => {
+                    const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
+                    const total = record ? totalPayment(record) : 0;
+                    const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
+                    const locationName = initialLocations.find((l) =>
+                      emp.employee_locations?.some((el) => el.location_id === l.id && el.is_primary) ||
+                      emp.location_id === l.id
+                    )?.name ?? "";
 
-                    {/* Service charge — editable, shows manual indicator */}
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (
-                        <div className="flex flex-col items-end gap-0.5">
-                          {editingId === record.id && editField === "service_charge" ? (
-                            <input
-                              type="number" min="0" step="100" autoFocus
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={() => void patchRecord(record.id, {
-                                service_charge: parseFloat(editValue) || 0,
-                              })}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") void patchRecord(record.id, {
-                                  service_charge: parseFloat(editValue) || 0,
-                                });
-                                if (e.key === "Escape") cancelEdit();
+                    return (
+                      <div
+                        key={emp.id}
+                        style={{
+                          display: "grid", gridTemplateColumns: COL_GRID,
+                          padding: "12px var(--s-4)", alignItems: "center", gap: 12,
+                          borderBottom: "1px solid var(--line)",
+                          fontSize: 13, transition: "background var(--dur) var(--ease)",
+                        }}
+                        className="group/row hover:bg-[var(--row-hover)]"
+                      >
+                        {/* Checkbox placeholder */}
+                        <div />
+
+                        {/* Employee */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <UserAvatar name={fullName} size={28} />
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => openEmployeeModal(emp)}
+                              style={{
+                                fontSize: 13, fontWeight: 500, color: "var(--fg)",
+                                background: "none", border: "none", cursor: "pointer", textAlign: "left",
+                                padding: 0,
                               }}
-                              className="w-24 h-6 text-right text-xs rounded border border-ring bg-background px-1 focus:outline-none"
-                            />
-                          ) : (
-                            <span
-                              className="cursor-pointer hover:underline"
-                              onClick={() => startEdit(record.id, "service_charge", record.service_charge)}
+                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                             >
-                              {record.service_charge > 0
-                                ? fmtThb(record.service_charge)
-                                : <span className="text-muted-foreground/60 text-[10px]">+ add</span>}
+                              {fullName}
+                            </button>
+                            {!emp.base_salary_monthly && (
+                              <div style={{ fontSize: 11, color: "var(--warn)" }}>no salary set</div>
+                            )}
+                            {emp.base_salary_monthly ? (
+                              <div className="mono tabular-nums" style={{ fontSize: 11, color: "var(--fg-4)" }}>
+                                {fmtThb(emp.base_salary_monthly)}/mo
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* Shop · Role */}
+                        <div>
+                          <div style={{ color: "var(--fg)" }}>{locationName}</div>
+                          <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{emp.position ?? "—"}</div>
+                        </div>
+
+                        {/* Base */}
+                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                          {record?.base_salary ? fmtThb(record.base_salary) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        </div>
+
+                        {/* Deductions */}
+                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                          {record ? (
+                            <button
+                              type="button"
+                              onClick={() => openDeductModal(record, emp)}
+                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                            >
+                              {record.deductions > 0
+                                ? <span style={{ color: "var(--bad)" }}>−{fmtThb(record.deductions)}</span>
+                                : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                            </button>
+                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        </div>
+
+                        {/* OT */}
+                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                          {record ? (
+                            <button
+                              type="button"
+                              onClick={() => openOtModal(record, emp)}
+                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                            >
+                              {record.overtime_pay > 0
+                                ? <span style={{ color: "var(--info)" }}>+{fmtThb(record.overtime_pay)}</span>
+                                : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                            </button>
+                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        </div>
+
+                        {/* Service charge */}
+                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                          {record ? (
+                            editingId === record.id && editField === "service_charge" ? (
+                              <input
+                                type="number" min="0" step="100" autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => void patchRecord(record.id, { service_charge: parseFloat(editValue) || 0 })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") void patchRecord(record.id, { service_charge: parseFloat(editValue) || 0 });
+                                  if (e.key === "Escape") cancelEdit();
+                                }}
+                                style={{
+                                  width: 80, height: 24, textAlign: "right", fontSize: 12,
+                                  borderRadius: "var(--r-sm)", border: "1px solid var(--focus-ring)",
+                                  background: "var(--surface)", padding: "0 4px", outline: "none",
+                                }}
+                              />
+                            ) : (
+                              <span
+                                style={{ cursor: "pointer" }}
+                                onClick={() => startEdit(record.id, "service_charge", record.service_charge)}
+                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                              >
+                                {record.service_charge > 0
+                                  ? fmtThb(record.service_charge)
+                                  : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                              </span>
+                            )
+                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        </div>
+
+                        {/* Bonus */}
+                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                          {record ? (
+                            editingId === record.id && editField === "bonus_amount" ? (
+                              <input
+                                type="number" min="0" step="100" autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 });
+                                  if (e.key === "Escape") cancelEdit();
+                                }}
+                                style={{
+                                  width: 80, height: 24, textAlign: "right", fontSize: 12,
+                                  borderRadius: "var(--r-sm)", border: "1px solid var(--focus-ring)",
+                                  background: "var(--surface)", padding: "0 4px", outline: "none",
+                                }}
+                              />
+                            ) : (
+                              <span
+                                style={{ cursor: "pointer" }}
+                                onClick={() => startEdit(record.id, "bonus_amount", record.bonus_amount)}
+                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                              >
+                                {record.bonus_amount > 0
+                                  ? <span style={{ color: "var(--good)" }}>+{fmtThb(record.bonus_amount)}</span>
+                                  : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                              </span>
+                            )
+                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        </div>
+
+                        {/* Total */}
+                        <div className="mono tabular-nums" style={{ textAlign: "right", fontWeight: 600, fontSize: 14 }}>
+                          {record ? fmtThb(total) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
+                          {record && record.status !== "paid" && (
+                            savingId === record.id ? (
+                              <Loader2Icon size={14} className="animate-spin" style={{ color: "var(--fg-4)" }} />
+                            ) : record.status === "draft" ? (
+                              <Button
+                                size="sm" variant="secondary"
+                                style={{ height: 26, fontSize: 11, gap: 4, color: "var(--info)" }}
+                                onClick={() => void setStatus(record, "confirmed")}
+                              >
+                                <CheckIcon size={12} />Confirm
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                style={{ height: 26, fontSize: 11, gap: 4 }}
+                                onClick={() => void setStatus(record, "paid")}
+                              >
+                                <CheckIcon size={12} />Pay
+                              </Button>
+                            )
+                          )}
+                          {record?.status === "paid" && record.paid_at && (
+                            <span className="mono tabular-nums" style={{ fontSize: 11, color: "var(--fg-4)" }}>
+                              {new Date(record.paid_at).toLocaleDateString("en", { day: "numeric", month: "short" })}
                             </span>
                           )}
+                          {/* Method badge */}
+                          <Pill tone={isBankTransfer ? "info" : "warn"} size="sm">
+                            {isBankTransfer
+                              ? <><BuildingIcon style={{ width: 10, height: 10 }} /> Bank</>
+                              : <><BanknoteIcon style={{ width: 10, height: 10 }} /> Cash</>}
+                          </Pill>
                         </div>
-                      ) : <span className="text-muted-foreground/60">—</span>}
-                    </td>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
 
-                    {/* Bonus — editable */}
-                    <td className="px-4 py-2.5 text-right text-xs tabular-nums">
-                      {record ? (
-                        <InlineNumber
-                          record={record}
-                          field="bonus_amount"
-                          value={record.bonus_amount}
-                          color="text-emerald-700 dark:text-emerald-400"
-                          emptyLabel="+ add"
-                        />
-                      ) : <span className="text-muted-foreground/60">—</span>}
-                    </td>
-
-                    {/* Total */}
-                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
-                      {record ? fmtThb(total) : <span className="text-muted-foreground/60">—</span>}
-                    </td>
-
-                    {/* Payment method */}
-                    <td className="px-4 py-2.5 text-center">
-                      {isBankTransfer
-                        ? <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"><BuildingIcon className="size-2.5" />Bank</span>
-                        : <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"><BanknoteIcon className="size-2.5" />Cash</span>}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-2.5 text-center">
-                      {record ? (
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[record.status]}`}>
-                          {STATUS_LABELS[record.status]}
-                        </span>
-                      ) : <span className="text-muted-foreground/40 text-xs">—</span>}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-2.5 text-right">
-                      {record && record.status !== "paid" && (
-                        <div className="flex justify-end gap-1">
-                          {savingId === record.id ? (
-                            <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-                          ) : record.status === "draft" ? (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-blue-700 border-blue-300"
-                              onClick={() => void setStatus(record, "confirmed")}>
-                              <CheckIcon className="size-3" />Confirm
-                            </Button>
-                          ) : (
-                            <Button size="sm" className="h-7 text-xs gap-1 bg-green-700 hover:bg-green-800"
-                              onClick={() => void setStatus(record, "paid")}>
-                              <CheckIcon className="size-3" />Mark paid
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                      {record?.status === "paid" && (
-                        <span className="text-[10px] text-muted-foreground tabular-nums">
-                          {record.paid_at ? new Date(record.paid_at).toLocaleDateString("en", { day: "numeric", month: "short" }) : ""}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {rows.some((r) => r.record) && (
-              <tfoot className="border-t-2 border-border bg-muted/20">
-                <tr className="font-semibold">
-                  <td className="px-4 py-2.5 text-xs sticky left-0 bg-muted/20">Total</td>
-                  <td className="px-4 py-2.5 text-right text-xs tabular-nums text-destructive">{totals.deductions > 0 ? fmtThb(totals.deductions) : "—"}</td>
-                  <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.ot > 0 ? fmtThb(totals.ot) : "—"}</td>
-                  <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.sc > 0 ? fmtThb(totals.sc) : "—"}</td>
-                  <td className="px-4 py-2.5 text-right text-xs tabular-nums">{totals.bonus > 0 ? fmtThb(totals.bonus) : "—"}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">{fmtThb(totals.total)}</td>
-                  <td colSpan={3} />
-                </tr>
-              </tfoot>
+            {/* Empty state */}
+            {rows.length === 0 && (
+              <div style={{ padding: "48px 16px", textAlign: "center" }}>
+                <p style={{ fontSize: 13, color: "var(--fg-4)" }}>
+                  {employees.length === 0
+                    ? "Add employees in Admin to start tracking payments."
+                    : "No employees assigned to this location. Use Calculate period to generate records."}
+                </p>
+              </div>
             )}
-          </table>
+
+            {/* Totals row */}
+            {rows.some((r) => r.record) && (
+              <div
+                style={{
+                  display: "grid", gridTemplateColumns: COL_GRID,
+                  padding: "12px var(--s-4)", alignItems: "center", gap: 12,
+                  borderTop: "2px solid var(--line)", background: "var(--bronze-soft)",
+                  fontWeight: 600, fontSize: 13,
+                }}
+              >
+                <div />
+                <div style={{ color: "var(--bronze)", fontWeight: 600 }}>Total</div>
+                <div />
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
+                  {totals.base > 0 ? fmtThb(totals.base) : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: totals.deductions > 0 ? "var(--bad)" : "var(--fg-4)" }}>
+                  {totals.deductions > 0 ? `−${fmtThb(totals.deductions)}` : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
+                  {totals.ot > 0 ? `+${fmtThb(totals.ot)}` : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
+                  {totals.sc > 0 ? fmtThb(totals.sc) : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
+                  {totals.bonus > 0 ? `+${fmtThb(totals.bonus)}` : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 15, color: "var(--bronze)" }}>
+                  {fmtThb(totals.total)}
+                </div>
+                <div />
+              </div>
+            )}
+          </div>
+
+          <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
+            Click <strong>Calculate</strong> to pull OT and deductions from Attendance. Click any amount to edit inline.
+          </p>
+        </div>
+      ) : (
+        /* Detail view — two-pane */
+        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--s-4)", minHeight: 480 }}>
+          {/* Left: employee list */}
+          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
+            <div style={{ padding: "10px var(--s-4)", background: "var(--bg-2)", borderBottom: "1px solid var(--line)", fontSize: 11, color: "var(--fg-4)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Employees · {rows.filter(r => r.record).length}
+            </div>
+            {rows.filter(r => r.record).map(({ employee: emp, record }) => {
+              const total = record ? totalPayment(record) : 0;
+              const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
+              const isSelected = selectedId === record?.id;
+              return (
+                <button
+                  key={emp.id}
+                  type="button"
+                  onClick={() => setSelectedId(record?.id ?? null)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "12px var(--s-4)", borderBottom: "1px solid var(--line)",
+                    background: isSelected ? "var(--bronze-soft)" : "transparent",
+                    border: "none", cursor: "pointer", textAlign: "left",
+                    transition: "background var(--dur) var(--ease)",
+                  }}
+                >
+                  <UserAvatar name={fullName} size={32} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{fullName}</div>
+                    <div className="mono tabular-nums" style={{ fontSize: 12, color: "var(--fg-4)" }}>
+                      {fmtThb(total)}
+                    </div>
+                  </div>
+                  {record && <Pill tone={STATUS_TONE[record.status]} size="sm">{STATUS_LABELS[record.status]}</Pill>}
+                </button>
+              );
+            })}
+            {rows.filter(r => r.record).length === 0 && (
+              <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 12, color: "var(--fg-4)" }}>
+                No records yet. Run Calculate.
+              </div>
+            )}
+          </div>
+
+          {/* Right: detail panel */}
+          {selectedRecord && selectedEmployee ? (
+            <div
+              style={{
+                border: "1px solid var(--line)", borderRadius: "var(--r-lg)",
+                background: "var(--surface)", display: "flex", flexDirection: "column",
+              }}
+            >
+              {/* Header */}
+              <div style={{ padding: "var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "var(--s-4)" }}>
+                <UserAvatar name={`${selectedEmployee.first_name} ${selectedEmployee.last_name ?? ""}`.trim()} size={40} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: "var(--fg)" }}>
+                    {selectedEmployee.first_name} {selectedEmployee.last_name}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--fg-4)" }}>{selectedEmployee.position ?? "—"}</div>
+                </div>
+                <Pill tone={STATUS_TONE[selectedRecord.status]} size="md" dot>
+                  {STATUS_LABELS[selectedRecord.status]}
+                </Pill>
+              </div>
+
+              {/* Breakdown */}
+              <div style={{ padding: "var(--s-5)", flex: 1 }}>
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Pay breakdown</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+                  {[
+                    { label: "Base salary",    value: selectedRecord.base_salary,    color: "var(--fg)" },
+                    { label: "Service charge", value: selectedRecord.service_charge, color: "var(--fg)" },
+                    { label: "Overtime pay",   value: selectedRecord.overtime_pay,   color: "var(--info)", prefix: "+" },
+                    { label: "Bonus",          value: selectedRecord.bonus_amount,   color: "var(--good)", prefix: "+" },
+                    { label: "Deductions",     value: selectedRecord.deductions,     color: "var(--bad)",  prefix: "−" },
+                  ].map(({ label, value, color, prefix }) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 13, color: "var(--fg-3)" }}>{label}</span>
+                      <span className="mono tabular-nums" style={{ fontSize: 13, fontWeight: value > 0 ? 500 : 400, color: value > 0 ? color : "var(--fg-4)" }}>
+                        {value > 0 ? `${prefix ?? ""}${fmtThb(value)}` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: "var(--s-2)", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "var(--s-1)" }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Total</span>
+                    <span className="mono tabular-nums" style={{ fontSize: 16, fontWeight: 700, color: "var(--fg)" }}>
+                      {fmtThb(totalPayment(selectedRecord))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action bar */}
+              {selectedRecord.status !== "paid" && (
+                <div style={{ padding: "var(--s-4) var(--s-5)", borderTop: "1px solid var(--line)", display: "flex", gap: "var(--s-2)" }}>
+                  {selectedRecord.status === "draft" && (
+                    <Button
+                      size="sm" variant="secondary"
+                      style={{ gap: 6 }}
+                      onClick={() => void setStatus(selectedRecord, "confirmed")}
+                      disabled={savingId === selectedRecord.id}
+                    >
+                      <CheckIcon size={13} />Confirm
+                    </Button>
+                  )}
+                  {selectedRecord.status === "confirmed" && (
+                    <Button
+                      size="sm"
+                      style={{ gap: 6 }}
+                      onClick={() => void setStatus(selectedRecord, "paid")}
+                      disabled={savingId === selectedRecord.id}
+                    >
+                      <CheckIcon size={13} />Mark paid
+                    </Button>
+                  )}
+                  <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
+                    <PrinterIcon size={13} />Slip PDF
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                border: "1px solid var(--line)", borderRadius: "var(--r-lg)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--fg-4)", fontSize: 13,
+              }}
+            >
+              Select an employee to view details
+            </div>
+          )}
         </div>
       )}
 
-      <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-        <p>Click <strong>Calculate period</strong> to pull OT and deductions from Attendance. Click any OT or deduction amount to edit. Service charge = 1% of location net revenue per employee.</p>
-      </div>
-
-      {/* Employee edit modal (item 8) */}
+      {/* Employee edit modal */}
       {employeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setEmployeeModal(null); }}>
-          <div className="w-full max-w-2xl rounded-xl border border-border bg-background shadow-xl overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="text-sm font-semibold">Edit employee — {employeeModal.first_name} {employeeModal.last_name}</h2>
-              <button type="button" onClick={() => setEmployeeModal(null)} className="text-muted-foreground hover:text-foreground">
-                <XIcon className="size-4" />
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            padding: "var(--s-4)",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEmployeeModal(null); }}
+        >
+          <div
+            style={{
+              width: "100%", maxWidth: 680,
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", boxShadow: "var(--shadow-2)",
+              overflowY: "auto", maxHeight: "90vh",
+            }}
+          >
+            <div
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)",
+              }}
+            >
+              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
+                Edit employee — {employeeModal.first_name} {employeeModal.last_name}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEmployeeModal(null)}
+                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
+              >
+                <XIcon style={{ width: 16, height: 16 }} />
               </button>
             </div>
-            <div className="p-5">
+            <div style={{ padding: "var(--s-5)" }}>
               <EmployeeForm
                 form={employeeForm}
                 locIds={employeeLocIds}
@@ -646,7 +1040,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 locations={initialLocations}
                 submitting={employeeSubmitting}
                 onChange={(key, val) => setEmployeeForm((f) => ({ ...f, [key]: val }))}
-                onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; })}
+                onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
                 onSetPrimary={(id) => setEmployeePrimaryLoc(id)}
                 onSubmit={(e) => void handleEmployeeSave(e)}
                 onCancel={() => setEmployeeModal(null)}
@@ -657,47 +1051,78 @@ export function PaymentsClient({ initialLocations }: Props) {
         </div>
       )}
 
-      {/* OT / Deductions edit modal (item 9) */}
+      {/* OT / Deductions modal */}
       {editModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setEditModal(null); }}>
-          <div className="w-full max-w-sm rounded-xl border border-border bg-background shadow-xl p-5 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">
-                {editModal.type === "ot" ? "Edit OT pay" : "Edit deductions"} — {editModal.emp.first_name} {editModal.emp.last_name}
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 50,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            padding: "var(--s-4)",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setEditModal(null); }}
+        >
+          <div
+            style={{
+              width: "100%", maxWidth: 340,
+              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+              background: "var(--surface)", boxShadow: "var(--shadow-2)",
+              padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-4)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
+                {editModal.type === "ot" ? "Edit OT pay" : "Edit deductions"} — {editModal.emp.first_name}
               </h2>
-              <button type="button" onClick={() => setEditModal(null)} className="text-muted-foreground hover:text-foreground">
-                <XIcon className="size-4" />
+              <button
+                type="button"
+                onClick={() => setEditModal(null)}
+                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
+              >
+                <XIcon style={{ width: 16, height: 16 }} />
               </button>
             </div>
 
-            <div className="flex rounded-lg border border-border overflow-hidden text-xs">
-              <button type="button"
-                className={`flex-1 py-1.5 font-medium transition-colors ${modalMode === "units" ? "bg-foreground text-background" : "hover:bg-muted/50"}`}
-                onClick={() => setModalMode("units")}>
-                {editModal.type === "ot" ? "Hours" : "Days"}
-              </button>
-              <button type="button"
-                className={`flex-1 py-1.5 font-medium transition-colors ${modalMode === "amount" ? "bg-foreground text-background" : "hover:bg-muted/50"}`}
-                onClick={() => setModalMode("amount")}>
-                Amount (฿)
-              </button>
+            {/* Mode toggle */}
+            <div style={{ display: "flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)", overflow: "hidden" }}>
+              {(["units", "amount"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setModalMode(m)}
+                  style={{
+                    flex: 1, padding: "6px 8px", fontSize: 12,
+                    fontWeight: modalMode === m ? 500 : 400,
+                    color: modalMode === m ? "var(--fg)" : "var(--fg-4)",
+                    background: modalMode === m ? "var(--surface-2)" : "transparent",
+                    borderLeft: m === "amount" ? "1px solid var(--line)" : "none",
+                    border: m === "units" ? "none" : undefined,
+                    cursor: "pointer", transition: "all var(--dur) var(--ease)",
+                  }}
+                >
+                  {m === "units" ? (editModal.type === "ot" ? "Hours" : "Days") : "Amount (฿)"}
+                </button>
+              ))}
             </div>
 
             {modalMode === "units" ? (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>
                   {editModal.type === "ot" ? "OT hours" : "Unpaid leave days"}
                 </label>
                 <input
                   type="number" min="0" step={editModal.type === "ot" ? "0.5" : "1"} autoFocus
                   value={modalUnits}
                   onChange={(e) => setModalUnits(e.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   placeholder="0"
+                  style={{
+                    height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                    background: "var(--bg-2)", padding: "0 var(--s-3)",
+                    fontSize: 14, color: "var(--fg)", outline: "none", width: "100%",
+                  }}
                 />
                 {modalUnits && (editModal.emp.base_salary_monthly ?? 0) > 0 && (
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="mono tabular-nums" style={{ fontSize: 11, color: "var(--fg-4)" }}>
                     ≈ {fmtThb(editModal.type === "ot"
                       ? parseFloat(modalUnits) * ((editModal.emp.base_salary_monthly ?? 0) / 30) * 1.5
                       : parseFloat(modalUnits) * ((editModal.emp.base_salary_monthly ?? 0) / 30)
@@ -706,22 +1131,28 @@ export function PaymentsClient({ initialLocations }: Props) {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Amount (฿)</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Amount (฿)</label>
                 <input
                   type="number" min="0" step="100" autoFocus
                   value={modalAmount}
                   onChange={(e) => setModalAmount(e.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   placeholder="0"
+                  style={{
+                    height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                    background: "var(--bg-2)", padding: "0 var(--s-3)",
+                    fontSize: 14, color: "var(--fg)", outline: "none", width: "100%",
+                  }}
                 />
               </div>
             )}
 
-            <div className="flex gap-2 pt-1">
-              <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setEditModal(null)} disabled={modalSaving}>Cancel</Button>
-              <Button type="button" size="sm" className="flex-1" onClick={() => void handleModalSave()} disabled={modalSaving}>
-                {modalSaving ? <Loader2Icon className="size-4 animate-spin" /> : "Save"}
+            <div style={{ display: "flex", gap: "var(--s-2)" }}>
+              <Button type="button" variant="secondary" size="sm" style={{ flex: 1 }} onClick={() => setEditModal(null)} disabled={modalSaving}>
+                Cancel
+              </Button>
+              <Button type="button" size="sm" style={{ flex: 1 }} onClick={() => void handleModalSave()} disabled={modalSaving}>
+                {modalSaving ? <Loader2Icon size={14} className="animate-spin" /> : "Save"}
               </Button>
             </div>
           </div>

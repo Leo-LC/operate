@@ -1,9 +1,11 @@
 "use client";
-import { useState, useMemo, type ReactNode } from "react";
+import React, { useState, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Pill } from "@/components/ui/pill";
+import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon, Grid2X2Icon } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import {
   type Animal,
@@ -45,7 +47,7 @@ interface AnimalsListClientProps {
 export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClientProps) {
   const router = useRouter();
   const [animals, setAnimals] = useState(initialAnimals);
-  const [view, setView] = useState<"list" | "calendar">("list");
+  const [view, setView] = useState<"grid" | "list" | "calendar">("grid");
   const [vaccineView, setVaccineView] = useState<"list" | "calendar">("list");
   const [locationFilter, setLocationFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -105,80 +107,85 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+    background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13,
+    color: "var(--fg)", outline: "none", width: "100%",
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-lg font-semibold">Animals</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-border overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs ${view === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
-            >
-              <ListIcon className="size-3.5" /> List
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("calendar")}
-              className={`flex items-center gap-1 px-2.5 py-1.5 text-xs border-l border-border ${view === "calendar" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
-            >
-              <CalendarIcon className="size-3.5" /> Vaccines
-            </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+      <PageHeader
+        eyebrow="Health & welfare"
+        title="Animals"
+        subtitle="Track location, health records, vaccines, and events."
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            <div style={{ display: "flex", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", overflow: "hidden" }}>
+              {(["grid", "list", "calendar"] as const).map((v, i) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "0 var(--s-3)", height: 32, fontSize: 12, cursor: "pointer", border: "none",
+                    borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+                    background: view === v ? "var(--row-active)" : "var(--bg)",
+                    color: view === v ? "var(--fg)" : "var(--fg-4)",
+                    transition: "background var(--dur) var(--ease)",
+                  }}
+                >
+                  {v === "grid" ? <Grid2X2Icon style={{ width: 13, height: 13 }} /> : v === "list" ? <ListIcon style={{ width: 13, height: 13 }} /> : <CalendarIcon style={{ width: 13, height: 13 }} />}
+                  {v === "grid" ? "Grid" : v === "list" ? "List" : "Vaccines"}
+                </button>
+              ))}
+            </div>
+            <a href="/api/animals/export" download style={{ textDecoration: "none" }}>
+              <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> CSV</Button>
+            </a>
+            <a href="/api/animals/export/pdf" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> PDF</Button>
+            </a>
+            <Button size="sm" variant="primary" onClick={() => setShowForm((v) => !v)}>
+              <PlusIcon style={{ width: 13, height: 13 }} /> Add animal
+            </Button>
           </div>
-          <a href="/api/animals/export" download>
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <DownloadIcon className="size-4" />
-              CSV
-            </Button>
-          </a>
-          <a href="/api/animals/export/pdf" target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <DownloadIcon className="size-4" />
-              PDF
-            </Button>
-          </a>
-          <Button size="sm" onClick={() => setShowForm((v) => !v)} className="gap-1.5">
-            <PlusIcon className="size-4" />
-            Add animal
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Summary stats */}
       {animals.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Total</p>
-            <p className="text-xl font-bold">{animals.length}</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)" }}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Total</p>
+            <p className="mono" style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{animals.length}</p>
           </div>
-          <div className={`rounded-lg border p-3 ${vaccineDueCount > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-muted/30"}`}>
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">Vaccines due</p>
-            <p className={`text-xl font-bold ${vaccineDueCount > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{vaccineDueCount}</p>
+          <div
+            style={{
+              borderRadius: "var(--r-lg)",
+              border: `1px solid ${vaccineDueCount > 0 ? "var(--warn)" : "var(--line)"}`,
+              background: vaccineDueCount > 0 ? "var(--warn-soft)" : "var(--surface)",
+              padding: "var(--s-3) var(--s-4)",
+            }}
+          >
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Vaccines due</p>
+            <p className="mono" style={{ fontSize: 20, fontWeight: 700, color: vaccineDueCount > 0 ? "var(--warn)" : "var(--fg)", fontVariantNumeric: "tabular-nums" }}>{vaccineDueCount}</p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1">No location</p>
-            <p className="text-xl font-bold">{missingLocationCount}</p>
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)" }}>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>No location</p>
+            <p className="mono" style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{missingLocationCount}</p>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <select
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-        >
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
+        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
           <option value="">All locations</option>
-          {locations.map((l) => (
-            <option key={l.id} value={l.id}>{l.name}</option>
-          ))}
+          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <span className="ml-auto self-center text-xs text-muted-foreground">
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--fg-4)" }}>
           {displayed.length} animal{displayed.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -187,122 +194,104 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       {showForm && (
         <form
           onSubmit={(e) => void handleAdd(e)}
-          className="rounded-xl border border-border bg-card shadow-xs p-5 flex flex-col gap-5"
+          style={{
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--surface)", padding: "var(--s-5)",
+            display: "flex", flexDirection: "column", gap: "var(--s-5)",
+          }}
         >
-          <div className="flex items-start justify-between">
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
-              <span className="text-sm font-semibold">Add animal</span>
-              <p className="text-xs text-muted-foreground mt-0.5">Create a profile to track location, health records, vaccines, and events.</p>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Add animal</span>
+              <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2, marginBottom: 0 }}>
+                Create a profile to track location, health records, vaccines, and events.
+              </p>
             </div>
-            <button type="button" onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground mt-0.5">
-              <XIcon className="size-4" />
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", marginTop: 2 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+            >
+              <XIcon style={{ width: 14, height: 14 }} />
             </button>
           </div>
 
           {/* Basic information */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Basic information</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Name <span className="text-destructive">*</span>
-                </label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                  placeholder="e.g. Coco"
-                />
+            <p className="eyebrow" style={{ color: "var(--fg-4)", paddingBottom: "var(--s-2)", borderBottom: "1px solid var(--line)", marginBottom: "var(--s-3)" }}>Basic information</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "var(--s-3)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Name <span style={{ color: "var(--bad)" }}>*</span></label>
+                <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={inputStyle} placeholder="e.g. Coco" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Species <span className="text-destructive">*</span>
-                </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Species <span style={{ color: "var(--bad)" }}>*</span></label>
                 <select
                   value={form.species}
                   onChange={(e) => { setForm((f) => ({ ...f, species: e.target.value })); setFormErrors((prev) => ({ ...prev, species: undefined })); }}
-                  className={`h-8 rounded-md border bg-background px-2 text-sm ${formErrors.species ? "border-destructive" : "border-input"}`}
+                  style={{ ...inputStyle, borderColor: formErrors.species ? "var(--bad)" : "var(--line)" }}
                 >
                   <option value="">— select —</option>
-                  {ANIMAL_SPECIES.map((s) => (
-                    <option key={s} value={s.toLowerCase()}>{s}</option>
-                  ))}
+                  {ANIMAL_SPECIES.map((s) => <option key={s} value={s.toLowerCase()}>{s}</option>)}
                 </select>
-                {formErrors.species && <p className="text-[11px] text-destructive">{formErrors.species}</p>}
+                {formErrors.species && <p style={{ fontSize: 11, color: "var(--bad)", margin: 0 }}>{formErrors.species}</p>}
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Sex</label>
-                <select
-                  value={form.sex}
-                  onChange={(e) => setForm((f) => ({ ...f, sex: e.target.value as AnimalSex | "" }))}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-                >
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Sex</label>
+                <select value={form.sex} onChange={(e) => setForm((f) => ({ ...f, sex: e.target.value as AnimalSex | "" }))} style={inputStyle}>
                   <option value="">Unknown</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                 </select>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Est. birth date</label>
-                <DateInput
-                  value={form.estimated_birth_date}
-                  onChange={(e) => setForm((f) => ({ ...f, estimated_birth_date: e.target.value }))}
-                />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Est. birth date</label>
+                <DateInput value={form.estimated_birth_date} onChange={(e) => setForm((f) => ({ ...f, estimated_birth_date: e.target.value }))} />
               </div>
             </div>
           </div>
 
           {/* Location */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Location</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Location <span className="text-destructive">*</span>
-                </label>
-                <select
-                  value={form.location_id}
-                  onChange={(e) => { setForm((f) => ({ ...f, location_id: e.target.value })); setFormErrors((prev) => ({ ...prev, location_id: undefined })); }}
-                  className={`h-8 rounded-md border bg-background px-2 text-sm ${formErrors.location_id ? "border-destructive" : "border-input"}`}
-                >
-                  <option value="">— select location —</option>
-                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                </select>
-                {formErrors.location_id && <p className="text-[11px] text-destructive">{formErrors.location_id}</p>}
-              </div>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", paddingBottom: "var(--s-2)", borderBottom: "1px solid var(--line)", marginBottom: "var(--s-3)" }}>Location</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, maxWidth: 240 }}>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Location <span style={{ color: "var(--bad)" }}>*</span></label>
+              <select
+                value={form.location_id}
+                onChange={(e) => { setForm((f) => ({ ...f, location_id: e.target.value })); setFormErrors((prev) => ({ ...prev, location_id: undefined })); }}
+                style={{ ...inputStyle, borderColor: formErrors.location_id ? "var(--bad)" : "var(--line)" }}
+              >
+                <option value="">— select location —</option>
+                {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              {formErrors.location_id && <p style={{ fontSize: 11, color: "var(--bad)", margin: 0 }}>{formErrors.location_id}</p>}
             </div>
           </div>
 
           {/* Health & vaccines */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Health & vaccines</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Last vaccine</label>
-                <DateInput
-                  value={form.last_vaccination_date}
-                  onChange={(e) => setForm((f) => ({ ...f, last_vaccination_date: e.target.value }))}
-                />
+            <p className="eyebrow" style={{ color: "var(--fg-4)", paddingBottom: "var(--s-2)", borderBottom: "1px solid var(--line)", marginBottom: "var(--s-3)" }}>Health &amp; vaccines</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Last vaccine</label>
+                <DateInput value={form.last_vaccination_date} onChange={(e) => setForm((f) => ({ ...f, last_vaccination_date: e.target.value }))} />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Next vaccine</label>
-                <DateInput
-                  value={form.next_vaccination_date}
-                  onChange={(e) => setForm((f) => ({ ...f, next_vaccination_date: e.target.value }))}
-                />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Next vaccine</label>
+                <DateInput value={form.next_vaccination_date} onChange={(e) => setForm((f) => ({ ...f, next_vaccination_date: e.target.value }))} />
               </div>
-              <div className="flex flex-col gap-1.5 justify-end">
-                <label className="text-xs font-medium text-muted-foreground">Vaccination passport</label>
-                <div className="flex items-center h-8 gap-2">
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end" }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Vaccination passport</label>
+                <div style={{ display: "flex", alignItems: "center", height: 32, gap: 8 }}>
                   <input
                     type="checkbox"
                     id="vacc_passport"
                     checked={form.vaccination_passport}
                     onChange={(e) => setForm((f) => ({ ...f, vaccination_passport: e.target.checked }))}
-                    className="size-4 rounded"
                   />
-                  <label htmlFor="vacc_passport" className="text-sm text-muted-foreground">Has passport</label>
+                  <label htmlFor="vacc_passport" style={{ fontSize: 13, color: "var(--fg-3)", cursor: "pointer" }}>Has passport</label>
                 </div>
               </div>
             </div>
@@ -310,42 +299,45 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
           {/* Notes */}
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b border-border/50 pb-2 mb-3">Notes</p>
+            <p className="eyebrow" style={{ color: "var(--fg-4)", paddingBottom: "var(--s-2)", borderBottom: "1px solid var(--line)", marginBottom: "var(--s-3)" }}>Notes</p>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               rows={2}
-              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm resize-none"
+              style={{ width: "100%", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", padding: "var(--s-2) var(--s-3)", fontSize: 13, color: "var(--fg)", outline: "none", resize: "none", boxSizing: "border-box" }}
               placeholder="Optional"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-1 border-t border-border">
-            <Button type="button" size="sm" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={submitting}>{submitting ? "Adding…" : "Add animal"}</Button>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)" }}>
+            <Button type="button" size="sm" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="submit" size="sm" variant="primary" disabled={submitting}>{submitting ? "Adding…" : "Add animal"}</Button>
           </div>
         </form>
       )}
 
       {/* Vaccines view with List / Calendar sub-toggle */}
       {view === "calendar" && (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-md border border-border overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setVaccineView("list")}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs ${vaccineView === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
-              >
-                <ListIcon className="size-3.5" /> List
-              </button>
-              <button
-                type="button"
-                onClick={() => setVaccineView("calendar")}
-                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs border-l border-border ${vaccineView === "calendar" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-muted/40"}`}
-              >
-                <CalendarIcon className="size-3.5" /> Calendar
-              </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            <div style={{ display: "flex", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", overflow: "hidden" }}>
+              {(["list", "calendar"] as const).map((v, i) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setVaccineView(v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "0 var(--s-3)", height: 28, fontSize: 12, cursor: "pointer", border: "none",
+                    borderLeft: i > 0 ? "1px solid var(--line)" : "none",
+                    background: vaccineView === v ? "var(--row-active)" : "var(--bg)",
+                    color: vaccineView === v ? "var(--fg)" : "var(--fg-4)",
+                  }}
+                >
+                  {v === "list" ? <ListIcon style={{ width: 12, height: 12 }} /> : <CalendarIcon style={{ width: 12, height: 12 }} />}
+                  {v === "list" ? "List" : "Calendar"}
+                </button>
+              ))}
             </div>
           </div>
           {vaccineView === "list"
@@ -354,41 +346,65 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         </div>
       )}
 
+      {/* Grid */}
+      {view === "grid" && (
+        displayed.length === 0 ? (
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
+            No animals found — add one to get started.
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+            {displayed.map((animal) => (
+              <AnimalCard key={animal.id} animal={animal} onClick={() => router.push(`/dashboard/animals/${animal.id}`)} />
+            ))}
+          </div>
+        )
+      )}
+
       {/* List */}
       {view === "list" && (
         displayed.length === 0 ? (
-          <div className="rounded-lg border border-border py-12 text-center text-sm text-muted-foreground">
-            No animals found. Add one to get started.
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
+            No animals found — add one to get started.
           </div>
         ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Species</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Sex</th>
-                  <th className="px-4 py-3" />
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
+                  {["Name", "Species", "Location", "Sex", ""].map((h, i) => (
+                    <th
+                      key={i}
+                      style={{
+                        padding: "10px var(--s-5)", textAlign: "left",
+                        color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
+                        width: i === 4 ? 40 : undefined,
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {displayed.map((animal) => (
+              <tbody>
+                {displayed.map((animal, idx) => (
                   <tr
                     key={animal.id}
-                    className="hover:bg-muted/20 transition-colors cursor-pointer"
+                    style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined, cursor: "pointer" }}
                     onClick={() => router.push(`/dashboard/animals/${animal.id}`)}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
                   >
-                    <td className="px-4 py-3 font-medium">{animal.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs capitalize">{animal.species}</td>
-                    <td className="px-4 py-3 text-xs">
-                      {animal.location_name ?? <span className="text-muted-foreground/50 italic">No location</span>}
+                    <td style={{ padding: "12px var(--s-5)", fontWeight: 500 }}>{animal.name}</td>
+                    <td style={{ padding: "12px var(--s-5)", color: "var(--fg-3)", fontSize: 12, textTransform: "capitalize" }}>{animal.species}</td>
+                    <td style={{ padding: "12px var(--s-5)", fontSize: 12 }}>
+                      {animal.location_name ?? <span style={{ color: "var(--fg-mute)", fontStyle: "italic" }}>No location</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs capitalize">
-                      {animal.sex ?? <span className="text-muted-foreground/50">Unknown</span>}
+                    <td style={{ padding: "12px var(--s-5)", fontSize: 12, textTransform: "capitalize" }}>
+                      {animal.sex ?? <span style={{ color: "var(--fg-mute)" }}>Unknown</span>}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <ChevronRightIcon className="size-4 text-muted-foreground inline" />
+                    <td style={{ padding: "12px var(--s-5)", textAlign: "right" }}>
+                      <ChevronRightIcon style={{ width: 14, height: 14, color: "var(--fg-4)", display: "inline" }} />
                     </td>
                   </tr>
                 ))}
@@ -397,6 +413,57 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           </div>
         )
       )}
+    </div>
+  );
+}
+
+function AnimalCard({ animal, onClick }: { animal: Animal; onClick: () => void }) {
+  const [hover, setHover] = useState(false);
+  const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const vaccineStatus = !animal.next_vaccination_date ? "none"
+    : animal.next_vaccination_date < new Date().toISOString().split("T")[0] ? "overdue"
+    : animal.next_vaccination_date <= in30 ? "due" : "ok";
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "var(--surface)",
+        border: `1px solid ${hover ? "var(--line-strong)" : "var(--line)"}`,
+        borderRadius: "var(--r-lg)", overflow: "hidden", cursor: "pointer",
+        transition: "border-color var(--dur) var(--ease)",
+      }}
+    >
+      {/* Photo placeholder — flat espresso block per brand */}
+      <div style={{
+        background: "var(--ink)", height: 100,
+        display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+        padding: 10,
+      }}>
+        <span style={{ fontSize: 10, color: "var(--bronze)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Photo</span>
+        {vaccineStatus === "overdue" && <Pill tone="bad" size="sm">Vaccine overdue</Pill>}
+        {vaccineStatus === "due" && <Pill tone="warn" size="sm">Vaccine due soon</Pill>}
+      </div>
+      <div style={{ padding: "var(--s-4)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500, fontFamily: "var(--font-display)", fontStyle: "italic", color: "var(--fg)" }}>{animal.name}</div>
+            <div className="eyebrow" style={{ color: "var(--fg-4)", marginTop: 2, textTransform: "capitalize" }}>
+              {animal.species}{animal.sex ? ` · ${animal.sex}` : ""}
+            </div>
+          </div>
+          <Pill tone={animal.status === "active" ? "good" : ["observation", "quarantine", "sick"].includes(animal.status) ? "warn" : "neutral"} size="sm" dot>
+            {animal.status}
+          </Pill>
+        </div>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--fg-3)" }}>
+          <span>{animal.location_name ?? <span style={{ color: "var(--fg-mute)", fontStyle: "italic" }}>No location</span>}</span>
+          {animal.next_vaccination_date && (
+            <span className="mono" style={{ fontSize: 10, color: "var(--fg-4)" }}>next vac: {animal.next_vaccination_date}</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -431,18 +498,31 @@ function VaccinationUrgencyList({ animals, locations }: { animals: Animal[]; loc
     if (list.length === 0) return null;
     return (
       <div>
-        <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{title} ({list.length})</p>
-        <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-          {list.map((a) => (
-            <div key={a.id} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/10">
-              <div className="flex items-center gap-3">
-                <span className="font-medium">{a.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">{a.species}</span>
-                {a.location_id && <span className="text-xs text-muted-foreground">{locMap[a.location_id] ?? ""}</span>}
+        <p className="eyebrow mb-2" style={{ color: "var(--fg-4)" }}>{title} ({list.length})</p>
+        <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", overflow: "hidden" }}>
+          {list.map((a, i) => (
+            <div
+              key={a.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 16px",
+                fontSize: 13,
+                borderTop: i === 0 ? "none" : "1px solid var(--line)",
+                background: "var(--surface)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontWeight: 500, color: "var(--fg)" }}>{a.name}</span>
+                <span style={{ fontSize: 12, color: "var(--fg-3)", textTransform: "capitalize" }}>{a.species}</span>
+                {a.location_id && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{locMap[a.location_id] ?? ""}</span>}
               </div>
-              <div className="flex items-center gap-2">
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {a.next_vaccination_date && (
-                  <span className="text-xs text-muted-foreground">{a.next_vaccination_date}</span>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--fg-4)" }}>{a.next_vaccination_date}</span>
                 )}
                 {badge(a)}
               </div>
@@ -455,48 +535,40 @@ function VaccinationUrgencyList({ animals, locations }: { animals: Animal[]; loc
 
   if (overdue.length === 0 && dueSoon.length === 0 && upcoming.length === 0 && noDate.length === 0) {
     return (
-      <div className="rounded-lg border border-border py-12 text-center text-sm text-muted-foreground">
+      <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", padding: "48px 0", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
         No animals with vaccination data yet.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Section
         title="Overdue"
         animals={sortByDate(overdue)}
         badge={(a) => (
-          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-            {Math.abs(daysUntil(a.next_vaccination_date!))}d overdue
-          </span>
+          <Pill tone="bad" size="sm">{Math.abs(daysUntil(a.next_vaccination_date!))}d overdue</Pill>
         )}
       />
       <Section
         title="Due within 30 days"
         animals={sortByDate(dueSoon)}
         badge={(a) => (
-          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-            in {daysUntil(a.next_vaccination_date!)}d
-          </span>
+          <Pill tone="warn" size="sm">in {daysUntil(a.next_vaccination_date!)}d</Pill>
         )}
       />
       <Section
         title="Upcoming"
         animals={sortByDate(upcoming)}
         badge={(a) => (
-          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-            in {daysUntil(a.next_vaccination_date!)}d
-          </span>
+          <Pill tone="good" size="sm">in {daysUntil(a.next_vaccination_date!)}d</Pill>
         )}
       />
       <Section
         title="No date set"
         animals={noDate}
         badge={() => (
-          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            —
-          </span>
+          <Pill tone="neutral" size="sm">—</Pill>
         )}
       />
     </div>
