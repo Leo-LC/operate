@@ -340,9 +340,11 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               ))}
             </div>
           </div>
-          {vaccineView === "list"
-            ? <VaccinationUrgencyList animals={displayed} locations={locations} />
-            : <VaccinationCalendar animals={displayed} />}
+          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "var(--surface)", padding: "var(--s-4)" }}>
+            {vaccineView === "list"
+              ? <VaccinationUrgencyList animals={displayed} locations={locations} />
+              : <VaccinationCalendar animals={displayed} />}
+          </div>
         </div>
       )}
 
@@ -353,7 +355,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             No animals found — add one to get started.
           </div>
         ) : (
-          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "var(--surface)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
