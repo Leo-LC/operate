@@ -27,16 +27,28 @@ const TIME_OPTIONS = Array.from({ length: (22 - 6) * 2 }).map((_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`;
 });
 
-function containerStyle(isOff: boolean, hours: number): React.CSSProperties {
-  if (isOff) return { backgroundColor: "transparent" };
-  if (hours === 0) return { backgroundColor: "var(--warn-soft)" };
-  return { backgroundColor: "var(--info-soft)" };
+function shiftBucket(startTime: string): "early" | "mid" | "late" {
+  const [h, m] = startTime.split(":").map(Number);
+  const mins = h * 60 + m;
+  if (mins <= 7 * 60 + 30) return "early";   // <= 07:30
+  if (mins < 12 * 60) return "mid";           // < 12:00
+  return "late";                              // >= 12:00
 }
 
-function hoursBadgeStyle(isOff: boolean, hours: number): React.CSSProperties {
+const BUCKET_COLORS = {
+  early: { bg: "var(--good-soft)",  text: "var(--good)" },
+  mid:   { bg: "var(--info-soft)",  text: "var(--info)" },
+  late:  { bg: "var(--warn-soft)",  text: "var(--warn)" },
+};
+
+function containerStyle(isOff: boolean, startTime: string): React.CSSProperties {
+  if (isOff) return { backgroundColor: "transparent" };
+  return { backgroundColor: BUCKET_COLORS[shiftBucket(startTime)].bg };
+}
+
+function hoursBadgeStyle(isOff: boolean, startTime: string): React.CSSProperties {
   if (isOff) return { color: "var(--fg-mute)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" as const, fontWeight: 600 };
-  if (hours === 0) return { color: "var(--warn)", fontSize: 10, fontWeight: 700 };
-  return { color: "var(--info)", fontSize: 10, fontWeight: 700 };
+  return { color: BUCKET_COLORS[shiftBucket(startTime)].text, fontSize: 10, fontWeight: 700 };
 }
 
 const SELECT_STYLE: React.CSSProperties = {
@@ -75,7 +87,7 @@ export function ShiftCell({
       onDrop={(e) => { e.preventDefault(); onDrop(); }}
       className="group"
       style={{
-        ...containerStyle(isOff, hours),
+        ...containerStyle(isOff, data.start_time),
         display: "flex",
         flexDirection: "column",
         gap: 4,
@@ -146,7 +158,7 @@ export function ShiftCell({
           textAlign: "center",
           lineHeight: 1,
           marginTop: 1,
-          ...hoursBadgeStyle(isOff, hours),
+          ...hoursBadgeStyle(isOff, data.start_time),
         }}
       >
         {isOff ? "OFF" : hours > 0 ? `${hours.toFixed(1)}h` : "—"}
