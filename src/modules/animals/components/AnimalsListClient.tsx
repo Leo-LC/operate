@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon, Grid2X2Icon } from "lucide-react";
+import { PlusIcon, ChevronRightIcon, XIcon, DownloadIcon, ListIcon, CalendarIcon } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import {
   type Animal,
@@ -47,7 +47,7 @@ interface AnimalsListClientProps {
 export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClientProps) {
   const router = useRouter();
   const [animals, setAnimals] = useState(initialAnimals);
-  const [view, setView] = useState<"grid" | "list" | "calendar">("grid");
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [vaccineView, setVaccineView] = useState<"list" | "calendar">("list");
   const [locationFilter, setLocationFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -122,7 +122,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             <div style={{ display: "flex", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", overflow: "hidden" }}>
-              {(["grid", "list", "calendar"] as const).map((v, i) => (
+              {(["list", "calendar"] as const).map((v, i) => (
                 <button
                   key={v}
                   type="button"
@@ -136,8 +136,8 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                     transition: "background var(--dur) var(--ease)",
                   }}
                 >
-                  {v === "grid" ? <Grid2X2Icon style={{ width: 13, height: 13 }} /> : v === "list" ? <ListIcon style={{ width: 13, height: 13 }} /> : <CalendarIcon style={{ width: 13, height: 13 }} />}
-                  {v === "grid" ? "Grid" : v === "list" ? "List" : "Vaccines"}
+                  {v === "list" ? <ListIcon style={{ width: 13, height: 13 }} /> : <CalendarIcon style={{ width: 13, height: 13 }} />}
+                  {v === "list" ? "List" : "Vaccines"}
                 </button>
               ))}
             </div>
@@ -346,21 +346,6 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         </div>
       )}
 
-      {/* Grid */}
-      {view === "grid" && (
-        displayed.length === 0 ? (
-          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
-            No animals found — add one to get started.
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-            {displayed.map((animal) => (
-              <AnimalCard key={animal.id} animal={animal} onClick={() => router.push(`/dashboard/animals/${animal.id}`)} />
-            ))}
-          </div>
-        )
-      )}
-
       {/* List */}
       {view === "list" && (
         displayed.length === 0 ? (
@@ -413,57 +398,6 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           </div>
         )
       )}
-    </div>
-  );
-}
-
-function AnimalCard({ animal, onClick }: { animal: Animal; onClick: () => void }) {
-  const [hover, setHover] = useState(false);
-  const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const vaccineStatus = !animal.next_vaccination_date ? "none"
-    : animal.next_vaccination_date < new Date().toISOString().split("T")[0] ? "overdue"
-    : animal.next_vaccination_date <= in30 ? "due" : "ok";
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        background: "var(--surface)",
-        border: `1px solid ${hover ? "var(--line-strong)" : "var(--line)"}`,
-        borderRadius: "var(--r-lg)", overflow: "hidden", cursor: "pointer",
-        transition: "border-color var(--dur) var(--ease)",
-      }}
-    >
-      {/* Photo placeholder — flat espresso block per brand */}
-      <div style={{
-        background: "var(--ink)", height: 100,
-        display: "flex", alignItems: "flex-end", justifyContent: "space-between",
-        padding: 10,
-      }}>
-        <span style={{ fontSize: 10, color: "var(--bronze)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Photo</span>
-        {vaccineStatus === "overdue" && <Pill tone="bad" size="sm">Vaccine overdue</Pill>}
-        {vaccineStatus === "due" && <Pill tone="warn" size="sm">Vaccine due soon</Pill>}
-      </div>
-      <div style={{ padding: "var(--s-4)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 500, fontFamily: "var(--font-display)", fontStyle: "italic", color: "var(--fg)" }}>{animal.name}</div>
-            <div className="eyebrow" style={{ color: "var(--fg-4)", marginTop: 2, textTransform: "capitalize" }}>
-              {animal.species}{animal.sex ? ` · ${animal.sex}` : ""}
-            </div>
-          </div>
-          <Pill tone={animal.status === "active" ? "good" : ["observation", "quarantine", "sick"].includes(animal.status) ? "warn" : "neutral"} size="sm" dot>
-            {animal.status}
-          </Pill>
-        </div>
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--fg-3)" }}>
-          <span>{animal.location_name ?? <span style={{ color: "var(--fg-mute)", fontStyle: "italic" }}>No location</span>}</span>
-          {animal.next_vaccination_date && (
-            <span className="mono" style={{ fontSize: 10, color: "var(--fg-4)" }}>next vac: {animal.next_vaccination_date}</span>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
