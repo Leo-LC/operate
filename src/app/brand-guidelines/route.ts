@@ -7,6 +7,9 @@ export async function GET() {
   const html = fs.readFileSync(htmlPath, "utf-8");
 
   return new NextResponse(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "X-Frame-Options": "SAMEORIGIN",
+    },
   });
 }

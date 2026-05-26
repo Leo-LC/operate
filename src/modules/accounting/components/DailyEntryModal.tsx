@@ -143,6 +143,15 @@ export function DailyEntryModal({
   }
 
   useEffect(() => {
+    if (!initialSection) return;
+    const timeout = setTimeout(() => {
+      scrollToSection(initialSection);
+    }, 150);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally fire once on mount only
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;

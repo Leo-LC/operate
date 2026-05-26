@@ -6,7 +6,7 @@ export default function BrandPage() {
         borderRadius: "var(--r-lg)",
         overflow: "hidden",
         background: "var(--surface)",
-        height: "calc(100vh - 120px)",
+        height: "calc(100vh - var(--topbar-h) - var(--s-5) - var(--s-7))",
       }}>
         <iframe
           src="/brand-guidelines"

@@ -351,7 +351,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       {/* List */}
       {view === "list" && (
         displayed.length === 0 ? (
-          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", background: "var(--surface)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
             No animals found — add one to get started.
           </div>
         ) : (
