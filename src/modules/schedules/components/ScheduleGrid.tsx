@@ -566,7 +566,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
               {employees.map((emp, empIdx) => {
                 let weeklyHours = 0;
                 return (
-                  <tr key={emp.id} style={{ background: empIdx % 2 === 0 ? "var(--surface)" : "var(--bg)", borderBottom: "1px solid var(--line)" }}>
+                  <tr key={emp.id} style={{ background: "var(--surface)", borderBottom: "1px solid var(--line)" }}>
                     <td style={{ width: 160, padding: "10px 12px", borderRight: "1px solid var(--line)", verticalAlign: "middle" }}>
                       <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600, fontSize: 12, color: "var(--fg)" }}>
                         {emp.first_name} {emp.last_name}
