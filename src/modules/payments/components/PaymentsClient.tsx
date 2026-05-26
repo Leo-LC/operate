@@ -29,8 +29,8 @@ function fmtThb(n: number) {
 type View = "table" | "detail";
 
 type EditableField =
-  | "bonus_amount" | "bonus_note"
-  | "deductions" | "deduction_note"
+  | "bonus_amount"
+  | "deductions"
   | "overtime_pay"
   | "service_charge"
   | "notes";
@@ -268,13 +268,17 @@ export function PaymentsClient({ initialLocations }: Props) {
     }
   }
 
-  function exportPaymentsPdf() {
+  function exportPaymentsPdf(single?: { employee: Employee; record: PaymentRecord }) {
     const locationName = initialLocations.find((l) => l.id === locationId)?.name ?? "";
     const fmtB = (n: number) => `฿${Math.round(n).toLocaleString()}`;
     const methodLabel = (emp: Employee, record: PaymentRecord | null) =>
       (record?.payment_method === "bank_transfer" || emp.has_thai_bank_account) ? "Bank" : "Cash";
 
-    const tableRows = rows.filter((r) => r.record).map((r, idx) => {
+    const sourceRows = single
+      ? [{ employee: single.employee, record: single.record }]
+      : rows.filter((r) => r.record);
+
+    const tableRows = sourceRows.map((r, idx) => {
       const rec = r.record!;
       const total = totalPayment(rec);
       const bg = idx % 2 === 1 ? "background:#f8fafc" : "";
@@ -306,7 +310,10 @@ export function PaymentsClient({ initialLocations }: Props) {
       "@media print{@page{margin:8mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}",
     ].join("");
 
-    const title = `Payments — ${monthName} — ${locationName}`;
+    const employeeLabel = single
+      ? `${single.employee.first_name} ${single.employee.last_name ?? ""}`.trim()
+      : locationName;
+    const title = `Payments — ${monthName} — ${employeeLabel}`;
     const printHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body><div class="accent"></div><div class="header"><div class="header-left"><h1>${title}</h1><div class="meta">Generated ${new Date().toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" })}</div></div><div class="header-right">Capybara Coffee<br>Internal — Confidential</div></div><div class="content"><table><thead><tr><th style="text-align:left;padding-left:10px">Employee</th><th>Base salary</th><th>Deductions</th><th>OT pay</th><th>Svc charge</th><th>Bonus</th><th>Total</th><th>Method</th></tr></thead><tbody>${tableRows}</tbody></table></div></body></html>`;
 
     const blob = new Blob([printHtml], { type: "text/html; charset=utf-8" });
@@ -813,7 +820,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
               {/* Action bar */}
               <div style={{ padding: "var(--s-4) var(--s-5)", borderTop: "1px solid var(--line)", display: "flex", gap: "var(--s-2)" }}>
-                <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
+                <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf({ employee: selectedEmployee, record: selectedRecord })}>
                   <PrinterIcon size={13} />Slip PDF
                 </Button>
               </div>
