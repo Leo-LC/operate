@@ -22,6 +22,8 @@ const ALL_MODULES = [
   { key: "accounting", label: "Accounting" },
   { key: "reports", label: "Reports" },
   { key: "contacts", label: "Contacts" },
+  { key: "wiki", label: "Wiki" },
+  { key: "brand", label: "Brand" },
 ] as const;
 
 const inputStyle: React.CSSProperties = {

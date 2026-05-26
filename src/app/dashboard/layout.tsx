@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { getUserPermissionsFromDb } from "@/core/permissions/server";
 
 export default async function DashboardLayout({
   children,
@@ -13,7 +14,7 @@ export default async function DashboardLayout({
   if (!session) redirect("/");
 
   const email = session.user?.email ?? "unknown";
-  const role = session.user?.role;
+  const permissions = await getUserPermissionsFromDb(session.user?.userId, session.user?.role);
 
-  return <DashboardShell email={email} role={role}>{children}</DashboardShell>;
+  return <DashboardShell email={email} permissions={permissions}>{children}</DashboardShell>;
 }

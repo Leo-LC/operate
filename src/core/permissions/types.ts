@@ -9,7 +9,8 @@ export type ModuleKey =
   | "attendance"
   | "payments"
   | "admin"
-  | "wiki";
+  | "wiki"
+  | "brand";
 
 export type GlobalRole = "owner" | "admin" | "member";
 

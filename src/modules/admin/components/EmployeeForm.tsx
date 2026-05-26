@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import type { AdminLocation } from "@/modules/admin/types";
 
-export const POSITIONS = ["", "All-rounder", "Cashier", "Manager", "Director", "Other"] as const;
+export const POSITIONS = ["", "All-rounder", "Bartender", "Cashier", "Manager", "Director"] as const;
 export const NATIONALITIES = ["", "Thai", "Burmese", "French", "Other"] as const;
 
 export type EmployeeFormState = {

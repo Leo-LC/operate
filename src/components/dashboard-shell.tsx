@@ -11,13 +11,14 @@ import {
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
   SunIcon, MoonIcon, LogOutIcon,
 } from "lucide-react";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import type { UserPermissions } from "@/core/permissions/types";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
 
 interface DashboardShellProps {
   email: string;
-  role?: "owner" | "staff";
+  permissions: UserPermissions;
   children: React.ReactNode;
 }
 
@@ -33,7 +34,7 @@ const NAV_ITEMS = [
   { id: "reports",    label: "Reports",    href: "/dashboard/reports",    icon: TrendingUpIcon,   module: "reports" },
   { id: "contacts",   label: "Contacts",   href: "/dashboard/contacts",   icon: UsersIcon,        module: "contacts" },
   { id: "wiki",       label: "Wiki",       href: "/dashboard/wiki",       icon: BookOpenIcon,     module: "wiki" },
-  { id: "brand",      label: "Brand",      href: "/dashboard/brand",      icon: PaletteIcon,      module: null },
+  { id: "brand",      label: "Brand",      href: "/dashboard/brand",      icon: PaletteIcon,      module: "brand" },
   { id: "admin",      label: "Admin",      href: "/dashboard/admin",      icon: ShieldIcon,       module: "admin" },
 ] as const;
 
@@ -54,11 +55,10 @@ function initials(name: string): string {
     .join("");
 }
 
-export function DashboardShell({ email, role, children }: DashboardShellProps) {
+export function DashboardShell({ email, permissions, children }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const permissions = derivePermissionsFromRole(role);
 
   const [cmdOpen, setCmdOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -286,7 +286,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
               {displayName}
             </span>
             <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
-              {role ?? "Staff"}
+              {permissions.global_role === "owner" ? "Owner" : "Staff"}
             </span>
           </div>
 
