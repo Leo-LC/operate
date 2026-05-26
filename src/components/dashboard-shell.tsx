@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { id: "reports",    label: "Reports",    href: "/dashboard/reports",    icon: TrendingUpIcon,   module: "reports" },
   { id: "contacts",   label: "Contacts",   href: "/dashboard/contacts",   icon: UsersIcon,        module: "contacts" },
   { id: "wiki",       label: "Wiki",       href: "/dashboard/wiki",       icon: BookOpenIcon,     module: "wiki" },
-  { id: "brand",      label: "Brand",      href: "/brand-guidelines",     icon: PaletteIcon,      module: null },
+  { id: "brand",      label: "Brand",      href: "/dashboard/brand",      icon: PaletteIcon,      module: null },
   { id: "admin",      label: "Admin",      href: "/dashboard/admin",      icon: ShieldIcon,       module: "admin" },
 ] as const;
 
@@ -113,7 +113,7 @@ export function DashboardShell({ email, role, children }: DashboardShellProps) {
           e: "/dashboard/reports",
           t: "/dashboard/contacts",
           w: "/dashboard/wiki",
-          b: "/brand-guidelines",
+          b: "/dashboard/brand",
           m: "/dashboard/admin",
         };
         const dest = map[e.key.toLowerCase()];
