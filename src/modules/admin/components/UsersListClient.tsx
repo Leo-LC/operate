@@ -49,6 +49,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviteRole, setInviteRole] = useState<"owner" | "admin" | "member">("member");
+  const [invitePassword, setInvitePassword] = useState("");
   const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
   const [selectedLocations, setSelectedLocations] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -89,6 +90,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
     setInviteEmail("");
     setInviteName("");
     setInviteRole("member");
+    setInvitePassword("");
     setSelectedModules(new Set());
     setSelectedLocations(new Set());
     setShowForm(false);
@@ -101,7 +103,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, name: inviteName || undefined, global_role: inviteRole }),
+        body: JSON.stringify({ email: inviteEmail, name: inviteName || undefined, global_role: inviteRole, password: invitePassword || undefined }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -164,6 +166,11 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Name (optional)</label>
                 <input type="text" value={inviteName} onChange={(e) => setInviteName(e.target.value)}
                   style={{ ...inputStyle, width: "100%" }} placeholder="Full name" />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 160 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Password (optional)</label>
+                <input type="password" value={invitePassword} onChange={(e) => setInvitePassword(e.target.value)}
+                  style={{ ...inputStyle, width: "100%" }} placeholder="Leave blank to set later" autoComplete="new-password" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Role</label>

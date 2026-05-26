@@ -26,6 +26,8 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
   const router = useRouter();
   const [user, setUser] = useState(initialUser);
   const [savingRole, setSavingRole] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -47,6 +49,28 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       toast.success("Role updated");
     } finally {
       setSavingRole(false);
+    }
+  }
+
+  async function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newPassword) return;
+    setSavingPassword(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Failed to set password");
+        return;
+      }
+      setNewPassword("");
+      toast.success("Password updated");
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -186,6 +210,27 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
           </select>
           {savingRole && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Saving…</span>}
         </div>
+      </section>
+
+      {/* Password */}
+      <section style={sectionStyle}>
+        <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Password</h2>
+        <form onSubmit={(e) => void handleSetPassword(e)} style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label className="eyebrow" style={{ color: "var(--fg-3)", fontSize: 10 }}>New password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              autoComplete="new-password"
+              style={{ ...selectSm, width: 220, padding: "0 10px" }}
+            />
+          </div>
+          <Button type="submit" size="sm" disabled={savingPassword || !newPassword}>
+            {savingPassword ? "Saving…" : "Set password"}
+          </Button>
+        </form>
       </section>
 
       {hasFullAccess && (
