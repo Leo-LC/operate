@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TrashIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -135,6 +135,13 @@ export function DailyEntryModal({
     (initialSection as SectionId | undefined) ?? "sales"
   );
 
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  function scrollToSection(id: string) {
+    sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveSection(id as SectionId);
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName;
@@ -170,11 +177,6 @@ export function DailyEntryModal({
     ),
     treasury: null,
   };
-
-  const currentSection = DAILY_ENTRY_SECTIONS.find((s) => s.id === activeSection)!;
-  const editableFields = currentSection.fields.filter(
-    (f) => !f.calculated && f.key !== "cash_end_day" && f.key !== "cash_safe"
-  );
 
   const footer = (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
@@ -272,7 +274,7 @@ export function DailyEntryModal({
               <button
                 key={s.id}
                 type="button"
-                onClick={() => setActiveSection(s.id as SectionId)}
+                onClick={() => scrollToSection(s.id)}
                 style={{
                   flex: 1,
                   padding: "6px 4px",
@@ -292,47 +294,56 @@ export function DailyEntryModal({
           })}
         </div>
 
-        {/* Section fields */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: "var(--s-3) var(--s-4)",
-          }}
-        >
-          {editableFields.map((f) => (
-            <NumInput
-              key={f.key as string}
-              field={f.key as keyof typeof EMPTY_ENTRY}
-              label={f.label}
-              form={form}
-              onChange={onChange}
-            />
-          ))}
-
-          {activeSection === "treasury" && (
-            <>
-              <ReadOnlyRow label="Cash end of day" value={computedCashEndDay ?? 0} hint="auto" />
-              <NumInput field="cash_to_boss" label="Cash to boss" form={form} onChange={onChange} />
-              <ReadOnlyRow label="Cash safe" value={computedCashSafe ?? 0} hint="auto" />
-            </>
-          )}
-        </div>
-
-        {/* Calculated summary for this section */}
-        {sectionCalcs[activeSection] && (
+        {/* All sections stacked */}
+        {DAILY_ENTRY_SECTIONS.map((s) => (
           <div
-            style={{
-              borderRadius: "var(--r-md)",
-              border: "1px solid var(--line)",
-              background: "var(--bg-2)",
-              padding: "var(--s-3) var(--s-4)",
-            }}
+            key={s.id}
+            ref={(el) => { sectionRefs.current[s.id] = el; }}
+            style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}
           >
-            <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 6 }}>Calculated</p>
-            {sectionCalcs[activeSection]}
+            {/* Colored section header */}
+            <div style={{
+              padding: "6px var(--s-4)",
+              background: s.headerBg,
+              color: s.headerColor,
+              borderRadius: "var(--r-md)",
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase" as const,
+            }}>
+              {s.label}
+            </div>
+
+            {/* Fields grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3) var(--s-4)" }}>
+              {s.id !== "treasury" && s.fields.filter((f) => !f.calculated).map((f) => (
+                <NumInput
+                  key={f.key as string}
+                  field={f.key as keyof typeof EMPTY_ENTRY}
+                  label={f.label}
+                  form={form}
+                  onChange={onChange}
+                />
+              ))}
+              {s.id === "treasury" && (
+                <>
+                  <ReadOnlyRow label="Cash end of day" value={computedCashEndDay ?? 0} hint="auto" />
+                  <NumInput field="cash_to_boss" label="Cash to boss" form={form} onChange={onChange} />
+                  <ReadOnlyRow label="Cash safe" value={computedCashSafe ?? 0} hint="auto" />
+                </>
+              )}
+            </div>
+
+            {/* Section calculated summary */}
+            {sectionCalcs[s.id as SectionId] && (
+              <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: "var(--s-3) var(--s-4)" }}>
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 6 }}>Calculated</p>
+                {sectionCalcs[s.id as SectionId]}
+              </div>
+            )}
           </div>
-        )}
+        ))}
 
         {/* Notes */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
