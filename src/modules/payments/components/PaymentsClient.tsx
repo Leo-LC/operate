@@ -328,7 +328,7 @@ export function PaymentsClient({ initialLocations }: Props) {
     };
   }, [rows]);
 
-  const COL_GRID = "28px 1.5fr 1fr 100px 100px 100px 100px 120px 100px 80px";
+  const COL_GRID = "28px 1.5fr 100px 100px 100px 100px 120px 100px 80px";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
@@ -480,13 +480,13 @@ export function PaymentsClient({ initialLocations }: Props) {
                 borderBottom: "1px solid var(--line)", gap: 12, alignItems: "center",
               }}
             >
-              {["", "Employee", "Shop · Role", "Base", "Deduct.", "OT pay", "Svc chg", "Bonus", "Total", ""].map((h, i) => (
+              {["", "Employee", "Base", "Deduct.", "OT pay", "Svc chg", "Bonus", "Total", ""].map((h, i) => (
                 <div
                   key={i}
                   className="eyebrow"
                   style={{
                     color: "var(--fg-4)",
-                    textAlign: i > 2 && i < 9 ? "right" : "left",
+                    textAlign: i > 1 && i < 8 ? "right" : "left",
                   }}
                 >
                   {h}
@@ -535,6 +535,9 @@ export function PaymentsClient({ initialLocations }: Props) {
                       >
                         {fullName}
                       </button>
+                      {locationName && (
+                        <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{locationName}</div>
+                      )}
                       {!emp.base_salary_monthly && (
                         <div style={{ fontSize: 11, color: "var(--warn)" }}>no salary set</div>
                       )}
@@ -544,12 +547,6 @@ export function PaymentsClient({ initialLocations }: Props) {
                         </div>
                       ) : null}
                     </div>
-                  </div>
-
-                  {/* Shop · Role */}
-                  <div>
-                    <div style={{ color: "var(--fg)" }}>{locationName}</div>
-                    <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{emp.position ?? "—"}</div>
                   </div>
 
                   {/* Base */}
@@ -699,7 +696,6 @@ export function PaymentsClient({ initialLocations }: Props) {
               >
                 <div />
                 <div style={{ color: "var(--bronze)", fontWeight: 600 }}>Total</div>
-                <div />
                 <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
                   {totals.base > 0 ? fmtThb(totals.base) : "—"}
                 </div>
