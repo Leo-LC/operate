@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
@@ -217,18 +217,21 @@ export function PaymentsClient({ initialLocations }: Props) {
     }
   }, [employeeModal, employeeForm, employeeLocIds, employeePrimaryLoc]);
 
+  const handleEmployeeSaveRef = useRef(handleEmployeeSave);
+  useEffect(() => { handleEmployeeSaveRef.current = handleEmployeeSave; });
+
   useEffect(() => {
     if (!employeeModal) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") { setEmployeeModal(null); }
       if (e.key === "Enter" && !e.shiftKey && !(e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
-        void handleEmployeeSave();
+        void handleEmployeeSaveRef.current();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [employeeModal, handleEmployeeSave]);
+  }, [employeeModal]);
 
   useEffect(() => {
     if (!editModal) return;
@@ -693,13 +696,13 @@ export function PaymentsClient({ initialLocations }: Props) {
                   {/* Cash column */}
                   <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 12, color: isBankTransfer ? "var(--fg-4)" : "var(--fg)" }}>
                     {record
-                      ? (isBankTransfer ? "—" : "฿" + totalPayment(record).toLocaleString("en", { maximumFractionDigits: 0 }))
+                      ? (isBankTransfer ? "—" : fmtThb(total))
                       : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
                   {/* Transfer column */}
                   <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 12, color: isBankTransfer ? "var(--fg)" : "var(--fg-4)" }}>
                     {record
-                      ? (isBankTransfer ? "฿" + totalPayment(record).toLocaleString("en", { maximumFractionDigits: 0 }) : "—")
+                      ? (isBankTransfer ? fmtThb(total) : "—")
                       : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
                 </div>
