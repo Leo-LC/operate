@@ -17,9 +17,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const supabase = getSupabaseServerClient();
 
+  // Whitelist patchable fields to exclude removed status/paid_at
+  const allowed = [
+    "base_salary",
+    "deductions",
+    "deduction_note",
+    "overtime_pay",
+    "service_charge",
+    "bonus_amount",
+    "bonus_note",
+    "payment_method",
+    "notes",
+  ] as const;
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const key of allowed) {
+    if (key in body) patch[key] = body[key as keyof typeof body];
+  }
+
   const { data, error } = await supabase
     .from("employee_payment_records")
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq("id", id)
     .eq("organization_id", DEFAULT_ORG_ID)
     .select()
