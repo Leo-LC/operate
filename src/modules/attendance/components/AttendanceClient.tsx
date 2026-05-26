@@ -6,6 +6,15 @@ import {
   ChevronLeftIcon, ChevronRightIcon,
   Loader2Icon, PrinterIcon, SettingsIcon, XIcon,
 } from "lucide-react";
+
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 import { Button } from "@/components/ui/button";
 import {
   type AttendanceRecord,
@@ -39,6 +48,17 @@ const MODAL_OPTIONS: { value: "none" | RecordType; label: string }[] = [
 ];
 
 const DEDUCTIBLE = new Set<RecordType>(["absence", "sick_leave", "unpaid_leave"]);
+
+const INITIALS: Record<string, string> = {
+  overtime_weekday: "OT",
+  overtime_weekend: "OT",
+  overtime_holiday: "OT",
+  absence: "ABS",
+  sick_leave: "SL",
+  unpaid_leave: "UL",
+  paid_leave: "PL",
+  public_holiday: "PH",
+};
 
 function schedKey(empId: string, date: string) { return `${empId}__${date}`; }
 function fmtThb(n: number) { return `฿${Math.round(n).toLocaleString()}`; }
@@ -388,98 +408,83 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
     return "";
   }
 
-  const [exportingPdf, setExportingPdf] = useState(false);
-
   function exportMonthPdf() {
-    setExportingPdf(true);
-    try {
-      const locationName = initialLocations.find((l) => l.id === locationId)?.name ?? "All shops";
-      const title = `Attendance — ${monthName} — ${locationName}`;
+    const locationName = initialLocations.find((l) => l.id === locationId)?.name ?? "All shops";
+    const title = `Attendance — ${monthName} — ${escHtml(locationName)}`;
 
-      const INITIALS: Record<string, string> = {
-        overtime_weekday: "OT",
-        overtime_weekend: "OT",
-        overtime_holiday: "OT",
-        absence: "ABS",
-        sick_leave: "SL",
-        unpaid_leave: "UL",
-        paid_leave: "PL",
-        public_holiday: "PH",
-      };
+    const excMapLocal = new Map<string, string>();
+    for (const r of records) {
+      const key = schedKey(r.employee_id, r.record_date);
+      const existing = excMapLocal.get(key);
+      // prefer leave over OT when conflict (same priority logic as excMap)
+      const isOt = OT_TYPES.includes(r.record_type);
+      if (!existing || !isOt) excMapLocal.set(key, INITIALS[r.record_type] ?? r.record_type);
+    }
 
-      const excMapLocal = new Map<string, string>();
-      for (const r of records) {
-        const key = schedKey(r.employee_id, r.record_date);
-        const existing = excMapLocal.get(key);
-        // prefer leave over OT when conflict (same priority logic as excMap)
-        const isOt = OT_TYPES.includes(r.record_type);
-        if (!existing || !isOt) excMapLocal.set(key, INITIALS[r.record_type] ?? r.record_type);
-      }
+    const dayNums = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    const padM = String(month).padStart(2, "0");
 
-      const dayNums = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-      const padM = String(month).padStart(2, "0");
+    const headerCells = dayNums
+      .map((d) => {
+        const dow = dayOfWeek(year, month, d);
+        const isWeekend = dow === 0 || dow === 6;
+        return `<th class="${isWeekend ? "weekend" : ""}">${d}<br><span class="dow">${new Date(year, month - 1, d).toLocaleDateString("en", { weekday: "narrow" })}</span></th>`;
+      })
+      .join("");
 
-      const headerCells = dayNums
-        .map((d) => {
-          const dow = dayOfWeek(year, month, d);
-          const isWeekend = dow === 0 || dow === 6;
-          return `<th class="${isWeekend ? "weekend" : ""}">${d}<br><span class="dow">${new Date(year, month - 1, d).toLocaleDateString("en", { weekday: "narrow" })}</span></th>`;
-        })
-        .join("");
+    const bodyRows = locationEmployees
+      .map((emp, rowIdx) => {
+        const cells = dayNums
+          .map((d) => {
+            const dateStr = `${year}-${padM}-${String(d).padStart(2, "0")}`;
+            const key = schedKey(emp.id, dateStr);
+            const label = excMapLocal.get(key) ?? "";
+            const sched = schedMap.get(key);
+            let cls = "empty";
+            if (label === "OT") cls = "ot";
+            else if (label === "ABS") cls = "abs";
+            else if (label === "SL" || label === "UL") cls = "leave";
+            else if (label === "PL" || label === "PH") cls = "paid";
+            else if (sched === "work") cls = "work";
+            else if (sched === "off") cls = "off";
+            return `<td class="${cls}">${label || (sched === "work" ? "●" : sched === "off" ? "·" : "")}</td>`;
+          })
+          .join("");
+        const rowCls = rowIdx % 2 === 0 ? "" : ' class="alt"';
+        const name = `${escHtml(emp.first_name)} ${escHtml(emp.last_name ?? "")}`.trim();
+        return `<tr${rowCls}><td class="name">${name}</td>${cells}</tr>`;
+      })
+      .join("");
 
-      const bodyRows = locationEmployees
-        .map((emp, rowIdx) => {
-          const cells = dayNums
-            .map((d) => {
-              const dateStr = `${year}-${padM}-${String(d).padStart(2, "0")}`;
-              const key = schedKey(emp.id, dateStr);
-              const label = excMapLocal.get(key) ?? "";
-              const sched = schedMap.get(key);
-              let cls = "empty";
-              if (label === "OT") cls = "ot";
-              else if (label === "ABS") cls = "abs";
-              else if (label === "SL" || label === "UL") cls = "leave";
-              else if (label === "PL" || label === "PH") cls = "paid";
-              else if (sched === "work") cls = "work";
-              else if (sched === "off") cls = "off";
-              return `<td class="${cls}">${label || (sched === "work" ? "●" : sched === "off" ? "·" : "")}</td>`;
-            })
-            .join("");
-          const rowCls = rowIdx % 2 === 0 ? "" : ' class="alt"';
-          const name = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
-          return `<tr${rowCls}><td class="name">${name}</td>${cells}</tr>`;
-        })
-        .join("");
+    const css = [
+      "*{box-sizing:border-box;margin:0;padding:0}",
+      "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10px;color:#1a1a1a;background:#fff}",
+      ".accent{height:5px;background:#1e3a8a;width:100%}",
+      ".header{padding:14px 20px 10px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #e5e7eb}",
+      ".header-left h1{font-size:15px;font-weight:700;color:#111;margin-bottom:3px}",
+      ".header-left .meta{font-size:11px;color:#6b7280}",
+      ".header-right{text-align:right;font-size:10px;color:#9ca3af}",
+      ".content{padding:12px 20px}",
+      "table{border-collapse:collapse;width:100%;table-layout:fixed}",
+      "col.name-col{width:110px}",
+      "th{background:#1e3a8a;color:#fff;font-weight:600;font-size:9px;padding:5px 3px;text-align:center;letter-spacing:0.2px}",
+      "th.name-th{text-align:left;padding-left:8px}",
+      "th.weekend{background:#2d4fa3}",
+      "th .dow{font-weight:400;opacity:0.8}",
+      "td{padding:4px 2px;text-align:center;vertical-align:middle;border-bottom:1px solid #f0f0f0;font-size:8.5px;font-weight:500}",
+      "tr.alt td{background:#f8fafc}",
+      "td.name{text-align:left;font-weight:600;padding-left:8px;color:#374151;font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      "td.work{color:#16a34a}td.off{color:#d1d5db}td.empty{color:transparent}",
+      "td.ot{color:#2563eb;font-weight:700}",
+      "td.abs{color:#dc2626;font-weight:700}",
+      "td.leave{color:#d97706;font-weight:700}",
+      "td.paid{color:#16a34a;font-weight:700}",
+      "@media print{@page{margin:6mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.accent{-webkit-print-color-adjust:exact}}",
+    ].join("");
 
-      const css = [
-        "*{box-sizing:border-box;margin:0;padding:0}",
-        "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10px;color:#1a1a1a;background:#fff}",
-        ".accent{height:5px;background:#1e3a8a;width:100%}",
-        ".header{padding:14px 20px 10px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #e5e7eb}",
-        ".header-left h1{font-size:15px;font-weight:700;color:#111;margin-bottom:3px}",
-        ".header-left .meta{font-size:11px;color:#6b7280}",
-        ".header-right{text-align:right;font-size:10px;color:#9ca3af}",
-        ".content{padding:12px 20px}",
-        "table{border-collapse:collapse;width:100%;table-layout:fixed}",
-        "col.name-col{width:110px}",
-        "th{background:#1e3a8a;color:#fff;font-weight:600;font-size:9px;padding:5px 3px;text-align:center;letter-spacing:0.2px}",
-        "th.name-th{text-align:left;padding-left:8px}",
-        "th.weekend{background:#2d4fa3}",
-        "th .dow{font-weight:400;opacity:0.8}",
-        "td{padding:4px 2px;text-align:center;vertical-align:middle;border-bottom:1px solid #f0f0f0;font-size:8.5px;font-weight:500}",
-        "tr.alt td{background:#f8fafc}",
-        "td.name{text-align:left;font-weight:600;padding-left:8px;color:#374151;font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-        "td.work{color:#16a34a}td.off{color:#d1d5db}td.empty{color:transparent}",
-        "td.ot{color:#2563eb;font-weight:700}",
-        "td.abs{color:#dc2626;font-weight:700}",
-        "td.leave{color:#d97706;font-weight:700}",
-        "td.paid{color:#16a34a;font-weight:700}",
-        "@media print{@page{margin:6mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.accent{-webkit-print-color-adjust:exact}}",
-      ].join("");
+    const colgroup = `<colgroup><col class="name-col">${dayNums.map(() => "<col>").join("")}</colgroup>`;
 
-      const colgroup = `<colgroup><col class="name-col">${dayNums.map(() => "<col>").join("")}</colgroup>`;
-
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body>
 <div class="accent"></div>
 <div class="header">
   <div class="header-left">
@@ -498,13 +503,10 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
 <script>window.onload=function(){window.print();}<\/script>
 </body></html>`;
 
-      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } finally {
-      setExportingPdf(false);
-    }
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   const hasSchedule = shifts.length > 0;
@@ -548,8 +550,8 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                 <ChevronRightIcon style={{ width: 14, height: 14 }} />
               </Button>
             </div>
-            <Button size="sm" variant="secondary" onClick={exportMonthPdf} disabled={exportingPdf || locationEmployees.length === 0}>
-              {exportingPdf ? <Loader2Icon style={{ width: 14, height: 14 }} className="animate-spin" /> : <PrinterIcon style={{ width: 14, height: 14 }} />}
+            <Button size="sm" variant="secondary" onClick={exportMonthPdf} disabled={locationEmployees.length === 0}>
+              <PrinterIcon style={{ width: 14, height: 14 }} />
               Export month
             </Button>
             {isOwner && (
