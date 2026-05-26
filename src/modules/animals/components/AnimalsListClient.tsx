@@ -48,7 +48,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   const router = useRouter();
   const [animals, setAnimals] = useState(initialAnimals);
   const [view, setView] = useState<"list" | "calendar">("list");
-  const [vaccineView, setVaccineView] = useState<"list" | "calendar">("list");
+  const [vaccineSubView, setVaccineSubView] = useState<"list" | "calendar">("list");
   const [locationFilter, setLocationFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -325,13 +325,13 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                 <button
                   key={v}
                   type="button"
-                  onClick={() => setVaccineView(v)}
+                  onClick={() => setVaccineSubView(v)}
                   style={{
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "0 var(--s-3)", height: 28, fontSize: 12, cursor: "pointer", border: "none",
                     borderLeft: i > 0 ? "1px solid var(--line)" : "none",
-                    background: vaccineView === v ? "var(--row-active)" : "var(--bg)",
-                    color: vaccineView === v ? "var(--fg)" : "var(--fg-4)",
+                    background: vaccineSubView === v ? "var(--row-active)" : "var(--bg)",
+                    color: vaccineSubView === v ? "var(--fg)" : "var(--fg-4)",
                   }}
                 >
                   {v === "list" ? <ListIcon style={{ width: 12, height: 12 }} /> : <CalendarIcon style={{ width: 12, height: 12 }} />}
@@ -341,7 +341,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             </div>
           </div>
           <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "var(--surface)", padding: "var(--s-4)" }}>
-            {vaccineView === "list"
+            {vaccineSubView === "list"
               ? <VaccinationUrgencyList animals={displayed} locations={locations} />
               : <VaccinationCalendar animals={displayed} />}
           </div>
