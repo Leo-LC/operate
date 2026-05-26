@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
-  BanknoteIcon, BuildingIcon, PrinterIcon, XIcon, EyeIcon, ListIcon,
+  PrinterIcon, XIcon, EyeIcon, ListIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
-import { Pill } from "@/components/ui/pill";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   type PaymentRecord,
@@ -691,13 +690,17 @@ export function PaymentsClient({ initialLocations }: Props) {
                     {record ? fmtThb(total) : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
-                  {/* Method badge */}
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
-                    <Pill tone={isBankTransfer ? "info" : "warn"} size="sm">
-                      {isBankTransfer
-                        ? <><BuildingIcon style={{ width: 10, height: 10 }} /> Bank</>
-                        : <><BanknoteIcon style={{ width: 10, height: 10 }} /> Cash</>}
-                    </Pill>
+                  {/* Cash column */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 12, color: isBankTransfer ? "var(--fg-4)" : "var(--fg)" }}>
+                    {record
+                      ? (isBankTransfer ? "—" : "฿" + totalPayment(record).toLocaleString("en", { maximumFractionDigits: 0 }))
+                      : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
+                  {/* Transfer column */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 12, color: isBankTransfer ? "var(--fg)" : "var(--fg-4)" }}>
+                    {record
+                      ? (isBankTransfer ? "฿" + totalPayment(record).toLocaleString("en", { maximumFractionDigits: 0 }) : "—")
+                      : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
                 </div>
               );
@@ -744,6 +747,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 15, color: "var(--bronze)" }}>
                   {fmtThb(totals.total)}
                 </div>
+                <div />
                 <div />
               </div>
             )}
