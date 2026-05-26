@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -68,6 +68,15 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!deleteTarget) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setDeleteTarget(null); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [deleteTarget]);
 
   const filtered = useMemo(() => {
     let result = contacts;

@@ -194,8 +194,7 @@ export function PaymentsClient({ initialLocations }: Props) {
     setEmployeeModal(emp);
   }
 
-  async function handleEmployeeSave(e: React.FormEvent) {
-    e.preventDefault();
+  const handleEmployeeSave = useCallback(async () => {
     if (!employeeModal) return;
     setEmployeeSubmitting(true);
     try {
@@ -217,7 +216,29 @@ export function PaymentsClient({ initialLocations }: Props) {
     } finally {
       setEmployeeSubmitting(false);
     }
-  }
+  }, [employeeModal, employeeForm, employeeLocIds, employeePrimaryLoc]);
+
+  useEffect(() => {
+    if (!employeeModal) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setEmployeeModal(null); }
+      if (e.key === "Enter" && !e.shiftKey && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        void handleEmployeeSave();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [employeeModal, handleEmployeeSave]);
+
+  useEffect(() => {
+    if (!editModal) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setEditModal(null); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editModal]);
 
   function openOtModal(record: PaymentRecord, emp: Employee) {
     setEditModal({ type: "ot", record, emp });
@@ -335,7 +356,7 @@ export function PaymentsClient({ initialLocations }: Props) {
     };
   }, [rows]);
 
-  const COL_GRID = "28px 1.5fr 100px 100px 100px 100px 120px 100px 80px";
+  const COL_GRID = "28px 1.5fr 100px 100px 100px 100px 120px 100px 75px 75px";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
@@ -487,18 +508,20 @@ export function PaymentsClient({ initialLocations }: Props) {
                 borderBottom: "1px solid var(--line)", gap: 12, alignItems: "center",
               }}
             >
-              {["", "Employee", "Base", "Deduct.", "OT pay", "Svc chg", "Bonus", "Total", ""].map((h, i) => (
+              {["", "Employee", "Base", "Deduct.", "OT pay", "Svc chg", "Bonus", "Total"].map((h, i) => (
                 <div
                   key={i}
                   className="eyebrow"
                   style={{
                     color: "var(--fg-4)",
-                    textAlign: i > 1 && i < 8 ? "right" : "left",
+                    textAlign: i > 1 ? "right" : "left",
                   }}
                 >
                   {h}
                 </div>
               ))}
+              <div className="eyebrow" style={{ color: "var(--fg-4)", textAlign: "right" }}>Cash</div>
+              <div className="eyebrow" style={{ color: "var(--fg-4)", textAlign: "right" }}>Transfer</div>
             </div>
 
             {/* Flat employee rows */}
@@ -885,7 +908,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 onChange={(key, val) => setEmployeeForm((f) => ({ ...f, [key]: val }))}
                 onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
                 onSetPrimary={(id) => setEmployeePrimaryLoc(id)}
-                onSubmit={(e) => void handleEmployeeSave(e)}
+                onSubmit={(e) => { e.preventDefault(); void handleEmployeeSave(); }}
                 onCancel={() => setEmployeeModal(null)}
                 submitLabel="Save changes"
               />
