@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
-  CheckIcon, BanknoteIcon, BuildingIcon, PrinterIcon, XIcon, EyeIcon, ListIcon,
+  BanknoteIcon, BuildingIcon, PrinterIcon, XIcon, EyeIcon, ListIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -12,8 +12,8 @@ import { Stat } from "@/components/ui/stat";
 import { Pill } from "@/components/ui/pill";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
-  type PaymentRecord, type PaymentStatus,
-  totalPayment, STATUS_LABELS,
+  type PaymentRecord,
+  totalPayment,
 } from "@/modules/payments/types";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "@/modules/admin/components/EmployeeForm";
@@ -27,13 +27,6 @@ function fmtThb(n: number) {
 }
 
 type View = "table" | "detail";
-type StatusFilter = "all" | PaymentStatus;
-
-const STATUS_TONE: Record<PaymentStatus, "warn" | "info" | "good"> = {
-  draft:     "warn",
-  confirmed: "info",
-  paid:      "good",
-};
 
 type EditableField =
   | "bonus_amount" | "bonus_note"
@@ -48,7 +41,6 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [month, setMonth]       = useState(now.getMonth() + 1);
   const [locationId, setLocationId] = useState(initialLocations[0]?.id ?? "");
   const [view, setView]         = useState<View>("table");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const [records, setRecords]   = useState<PaymentRecord[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -79,7 +71,6 @@ export function PaymentsClient({ initialLocations }: Props) {
 
   const monthName = new Date(year, month - 1, 1).toLocaleDateString("en", { month: "long", year: "numeric" });
   const monthDays = new Date(year, month, 0).getDate();
-  const dueIn = monthDays - now.getDate();
 
   const loadData = useCallback(async () => {
     if (!locationId) return;
@@ -120,22 +111,9 @@ export function PaymentsClient({ initialLocations }: Props) {
 
   const stats = useMemo(() => {
     const withRecord = rows.filter((r) => r.record);
-    const total   = withRecord.reduce((s, r) => s + totalPayment(r.record!), 0);
-    const drafts  = withRecord.filter((r) => r.record?.status === "draft");
-    const draftAmt = drafts.reduce((s, r) => s + totalPayment(r.record!), 0);
-    const paid    = withRecord.filter((r) => r.record?.status === "paid").reduce((s, r) => s + totalPayment(r.record!), 0);
-    return { total, draftCount: drafts.length, draftAmt, paid, headcount: withRecord.length };
+    const total = withRecord.reduce((s, r) => s + totalPayment(r.record!), 0);
+    return { total, headcount: withRecord.length };
   }, [rows]);
-
-  const grouped = useMemo(() => {
-    const filter = (s: PaymentStatus) =>
-      rows.filter((r) => r.record?.status === s && (statusFilter === "all" || statusFilter === s));
-    return {
-      draft:     filter("draft"),
-      confirmed: filter("confirmed"),
-      paid:      filter("paid"),
-    };
-  }, [rows, statusFilter]);
 
   const selectedRecord  = records.find((r) => r.id === selectedId) ?? null;
   const selectedEmployee = selectedRecord
@@ -191,10 +169,6 @@ export function PaymentsClient({ initialLocations }: Props) {
     } finally {
       setSavingId(null);
     }
-  }
-
-  async function setStatus(record: PaymentRecord, status: PaymentStatus) {
-    await patchRecord(record.id, { status });
   }
 
   function startEdit(recordId: string, field: EditableField, currentValue: string | number) {
@@ -294,13 +268,6 @@ export function PaymentsClient({ initialLocations }: Props) {
     }
   }
 
-  async function handleConfirmAll() {
-    const drafts = rows.filter((r) => r.record?.status === "draft");
-    await Promise.all(drafts.map((r) => patchRecord(r.record!.id, { status: "confirmed" as PaymentStatus })));
-    toast.success(`${drafts.length} record${drafts.length !== 1 ? "s" : ""} confirmed`);
-  }
-
-
   function exportPaymentsPdf() {
     const locationName = initialLocations.find((l) => l.id === locationId)?.name ?? "";
     const fmtB = (n: number) => `฿${Math.round(n).toLocaleString()}`;
@@ -320,7 +287,6 @@ export function PaymentsClient({ initialLocations }: Props) {
         <td>${rec.bonus_amount > 0 ? fmtB(rec.bonus_amount) : "—"}</td>
         <td style="font-weight:700">${fmtB(total)}</td>
         <td>${methodLabel(r.employee, rec)}</td>
-        <td>${STATUS_LABELS[rec.status]}</td>
       </tr>`;
     }).join("");
 
@@ -341,7 +307,7 @@ export function PaymentsClient({ initialLocations }: Props) {
     ].join("");
 
     const title = `Payments — ${monthName} — ${locationName}`;
-    const printHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body><div class="accent"></div><div class="header"><div class="header-left"><h1>${title}</h1><div class="meta">Generated ${new Date().toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" })}</div></div><div class="header-right">Capybara Coffee<br>Internal — Confidential</div></div><div class="content"><table><thead><tr><th style="text-align:left;padding-left:10px">Employee</th><th>Base salary</th><th>Deductions</th><th>OT pay</th><th>Svc charge</th><th>Bonus</th><th>Total</th><th>Method</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody></table></div></body></html>`;
+    const printHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body><div class="accent"></div><div class="header"><div class="header-left"><h1>${title}</h1><div class="meta">Generated ${new Date().toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" })}</div></div><div class="header-right">Capybara Coffee<br>Internal — Confidential</div></div><div class="content"><table><thead><tr><th style="text-align:left;padding-left:10px">Employee</th><th>Base salary</th><th>Deductions</th><th>OT pay</th><th>Svc charge</th><th>Bonus</th><th>Total</th><th>Method</th></tr></thead><tbody>${tableRows}</tbody></table></div></body></html>`;
 
     const blob = new Blob([printHtml], { type: "text/html; charset=utf-8" });
     const blobUrl = URL.createObjectURL(blob);
@@ -456,16 +422,6 @@ export function PaymentsClient({ initialLocations }: Props) {
               Calculate
             </Button>
 
-            <Button
-              size="sm"
-              style={{ gap: 6 }}
-              onClick={() => void handleConfirmAll()}
-              disabled={calculating || stats.draftCount === 0}
-            >
-              <CheckIcon size={13} />
-              Confirm {stats.draftCount > 0 ? stats.draftCount : ""} drafts
-            </Button>
-
             <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
               <PrinterIcon size={13} />
               PDF
@@ -475,29 +431,17 @@ export function PaymentsClient({ initialLocations }: Props) {
       />
 
       {/* Stats band */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--s-3)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
         {[
           {
             label: "Total payroll",
             value: stats.total > 0 ? fmtThb(stats.total) : "—",
-            hint: `${stats.headcount} ${stats.headcount === 1 ? "person" : "people"}`,
-          },
-          {
-            label: "Drafts",
-            value: String(stats.draftCount),
-            delta: stats.draftAmt > 0 ? fmtThb(stats.draftAmt) : undefined,
-            deltaDir: "neutral" as const,
-            hint: "Awaiting confirmation",
-          },
-          {
-            label: "Paid so far",
-            value: stats.paid > 0 ? fmtThb(stats.paid) : "—",
             hint: monthName,
           },
           {
-            label: "Due in",
-            value: dueIn > 0 ? String(dueIn) : "today",
-            hint: `${new Date(year, month - 1, monthDays).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}`,
+            label: "Employees",
+            value: String(stats.headcount),
+            hint: `${stats.headcount === 1 ? "person" : "people"} with records`,
           },
         ].map((s) => (
           <div
@@ -519,34 +463,8 @@ export function PaymentsClient({ initialLocations }: Props) {
         </div>
       ) : view === "table" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-          {/* Status filter */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div
-              style={{
-                display: "inline-flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)",
-                background: "var(--bg-2)", padding: 3, gap: 2,
-              }}
-            >
-              {(["all", "draft", "confirmed", "paid"] as StatusFilter[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setStatusFilter(f)}
-                  style={{
-                    height: 24, padding: "0 10px",
-                    borderRadius: "var(--r-sm)", fontSize: 12,
-                    fontWeight: statusFilter === f ? 500 : 400,
-                    color: statusFilter === f ? "var(--fg)" : "var(--fg-4)",
-                    background: statusFilter === f ? "var(--surface)" : "transparent",
-                    border: `1px solid ${statusFilter === f ? "var(--line)" : "transparent"}`,
-                    cursor: "pointer", transition: "all var(--dur) var(--ease)",
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {f === "all" ? "All" : STATUS_LABELS[f as PaymentStatus]}
-                </button>
-              ))}
-            </div>
+          {/* Due date hint */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
               Due {new Date(year, month - 1, monthDays).toLocaleDateString("en", { day: "numeric", month: "short" })}
             </span>
@@ -576,239 +494,187 @@ export function PaymentsClient({ initialLocations }: Props) {
               ))}
             </div>
 
-            {/* Status groups */}
-            {(["draft", "confirmed", "paid"] as PaymentStatus[])
-              .filter((g) => grouped[g].length > 0)
-              .map((group) => (
-                <div key={group}>
-                  {/* Group header */}
-                  <div
-                    style={{
-                      padding: "8px var(--s-4)",
-                      background: "var(--surface-2)",
-                      borderBottom: "1px solid var(--line)",
-                      display: "flex", alignItems: "center", gap: 8,
-                      fontSize: 12, color: "var(--fg-3)", fontWeight: 500,
-                    }}
-                  >
-                    <Pill tone={STATUS_TONE[group]} size="sm" dot>
-                      {STATUS_LABELS[group].toUpperCase()}
-                    </Pill>
-                    <span>
-                      {grouped[group].length} · {fmtThb(grouped[group].reduce((s, r) => s + (r.record ? totalPayment(r.record) : 0), 0))}
-                    </span>
+            {/* Flat employee rows */}
+            {rows.map(({ employee: emp, record }) => {
+              const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
+              const total = record ? totalPayment(record) : 0;
+              const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
+              const locationName = initialLocations.find((l) =>
+                emp.employee_locations?.some((el) => el.location_id === l.id && el.is_primary) ||
+                emp.location_id === l.id
+              )?.name ?? "";
+
+              return (
+                <div
+                  key={emp.id}
+                  style={{
+                    display: "grid", gridTemplateColumns: COL_GRID,
+                    padding: "12px var(--s-4)", alignItems: "center", gap: 12,
+                    borderBottom: "1px solid var(--line)",
+                    fontSize: 13, transition: "background var(--dur) var(--ease)",
+                  }}
+                  className="group/row hover:bg-[var(--row-hover)]"
+                >
+                  {/* Checkbox placeholder */}
+                  <div />
+
+                  {/* Employee */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <UserAvatar name={fullName} size={28} />
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => openEmployeeModal(emp)}
+                        style={{
+                          fontSize: 13, fontWeight: 500, color: "var(--fg)",
+                          background: "none", border: "none", cursor: "pointer", textAlign: "left",
+                          padding: 0,
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                      >
+                        {fullName}
+                      </button>
+                      {!emp.base_salary_monthly && (
+                        <div style={{ fontSize: 11, color: "var(--warn)" }}>no salary set</div>
+                      )}
+                      {emp.base_salary_monthly ? (
+                        <div className="mono tabular-nums" style={{ fontSize: 11, color: "var(--fg-4)" }}>
+                          {fmtThb(emp.base_salary_monthly)}/mo
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
-                  {/* Rows */}
-                  {grouped[group].map(({ employee: emp, record }) => {
-                    const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
-                    const total = record ? totalPayment(record) : 0;
-                    const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
-                    const locationName = initialLocations.find((l) =>
-                      emp.employee_locations?.some((el) => el.location_id === l.id && el.is_primary) ||
-                      emp.location_id === l.id
-                    )?.name ?? "";
+                  {/* Shop · Role */}
+                  <div>
+                    <div style={{ color: "var(--fg)" }}>{locationName}</div>
+                    <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{emp.position ?? "—"}</div>
+                  </div>
 
-                    return (
-                      <div
-                        key={emp.id}
-                        style={{
-                          display: "grid", gridTemplateColumns: COL_GRID,
-                          padding: "12px var(--s-4)", alignItems: "center", gap: 12,
-                          borderBottom: "1px solid var(--line)",
-                          fontSize: 13, transition: "background var(--dur) var(--ease)",
-                        }}
-                        className="group/row hover:bg-[var(--row-hover)]"
+                  {/* Base */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                    {record?.base_salary ? fmtThb(record.base_salary) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
+
+                  {/* Deductions */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                    {record ? (
+                      <button
+                        type="button"
+                        onClick={() => openDeductModal(record, emp)}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                       >
-                        {/* Checkbox placeholder */}
-                        <div />
+                        {record.deductions > 0
+                          ? <span style={{ color: "var(--bad)" }}>−{fmtThb(record.deductions)}</span>
+                          : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                      </button>
+                    ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
 
-                        {/* Employee */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <UserAvatar name={fullName} size={28} />
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => openEmployeeModal(emp)}
-                              style={{
-                                fontSize: 13, fontWeight: 500, color: "var(--fg)",
-                                background: "none", border: "none", cursor: "pointer", textAlign: "left",
-                                padding: 0,
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                            >
-                              {fullName}
-                            </button>
-                            {!emp.base_salary_monthly && (
-                              <div style={{ fontSize: 11, color: "var(--warn)" }}>no salary set</div>
-                            )}
-                            {emp.base_salary_monthly ? (
-                              <div className="mono tabular-nums" style={{ fontSize: 11, color: "var(--fg-4)" }}>
-                                {fmtThb(emp.base_salary_monthly)}/mo
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
+                  {/* OT */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                    {record ? (
+                      <button
+                        type="button"
+                        onClick={() => openOtModal(record, emp)}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                      >
+                        {record.overtime_pay > 0
+                          ? <span style={{ color: "var(--info)" }}>+{fmtThb(record.overtime_pay)}</span>
+                          : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                      </button>
+                    ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
 
-                        {/* Shop · Role */}
-                        <div>
-                          <div style={{ color: "var(--fg)" }}>{locationName}</div>
-                          <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{emp.position ?? "—"}</div>
-                        </div>
+                  {/* Service charge */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                    {record ? (
+                      editingId === record.id && editField === "service_charge" ? (
+                        <input
+                          type="number" min="0" step="100" autoFocus
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => void patchRecord(record.id, { service_charge: parseFloat(editValue) || 0 })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void patchRecord(record.id, { service_charge: parseFloat(editValue) || 0 });
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          style={{
+                            width: 80, height: 24, textAlign: "right", fontSize: 12,
+                            borderRadius: "var(--r-sm)", border: "1px solid var(--focus-ring)",
+                            background: "var(--surface)", padding: "0 4px", outline: "none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{ cursor: "pointer" }}
+                          onClick={() => startEdit(record.id, "service_charge", record.service_charge)}
+                          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                        >
+                          {record.service_charge > 0
+                            ? fmtThb(record.service_charge)
+                            : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                        </span>
+                      )
+                    ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
 
-                        {/* Base */}
-                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                          {record?.base_salary ? fmtThb(record.base_salary) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                        </div>
+                  {/* Bonus */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                    {record ? (
+                      editingId === record.id && editField === "bonus_amount" ? (
+                        <input
+                          type="number" min="0" step="100" autoFocus
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 });
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          style={{
+                            width: 80, height: 24, textAlign: "right", fontSize: 12,
+                            borderRadius: "var(--r-sm)", border: "1px solid var(--focus-ring)",
+                            background: "var(--surface)", padding: "0 4px", outline: "none",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{ cursor: "pointer" }}
+                          onClick={() => startEdit(record.id, "bonus_amount", record.bonus_amount)}
+                          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                        >
+                          {record.bonus_amount > 0
+                            ? <span style={{ color: "var(--good)" }}>+{fmtThb(record.bonus_amount)}</span>
+                            : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
+                        </span>
+                      )
+                    ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
 
-                        {/* Deductions */}
-                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                          {record ? (
-                            <button
-                              type="button"
-                              onClick={() => openDeductModal(record, emp)}
-                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                            >
-                              {record.deductions > 0
-                                ? <span style={{ color: "var(--bad)" }}>−{fmtThb(record.deductions)}</span>
-                                : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
-                            </button>
-                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                        </div>
+                  {/* Total */}
+                  <div className="mono tabular-nums" style={{ textAlign: "right", fontWeight: 600, fontSize: 14 }}>
+                    {record ? fmtThb(total) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  </div>
 
-                        {/* OT */}
-                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                          {record ? (
-                            <button
-                              type="button"
-                              onClick={() => openOtModal(record, emp)}
-                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                            >
-                              {record.overtime_pay > 0
-                                ? <span style={{ color: "var(--info)" }}>+{fmtThb(record.overtime_pay)}</span>
-                                : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
-                            </button>
-                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                        </div>
-
-                        {/* Service charge */}
-                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                          {record ? (
-                            editingId === record.id && editField === "service_charge" ? (
-                              <input
-                                type="number" min="0" step="100" autoFocus
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => void patchRecord(record.id, { service_charge: parseFloat(editValue) || 0 })}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") void patchRecord(record.id, { service_charge: parseFloat(editValue) || 0 });
-                                  if (e.key === "Escape") cancelEdit();
-                                }}
-                                style={{
-                                  width: 80, height: 24, textAlign: "right", fontSize: 12,
-                                  borderRadius: "var(--r-sm)", border: "1px solid var(--focus-ring)",
-                                  background: "var(--surface)", padding: "0 4px", outline: "none",
-                                }}
-                              />
-                            ) : (
-                              <span
-                                style={{ cursor: "pointer" }}
-                                onClick={() => startEdit(record.id, "service_charge", record.service_charge)}
-                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                              >
-                                {record.service_charge > 0
-                                  ? fmtThb(record.service_charge)
-                                  : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
-                              </span>
-                            )
-                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                        </div>
-
-                        {/* Bonus */}
-                        <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                          {record ? (
-                            editingId === record.id && editField === "bonus_amount" ? (
-                              <input
-                                type="number" min="0" step="100" autoFocus
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 })}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") void patchRecord(record.id, { bonus_amount: parseFloat(editValue) || 0 });
-                                  if (e.key === "Escape") cancelEdit();
-                                }}
-                                style={{
-                                  width: 80, height: 24, textAlign: "right", fontSize: 12,
-                                  borderRadius: "var(--r-sm)", border: "1px solid var(--focus-ring)",
-                                  background: "var(--surface)", padding: "0 4px", outline: "none",
-                                }}
-                              />
-                            ) : (
-                              <span
-                                style={{ cursor: "pointer" }}
-                                onClick={() => startEdit(record.id, "bonus_amount", record.bonus_amount)}
-                                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                              >
-                                {record.bonus_amount > 0
-                                  ? <span style={{ color: "var(--good)" }}>+{fmtThb(record.bonus_amount)}</span>
-                                  : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
-                              </span>
-                            )
-                          ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                        </div>
-
-                        {/* Total */}
-                        <div className="mono tabular-nums" style={{ textAlign: "right", fontWeight: 600, fontSize: 14 }}>
-                          {record ? fmtThb(total) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                        </div>
-
-                        {/* Actions */}
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
-                          {record && record.status !== "paid" && (
-                            savingId === record.id ? (
-                              <Loader2Icon size={14} className="animate-spin" style={{ color: "var(--fg-4)" }} />
-                            ) : record.status === "draft" ? (
-                              <Button
-                                size="sm" variant="secondary"
-                                style={{ height: 26, fontSize: 11, gap: 4, color: "var(--info)" }}
-                                onClick={() => void setStatus(record, "confirmed")}
-                              >
-                                <CheckIcon size={12} />Confirm
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                style={{ height: 26, fontSize: 11, gap: 4 }}
-                                onClick={() => void setStatus(record, "paid")}
-                              >
-                                <CheckIcon size={12} />Pay
-                              </Button>
-                            )
-                          )}
-                          {record?.status === "paid" && record.paid_at && (
-                            <span className="mono tabular-nums" style={{ fontSize: 11, color: "var(--fg-4)" }}>
-                              {new Date(record.paid_at).toLocaleDateString("en", { day: "numeric", month: "short" })}
-                            </span>
-                          )}
-                          {/* Method badge */}
-                          <Pill tone={isBankTransfer ? "info" : "warn"} size="sm">
-                            {isBankTransfer
-                              ? <><BuildingIcon style={{ width: 10, height: 10 }} /> Bank</>
-                              : <><BanknoteIcon style={{ width: 10, height: 10 }} /> Cash</>}
-                          </Pill>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {/* Method badge */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
+                    <Pill tone={isBankTransfer ? "info" : "warn"} size="sm">
+                      {isBankTransfer
+                        ? <><BuildingIcon style={{ width: 10, height: 10 }} /> Bank</>
+                        : <><BanknoteIcon style={{ width: 10, height: 10 }} /> Cash</>}
+                    </Pill>
+                  </div>
                 </div>
-              ))}
+              );
+            })}
 
             {/* Empty state */}
             {rows.length === 0 && (
@@ -893,7 +759,6 @@ export function PaymentsClient({ initialLocations }: Props) {
                       {fmtThb(total)}
                     </div>
                   </div>
-                  {record && <Pill tone={STATUS_TONE[record.status]} size="sm">{STATUS_LABELS[record.status]}</Pill>}
                 </button>
               );
             })}
@@ -921,9 +786,6 @@ export function PaymentsClient({ initialLocations }: Props) {
                   </div>
                   <div style={{ fontSize: 12, color: "var(--fg-4)" }}>{selectedEmployee.position ?? "—"}</div>
                 </div>
-                <Pill tone={STATUS_TONE[selectedRecord.status]} size="md" dot>
-                  {STATUS_LABELS[selectedRecord.status]}
-                </Pill>
               </div>
 
               {/* Breakdown */}
@@ -954,33 +816,11 @@ export function PaymentsClient({ initialLocations }: Props) {
               </div>
 
               {/* Action bar */}
-              {selectedRecord.status !== "paid" && (
-                <div style={{ padding: "var(--s-4) var(--s-5)", borderTop: "1px solid var(--line)", display: "flex", gap: "var(--s-2)" }}>
-                  {selectedRecord.status === "draft" && (
-                    <Button
-                      size="sm" variant="secondary"
-                      style={{ gap: 6 }}
-                      onClick={() => void setStatus(selectedRecord, "confirmed")}
-                      disabled={savingId === selectedRecord.id}
-                    >
-                      <CheckIcon size={13} />Confirm
-                    </Button>
-                  )}
-                  {selectedRecord.status === "confirmed" && (
-                    <Button
-                      size="sm"
-                      style={{ gap: 6 }}
-                      onClick={() => void setStatus(selectedRecord, "paid")}
-                      disabled={savingId === selectedRecord.id}
-                    >
-                      <CheckIcon size={13} />Mark paid
-                    </Button>
-                  )}
-                  <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
-                    <PrinterIcon size={13} />Slip PDF
-                  </Button>
-                </div>
-              )}
+              <div style={{ padding: "var(--s-4) var(--s-5)", borderTop: "1px solid var(--line)", display: "flex", gap: "var(--s-2)" }}>
+                <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
+                  <PrinterIcon size={13} />Slip PDF
+                </Button>
+              </div>
             </div>
           ) : (
             <div

@@ -51,7 +51,6 @@ export async function POST(request: Request) {
     bonus_amount?: number;
     bonus_note?: string;
     payment_method?: string;
-    status?: string;
     notes?: string;
   };
   try { body = await request.json(); }
@@ -76,7 +75,6 @@ export async function POST(request: Request) {
     bonus_amount: body.bonus_amount ?? 0,
     bonus_note: body.bonus_note ?? null,
     payment_method: body.payment_method ?? "cash",
-    status: body.status ?? "draft",
     notes: body.notes ?? null,
     created_by: session.user.userId ?? null,
     updated_at: new Date().toISOString(),

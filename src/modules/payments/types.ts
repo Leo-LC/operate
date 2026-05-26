@@ -1,5 +1,4 @@
 export type PaymentMethod = "bank_transfer" | "cash";
-export type PaymentStatus = "draft" | "confirmed" | "paid";
 
 export interface PaymentRecord {
   id: string;
@@ -18,8 +17,6 @@ export interface PaymentRecord {
   bonus_note: string | null;
   // Admin
   payment_method: PaymentMethod;
-  status: PaymentStatus;
-  paid_at: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -29,10 +26,4 @@ export interface PaymentRecord {
 export function totalPayment(r: PaymentRecord): number {
   return r.base_salary - r.deductions + r.overtime_pay + r.service_charge + r.bonus_amount;
 }
-
-export const STATUS_LABELS: Record<PaymentStatus, string> = {
-  draft: "Draft",
-  confirmed: "Confirmed",
-  paid: "Paid",
-};
 

@@ -15,10 +15,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try { body = await request.json(); }
   catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  if (body.status === "paid" && !body.paid_at) {
-    body.paid_at = new Date().toISOString();
-  }
-
   const supabase = getSupabaseServerClient();
 
   const { data, error } = await supabase
