@@ -49,7 +49,7 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [editField, setEditField]   = useState<EditableField | null>(null);
   const [editValue, setEditValue]   = useState("");
-  const [savingId, setSavingId]     = useState<string | null>(null);
+  const [_savingId, setSavingId]    = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
