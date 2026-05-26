@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
+import bcrypt from "bcryptjs";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -43,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  let body: { global_role?: string; name?: string };
+  let body: { global_role?: string; name?: string; password?: string };
   try {
     body = await request.json();
   } catch {
@@ -59,6 +60,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     updates.global_role = body.global_role;
   }
   if (body.name !== undefined) updates.name = body.name;
+  if (body.password) updates.password_hash = await bcrypt.hash(body.password, 10);
 
   const supabase = getSupabaseServerClient();
   const { data: user, error } = await supabase

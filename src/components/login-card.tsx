@@ -53,11 +53,66 @@ function PreviewLoginForm() {
   );
 }
 
+const inputStyle: React.CSSProperties = {
+  height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)",
+  background: "var(--bg)", color: "var(--fg)", padding: "0 12px", fontSize: 13,
+  outline: "none", width: "100%", boxSizing: "border-box",
+};
+
+function CredentialsLoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const result = await signIn("credentials", { email, password, callbackUrl: "/dashboard", redirect: false });
+    if (result?.error) {
+      setError("Incorrect email or password.");
+      setLoading(false);
+    } else if (result?.url) {
+      window.location.href = result.url;
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+        autoComplete="email"
+        required
+        style={inputStyle}
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+        autoComplete="current-password"
+        required
+        style={inputStyle}
+      />
+      {error && <p style={{ fontSize: 12, color: "var(--bad)", margin: 0 }}>{error}</p>}
+      <Button type="submit" size="lg" className="w-full" disabled={loading || !email || !password}>
+        {loading ? "Signing in…" : "Sign in"}
+        <ArrowRightIcon className="size-4" />
+      </Button>
+    </form>
+  );
+}
+
 export function LoginCard({ minimal }: LoginCardProps) {
   const googleButton = (
     <Button
       size="lg"
-      className="group w-full gap-2 bg-foreground text-background hover:bg-foreground/90 font-medium"
+      variant="outline"
+      className="group w-full gap-2 font-medium"
       onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
     >
       Sign in with Google
@@ -80,15 +135,33 @@ export function LoginCard({ minimal }: LoginCardProps) {
     );
   }
 
-  if (minimal) return googleButton;
+  if (minimal) {
+    return (
+      <div className="flex flex-col gap-3">
+        <CredentialsLoginForm />
+        <div className="flex items-center gap-2">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="flex-1 border-t border-border" />
+        </div>
+        {googleButton}
+      </div>
+    );
+  }
 
   return (
     <Card className="h-full w-full border-border/70 bg-card shadow-lg backdrop-blur">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="font-serif text-xl font-normal">Sign in to continue</CardTitle>
-        <CardDescription>Use your Google account to access your workspace.</CardDescription>
+        <CardDescription>Use your credentials or Google account.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-3">
+        <CredentialsLoginForm />
+        <div className="flex items-center gap-2">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="flex-1 border-t border-border" />
+        </div>
         {googleButton}
       </CardContent>
     </Card>

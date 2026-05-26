@@ -1,19 +1,17 @@
 import { getServerSession } from "next-auth";
-import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
+import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES } from "@/lib/constants";
 import { fetchAllLocations, getPreferredAccountId } from "@/lib/google-business";
 
-export async function GET(request: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
-  const token = await getToken({
-    // Cast Request into the shape expected by getToken without using `any`
-    req: request as unknown as Parameters<typeof getToken>[0]["req"],
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-  const accessToken = (token as { accessToken?: string } | null)?.accessToken;
-  if (!accessToken || !session) {
+  if (!session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const accessToken = await getOrganizationAccessToken();
+  if (!accessToken) {
+    return Response.json({ error: "Google token not configured — sign in with Google first" }, { status: 503 });
   }
 
   try {

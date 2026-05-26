@@ -1,18 +1,17 @@
 import { getServerSession } from "next-auth";
-import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
+import { getOrganizationAccessToken } from "@/lib/google-token";
 import { REVIEWS_BASE } from "@/lib/constants";
 import { getPreferredAccountId } from "@/lib/google-business";
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
-  const token = await getToken({
-    req: request as unknown as Parameters<typeof getToken>[0]["req"],
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-  const accessToken = (token as { accessToken?: string } | null)?.accessToken;
-  if (!accessToken || !session) {
+  if (!session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const accessToken = await getOrganizationAccessToken();
+  if (!accessToken) {
+    return Response.json({ error: "Google token not configured — sign in with Google first" }, { status: 503 });
   }
 
   let body: { locationName: string; reviewId: string; comment: string };

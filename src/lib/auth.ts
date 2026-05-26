@@ -2,7 +2,9 @@ import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { getSupabaseServerClient } from "./supabase-server";
+import { saveGoogleTokensToOrg } from "./google-token";
 
 const secret = process.env.NEXTAUTH_SECRET;
 if (!secret || secret.length < 1) {
@@ -114,6 +116,31 @@ export const authOptions: NextAuthOptions = {
         },
       },
     }),
+    CredentialsProvider({
+      id: "credentials",
+      name: "Email & Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          const supabase = getSupabaseServerClient();
+          const { data: user } = await supabase
+            .from("users")
+            .select("id, email, name, password_hash")
+            .eq("email", credentials.email.toLowerCase().trim())
+            .single();
+          if (!user?.password_hash) return null;
+          const valid = await bcrypt.compare(credentials.password, user.password_hash as string);
+          if (!valid) return null;
+          return { id: user.id as string, email: user.email as string, name: (user.name as string | null) ?? null };
+        } catch {
+          return null;
+        }
+      },
+    }),
     ...(process.env.PREVIEW_AUTH_PASSWORD
       ? [
           CredentialsProvider({
@@ -132,8 +159,8 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // Always allow the preview credentials provider through
-      if (account?.provider === "preview") return true;
+      // Credentials providers: user was already validated by authorize()
+      if (account?.provider === "credentials" || account?.provider === "preview") return true;
 
       const email = user?.email?.toLowerCase() ?? "";
       if (!email) return false;
@@ -158,11 +185,28 @@ export const authOptions: NextAuthOptions = {
           return token;
         }
 
+        // Password credentials login — role and userId come from DB
+        if (account.provider === "credentials") {
+          const dbUser = await getDbRoleForEmail(token.email as string ?? "");
+          token.role = dbUser?.role ?? "staff";
+          token.userId = dbUser?.userId;
+          return token;
+        }
+
+        // Google OAuth login — save tokens to org so reviews work for all users
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token ?? token.refreshToken;
         token.accessTokenExpires = account.expires_at
           ? account.expires_at * 1000
           : Date.now() + 60 * 60 * 1000;
+
+        if (account.refresh_token && account.access_token) {
+          await saveGoogleTokensToOrg(
+            account.refresh_token,
+            account.access_token,
+            token.accessTokenExpires as number,
+          );
+        }
 
         // DB role takes priority; fall back to env-var role for users not yet in the platform DB
         const dbUser = await getDbRoleForEmail(token.email as string ?? "");
