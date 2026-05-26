@@ -66,7 +66,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if ("nationality" in body) updates.nationality = body.nationality?.trim() ?? null;
   if ("national_id" in body) updates.national_id = body.national_id?.trim() ?? null;
   if ("work_permit_number" in body) updates.work_permit_number = body.work_permit_number?.trim() ?? null;
-  if ("work_permit_expires_at" in body) updates.work_permit_expires_at = body.work_permit_expires_at ?? null;
+  if ("work_permit_expires_at" in body)
+    updates.work_permit_expires_at = (body.work_permit_expires_at?.trim() || null);
   if ("location_id" in body) updates.location_id = body.location_id ?? null;
   if ("email" in body) updates.email = body.email?.trim().toLowerCase() ?? null;
   if ("phone" in body) updates.phone = body.phone?.trim() ?? null;
@@ -76,7 +77,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if ("credit_note" in body) updates.credit_note = body.credit_note?.trim() ?? null;
   if (body.active !== undefined) updates.active = body.active;
   if ("user_id" in body) updates.user_id = body.user_id ?? null;
-  if ("archived_at" in body) updates.archived_at = body.archived_at ?? null;
+  if ("archived_at" in body) updates.archived_at = (body.archived_at?.trim() || null);
 
   if ("primary_location_id" in body) updates.location_id = body.primary_location_id ?? null;
 
