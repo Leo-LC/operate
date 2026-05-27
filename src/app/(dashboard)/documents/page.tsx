@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DocumentsClient } from "@/modules/documents/components/DocumentsClient";
+import { getAllowedLocationIds } from "@/core/permissions/server";
 import type { Document } from "@/modules/documents/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
@@ -20,21 +21,38 @@ export default async function DocumentsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
 
+  const allowedIds = await getAllowedLocationIds(session.user.userId, session.user.role === "owner");
+
+  if (allowedIds !== null && allowedIds.length === 0) {
+    return (
+      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, fontSize: 13, color: "var(--fg-4)" }}>
+        You don&apos;t have access to any location yet. Ask your admin.
+      </div>
+    );
+  }
+
   const supabase = getSupabaseServerClient();
-  const [{ data: docsData }, { data: locationsData }] = await Promise.all([
-    supabase
-      .from("documents")
-      .select(SELECT_FIELDS)
-      .is("deleted_at", null)
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .order("category", { ascending: true })
-      .order("title", { ascending: true }),
-    supabase
-      .from("locations")
-      .select("id, name, slug, external_id, is_active, created_at")
-      .eq("is_active", true)
-      .order("name"),
-  ]);
+
+  let docsQuery = supabase
+    .from("documents")
+    .select(SELECT_FIELDS)
+    .is("deleted_at", null)
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .order("category", { ascending: true })
+    .order("title", { ascending: true });
+
+  let locQuery = supabase
+    .from("locations")
+    .select("id, name, slug, external_id, is_active, created_at")
+    .eq("is_active", true)
+    .order("name");
+
+  if (allowedIds !== null) {
+    docsQuery = docsQuery.in("location_id", allowedIds);
+    locQuery = locQuery.in("id", allowedIds);
+  }
+
+  const [{ data: docsData }, { data: locationsData }] = await Promise.all([docsQuery, locQuery]);
 
   type Row = {
     id: string; organization_id: string; location_id: string | null; title: string;
