@@ -23,19 +23,19 @@ interface DashboardShellProps {
 }
 
 const NAV_ITEMS = [
-  { id: "overview",   label: "Overview",   href: "/dashboard/home",       icon: HomeIcon,         module: null },
-  { id: "reviews",    label: "Reviews",    href: "/dashboard/reviews",    icon: StarIcon,         module: "reviews" },
-  { id: "scheduling", label: "Scheduling", href: "/dashboard/scheduling", icon: CalendarDaysIcon, module: "schedules" },
-  { id: "attendance", label: "Attendance", href: "/dashboard/attendance", icon: ClockIcon,        module: "attendance" },
-  { id: "payments",   label: "Payments",   href: "/dashboard/payments",   icon: BanknoteIcon,     module: "payments" },
-  { id: "animals",    label: "Animals",    href: "/dashboard/animals",    icon: PawPrintIcon,     module: "animals" },
-  { id: "documents",  label: "Documents",  href: "/dashboard/documents",  icon: FileTextIcon,     module: "documents" },
-  { id: "accounting", label: "Accounting", href: "/dashboard/accounting", icon: CalculatorIcon,   module: "accounting" },
-  { id: "reports",    label: "Reports",    href: "/dashboard/reports",    icon: TrendingUpIcon,   module: "reports" },
-  { id: "contacts",   label: "Contacts",   href: "/dashboard/contacts",   icon: UsersIcon,        module: "contacts" },
-  { id: "wiki",       label: "Wiki",       href: "/dashboard/wiki",       icon: BookOpenIcon,     module: "wiki" },
-  { id: "brand",      label: "Brand",      href: "/dashboard/brand",      icon: PaletteIcon,      module: "brand" },
-  { id: "admin",      label: "Admin",      href: "/dashboard/admin",      icon: ShieldIcon,       module: "admin" },
+  { id: "overview",   label: "Overview",   href: "/home",       icon: HomeIcon,         module: null },
+  { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
+  { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+  { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
+  { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
+  { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
+  { id: "documents",  label: "Documents",  href: "/documents",  icon: FileTextIcon,     module: "documents" },
+  { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon,   module: "accounting" },
+  { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
+  { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },
+  { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
+  { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
+  { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
 ] as const;
 
 /* Deterministic avatar colour from initials */
@@ -102,19 +102,19 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
       if (gKeyRef.current) {
         const map: Record<string, string> = {
-          o: "/dashboard/home",
-          r: "/dashboard/reviews",
-          s: "/dashboard/scheduling",
-          a: "/dashboard/attendance",
-          p: "/dashboard/payments",
-          n: "/dashboard/animals",
-          d: "/dashboard/documents",
-          c: "/dashboard/accounting",
-          e: "/dashboard/reports",
-          t: "/dashboard/contacts",
-          w: "/dashboard/wiki",
-          b: "/dashboard/brand",
-          m: "/dashboard/admin",
+          o: "/home",
+          r: "/reviews",
+          s: "/scheduling",
+          a: "/attendance",
+          p: "/payments",
+          n: "/animals",
+          d: "/documents",
+          c: "/accounting",
+          e: "/reports",
+          t: "/contacts",
+          w: "/wiki",
+          b: "/brand",
+          m: "/admin",
         };
         const dest = map[e.key.toLowerCase()];
         if (dest) {
@@ -129,7 +129,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   }, [theme, setTheme, router]);
 
   function isActive(href: string): boolean {
-    if (href === "/dashboard/home") return pathname === "/dashboard/home" || pathname === "/dashboard";
+    if (href === "/home") return pathname === "/home" || pathname === "/home";
     return pathname.startsWith(href);
   }
 
@@ -171,7 +171,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           }}
         >
           <Link
-            href="/dashboard/home"
+            href="/home"
             style={{ display: "flex", alignItems: "baseline", gap: 6, textDecoration: "none" }}
           >
             <span
@@ -455,7 +455,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       </div>
 
       {/* ── Overlays ── */}
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );

@@ -7,29 +7,32 @@ import {
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
 } from "lucide-react";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import type { UserPermissions } from "@/core/permissions/types";
 
 const NAV_ITEMS = [
-  { id: "overview",   label: "Overview",   href: "/dashboard/home",       icon: HomeIcon },
-  { id: "reviews",    label: "Reviews",    href: "/dashboard/reviews",    icon: StarIcon },
-  { id: "scheduling", label: "Scheduling", href: "/dashboard/scheduling", icon: CalendarDaysIcon },
-  { id: "attendance", label: "Attendance", href: "/dashboard/attendance", icon: ClockIcon },
-  { id: "payments",   label: "Payments",   href: "/dashboard/payments",   icon: BanknoteIcon },
-  { id: "animals",    label: "Animals",    href: "/dashboard/animals",    icon: PawPrintIcon },
-  { id: "documents",  label: "Documents",  href: "/dashboard/documents",  icon: FileTextIcon },
-  { id: "accounting", label: "Accounting", href: "/dashboard/accounting", icon: CalculatorIcon },
-  { id: "reports",    label: "Reports",    href: "/dashboard/reports",    icon: TrendingUpIcon },
-  { id: "contacts",   label: "Contacts",   href: "/dashboard/contacts",   icon: UsersIcon },
-  { id: "wiki",       label: "Wiki",       href: "/dashboard/wiki",       icon: BookOpenIcon },
-  { id: "brand",      label: "Brand",      href: "/brand-guidelines",     icon: PaletteIcon },
-  { id: "admin",      label: "Admin",      href: "/dashboard/admin",      icon: ShieldIcon },
-];
+  { id: "overview",   label: "Overview",   href: "/home",       icon: HomeIcon,         module: null },
+  { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
+  { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+  { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
+  { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
+  { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
+  { id: "documents",  label: "Documents",  href: "/documents",  icon: FileTextIcon,     module: "documents" },
+  { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon,   module: "accounting" },
+  { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
+  { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },
+  { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
+  { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
+  { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
+] as const;
 
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
+  permissions: UserPermissions;
 }
 
-export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, permissions }: CommandPaletteProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
@@ -45,7 +48,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }, [open]);
 
   const items = useMemo(() => {
-    const nav = NAV_ITEMS.map((n) => ({
+    const nav = NAV_ITEMS
+      .filter((n) => !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]))
+      .map((n) => ({
       kind: "nav" as const,
       id: n.id,
       label: n.label,
@@ -60,7 +65,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         x.label.toLowerCase().includes(lc) ||
         x.hint.toLowerCase().includes(lc),
     );
-  }, [query]);
+  }, [query, permissions]);
 
   const choose = useCallback(
     (item: (typeof items)[number] | undefined) => {

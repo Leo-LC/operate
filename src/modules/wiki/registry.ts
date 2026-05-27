@@ -12,7 +12,7 @@ export interface ArticleMeta {
 export const WIKI_ARTICLES: ArticleMeta[] = [
   {
     slug: "thai-taxes",
-    href: "/dashboard/wiki/thai-taxes",
+    href: "/wiki/thai-taxes",
     title: "Comptabilité & Taxes en Thaïlande",
     description:
       "Vue d'ensemble complète de la fiscalité thaïlandaise : VAT, retenues à la source, impôt sur les sociétés, charges sociales, dividendes et calendrier des déclarations.",

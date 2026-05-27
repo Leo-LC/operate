@@ -220,7 +220,7 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
       const res = await fetch(`/api/animals/${animal.id}`, { method: "DELETE" });
       if (!res.ok) { toast.error("Delete failed"); return; }
       toast.success(`${animal.name} deleted`);
-      router.push("/dashboard/animals");
+      router.push("/animals");
     } finally {
       setDeleting(false);
     }
@@ -421,7 +421,7 @@ export function AnimalDetailClient({ animal: initialAnimal, initialEvents, locat
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/dashboard/animals")}
+          onClick={() => router.push("/animals")}
           style={{ marginBottom: 12 }}
         >
           <ArrowLeftIcon className="size-4" />

@@ -23,7 +23,7 @@ const FEATURES = [
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
-  if (session) redirect("/dashboard");
+  if (session) redirect("/home");
 
   return (
     <div className="relative min-h-screen bg-background">

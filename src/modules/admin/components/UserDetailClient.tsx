@@ -163,7 +163,7 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
         return;
       }
       toast.success("User deleted");
-      router.push("/dashboard/admin/users");
+      router.push("/admin/users");
     } finally {
       setDeleting(false);
     }
@@ -187,7 +187,7 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/admin/users")} style={{ color: "var(--fg-4)", gap: 6 }}>
+          <Button variant="ghost" size="sm" onClick={() => router.push("/admin/users")} style={{ color: "var(--fg-4)", gap: 6 }}>
             <ArrowLeftIcon className="size-4" />
             Users
           </Button>

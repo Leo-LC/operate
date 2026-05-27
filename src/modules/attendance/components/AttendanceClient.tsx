@@ -618,7 +618,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
           }}
         >
           {employees.length === 0 ? (
-            <>No employees yet — <a href="/dashboard/admin/employees" style={{ color: "var(--bronze)", textDecoration: "underline" }}>add your first employee</a>.</>
+            <>No employees yet — <a href="/admin/employees" style={{ color: "var(--bronze)", textDecoration: "underline" }}>add your first employee</a>.</>
           ) : (
             "No employees assigned to this location."
           )}
@@ -632,7 +632,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
               {!hasSchedule && (
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>
                   No published schedule —{" "}
-                  <a href="/dashboard/scheduling" style={{ color: "var(--bronze)", textDecoration: "underline" }}>create one</a>
+                  <a href="/scheduling" style={{ color: "var(--bronze)", textDecoration: "underline" }}>create one</a>
                 </span>
               )}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "var(--fg-4)" }}>

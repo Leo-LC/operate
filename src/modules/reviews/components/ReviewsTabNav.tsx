@@ -12,14 +12,14 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
   const isOwner = role === "owner";
 
   const tabs = [
-    { label: "Inbox", href: "/dashboard/reviews/inbox" },
+    { label: "Inbox", href: "/reviews/inbox" },
     ...(isOwner
       ? [
-          { label: "Templates", href: "/dashboard/reviews/templates" },
-          { label: "Rating Rules", href: "/dashboard/reviews/rules" },
+          { label: "Templates", href: "/reviews/templates" },
+          { label: "Rating Rules", href: "/reviews/rules" },
         ]
       : []),
-    { label: "Locations", href: "/dashboard/reviews/locations" },
+    { label: "Locations", href: "/reviews/locations" },
   ];
 
   return (
