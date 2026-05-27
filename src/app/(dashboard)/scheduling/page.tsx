@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { ScheduleListClient } from "@/modules/schedules/components/ScheduleListClient";
+import { getAllowedLocationIds } from "@/core/permissions/server";
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
@@ -11,21 +12,38 @@ export default async function SchedulingPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
 
+  const allowedIds = await getAllowedLocationIds(session.user.userId, session.user.role === "owner");
+
+  if (allowedIds !== null && allowedIds.length === 0) {
+    return (
+      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, fontSize: 13, color: "var(--fg-4)" }}>
+        You don&apos;t have access to any location yet. Ask your admin.
+      </div>
+    );
+  }
+
   const supabase = getSupabaseServerClient();
-  const [{ data: schedData }, { data: locData }] = await Promise.all([
-    supabase
-      .from("schedules")
-      .select("id, organization_id, location_id, name, week_start_date, status, created_by, created_at, updated_at, locations ( name )")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .is("deleted_at", null)
-      .order("week_start_date", { ascending: false }),
-    supabase
-      .from("locations")
-      .select("id, name, slug, external_id, is_active, created_at")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .eq("is_active", true)
-      .order("name", { ascending: true }),
-  ]);
+
+  let schedQuery = supabase
+    .from("schedules")
+    .select("id, organization_id, location_id, name, week_start_date, status, created_by, created_at, updated_at, locations ( name )")
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .is("deleted_at", null)
+    .order("week_start_date", { ascending: false });
+
+  let locQuery = supabase
+    .from("locations")
+    .select("id, name, slug, external_id, is_active, created_at")
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  if (allowedIds !== null) {
+    schedQuery = schedQuery.in("location_id", allowedIds);
+    locQuery = locQuery.in("id", allowedIds);
+  }
+
+  const [{ data: schedData }, { data: locData }] = await Promise.all([schedQuery, locQuery]);
 
   type SchedRow = { id: string; organization_id: string; location_id: string; name: string; week_start_date: string; status: string; created_by: string | null; created_at: string; updated_at: string; locations: { name: string } | null };
   const schedules: Schedule[] = (schedData as unknown as SchedRow[]).map((s) => ({

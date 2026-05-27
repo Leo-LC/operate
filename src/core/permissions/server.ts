@@ -44,3 +44,24 @@ export async function getUserPermissionsFromDb(
     return derivePermissionsFromRole(fallbackRole);
   }
 }
+
+/**
+ * Returns null if the user can see all locations, or a string[] of allowed
+ * location IDs. An empty array means no locations are accessible.
+ */
+export async function getAllowedLocationIds(
+  userId: string | undefined,
+  isOwner: boolean,
+): Promise<string[] | null> {
+  if (isOwner || !userId) return null;
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data } = await supabase
+      .from("user_location_access")
+      .select("location_id")
+      .eq("user_id", userId);
+    return (data ?? []).map((r) => r.location_id as string);
+  } catch {
+    return null;
+  }
+}
