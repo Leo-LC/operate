@@ -1,5 +1,6 @@
 export type ModuleKey =
   | "reviews"
+  | "challenges"
   | "documents"
   | "animals"
   | "schedules"

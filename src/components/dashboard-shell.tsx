@@ -9,7 +9,7 @@ import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
-  SunIcon, MoonIcon, LogOutIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
@@ -25,6 +25,7 @@ interface DashboardShellProps {
 const NAV_ITEMS = [
   { id: "overview",   label: "Overview",   href: "/home",       icon: HomeIcon,         module: null },
   { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
+  { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,       module: "challenges" },
   { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
   { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
   { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
