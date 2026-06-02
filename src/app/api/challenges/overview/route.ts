@@ -215,8 +215,6 @@ export async function GET(request: Request) {
       else if (merchRatio >= MERCH_TIERS[1].threshold) merchTier = 2;
       else if (merchRatio >= MERCH_TIERS[2].threshold) merchTier = 1;
     }
-    const merchBonus = MERCH_TIERS.find((t) => t.bonus === [0, 1500, 3000, 5000][merchTier])?.bonus ?? [0, 1500, 3000, 5000][merchTier];
-
     // ── Snacks ──
     let snackRatio: number | null = null;
     if (snacksSold !== null && entryCount !== null && entryCount > 0) {
