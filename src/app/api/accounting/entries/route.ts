@@ -20,7 +20,10 @@ export async function GET(request: Request) {
   }
 
   const supabase = getSupabaseServerClient();
-  const [monthStart, monthEnd] = [`${month}-01`, `${month}-32`];
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  const nextMonth = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  const monthStart = `${month}-01`;
+  const monthEnd   = `${nextMonth}-01`;
 
   const [{ data: entries }, { data: fixedCost }] = await Promise.all([
     supabase

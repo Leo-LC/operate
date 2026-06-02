@@ -105,7 +105,9 @@ export async function GET(request: Request) {
     .order("entry_date");
 
   if (month) {
-    q = q.gte("entry_date", `${month}-01`).lt("entry_date", `${month}-32`);
+    const [ey, em] = month.split("-").map(Number) as [number, number];
+    const nextMonth = em === 12 ? `${ey + 1}-01` : `${ey}-${String(em + 1).padStart(2, "0")}`;
+    q = q.gte("entry_date", `${month}-01`).lt("entry_date", `${nextMonth}-01`);
   }
   if (location_id) q = q.eq("location_id", location_id);
 
