@@ -223,7 +223,9 @@ function LocationCardTile({
         <Stat
           label="Entries / review"
           value={loading ? "—" : ratio !== null ? `${ratio}:1` : "—"}
+          sub={ratio !== null ? (ratio <= 25 ? "✓ ≤ 25" : "target ≤ 25") : undefined}
           loading={loading}
+          status={ratio !== null ? (ratio <= 25 ? "good" : "bad") : "neutral"}
         />
       </div>
     </div>
