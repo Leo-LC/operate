@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, ListIcon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, ListIcon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { AccountingSummaryCards } from "@/modules/accounting/components/AccountingSummaryCards";
@@ -56,8 +56,10 @@ export function AccountingClient({ locations, canManage }: Props) {
   const [view, setView]             = useState<MainView>("smart");
   const [entries, setEntries]       = useState<DailyEntry[]>([]);
   const [loading, setLoading]       = useState(false);
-  const [importing, setImporting]   = useState(false);
+  const [importing, setImporting]       = useState(false);
   const [importConfirm, setImportConfirm] = useState<ImportConfirm | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting]         = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const monthStr  = `${year}-${String(month).padStart(2, "0")}`;
@@ -160,6 +162,23 @@ export function AccountingClient({ locations, canManage }: Props) {
       if (inserted > 0) void fetchEntries();
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function confirmDeleteMonth() {
+    setDeleting(true);
+    setDeleteConfirm(false);
+    try {
+      const res = await fetch(
+        `/api/accounting/entries?location_id=${locationId}&month=${monthStr}`,
+        { method: "DELETE" },
+      );
+      const result = await res.json() as { deleted?: number; error?: string };
+      if (!res.ok) { toast.error(result.error ?? "Delete failed"); return; }
+      toast.success(`Deleted ${result.deleted ?? 0} entries for ${monthName}`);
+      setEntries([]);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -274,6 +293,21 @@ export function AccountingClient({ locations, canManage }: Props) {
                 </Button>
               </>
             )}
+
+            {/* Delete month — owner only */}
+            {view !== "fixed" && canManage && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={deleting || filled === 0}
+                onClick={() => setDeleteConfirm(true)}
+                style={{ color: "var(--error, #e53e3e)", borderColor: "var(--error-line, #fed7d7)" }}
+                title="Delete all entries for this month"
+              >
+                <Trash2Icon size={13} />
+                {deleting ? "Deleting…" : "Clear month"}
+              </Button>
+            )}
           </div>
         }
       />
@@ -300,6 +334,38 @@ export function AccountingClient({ locations, canManage }: Props) {
             </Button>
             <Button size="sm" variant="primary" onClick={() => void confirmImport()}>
               Confirm import
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete month confirmation banner */}
+      {deleteConfirm && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: "var(--s-3)", padding: "var(--s-3) var(--s-4)",
+          borderRadius: "var(--r-md)", border: "1px solid var(--error, #e53e3e)",
+          background: "var(--error-soft, #fff5f5)", color: "var(--fg)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+            <Trash2Icon size={14} style={{ color: "var(--error, #e53e3e)", flexShrink: 0 }} />
+            <span style={{ fontSize: 13 }}>
+              Supprimer les <strong>{filled}</strong> entrées de{" "}
+              <strong>{currentLocationName}</strong> pour <strong>{monthName}</strong> ?
+              Cette action est irréversible.
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "var(--s-2)", flexShrink: 0 }}>
+            <Button size="sm" variant="secondary" onClick={() => setDeleteConfirm(false)}>
+              <XIcon size={12} /> Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => void confirmDeleteMonth()}
+              style={{ background: "var(--error, #e53e3e)", borderColor: "var(--error, #e53e3e)" }}
+            >
+              Delete {filled} entries
             </Button>
           </div>
         </div>

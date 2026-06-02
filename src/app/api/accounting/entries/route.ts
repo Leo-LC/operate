@@ -100,3 +100,47 @@ export async function POST(request: Request) {
 
   return Response.json(data, { status: 201 });
 }
+
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+
+  const { searchParams } = new URL(request.url);
+  const locationId = searchParams.get("location_id");
+  const month      = searchParams.get("month"); // 'YYYY-MM'
+
+  if (!locationId || !month || !/^\d{4}-\d{2}$/.test(month)) {
+    return Response.json({ error: "location_id and month (YYYY-MM) are required" }, { status: 400 });
+  }
+
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  const nextMonth  = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  const monthStart = `${month}-01`;
+  const monthEnd   = `${nextMonth}-01`;
+
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("daily_entries")
+    .delete()
+    .eq("location_id", locationId)
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .gte("entry_date", monthStart)
+    .lt("entry_date", monthEnd)
+    .select("id");
+
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  const deleted = data?.length ?? 0;
+
+  await writeAuditLog({
+    userId:     session.user.userId ?? null,
+    action:     "accounting.entries.delete_month",
+    moduleKey:  "accounting",
+    entityType: "daily_entry",
+    entityId:   locationId,
+    payload:    { location_id: locationId, month, deleted },
+  });
+
+  return Response.json({ deleted });
+}
