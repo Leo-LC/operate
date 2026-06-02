@@ -98,7 +98,7 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseServerClient();
 
-  const [accountingResult, entriesResult, ratingsResult, reviewsResult] = await Promise.all([
+  const [accountingResult, entriesResult, ratingsResult, reviewsResult, locationsResult] = await Promise.all([
     supabase
       .from("daily_entries")
       .select(
@@ -122,26 +122,45 @@ export async function GET(request: Request) {
       .eq("organization_id", DEFAULT_ORG_ID)
       .gte("create_time", rangeStart)
       .lt("create_time", rangeEnd),
+    supabase
+      .from("locations")
+      .select("id, name, external_id")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .not("external_id", "is", null),
   ]);
 
   if (accountingResult.error) return Response.json({ error: accountingResult.error.message }, { status: 500 });
   if (ratingsResult.error) return Response.json({ error: ratingsResult.error.message }, { status: 500 });
   if (reviewsResult.error) return Response.json({ error: reviewsResult.error.message }, { status: 500 });
 
-  // Aggregate accounting data by location
+  // Build UUID → GBP path mapping from the locations table (external_id = GBP path)
+  const uuidToGbp = new Map<string, string>();
+  const gbpToInternalName = new Map<string, string>();
+  for (const loc of locationsResult.data ?? []) {
+    if (loc.external_id) {
+      uuidToGbp.set(loc.id, loc.external_id);
+      gbpToInternalName.set(loc.external_id, loc.name as string);
+    }
+  }
+
+  // Aggregate accounting data by location — translate UUID → GBP path when mapping exists
   type AccAgg = {
     salesNetIncVat: number;
     salesGoodiesNet: number;
     salesTicketNet: number;
     opexSum: number;
+    internalName: string | null; // from locations table
   };
   const accByLoc = new Map<string, AccAgg>();
   for (const row of accountingResult.data ?? []) {
-    const existing = accByLoc.get(row.location_id) ?? {
+    // Translate UUID to GBP path if a mapping exists; otherwise keep UUID as fallback key
+    const canonicalId = uuidToGbp.get(row.location_id) ?? row.location_id;
+    const existing = accByLoc.get(canonicalId) ?? {
       salesNetIncVat: 0,
       salesGoodiesNet: 0,
       salesTicketNet: 0,
       opexSum: 0,
+      internalName: gbpToInternalName.get(canonicalId) ?? null,
     };
     const rowSalesNet =
       (row.sales_drinks_net ?? 0) +
@@ -155,7 +174,7 @@ export async function GET(request: Request) {
     existing.salesTicketNet += row.sales_ticket_net ?? 0;
     existing.opexSum +=
       (row.exp_drinks_cash ?? 0) + (row.exp_animals_cash ?? 0) + (row.exp_makro_bank ?? 0);
-    accByLoc.set(row.location_id, existing);
+    accByLoc.set(canonicalId, existing);
   }
 
   // Manual inputs
@@ -198,7 +217,8 @@ export async function GET(request: Request) {
     const gbp = gbpByLoc.get(locationId);
     const rev = revByLoc.get(locationId);
 
-    const title = gbp?.title ?? rev?.title ?? locationId;
+    // Prefer internal location name (admin-set), then GBP title, then raw ID
+    const title = acc?.internalName ?? gbp?.title ?? rev?.title ?? locationId;
     const entryCount = inputs.entryCount;
     const snacksSold = inputs.snacksSold;
 

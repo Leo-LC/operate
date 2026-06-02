@@ -17,6 +17,7 @@ import {
   BuildingIcon,
   CheckIcon,
   XIcon,
+  LinkIcon,
 } from "lucide-react";
 import type { AdminLocation } from "@/modules/admin/types";
 
@@ -45,6 +46,7 @@ function slugify(name: string) {
 const EMPTY_FORM = {
   name: "",
   slug: "",
+  external_id: "",
   address_en: "",
   address_th: "",
   phone: "",
@@ -198,6 +200,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
     setForm({
       name: loc.name,
       slug: loc.slug,
+      external_id: loc.external_id ?? "",
       address_en: loc.address_en ?? "",
       address_th: loc.address_th ?? "",
       phone: loc.phone ?? "",
@@ -220,6 +223,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
         body: JSON.stringify({
           name: form.name.trim(),
           slug: form.slug.trim(),
+          external_id: form.external_id.trim() || null,
           address_en: form.address_en.trim() || null,
           address_th: form.address_th.trim() || null,
           phone: form.phone.trim() || null,
@@ -257,6 +261,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name.trim(),
+          external_id: form.external_id.trim() || null,
           address_en: form.address_en.trim() || null,
           address_th: form.address_th.trim() || null,
           phone: form.phone.trim() || null,
@@ -375,6 +380,13 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           multiline
         />
         <FormField
+          label="GBP Location ID"
+          name="external_id"
+          value={form.external_id}
+          onChange={(v) => setField("external_id", v)}
+          placeholder="locations/1234567890123456789"
+        />
+        <FormField
           label="Google Maps URL"
           name="google_maps_url"
           value={form.google_maps_url}
@@ -415,7 +427,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       </div>
 
       <div style={{ overflowY: "auto", flex: 1 }}>
-        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.google_maps_url && !selected.notes && (
+        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.external_id && !selected.google_maps_url && !selected.notes && (
           <p style={{ fontSize: 13, color: "var(--fg-4)", padding: "16px 0", textAlign: "center" }}>
             No information added yet. Click Edit to fill in the details.
           </p>
@@ -423,6 +435,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
 
         <InfoRow icon={PhoneIcon} label="Phone" value={selected.phone} />
         <InfoRow icon={ReceiptIcon} label="VAT number" value={selected.vat_number} />
+        <InfoRow icon={LinkIcon} label="GBP Location ID" value={selected.external_id} />
         <InfoRow icon={MapPinIcon} label="Address (English)" value={selected.address_en} multiline />
         <InfoRow icon={MapPinIcon} label="Address (Thai)" value={selected.address_th} multiline />
         {selected.google_maps_url && (
