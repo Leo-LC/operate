@@ -72,7 +72,7 @@ export async function fetchAllLocations(
   accessToken: string,
   accountId: string
 ): Promise<Location[]> {
-  const LOCATIONS_URL = `${LOCATIONS_BASE}/accounts/${accountId}/locations?readMask=name,title,storefrontAddress,metadata,averageRating,totalReviewCount&pageSize=100`;
+  const LOCATIONS_URL = `${LOCATIONS_BASE}/accounts/${accountId}/locations?readMask=name,title,storefrontAddress,metadata&pageSize=100`;
   const locations: Location[] = [];
   let pageToken: string | undefined;
 

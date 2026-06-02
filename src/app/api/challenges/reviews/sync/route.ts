@@ -68,28 +68,8 @@ export async function POST(request: Request) {
     const syncedAt = new Date().toISOString();
     let totalSynced = 0;
 
-    const locationRatingRows = locations
-      .filter((loc) => {
-        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
-        return !EXCLUDED_LOCATION_IDS.has(shortName);
-      })
-      .map((loc) => {
-        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
-        return {
-          location_id: shortName,
-          organization_id: DEFAULT_ORG_ID,
-          location_title: LOCATION_NAMES[shortName] ?? loc.title ?? shortName,
-          average_rating: loc.averageRating ?? 0,
-          total_review_count: loc.totalReviewCount ?? 0,
-          synced_at: syncedAt,
-        };
-      });
-
-    if (locationRatingRows.length > 0) {
-      await supabase
-        .from("location_gbp_ratings")
-        .upsert(locationRatingRows, { onConflict: "location_id,organization_id" });
-    }
+    // Accumulate all-time rating stats per location from fetched reviews
+    const locationStats = new Map<string, { title: string; ratingSum: number; count: number }>();
 
     const concurrency = 4;
     for (let i = 0; i < locations.length; i += concurrency) {
@@ -136,6 +116,14 @@ export async function POST(request: Request) {
               console.error(`[challenges/sync] upsert error for ${shortName}:`, error.message);
             } else {
               totalSynced += rows.length;
+              // Compute all-time stats from the full fetched set
+              let ratingSum = 0;
+              let count = 0;
+              for (const r of rows) {
+                ratingSum += r!.star_rating;
+                count++;
+              }
+              locationStats.set(shortName, { title: locationTitle, ratingSum, count });
             }
           } catch (e) {
             console.error(
@@ -145,6 +133,22 @@ export async function POST(request: Request) {
           }
         })
       );
+    }
+
+    // Upsert all-time ratings computed from synced reviews
+    const ratingRows = Array.from(locationStats.entries()).map(([locationId, stats]) => ({
+      location_id: locationId,
+      organization_id: DEFAULT_ORG_ID,
+      location_title: stats.title,
+      average_rating: Math.round((stats.ratingSum / stats.count) * 10) / 10,
+      total_review_count: stats.count,
+      synced_at: syncedAt,
+    }));
+
+    if (ratingRows.length > 0) {
+      await supabase
+        .from("location_gbp_ratings")
+        .upsert(ratingRows, { onConflict: "location_id,organization_id" });
     }
 
     return Response.json({ synced: totalSynced, locations: locations.length, syncedAt });
