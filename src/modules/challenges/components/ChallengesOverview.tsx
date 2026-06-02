@@ -1,0 +1,401 @@
+"use client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MonthSelector } from "./MonthSelector";
+import type { LocationOverview } from "@/app/api/challenges/overview/route";
+
+interface OverviewData {
+  locations: LocationOverview[];
+}
+
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function shortName(title: string): string {
+  return title.replace(/^Capybara Coffee\s*/i, "").trim() || title;
+}
+
+function fmt(n: number | null, decimals = 0): string {
+  if (n === null) return "—";
+  return n.toLocaleString("en-GB", { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
+}
+
+function pct(n: number | null): string {
+  if (n === null) return "—";
+  return `${(n * 100).toFixed(1)}%`;
+}
+
+function statusColor(passes: boolean | null): string {
+  if (passes === true) return "text-[var(--good)]";
+  if (passes === false) return "text-[var(--bad)]";
+  return "text-[var(--fg-4)]";
+}
+
+function StatusDot({ passes }: { passes: boolean | null }) {
+  if (passes === true) return <span className="text-[var(--good)]">✓</span>;
+  if (passes === false) return <span className="text-[var(--bad)]">✗</span>;
+  return <span className="text-[var(--fg-4)]">—</span>;
+}
+
+function InlineNumberInput({
+  label,
+  locationId,
+  month,
+  initial,
+  field,
+  loading,
+  onSaved,
+}: {
+  label: string;
+  locationId: string;
+  month: string;
+  initial: number | null;
+  field: "entryCount" | "snacksSold";
+  loading: boolean;
+  onSaved: (val: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() {
+    setDraft(initial !== null ? String(initial) : "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  async function commit() {
+    const val = parseInt(draft, 10);
+    if (isNaN(val) || val < 0) { setEditing(false); return; }
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = { locationId, month };
+      if (field === "entryCount") body.entryCount = val;
+      else body.snacksSold = val;
+      await fetch("/api/challenges/entries", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      onSaved(val);
+    } finally {
+      setSaving(false);
+      setEditing(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") setEditing(false);
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{label}</span>
+      {loading ? (
+        <div className="h-5 w-12 animate-pulse rounded bg-[var(--bg-2)]" />
+      ) : editing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          min={0}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={handleKeyDown}
+          disabled={saving}
+          className="w-20 rounded-[var(--r-sm)] border border-[var(--bronze)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-sm tabular-nums text-[var(--fg)] outline-none"
+          autoFocus
+        />
+      ) : (
+        <button onClick={startEdit} title="Click to enter" className="group flex w-fit items-baseline gap-1 text-left">
+          <span className="font-mono text-sm tabular-nums text-[var(--fg)]">
+            {initial !== null ? initial.toLocaleString("en-GB") : "—"}
+          </span>
+          <span className="text-[10px] text-[var(--fg-4)] opacity-0 transition-opacity group-hover:opacity-100">edit</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MetricRow({
+  label,
+  value,
+  passes,
+  bonus,
+  loading,
+  sub,
+}: {
+  label: string;
+  value: string;
+  passes: boolean | null;
+  bonus: number;
+  loading: boolean;
+  sub?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-[var(--line)] last:border-b-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <StatusDot passes={passes} />
+        <span className="text-xs text-[var(--fg-3)] truncate">{label}</span>
+      </div>
+      <div className="flex flex-col items-end shrink-0 ml-2">
+        {loading ? (
+          <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
+        ) : (
+          <>
+            <span className={`font-mono text-xs tabular-nums ${statusColor(passes)}`}>{value}</span>
+            {sub && <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{sub}</span>}
+          </>
+        )}
+      </div>
+      <div className="w-14 text-right shrink-0 ml-2">
+        {loading ? (
+          <div className="h-3 w-8 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
+        ) : (
+          <span className={`font-mono text-xs tabular-nums ${passes === true ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
+            {passes === true ? `${bonus.toLocaleString()} ฿` : ""}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MerchRow({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
+  const tierLabels = ["—", "7%+ (P1)", "8%+ (P2)", "9%+ (P3)"];
+  const tier = loc.merchandising.tier;
+  const passes = tier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  return (
+    <MetricRow
+      label="Merchandising"
+      value={pct(loc.merchandising.ratio)}
+      sub={tier > 0 ? tierLabels[tier] : undefined}
+      passes={passes}
+      bonus={loc.merchandising.bonus}
+      loading={loading}
+    />
+  );
+}
+
+function LocationCard({
+  loc,
+  month,
+  loading,
+  onEntryUpdated,
+  onSnacksUpdated,
+}: {
+  loc: LocationOverview;
+  month: string;
+  loading: boolean;
+  onEntryUpdated: (id: string, val: number) => void;
+  onSnacksUpdated: (id: string, val: number) => void;
+}) {
+  const totalBonus = loc.totalBonus;
+  const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
+
+  return (
+    <div className="flex flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
+      {/* Card header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
+        <p className="text-sm font-medium text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
+        {loading ? (
+          <div className="h-5 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
+        ) : hasBonusData ? (
+          <span className={`font-mono text-sm font-semibold tabular-nums ${totalBonus > 0 ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
+            {totalBonus.toLocaleString()} ฿
+          </span>
+        ) : null}
+      </div>
+
+      {/* Metric rows */}
+      <div className="px-4 pt-2 pb-1">
+        <MerchRow loc={loc} loading={loading} />
+        <MetricRow
+          label="Snacks"
+          value={loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—"}
+          sub={loc.snacks.ratio !== null ? "target ≥ 0.45" : undefined}
+          passes={loc.snacks.passes}
+          bonus={loc.snacks.bonus}
+          loading={loading}
+        />
+        <MetricRow
+          label="Panier moyen"
+          value={loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—"}
+          sub={loc.panierMoyen.value !== null ? "target ≥ 170 ฿" : undefined}
+          passes={loc.panierMoyen.passes}
+          bonus={loc.panierMoyen.bonus}
+          loading={loading}
+        />
+        <MetricRow
+          label={`Opex variable${loc.opex.threshold === 0.15 ? " (Phangan)" : ""}`}
+          value={pct(loc.opex.ratio)}
+          sub={loc.opex.ratio !== null ? `target < ${(loc.opex.threshold * 100).toFixed(0)}%` : undefined}
+          passes={loc.opex.passes}
+          bonus={loc.opex.bonus}
+          loading={loading}
+        />
+        <MetricRow
+          label="Reviews — volume"
+          value={loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`}
+          sub={loc.reviews.volumeRatio !== null ? "target ≥ 4%" : undefined}
+          passes={loc.reviews.volumePass}
+          bonus={loc.reviews.volumeBonus}
+          loading={loading}
+        />
+        <MetricRow
+          label="Reviews — note"
+          value={loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—"}
+          sub={
+            loc.reviews.currentRating > 0 && loc.reviews.ratingTarget > 0
+              ? `target ≥ ${loc.reviews.ratingTarget.toFixed(1)}`
+              : undefined
+          }
+          passes={loc.reviews.ratingPass}
+          bonus={loc.reviews.ratingBonus}
+          loading={loading}
+        />
+      </div>
+
+      {/* Manual inputs */}
+      <div className="grid grid-cols-2 gap-3 px-4 py-3 border-t border-[var(--line)] bg-[var(--bg)]">
+        <InlineNumberInput
+          label="Entries"
+          locationId={loc.locationId}
+          month={month}
+          initial={loc.entryCount}
+          field="entryCount"
+          loading={loading}
+          onSaved={(val) => onEntryUpdated(loc.locationId, val)}
+        />
+        <InlineNumberInput
+          label="Snacks sold"
+          locationId={loc.locationId}
+          month={month}
+          initial={loc.snacksSold}
+          field="snacksSold"
+          loading={loading}
+          onSaved={(val) => onSnacksUpdated(loc.locationId, val)}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function ChallengesOverview() {
+  const [month, setMonth] = useState(currentMonth);
+  const [data, setData] = useState<OverviewData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async (m: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/challenges/overview?month=${m}`);
+      if (!res.ok) throw new Error(await res.text());
+      setData((await res.json()) as OverviewData);
+    } catch (e) {
+      console.error("[ChallengesOverview] fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(month); }, [month, fetchData]);
+
+  function updateField(locationId: string, field: "entryCount" | "snacksSold", val: number) {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        locations: prev.locations.map((loc) =>
+          loc.locationId === locationId
+            ? { ...loc, [field]: val }
+            : loc
+        ),
+      };
+    });
+  }
+
+  // Re-derive computed metrics client-side after input updates would require re-calling API;
+  // instead, just refetch so values stay consistent
+  function handleEntryUpdated(locationId: string, val: number) {
+    updateField(locationId, "entryCount", val);
+    fetchData(month);
+  }
+
+  function handleSnacksUpdated(locationId: string, val: number) {
+    updateField(locationId, "snacksSold", val);
+    fetchData(month);
+  }
+
+  const locations = data?.locations ?? [];
+
+  // Summary stats
+  const totalPotential = 10000;
+  const totalEarned = locations.reduce((s, l) => s + l.totalBonus, 0);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <MonthSelector value={month} onChange={setMonth} />
+        {!loading && locations.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-[var(--fg-3)]">
+            <span className="font-mono font-semibold text-[var(--fg)]">{totalEarned.toLocaleString()} ฿</span>
+            <span>/ {totalPotential.toLocaleString()} ฿ max earned across all shops</span>
+          </div>
+        )}
+      </div>
+
+      {/* Legend row */}
+      <div className="flex flex-wrap gap-3">
+        {[
+          { label: "Merchandising", max: "5 000 ฿", tiers: "7/8/9%" },
+          { label: "Snacks", max: "1 250 ฿", tiers: "≥ 0.45" },
+          { label: "Panier moyen", max: "1 250 ฿", tiers: "≥ 170 ฿" },
+          { label: "Opex variable", max: "1 250 ฿", tiers: "< 10%" },
+          { label: "Reviews volume", max: "625 ฿", tiers: "≥ 4%" },
+          { label: "Reviews note", max: "625 ฿", tiers: "GBP+0.1" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+          >
+            <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{item.label}</span>
+            <span className="font-mono text-sm font-semibold text-[var(--fg)]">{item.max}</span>
+            <span className="text-[10px] text-[var(--fg-4)]">{item.tiers}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Location grid */}
+      {loading && locations.length === 0 ? (
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]" />
+          ))}
+        </div>
+      ) : locations.length === 0 ? (
+        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+          <span className="text-sm text-[var(--fg-4)]">No data yet for this month.</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          {locations.map((loc) => (
+            <LocationCard
+              key={loc.locationId}
+              loc={loc}
+              month={month}
+              loading={loading}
+              onEntryUpdated={handleEntryUpdated}
+              onSnacksUpdated={handleSnacksUpdated}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
