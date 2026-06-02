@@ -10,6 +10,13 @@ interface LocationCard {
   avgRating: number;
   currentRating: number;
   totalReviewCount: number;
+  ratingTarget: number;
+  entryCount: number | null;
+}
+
+function computeRatingTarget(currentRating: number): number {
+  if (currentRating <= 0) return 0;
+  return Math.min(4.5, Math.round((currentRating + 0.1) * 10) / 10);
 }
 
 export async function GET(request: Request) {
@@ -31,7 +38,7 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseServerClient();
 
-  const [reviewsResult, ratingsResult] = await Promise.all([
+  const [reviewsResult, ratingsResult, entriesResult] = await Promise.all([
     supabase
       .from("reviews_cache")
       .select("location_id, location_title, star_rating, synced_at")
@@ -42,6 +49,11 @@ export async function GET(request: Request) {
       .from("location_gbp_ratings")
       .select("location_id, location_title, average_rating, total_review_count")
       .eq("organization_id", DEFAULT_ORG_ID),
+    supabase
+      .from("location_entries")
+      .select("location_id, entry_count")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .eq("month", month),
   ]);
 
   if (reviewsResult.error) {
@@ -58,23 +70,24 @@ export async function GET(request: Request) {
     ])
   );
 
+  const entryByLocation = new Map(
+    (entriesResult.data ?? []).map((r) => [r.location_id, r.entry_count])
+  );
+
   // Aggregate monthly stats per location
-  const byLocation = new Map<string, { title: string; count: number; ratingSum: number; lastSynced: string }>();
+  const byLocation = new Map<string, { title: string; count: number; ratingSum: number }>();
 
   for (const row of reviewsResult.data ?? []) {
     const existing = byLocation.get(row.location_id) ?? {
       title: row.location_title,
       count: 0,
       ratingSum: 0,
-      lastSynced: row.synced_at,
     };
     existing.count++;
     existing.ratingSum += row.star_rating;
-    if (row.synced_at > existing.lastSynced) existing.lastSynced = row.synced_at;
     byLocation.set(row.location_id, existing);
   }
 
-  // Build cards: include all locations from gbp_ratings (even with 0 reviews this month)
   const allLocationIds = new Set([
     ...Array.from(gbpRatings.keys()),
     ...Array.from(byLocation.keys()),
@@ -87,13 +100,16 @@ export async function GET(request: Request) {
       const title = gbp?.locationTitle ?? monthly?.title ?? locationId;
       const count = monthly?.count ?? 0;
       const avgRating = count > 0 ? Math.round((monthly!.ratingSum / count) * 10) / 10 : 0;
+      const currentRating = gbp?.currentRating ?? 0;
       return {
         locationId,
         locationTitle: title,
         count,
         avgRating,
-        currentRating: gbp?.currentRating ?? 0,
+        currentRating,
         totalReviewCount: gbp?.totalReviewCount ?? 0,
+        ratingTarget: computeRatingTarget(currentRating),
+        entryCount: entryByLocation.get(locationId) ?? null,
       };
     })
     .sort((a, b) => a.locationTitle.localeCompare(b.locationTitle));
