@@ -39,11 +39,6 @@ export function ReviewsSummary({ data, loading }: ReviewsSummaryProps) {
   const avgLabel = data && data.avgRating > 0 ? data.avgRating.toFixed(1) : "—";
   const fiveStars = data?.byRating[5] ?? 0;
   const lowStars = data ? (data.byRating[1] ?? 0) + (data.byRating[2] ?? 0) : 0;
-  const replyRate =
-    data && data.count > 0
-      ? `${fiveStars} of ${data.count}`
-      : "—";
-
   return (
     <div className="grid grid-cols-4 gap-3">
       <StatCard
