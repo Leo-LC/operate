@@ -3,6 +3,15 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
+interface LocationCard {
+  locationId: string;
+  locationTitle: string;
+  count: number;
+  avgRating: number;
+  currentRating: number;
+  totalReviewCount: number;
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -11,7 +20,6 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const month = searchParams.get("month"); // YYYY-MM
-  const location = searchParams.get("location") ?? "all";
 
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
     return Response.json({ error: "month parameter required in YYYY-MM format" }, { status: 400 });
@@ -23,93 +31,77 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseServerClient();
 
-  let query = supabase
-    .from("reviews_cache")
-    .select("star_rating, create_time, synced_at")
-    .eq("organization_id", DEFAULT_ORG_ID)
-    .gte("create_time", rangeStart)
-    .lt("create_time", rangeEnd);
-
-  if (location !== "all") {
-    query = query.eq("location_id", location);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-
-  if (!data || data.length === 0) {
-    // Still return the last synced_at even when no reviews in range
-    const { data: syncRow } = await supabase
+  const [reviewsResult, ratingsResult] = await Promise.all([
+    supabase
       .from("reviews_cache")
-      .select("synced_at")
+      .select("location_id, location_title, star_rating, synced_at")
       .eq("organization_id", DEFAULT_ORG_ID)
-      .order("synced_at", { ascending: false })
-      .limit(1)
-      .single();
+      .gte("create_time", rangeStart)
+      .lt("create_time", rangeEnd),
+    supabase
+      .from("location_gbp_ratings")
+      .select("location_id, location_title, average_rating, total_review_count")
+      .eq("organization_id", DEFAULT_ORG_ID),
+  ]);
 
-    return Response.json({
+  if (reviewsResult.error) {
+    return Response.json({ error: reviewsResult.error.message }, { status: 500 });
+  }
+  if (ratingsResult.error) {
+    return Response.json({ error: ratingsResult.error.message }, { status: 500 });
+  }
+
+  const gbpRatings = new Map(
+    (ratingsResult.data ?? []).map((r) => [
+      r.location_id,
+      { currentRating: r.average_rating, totalReviewCount: r.total_review_count, locationTitle: r.location_title },
+    ])
+  );
+
+  // Aggregate monthly stats per location
+  const byLocation = new Map<string, { title: string; count: number; ratingSum: number; lastSynced: string }>();
+
+  for (const row of reviewsResult.data ?? []) {
+    const existing = byLocation.get(row.location_id) ?? {
+      title: row.location_title,
       count: 0,
-      avgRating: 0,
-      byRating: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      byWeek: [],
-      lastSyncedAt: syncRow?.synced_at ?? null,
-    });
+      ratingSum: 0,
+      lastSynced: row.synced_at,
+    };
+    existing.count++;
+    existing.ratingSum += row.star_rating;
+    if (row.synced_at > existing.lastSynced) existing.lastSynced = row.synced_at;
+    byLocation.set(row.location_id, existing);
   }
 
-  const count = data.length;
-  const byRating: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  let ratingSum = 0;
+  // Build cards: include all locations from gbp_ratings (even with 0 reviews this month)
+  const allLocationIds = new Set([
+    ...Array.from(gbpRatings.keys()),
+    ...Array.from(byLocation.keys()),
+  ]);
 
-  // Bucket reviews into ISO weeks within the month
-  const weekBuckets: Map<string, { count: number; ratingSum: number }> = new Map();
+  const locations: LocationCard[] = Array.from(allLocationIds)
+    .map((locationId) => {
+      const monthly = byLocation.get(locationId);
+      const gbp = gbpRatings.get(locationId);
+      const title = gbp?.locationTitle ?? monthly?.title ?? locationId;
+      const count = monthly?.count ?? 0;
+      const avgRating = count > 0 ? Math.round((monthly!.ratingSum / count) * 10) / 10 : 0;
+      return {
+        locationId,
+        locationTitle: title,
+        count,
+        avgRating,
+        currentRating: gbp?.currentRating ?? 0,
+        totalReviewCount: gbp?.totalReviewCount ?? 0,
+      };
+    })
+    .sort((a, b) => a.locationTitle.localeCompare(b.locationTitle));
 
-  for (const row of data) {
-    const rating = row.star_rating as 1 | 2 | 3 | 4 | 5;
-    byRating[rating] = (byRating[rating] ?? 0) + 1;
-    ratingSum += rating;
+  const lastSyncedAt =
+    reviewsResult.data && reviewsResult.data.length > 0
+      ? reviewsResult.data.reduce((max, r) => (r.synced_at > max ? r.synced_at : max), reviewsResult.data[0].synced_at)
+      : null;
 
-    const date = new Date(row.create_time);
-    const weekStart = getWeekStart(date, year, monthNum - 1);
-    const key = weekStart.toISOString().slice(0, 10);
-    const bucket = weekBuckets.get(key) ?? { count: 0, ratingSum: 0 };
-    bucket.count++;
-    bucket.ratingSum += rating;
-    weekBuckets.set(key, bucket);
-  }
-
-  const byWeek = Array.from(weekBuckets.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([weekStart, bucket]) => ({
-      weekStart,
-      count: bucket.count,
-      avgRating: Math.round((bucket.ratingSum / bucket.count) * 10) / 10,
-    }));
-
-  const lastSyncedAt = data.reduce((max, row) => {
-    return row.synced_at > max ? row.synced_at : max;
-  }, data[0].synced_at);
-
-  return Response.json({
-    count,
-    avgRating: Math.round((ratingSum / count) * 10) / 10,
-    byRating,
-    byWeek,
-    lastSyncedAt,
-  });
-}
-
-// Returns the Monday of the week containing `date`, clamped to the first day of
-// the given month so that week labels stay within the month.
-function getWeekStart(date: Date, year: number, month: number): Date {
-  const d = new Date(date);
-  const day = d.getDay(); // 0 = Sun
-  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
-  d.setDate(d.getDate() + diff);
-  // Clamp to month start
-  const monthStart = new Date(year, month, 1);
-  if (d < monthStart) return monthStart;
-  return d;
+  return Response.json({ locations, lastSyncedAt });
 }

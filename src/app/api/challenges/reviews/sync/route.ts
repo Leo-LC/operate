@@ -68,6 +68,29 @@ export async function POST(request: Request) {
     const syncedAt = new Date().toISOString();
     let totalSynced = 0;
 
+    const locationRatingRows = locations
+      .filter((loc) => {
+        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+        return !EXCLUDED_LOCATION_IDS.has(shortName);
+      })
+      .map((loc) => {
+        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+        return {
+          location_id: shortName,
+          organization_id: DEFAULT_ORG_ID,
+          location_title: LOCATION_NAMES[shortName] ?? loc.title ?? shortName,
+          average_rating: loc.averageRating ?? 0,
+          total_review_count: loc.totalReviewCount ?? 0,
+          synced_at: syncedAt,
+        };
+      });
+
+    if (locationRatingRows.length > 0) {
+      await supabase
+        .from("location_gbp_ratings")
+        .upsert(locationRatingRows, { onConflict: "location_id,organization_id" });
+    }
+
     const concurrency = 4;
     for (let i = 0; i < locations.length; i += concurrency) {
       const batch = locations.slice(i, i + concurrency);

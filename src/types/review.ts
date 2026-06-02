@@ -22,6 +22,8 @@ export interface Location {
   title?: string;
   storefrontAddress?: { addressLines?: string[]; locality?: string };
   metadata?: { placeId?: string };
+  averageRating?: number;
+  totalReviewCount?: number;
 }
 
 export interface ReviewWithLocation extends Review {

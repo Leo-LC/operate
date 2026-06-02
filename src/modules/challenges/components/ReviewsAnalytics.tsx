@@ -2,15 +2,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
 import { MonthSelector } from "./MonthSelector";
-import { LocationFilter } from "./LocationFilter";
-import { ReviewsSummary } from "./ReviewsSummary";
-import { ReviewsChart } from "./ReviewsChart";
 
-interface AnalyticsData {
+interface LocationCard {
+  locationId: string;
+  locationTitle: string;
   count: number;
   avgRating: number;
-  byRating: Record<1 | 2 | 3 | 4 | 5, number>;
-  byWeek: Array<{ weekStart: string; count: number; avgRating: number }>;
+  currentRating: number;
+  totalReviewCount: number;
+}
+
+interface AnalyticsData {
+  locations: LocationCard[];
   lastSyncedAt: string | null;
 }
 
@@ -25,19 +28,78 @@ function formatSyncTime(iso: string | null): string {
   return `Last synced ${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} at ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+function shortName(title: string): string {
+  return title.replace(/^Capybara Coffee\s*/i, "").trim() || title;
+}
+
+function LocationCardTile({ card, loading }: { card: LocationCard; loading: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-5">
+      <p className="text-sm font-medium text-[var(--fg)]">{shortName(card.locationTitle)}</p>
+
+      <div className="grid grid-cols-3 gap-3">
+        {/* Reviews this month */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">
+            Reviews
+          </span>
+          {loading ? (
+            <div className="h-7 w-10 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
+          ) : (
+            <span className="font-mono text-xl tabular-nums text-[var(--fg)]">{card.count}</span>
+          )}
+        </div>
+
+        {/* Monthly avg */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">
+            Avg this month
+          </span>
+          {loading ? (
+            <div className="h-7 w-10 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
+          ) : (
+            <span className="font-mono text-xl tabular-nums text-[var(--fg)]">
+              {card.count > 0 ? card.avgRating.toFixed(1) : "—"}
+            </span>
+          )}
+        </div>
+
+        {/* Current GBP rating */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">
+            GBP rating
+          </span>
+          {loading ? (
+            <div className="h-7 w-10 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
+          ) : (
+            <div className="flex flex-col">
+              <span className="font-mono text-xl tabular-nums text-[var(--fg)]">
+                {card.currentRating > 0 ? card.currentRating.toFixed(1) : "—"}
+              </span>
+              {card.totalReviewCount > 0 && (
+                <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">
+                  {card.totalReviewCount} total
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ReviewsAnalytics() {
   const [month, setMonth] = useState(currentMonth);
-  const [location, setLocation] = useState("all");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
-  const fetchAnalytics = useCallback(async (m: string, loc: string) => {
+  const fetchAnalytics = useCallback(async (m: string) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ month: m, location: loc });
-      const res = await fetch(`/api/challenges/reviews/analytics?${params}`);
+      const res = await fetch(`/api/challenges/reviews/analytics?month=${m}`);
       if (!res.ok) throw new Error(await res.text());
       const json = (await res.json()) as AnalyticsData;
       setData(json);
@@ -49,8 +111,8 @@ export function ReviewsAnalytics() {
   }, []);
 
   useEffect(() => {
-    fetchAnalytics(month, location);
-  }, [month, location, fetchAnalytics]);
+    fetchAnalytics(month);
+  }, [month, fetchAnalytics]);
 
   async function handleSync() {
     setSyncing(true);
@@ -61,7 +123,7 @@ export function ReviewsAnalytics() {
         const json = (await res.json()) as { error?: string };
         throw new Error(json.error ?? "Sync failed");
       }
-      await fetchAnalytics(month, location);
+      await fetchAnalytics(month);
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Sync failed");
     } finally {
@@ -69,14 +131,13 @@ export function ReviewsAnalytics() {
     }
   }
 
+  const cards = data?.locations ?? [];
+
   return (
     <div className="flex flex-col gap-6">
       {/* Controls bar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MonthSelector value={month} onChange={setMonth} />
-          <LocationFilter value={location} onChange={setLocation} />
-        </div>
+        <MonthSelector value={month} onChange={setMonth} />
         <div className="flex items-center gap-3">
           {syncError && (
             <span className="text-xs text-[var(--bad)]">{syncError}</span>
@@ -95,43 +156,27 @@ export function ReviewsAnalytics() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <ReviewsSummary data={data} loading={loading} />
-
-      {/* Chart */}
-      <ReviewsChart data={data?.byWeek ?? []} loading={loading} />
-
-      {/* Rating breakdown */}
-      {!loading && data && data.count > 0 && (
-        <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
-            Rating breakdown
-          </p>
-          <div className="flex flex-col gap-2">
-            {([5, 4, 3, 2, 1] as const).map((star) => {
-              const count = data.byRating[star] ?? 0;
-              const pct = data.count > 0 ? Math.round((count / data.count) * 100) : 0;
-              return (
-                <div key={star} className="flex items-center gap-3">
-                  <span className="w-6 text-right font-mono text-sm tabular-nums text-[var(--fg-3)]">
-                    {star}★
-                  </span>
-                  <div className="flex-1 overflow-hidden rounded-full bg-[var(--bg-2)]" style={{ height: 8 }}>
-                    <div
-                      className="h-full rounded-full bg-[var(--bronze)] transition-all duration-300"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className="w-8 text-right font-mono text-sm tabular-nums text-[var(--fg-3)]">
-                    {count}
-                  </span>
-                  <span className="w-8 text-right font-mono text-xs tabular-nums text-[var(--fg-4)]">
-                    {pct}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      {/* Location cards */}
+      {loading && cards.length === 0 ? (
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-32 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]"
+            />
+          ))}
+        </div>
+      ) : cards.length === 0 ? (
+        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+          <span className="text-sm text-[var(--fg-4)]">
+            No data yet — run a sync first.
+          </span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          {cards.map((card) => (
+            <LocationCardTile key={card.locationId} card={card} loading={loading} />
+          ))}
         </div>
       )}
     </div>
