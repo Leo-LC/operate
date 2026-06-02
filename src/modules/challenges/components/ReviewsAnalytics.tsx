@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
 import { MonthSelector } from "./MonthSelector";
 
@@ -71,7 +71,109 @@ function Stat({
   );
 }
 
-function LocationCardTile({ card, loading }: { card: LocationCard; loading: boolean }) {
+function EntryCountInput({
+  locationId,
+  month,
+  initial,
+  loading,
+  onSaved,
+}: {
+  locationId: string;
+  month: string;
+  initial: number | null;
+  loading: boolean;
+  onSaved: (count: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() {
+    setDraft(initial !== null ? String(initial) : "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  async function commit() {
+    const val = parseInt(draft, 10);
+    if (isNaN(val) || val < 0) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await fetch("/api/challenges/entries", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locationId, month, entryCount: val }),
+      });
+      onSaved(val);
+    } finally {
+      setSaving(false);
+      setEditing(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") setEditing(false);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Entries</span>
+        <div className="h-7 w-10 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Entries</span>
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="number"
+          min={0}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={handleKeyDown}
+          disabled={saving}
+          className="w-20 rounded-[var(--r-sm)] border border-[var(--bronze)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-lg tabular-nums text-[var(--fg)] outline-none"
+          autoFocus
+        />
+      ) : (
+        <button
+          onClick={startEdit}
+          title="Click to enter"
+          className="group flex w-fit items-baseline gap-1 text-left"
+        >
+          <span className="font-mono text-xl tabular-nums text-[var(--fg)]">
+            {initial !== null ? initial : "—"}
+          </span>
+          <span className="text-[10px] text-[var(--fg-4)] opacity-0 transition-opacity group-hover:opacity-100">
+            edit
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function LocationCardTile({
+  card,
+  month,
+  loading,
+  onEntryUpdated,
+}: {
+  card: LocationCard;
+  month: string;
+  loading: boolean;
+  onEntryUpdated: (locationId: string, count: number) => void;
+}) {
   const hasRatingData = card.currentRating > 0;
   const ratingStatus: "good" | "bad" | "neutral" =
     !hasRatingData || card.count === 0
@@ -80,10 +182,9 @@ function LocationCardTile({ card, loading }: { card: LocationCard; loading: bool
       ? "good"
       : "bad";
 
-  const hasEntries = card.entryCount !== null;
   const ratio =
-    hasEntries && card.count > 0
-      ? Math.round(card.entryCount! / card.count)
+    card.entryCount !== null && card.count > 0
+      ? Math.round(card.entryCount / card.count)
       : null;
 
   return (
@@ -111,13 +212,13 @@ function LocationCardTile({ card, loading }: { card: LocationCard; loading: bool
         />
       </div>
 
-      {/* Entries row — shown always so layout is stable; greys out if not synced */}
       <div className="grid grid-cols-2 gap-3 border-t border-[var(--line)] pt-3">
-        <Stat
-          label="Entries"
-          value={loading ? "—" : hasEntries ? String(card.entryCount) : "—"}
-          sub={!hasEntries && !loading ? "sync needed" : undefined}
+        <EntryCountInput
+          locationId={card.locationId}
+          month={month}
+          initial={card.entryCount}
           loading={loading}
+          onSaved={(count) => onEntryUpdated(card.locationId, count)}
         />
         <Stat
           label="Entries / review"
@@ -134,7 +235,6 @@ export function ReviewsAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [syncingEntries, setSyncingEntries] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const fetchAnalytics = useCallback(async (m: string) => {
@@ -155,7 +255,7 @@ export function ReviewsAnalytics() {
     fetchAnalytics(month);
   }, [month, fetchAnalytics]);
 
-  async function handleSyncReviews() {
+  async function handleSync() {
     setSyncing(true);
     setSyncError(null);
     try {
@@ -172,26 +272,22 @@ export function ReviewsAnalytics() {
     }
   }
 
-  async function handleSyncEntries() {
-    setSyncingEntries(true);
-    setSyncError(null);
-    try {
-      const res = await fetch(`/api/challenges/entries/sync?month=${month}`, { method: "POST" });
-      const json = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Entries sync failed");
-      await fetchAnalytics(month);
-    } catch (e) {
-      setSyncError(e instanceof Error ? e.message : "Entries sync failed");
-    } finally {
-      setSyncingEntries(false);
-    }
+  function handleEntryUpdated(locationId: string, count: number) {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        locations: prev.locations.map((loc) =>
+          loc.locationId === locationId ? { ...loc, entryCount: count } : loc
+        ),
+      };
+    });
   }
 
   const cards = data?.locations ?? [];
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Controls bar */}
       <div className="flex items-center justify-between">
         <MonthSelector value={month} onChange={setMonth} />
         <div className="flex items-center gap-3">
@@ -202,15 +298,7 @@ export function ReviewsAnalytics() {
             {loading ? "Loading…" : formatSyncTime(data?.lastSyncedAt ?? null)}
           </span>
           <button
-            onClick={handleSyncEntries}
-            disabled={syncingEntries}
-            className="flex h-8 items-center gap-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--fg-2)] transition-colors hover:border-[var(--fg-4)] hover:text-[var(--fg)] disabled:pointer-events-none disabled:opacity-50"
-          >
-            <RefreshCwIcon size={13} className={syncingEntries ? "animate-spin" : ""} />
-            {syncingEntries ? "Syncing…" : "Sync entries"}
-          </button>
-          <button
-            onClick={handleSyncReviews}
+            onClick={handleSync}
             disabled={syncing}
             className="flex h-8 items-center gap-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--fg-2)] transition-colors hover:border-[var(--fg-4)] hover:text-[var(--fg)] disabled:pointer-events-none disabled:opacity-50"
           >
@@ -220,26 +308,29 @@ export function ReviewsAnalytics() {
         </div>
       </div>
 
-      {/* Location cards */}
       {loading && cards.length === 0 ? (
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-44 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]"
+              className="h-48 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]"
             />
           ))}
         </div>
       ) : cards.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
-          <span className="text-sm text-[var(--fg-4)]">
-            No data yet — run a sync first.
-          </span>
+          <span className="text-sm text-[var(--fg-4)]">No data yet — run a sync first.</span>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
           {cards.map((card) => (
-            <LocationCardTile key={card.locationId} card={card} loading={loading} />
+            <LocationCardTile
+              key={card.locationId}
+              card={card}
+              month={month}
+              loading={loading}
+              onEntryUpdated={handleEntryUpdated}
+            />
           ))}
         </div>
       )}

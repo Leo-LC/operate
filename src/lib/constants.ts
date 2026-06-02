@@ -127,12 +127,6 @@ export const DEFAULT_RATING_RULES: Record<Rating, RatingRule> = {
   1: { mode: "custom", allowBulk: false },
 };
 
-// Maps Loyverse store IDs → GBP location IDs.
-// Run GET /api/challenges/entries/stores to discover store IDs, then fill in below.
-export const LOYVERSE_TO_GBP: Record<string, string> = {
-  // "<loyverse-store-id>": "locations/<gbp-id>",
-};
-
 export const LOCATIONS_BASE =
   "https://mybusinessbusinessinformation.googleapis.com/v1";
 export const REVIEWS_BASE = "https://mybusiness.googleapis.com/v4";
