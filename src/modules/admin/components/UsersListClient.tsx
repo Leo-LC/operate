@@ -256,7 +256,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
             </thead>
             <tbody>
               {users.map((user) => (
-                <UserRow key={user.id} user={user} onClick={() => router.push(`/dashboard/admin/users/${user.id}`)} />
+                <UserRow key={user.id} user={user} onClick={() => router.push(`/admin/users/${user.id}`)} />
               ))}
             </tbody>
           </table>
