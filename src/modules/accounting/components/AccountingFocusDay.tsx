@@ -1,12 +1,22 @@
 "use client";
 import { useState, useMemo } from "react";
+import { PencilIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
+import { DailyEntryModal } from "@/modules/accounting/components/DailyEntryModal";
 import {
+  toFormState,
+  fromFormState,
   salesNetTotal,
   expTotal,
   hrTotal,
+  cashEndDayCalc,
+  cashSafeCalc,
   type DailyEntry,
+  type EntryFormState,
 } from "@/modules/accounting/types";
+import type { AdminLocation } from "@/modules/admin/types";
+import { toast } from "sonner";
 
 function thb(n: number): string {
   if (n === 0) return "—";
@@ -51,9 +61,13 @@ interface Props {
   year: number;
   month: number;
   entries: DailyEntry[];
+  locationId: string;
+  locations: AdminLocation[];
+  onEntryUpdate: (entry: DailyEntry) => void;
+  onEntryDelete: (id: string) => void;
 }
 
-export function AccountingFocusDay({ year, month, entries }: Props) {
+export function AccountingFocusDay({ year, month, entries, locationId, locations, onEntryUpdate, onEntryDelete }: Props) {
   const days = daysInMonth(year, month);
   const today = new Date();
   const defaultDay = year === today.getFullYear() && month === today.getMonth() + 1
@@ -61,12 +75,36 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
     : days;
 
   const [selectedDay, setSelectedDay] = useState(defaultDay);
+  const [editOpen, setEditOpen]       = useState(false);
+  const [modalForm, setModalForm]     = useState<EntryFormState>(toFormState({}));
+  const [modalSaving, setModalSaving] = useState(false);
 
   const entryMap = useMemo(() => {
     const m = new Map<string, DailyEntry>();
     for (const e of entries) m.set(e.entry_date, e);
     return m;
   }, [entries]);
+
+  // Compute cash safe values for all days so the modal can show accurate calcs
+  const computedValues = useMemo(() => {
+    const map = new Map<string, { cashEndDay: number; cashSafe: number }>();
+    let prevSafe = 0;
+    for (let day = 1; day <= days; day++) {
+      const date = isoDate(year, month, day);
+      const entry = entryMap.get(date);
+      if (entry) {
+        const cashEnd = cashEndDayCalc(entry);
+        const safe = entry.cash_safe_is_override
+          ? entry.cash_safe
+          : cashSafeCalc(cashEnd, prevSafe, entry.cash_to_boss);
+        map.set(date, { cashEndDay: cashEnd, cashSafe: safe });
+        prevSafe = safe;
+      } else {
+        map.set(date, { cashEndDay: 0, cashSafe: prevSafe });
+      }
+    }
+    return map;
+  }, [days, year, month, entryMap]);
 
   const entry = entryMap.get(isoDate(year, month, selectedDay));
 
@@ -77,6 +115,62 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
   const net      = sales - expenses - hr;
 
   const allDays = Array.from({ length: days }, (_, i) => i + 1);
+
+  function openEdit() {
+    const date = isoDate(year, month, selectedDay);
+    setModalForm(toFormState(entryMap.get(date) ?? {}));
+    setEditOpen(true);
+  }
+
+  async function handleModalSave(e: React.FormEvent) {
+    e.preventDefault();
+    setModalSaving(true);
+    try {
+      const date = isoDate(year, month, selectedDay);
+      const fieldVals = fromFormState(modalForm);
+      const fakeEntry = { ...fieldVals } as unknown as DailyEntry;
+      const cashEnd = cashEndDayCalc(fakeEntry);
+      const prevDateKey = selectedDay > 1 ? isoDate(year, month, selectedDay - 1) : null;
+      const prevSafe = prevDateKey ? (computedValues.get(prevDateKey)?.cashSafe ?? 0) : 0;
+      const safeCash = cashSafeCalc(cashEnd, prevSafe, fakeEntry.cash_to_boss);
+
+      const res = await fetch("/api/accounting/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location_id: locationId,
+          entry_date: date,
+          ...fieldVals,
+          cash_end_day: cashEnd,
+          cash_safe: safeCash,
+          cash_safe_is_override: false,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(err.error ?? "Save failed");
+        return;
+      }
+      onEntryUpdate(await res.json() as DailyEntry);
+      setEditOpen(false);
+      toast.success("Entry saved");
+    } finally {
+      setModalSaving(false);
+    }
+  }
+
+  async function handleModalDelete() {
+    const e = entryMap.get(isoDate(year, month, selectedDay));
+    if (!e) return;
+    const res = await fetch(`/api/accounting/entries/${e.id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Delete failed"); return; }
+    onEntryDelete(e.id);
+    setEditOpen(false);
+    toast.success("Entry deleted");
+  }
+
+  const locationName = locations.find((l) => l.id === locationId)?.name ?? "";
+  const selectedComputed = computedValues.get(isoDate(year, month, selectedDay));
 
   return (
     <div>
@@ -122,9 +216,16 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
         <div style={{
           background: "var(--surface)", border: "1px solid var(--line)",
           borderRadius: "var(--r-lg)", padding: "var(--s-5)",
+          position: "relative",
         }}>
-          <div className="eyebrow" style={{ color: "var(--fg-4)" }}>
-            Net — {weekdayShort(year, month, selectedDay)} {selectedDay}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div className="eyebrow" style={{ color: "var(--fg-4)" }}>
+              Net — {weekdayShort(year, month, selectedDay)} {selectedDay}
+            </div>
+            <Button size="sm" variant="secondary" onClick={openEdit} style={{ gap: 6 }}>
+              <PencilIcon size={12} />
+              Edit day
+            </Button>
           </div>
           <div className="mono tabular-nums" style={{
             fontSize: 44, fontWeight: 500, marginTop: 6, letterSpacing: "-0.02em",
@@ -137,7 +238,7 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
               <Pill tone={net >= 0 ? "good" : "bad"}>
                 {net >= 0 ? "Positive" : "Negative"}
               </Pill>
-              <Pill tone="neutral">{entry ? "Entry recorded" : "No data"}</Pill>
+              <Pill tone="neutral">Entry recorded</Pill>
             </div>
           )}
 
@@ -149,7 +250,7 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
           </div>
         </div>
 
-        {/* Right: Key metrics */}
+        {/* Right: Breakdown detail */}
         <div style={{
           background: "var(--surface)", border: "1px solid var(--line)",
           borderRadius: "var(--r-lg)", overflow: "hidden",
@@ -160,31 +261,73 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
               {isoDate(year, month, selectedDay)}
             </div>
           </div>
-          <div style={{ padding: "var(--s-3) var(--s-5)" }}>
+
+          {/* Section 1: Revenue & payments */}
+          <div style={{ padding: "var(--s-3) var(--s-5)", borderBottom: "1px solid var(--line)" }}>
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--fg-4)", marginBottom: 4 }}>
+              Revenue
+            </div>
             {[
-              { label: "Gross sales",  value: sales,    tone: "var(--good)"   },
-              { label: "Payments in",  value: payments, tone: "var(--info)"   },
-              { label: "Expenses out", value: expenses, tone: "var(--bad)"    },
-              { label: "HR payroll",   value: hr,       tone: "var(--warn)"   },
-              { label: "Net result",   value: net,      tone: net < 0 ? "var(--bad)" : "var(--bronze)" },
-            ].map(({ label, value, tone }, i) => (
-              <div
-                key={label}
-                style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "10px 0",
-                  borderBottom: i < 4 ? "1px solid var(--line-2)" : "none",
-                }}
-              >
+              { label: "Gross sales", value: sales, tone: "var(--good)", bold: false },
+            ].map(({ label, value, tone, bold }) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line-2)" }}>
                 <span style={{ fontSize: 13, color: "var(--fg-3)" }}>{label}</span>
-                <span
-                  className="mono tabular-nums"
-                  style={{ fontSize: 13, fontWeight: i === 4 ? 600 : 400, color: entry ? tone : "var(--fg-4)" }}
-                >
+                <span className="mono tabular-nums" style={{ fontSize: 13, fontWeight: bold ? 600 : 400, color: entry ? tone : "var(--fg-4)" }}>
                   {entry ? thb(value) : "—"}
                 </span>
               </div>
             ))}
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--fg-4)", marginTop: 10, marginBottom: 4 }}>
+              Payments in
+            </div>
+            {[
+              { label: "Cash", value: entry?.payment_cash ?? 0 },
+              { label: "QR / scan", value: entry?.payment_scan ?? 0 },
+              { label: "Credit card", value: entry?.payment_credit_card ?? 0 },
+            ].map(({ label, value }) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0 6px 12px", borderBottom: "1px solid var(--line-2)" }}>
+                <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{label}</span>
+                <span className="mono tabular-nums" style={{ fontSize: 12, color: entry ? "var(--info)" : "var(--fg-4)" }}>
+                  {entry ? thb(value) : "—"}
+                </span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+              <span style={{ fontSize: 13, color: "var(--fg-3)" }}>Payments total</span>
+              <span className="mono tabular-nums" style={{ fontSize: 13, fontWeight: 500, color: entry ? "var(--info)" : "var(--fg-4)" }}>
+                {entry ? thb(payments) : "—"}
+              </span>
+            </div>
+          </div>
+
+          {/* Section 2: Costs & net */}
+          <div style={{ padding: "var(--s-3) var(--s-5)" }}>
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--fg-4)", marginBottom: 4 }}>
+              Costs
+            </div>
+            {[
+              { label: "OpEx", value: expenses, tone: "var(--bad)" },
+              { label: "HR payroll", value: hr, tone: "var(--warn)" },
+            ].map(({ label, value, tone }, i) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line-2)" }}>
+                <span style={{ fontSize: 13, color: "var(--fg-3)" }}>{label}</span>
+                <span className="mono tabular-nums" style={{ fontSize: 13, color: entry ? tone : "var(--fg-4)" }}>
+                  {entry ? thb(value) : "—"}
+                </span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Net result</span>
+              <span className="mono tabular-nums" style={{ fontSize: 13, fontWeight: 600, color: entry ? (net < 0 ? "var(--bad)" : "var(--bronze)") : "var(--fg-4)" }}>
+                {entry ? thb(net) : "—"}
+              </span>
+            </div>
+
+            {entry?.notes && (
+              <div style={{ marginTop: "var(--s-3)", padding: "var(--s-2) var(--s-3)", borderRadius: "var(--r-sm)", background: "var(--bg-2)", fontSize: 12, color: "var(--fg-3)", fontStyle: "italic" }}>
+                {entry.notes}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -200,8 +343,31 @@ export function AccountingFocusDay({ year, month, entries }: Props) {
           color: "var(--fg-4)",
           textAlign: "center",
         }}>
-          No entry recorded for this day. Switch to Smart table to add one.
+          No entry recorded for this day.{" "}
+          <button
+            onClick={openEdit}
+            style={{ color: "var(--bronze)", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontFamily: "inherit", textDecoration: "underline" }}
+          >
+            Add one
+          </button>
         </div>
+      )}
+
+      {/* Edit modal */}
+      {editOpen && (
+        <DailyEntryModal
+          date={isoDate(year, month, selectedDay)}
+          locationName={locationName}
+          form={modalForm}
+          saving={modalSaving}
+          existingId={entry?.id}
+          computedCashEndDay={selectedComputed?.cashEndDay}
+          computedCashSafe={selectedComputed?.cashSafe}
+          onChange={(field, val) => setModalForm((prev) => ({ ...prev, [field]: val }))}
+          onSave={(e) => void handleModalSave(e)}
+          onDelete={entry ? () => void handleModalDelete() : undefined}
+          onClose={() => setEditOpen(false)}
+        />
       )}
     </div>
   );

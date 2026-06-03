@@ -2,7 +2,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { CopyIcon, CheckIcon } from "lucide-react";
-import { Sparkline } from "@/components/ui/sparkline";
 import { DailyEntryModal } from "@/modules/accounting/components/DailyEntryModal";
 import {
   toFormState,
@@ -87,46 +86,14 @@ type ColKey = typeof COLS[number]["key"];
 
 const GRID = "110px 1fr 1fr 1fr 1fr 1fr 36px";
 
-// ── Column header with sparkline + mousemove tooltip ──────────────────────────
+// ── Column header ─────────────────────────────────────────────────────────────
 
-function ColumnHeader({
-  label, data, tone, total,
-}: {
-  label: string; data: number[]; tone: string; total: number;
-}) {
-  const [tip, setTip] = useState<{ idx: number; x: number } | null>(null);
-
+function ColumnHeader({ label, total }: { label: string; total: number }) {
   return (
-    <div
-      onMouseLeave={() => setTip(null)}
-      style={{ display: "flex", flexDirection: "column", gap: 4, cursor: "help", position: "relative", minWidth: 0 }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
       <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--fg-3)" }}>
         {label}
       </span>
-      <div
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const idx = Math.min(data.length - 1, Math.max(0, Math.round((x / rect.width) * (data.length - 1))));
-          setTip({ idx, x });
-        }}
-        style={{ position: "relative", height: 22 }}
-      >
-        <Sparkline data={data} color={tone} width={100} height={22} />
-        {tip !== null && (
-          <span style={{
-            position: "absolute", left: tip.x, top: -30,
-            transform: "translateX(-50%)",
-            background: "var(--fg)", color: "var(--bg)",
-            padding: "3px 7px", borderRadius: 5, fontSize: 11,
-            whiteSpace: "nowrap", pointerEvents: "none", zIndex: 20,
-            fontFamily: "var(--font-mono)",
-          }}>
-            d{tip.idx + 1}: {thb(data[tip.idx] ?? 0)}
-          </span>
-        )}
-      </div>
       <span className="mono" style={{ fontSize: 12, color: "var(--fg-2)", fontWeight: 500 }}>
         {thb(total)}
       </span>
@@ -262,12 +229,6 @@ export function DailyEntriesTable({
 
   const weekGroups = useMemo(() => groupByWeek(allRows), [allRows]);
 
-  // Sparkline data arrays (all days)
-  const sparks = useMemo<Record<ColKey, number[]>>(
-    () => Object.fromEntries(COLS.map((c) => [c.key, allRows.map((r) => r[c.key])])) as Record<ColKey, number[]>,
-    [allRows],
-  );
-
   // Month totals
   const monthTotals = useMemo<Record<ColKey, number>>(
     () => Object.fromEntries(COLS.map((c) => [c.key, allRows.reduce((s, r) => s + r[c.key], 0)])) as Record<ColKey, number>,
@@ -358,8 +319,6 @@ export function DailyEntriesTable({
             <ColumnHeader
               key={c.key}
               label={c.label}
-              data={sparks[c.key]}
-              tone={c.tone}
               total={monthTotals[c.key]}
             />
           ))}
