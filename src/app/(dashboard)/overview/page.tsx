@@ -32,7 +32,7 @@ export default async function OverviewPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-semibold">Overview</h1>
-        <p className="text-sm text-muted-foreground">What needs attention today, per shop.</p>
+        <p className="text-sm text-muted-foreground">What needs your attention today, per shop.</p>
       </div>
       {cards.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
