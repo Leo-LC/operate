@@ -21,7 +21,7 @@ function PreviewLoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(false);
-    const result = await signIn("preview", { password, callbackUrl: "/home", redirect: false });
+    const result = await signIn("preview", { password, callbackUrl: "/overview", redirect: false });
     if (result?.error) {
       setError(true);
       setLoading(false);
@@ -69,7 +69,7 @@ function CredentialsLoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const result = await signIn("credentials", { email, password, callbackUrl: "/home", redirect: false });
+    const result = await signIn("credentials", { email, password, callbackUrl: "/overview", redirect: false });
     if (result?.error) {
       setError("Incorrect email or password.");
       setLoading(false);
@@ -113,7 +113,7 @@ export function LoginCard({ minimal }: LoginCardProps) {
       size="lg"
       variant="outline"
       className="group w-full gap-2 font-medium"
-      onClick={() => signIn("google", { callbackUrl: "/home" })}
+      onClick={() => signIn("google", { callbackUrl: "/overview" })}
     >
       Sign in with Google
       <ArrowRightIcon className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />

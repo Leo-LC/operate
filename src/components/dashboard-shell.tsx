@@ -23,7 +23,7 @@ interface DashboardShellProps {
 }
 
 const NAV_ITEMS = [
-  { id: "overview",   label: "Overview",   href: "/home",       icon: HomeIcon,         module: null },
+  { id: "overview",   label: "Overview",   href: "/overview",   icon: HomeIcon,         module: null },
   { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
   { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,       module: "challenges" },
   { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
@@ -103,7 +103,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
       if (gKeyRef.current) {
         const map: Record<string, string> = {
-          o: "/home",
+          o: "/overview",
           r: "/reviews",
           s: "/scheduling",
           a: "/attendance",
@@ -130,7 +130,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   }, [theme, setTheme, router]);
 
   function isActive(href: string): boolean {
-    if (href === "/home") return pathname === "/home" || pathname === "/home";
+    if (href === "/overview") return pathname === "/overview";
     return pathname.startsWith(href);
   }
 
