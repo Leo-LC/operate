@@ -315,11 +315,11 @@ export function ChallengesOverview() {
 
   // Re-derive computed metrics client-side after input updates would require re-calling API;
   // instead, just refetch so values stay consistent
-  function handleEntryUpdated(_locationId: string, _period: 1 | 2, _val: number) {
+  function handleEntryUpdated(..._args: [string, 1 | 2, number]) {
     fetchData(month);
   }
 
-  function handleSnacksUpdated(_locationId: string, _period: 1 | 2, _val: number) {
+  function handleSnacksUpdated(..._args: [string, 1 | 2, number]) {
     fetchData(month);
   }
 

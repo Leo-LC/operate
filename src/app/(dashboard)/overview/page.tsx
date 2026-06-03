@@ -1,8 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { ShopSummaryCard } from "@/modules/overview/components/ShopSummaryCard";
 import type { ShopCard } from "@/app/api/overview/cards/route";
 

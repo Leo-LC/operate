@@ -308,7 +308,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
             {[
               { label: "OpEx", value: expenses, tone: "var(--bad)" },
               { label: "HR payroll", value: hr, tone: "var(--warn)" },
-            ].map(({ label, value, tone }, i) => (
+            ].map(({ label, value, tone }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--line-2)" }}>
                 <span style={{ fontSize: 13, color: "var(--fg-3)" }}>{label}</span>
                 <span className="mono tabular-nums" style={{ fontSize: 13, color: entry ? tone : "var(--fg-4)" }}>
