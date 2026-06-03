@@ -6,6 +6,7 @@ import { DEFAULT_ORG_ID } from "@/lib/constants";
 interface EntryBody {
   locationId: string;
   month: string; // YYYY-MM
+  period: 1 | 2;
   entryCount?: number;
   snacksSold?: number;
 }
@@ -17,10 +18,13 @@ export async function PUT(request: Request) {
   }
 
   const body = (await request.json()) as EntryBody;
-  const { locationId, month, entryCount, snacksSold } = body;
+  const { locationId, month, period, entryCount, snacksSold } = body;
 
   if (!locationId || !month || !/^\d{4}-\d{2}$/.test(month)) {
     return Response.json({ error: "Invalid payload" }, { status: 400 });
+  }
+  if (period !== 1 && period !== 2) {
+    return Response.json({ error: "period must be 1 or 2" }, { status: 400 });
   }
   if (entryCount !== undefined && (typeof entryCount !== "number" || entryCount < 0)) {
     return Response.json({ error: "Invalid entryCount" }, { status: 400 });
@@ -33,6 +37,7 @@ export async function PUT(request: Request) {
     location_id: locationId,
     organization_id: DEFAULT_ORG_ID,
     month,
+    period,
     synced_at: new Date().toISOString(),
   };
   if (entryCount !== undefined) patch.entry_count = Math.round(entryCount);
@@ -40,7 +45,7 @@ export async function PUT(request: Request) {
 
   const supabase = getSupabaseServerClient();
   const { error } = await supabase.from("location_entries").upsert(patch, {
-    onConflict: "location_id,organization_id,month",
+    onConflict: "location_id,organization_id,month,period",
   });
 
   if (error) {

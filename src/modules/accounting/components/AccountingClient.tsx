@@ -26,6 +26,7 @@ const VIEWS: Array<{ id: MainView; label: string; icon: typeof ListIcon }> = [
 interface Props {
   locations: AdminLocation[];
   canManage?: boolean;
+  initialLocationId?: string;
 }
 
 type ImportConfirm = {
@@ -48,11 +49,15 @@ function parseCsvFirstColumn(line: string): string {
   return val;
 }
 
-export function AccountingClient({ locations, canManage }: Props) {
+export function AccountingClient({ locations, canManage, initialLocationId }: Props) {
   const today = new Date();
   const [year, setYear]             = useState(today.getFullYear());
   const [month, setMonth]           = useState(today.getMonth() + 1);
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
+  const [locationId, setLocationId] = useState(
+    (initialLocationId && locations.some((l) => l.id === initialLocationId))
+      ? initialLocationId
+      : (locations[0]?.id ?? "")
+  );
   const [view, setView]             = useState<MainView>("smart");
   const [entries, setEntries]       = useState<DailyEntry[]>([]);
   const [loading, setLoading]       = useState(false);
@@ -188,9 +193,7 @@ export function AccountingClient({ locations, canManage }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <PageHeader
-        eyebrow={monthName}
         title="Accounting"
-        subtitle="Daily roll-up by shop. Click any row to view or edit."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             {/* Location selector */}
@@ -430,6 +433,10 @@ export function AccountingClient({ locations, canManage }: Props) {
           year={year}
           month={month}
           entries={entries}
+          locationId={locationId}
+          locations={locations}
+          onEntryUpdate={handleEntryUpdate}
+          onEntryDelete={handleEntryDelete}
         />
       )}
 

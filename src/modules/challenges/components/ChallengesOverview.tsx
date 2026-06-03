@@ -42,6 +42,7 @@ function InlineNumberInput({
   label,
   locationId,
   month,
+  period,
   initial,
   field,
   loading,
@@ -50,6 +51,7 @@ function InlineNumberInput({
   label: string;
   locationId: string;
   month: string;
+  period: 1 | 2;
   initial: number | null;
   field: "entryCount" | "snacksSold";
   loading: boolean;
@@ -71,7 +73,7 @@ function InlineNumberInput({
     if (isNaN(val) || val < 0) { setEditing(false); return; }
     setSaving(true);
     try {
-      const body: Record<string, unknown> = { locationId, month };
+      const body: Record<string, unknown> = { locationId, month, period };
       if (field === "entryCount") body.entryCount = val;
       else body.snacksSold = val;
       await fetch("/api/challenges/entries", {
@@ -191,8 +193,8 @@ function LocationCard({
   loc: LocationOverview;
   month: string;
   loading: boolean;
-  onEntryUpdated: (id: string, val: number) => void;
-  onSnacksUpdated: (id: string, val: number) => void;
+  onEntryUpdated: (id: string, period: 1 | 2, val: number) => void;
+  onSnacksUpdated: (id: string, period: 1 | 2, val: number) => void;
 }) {
   const totalBonus = loc.totalBonus;
   const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
@@ -260,26 +262,32 @@ function LocationCard({
         />
       </div>
 
-      {/* Manual inputs */}
-      <div className="grid grid-cols-2 gap-3 px-4 py-3 border-t border-[var(--line)] bg-[var(--bg)]">
-        <InlineNumberInput
-          label="Entries"
-          locationId={loc.locationId}
-          month={month}
-          initial={loc.entryCount}
-          field="entryCount"
-          loading={loading}
-          onSaved={(val) => onEntryUpdated(loc.locationId, val)}
-        />
-        <InlineNumberInput
-          label="Snacks sold"
-          locationId={loc.locationId}
-          month={month}
-          initial={loc.snacksSold}
-          field="snacksSold"
-          loading={loading}
-          onSaved={(val) => onSnacksUpdated(loc.locationId, val)}
-        />
+      {/* Manual inputs — two periods */}
+      <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg)]">
+        {([1, 2] as const).map((p) => (
+          <div key={p} className="grid grid-cols-2 gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0">
+            <InlineNumberInput
+              label={p === 1 ? "Entries 1–15" : "Entries 16–end"}
+              locationId={loc.locationId}
+              month={month}
+              period={p}
+              initial={p === 1 ? loc.entryCountP1 : loc.entryCountP2}
+              field="entryCount"
+              loading={loading}
+              onSaved={(val) => onEntryUpdated(loc.locationId, p, val)}
+            />
+            <InlineNumberInput
+              label={p === 1 ? "Snacks 1–15" : "Snacks 16–end"}
+              locationId={loc.locationId}
+              month={month}
+              period={p}
+              initial={p === 1 ? loc.snacksSoldP1 : loc.snacksSoldP2}
+              field="snacksSold"
+              loading={loading}
+              onSaved={(val) => onSnacksUpdated(loc.locationId, p, val)}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -305,29 +313,13 @@ export function ChallengesOverview() {
 
   useEffect(() => { fetchData(month); }, [month, fetchData]);
 
-  function updateField(locationId: string, field: "entryCount" | "snacksSold", val: number) {
-    setData((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        locations: prev.locations.map((loc) =>
-          loc.locationId === locationId
-            ? { ...loc, [field]: val }
-            : loc
-        ),
-      };
-    });
-  }
-
   // Re-derive computed metrics client-side after input updates would require re-calling API;
   // instead, just refetch so values stay consistent
-  function handleEntryUpdated(locationId: string, val: number) {
-    updateField(locationId, "entryCount", val);
+  function handleEntryUpdated(_locationId: string, _period: 1 | 2, _val: number) {
     fetchData(month);
   }
 
-  function handleSnacksUpdated(locationId: string, val: number) {
-    updateField(locationId, "snacksSold", val);
+  function handleSnacksUpdated(_locationId: string, _period: 1 | 2, _val: number) {
     fetchData(month);
   }
 
@@ -390,8 +382,8 @@ export function ChallengesOverview() {
               loc={loc}
               month={month}
               loading={loading}
-              onEntryUpdated={handleEntryUpdated}
-              onSnacksUpdated={handleSnacksUpdated}
+              onEntryUpdated={(id, p, val) => handleEntryUpdated(id, p, val)}
+              onSnacksUpdated={(id, p, val) => handleSnacksUpdated(id, p, val)}
             />
           ))}
         </div>

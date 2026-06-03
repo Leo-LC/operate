@@ -6,7 +6,7 @@ import { AccountingClient } from "@/modules/accounting/components/AccountingClie
 import { getAllowedLocationIds } from "@/core/permissions/server";
 import type { AdminLocation } from "@/modules/admin/types";
 
-export default async function AccountingPage() {
+export default async function AccountingPage({ searchParams }: { searchParams: Promise<{ location?: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
 
@@ -33,5 +33,8 @@ export default async function AccountingPage() {
   const locations: AdminLocation[] = data ?? [];
   const canManage = session.user.role === "owner";
 
-  return <AccountingClient locations={locations} canManage={canManage} />;
+  const { location: locationParam } = await searchParams;
+  const initialLocationId = locationParam ?? undefined;
+
+  return <AccountingClient locations={locations} canManage={canManage} initialLocationId={initialLocationId} />;
 }
