@@ -46,8 +46,10 @@ export interface LocationOverview {
   // Per-period breakdown for the UI inputs
   entryCountP1: number | null;
   entryCountP2: number | null;
+  entryCountP3: number | null;
   snacksSoldP1: number | null;
   snacksSoldP2: number | null;
+  snacksSoldP3: number | null;
 
   // Computed metrics
   merchandising: {
@@ -188,30 +190,35 @@ export async function GET(request: Request) {
     snacksSold: number | null;
     entryCountP1: number | null;
     entryCountP2: number | null;
+    entryCountP3: number | null;
     snacksSoldP1: number | null;
     snacksSoldP2: number | null;
+    snacksSoldP3: number | null;
   };
   const entriesByLoc = new Map<string, EntryInputs>();
   for (const r of entriesResult.data ?? []) {
     const period = (r as { location_id: string; entry_count: number | null; snacks_sold: number | null; period: number }).period;
     const existing = entriesByLoc.get(r.location_id) ?? {
       entryCount: null, snacksSold: null,
-      entryCountP1: null, entryCountP2: null,
-      snacksSoldP1: null, snacksSoldP2: null,
+      entryCountP1: null, entryCountP2: null, entryCountP3: null,
+      snacksSoldP1: null, snacksSoldP2: null, snacksSoldP3: null,
     };
     const ec = r.entry_count as number | null;
     const ss = (r.snacks_sold ?? null) as number | null;
     if (period === 1) {
       existing.entryCountP1 = ec;
       existing.snacksSoldP1 = ss;
-    } else {
+    } else if (period === 2) {
       existing.entryCountP2 = ec;
       existing.snacksSoldP2 = ss;
+    } else {
+      existing.entryCountP3 = ec;
+      existing.snacksSoldP3 = ss;
     }
-    const sumEc = (existing.entryCountP1 ?? 0) + (existing.entryCountP2 ?? 0);
-    const sumSs = (existing.snacksSoldP1 ?? 0) + (existing.snacksSoldP2 ?? 0);
-    existing.entryCount = existing.entryCountP1 !== null || existing.entryCountP2 !== null ? sumEc : null;
-    existing.snacksSold = existing.snacksSoldP1 !== null || existing.snacksSoldP2 !== null ? sumSs : null;
+    const sumEc = (existing.entryCountP1 ?? 0) + (existing.entryCountP2 ?? 0) + (existing.entryCountP3 ?? 0);
+    const sumSs = (existing.snacksSoldP1 ?? 0) + (existing.snacksSoldP2 ?? 0) + (existing.snacksSoldP3 ?? 0);
+    existing.entryCount = existing.entryCountP1 !== null || existing.entryCountP2 !== null || existing.entryCountP3 !== null ? sumEc : null;
+    existing.snacksSold = existing.snacksSoldP1 !== null || existing.snacksSoldP2 !== null || existing.snacksSoldP3 !== null ? sumSs : null;
     entriesByLoc.set(r.location_id, existing);
   }
 
@@ -245,8 +252,8 @@ export async function GET(request: Request) {
     const acc = accByLoc.get(locationId) ?? null;
     const inputs = entriesByLoc.get(locationId) ?? {
       entryCount: null, snacksSold: null,
-      entryCountP1: null, entryCountP2: null,
-      snacksSoldP1: null, snacksSoldP2: null,
+      entryCountP1: null, entryCountP2: null, entryCountP3: null,
+      snacksSoldP1: null, snacksSoldP2: null, snacksSoldP3: null,
     };
     const gbp = gbpByLoc.get(locationId);
     const rev = revByLoc.get(locationId);
@@ -322,8 +329,10 @@ export async function GET(request: Request) {
       snacksSold,
       entryCountP1: inputs.entryCountP1,
       entryCountP2: inputs.entryCountP2,
+      entryCountP3: inputs.entryCountP3,
       snacksSoldP1: inputs.snacksSoldP1,
       snacksSoldP2: inputs.snacksSoldP2,
+      snacksSoldP3: inputs.snacksSoldP3,
       merchandising: { ratio: merchRatio, tier: merchTier, bonus: [0, 1500, 3000, 5000][merchTier] as 0 },
       snacks: { ratio: snackRatio, passes: snackPasses, bonus: snackBonus },
       panierMoyen: { value: panierValue, passes: panierPasses, bonus: panierBonus },

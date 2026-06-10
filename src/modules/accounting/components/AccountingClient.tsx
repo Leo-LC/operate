@@ -7,7 +7,7 @@ import { AccountingSummaryCards } from "@/modules/accounting/components/Accounti
 import { DailyEntriesTable } from "@/modules/accounting/components/DailyEntriesTable";
 import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFocusDay";
 import { MonthlyFixedExpensesTable } from "@/modules/accounting/components/MonthlyFixedExpensesTable";
-import type { DailyEntry } from "@/modules/accounting/types";
+import type { DailyEntry, MonthlyFixedExpense } from "@/modules/accounting/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { toast } from "sonner";
 
@@ -60,6 +60,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
   );
   const [view, setView]             = useState<MainView>("smart");
   const [entries, setEntries]       = useState<DailyEntry[]>([]);
+  const [fixedCost, setFixedCost]   = useState<MonthlyFixedExpense | null>(null);
   const [loading, setLoading]       = useState(false);
   const [importing, setImporting]       = useState(false);
   const [importConfirm, setImportConfirm] = useState<ImportConfirm | null>(null);
@@ -78,8 +79,9 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
     try {
       const res = await fetch(`/api/accounting/entries?location_id=${locationId}&month=${monthStr}`);
       if (!res.ok) return;
-      const json = await res.json() as { entries: DailyEntry[] };
+      const json = await res.json() as { entries: DailyEntry[]; fixed_cost: MonthlyFixedExpense | null };
       setEntries(json.entries);
+      setFixedCost(json.fixed_cost ?? null);
     } finally {
       setLoading(false);
     }
@@ -196,52 +198,6 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         title="Accounting"
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            {/* Location selector */}
-            {locations.length > 1 && (
-              <select
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-                style={{
-                  height: 34, borderRadius: "var(--r-sm)",
-                  border: "1px solid var(--line)", background: "var(--surface)",
-                  color: "var(--fg)", padding: "0 var(--s-3)", fontSize: 13,
-                  fontFamily: "var(--font-sans)", outline: "none",
-                }}
-              >
-                {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            )}
-
-            {/* Month navigation */}
-            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <button
-                onClick={prevMonth}
-                style={{
-                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
-                  color: "var(--fg-3)", cursor: "pointer",
-                }}
-              >
-                <ChevronLeftIcon size={14} />
-              </button>
-              <span
-                className="mono tabular-nums"
-                style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
-              >
-                {monthName}
-              </span>
-              <button
-                onClick={nextMonth}
-                style={{
-                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
-                  color: "var(--fg-3)", cursor: "pointer",
-                }}
-              >
-                <ChevronRightIcon size={14} />
-              </button>
-            </div>
-
             {/* Days filled badge */}
             {view !== "fixed" && (
               <span style={{
@@ -270,8 +226,8 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
             {view !== "fixed" && (
               <>
                 <a
-                  href={`/api/accounting/template?location_name=${encodeURIComponent(currentLocationName)}`}
-                  download="accounting-import-template.csv"
+                  href={`/api/accounting/template?location_name=${encodeURIComponent(currentLocationName)}&month=${monthStr}`}
+                  download={`accounting-${monthStr}.csv`}
                 >
                   <Button size="sm" variant="secondary" title="Download blank import template">
                     <FileDownIcon size={13} />
@@ -314,6 +270,56 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           </div>
         }
       />
+
+      {/* Selectors row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
+          {/* Location selector */}
+          {locations.length > 1 && (
+            <select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              style={{
+                height: 34, borderRadius: "var(--r-sm)",
+                border: "1px solid var(--line)", background: "var(--surface)",
+                color: "var(--fg)", padding: "0 var(--s-3)", fontSize: 13,
+                fontFamily: "var(--font-sans)", outline: "none",
+              }}
+            >
+              {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          )}
+
+          {/* Month navigation */}
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button
+              onClick={prevMonth}
+              style={{
+                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                color: "var(--fg-3)", cursor: "pointer",
+              }}
+            >
+              <ChevronLeftIcon size={14} />
+            </button>
+            <span
+              className="mono tabular-nums"
+              style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
+            >
+              {monthName}
+            </span>
+            <button
+              onClick={nextMonth}
+              style={{
+                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                color: "var(--fg-3)", cursor: "pointer",
+              }}
+            >
+              <ChevronRightIcon size={14} />
+            </button>
+          </div>
+        </div>
 
       {/* Import confirmation banner */}
       {importConfirm && (
@@ -374,38 +380,40 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         </div>
       )}
 
-      {/* View toggle */}
-      <div style={{
-        display: "inline-flex", borderRadius: "var(--r-md)",
-        border: "1px solid var(--line)", background: "var(--bg-2)",
-        padding: 3, gap: 2, alignSelf: "flex-start",
-      }}>
-        {VIEWS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setView(id)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
-              fontSize: 12, fontWeight: view === id ? 500 : 400,
-              color: view === id ? "var(--fg)" : "var(--fg-4)",
-              background: view === id ? "var(--surface)" : "transparent",
-              border: `1px solid ${view === id ? "var(--line)" : "transparent"}`,
-              boxShadow: view === id ? "var(--shadow-1)" : "none",
-              cursor: "pointer", transition: "all var(--dur) var(--ease)",
-            }}
-          >
-            <Icon size={12} strokeWidth={1.5} />
-            {label}
-          </button>
-        ))}
+        {/* View toggle — right side of selectors row */}
+        <div style={{
+          display: "inline-flex", borderRadius: "var(--r-md)",
+          border: "1px solid var(--line)", background: "var(--bg-2)",
+          padding: 3, gap: 2,
+        }}>
+          {VIEWS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setView(id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
+                fontSize: 12, fontWeight: view === id ? 500 : 400,
+                color: view === id ? "var(--fg)" : "var(--fg-4)",
+                background: view === id ? "var(--surface)" : "transparent",
+                border: `1px solid ${view === id ? "var(--line)" : "transparent"}`,
+                boxShadow: view === id ? "var(--shadow-1)" : "none",
+                cursor: "pointer", transition: "all var(--dur) var(--ease)",
+              }}
+            >
+              <Icon size={12} strokeWidth={1.5} />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Summary stats band */}
       {(view === "smart" || view === "focus") && filled > 0 && (
         <AccountingSummaryCards
           entries={entries}
+          fixedCost={fixedCost}
           daysInMonth={days}
           today={today}
           month={month}

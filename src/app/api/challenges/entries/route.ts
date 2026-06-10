@@ -6,7 +6,7 @@ import { DEFAULT_ORG_ID } from "@/lib/constants";
 interface EntryBody {
   locationId: string;
   month: string; // YYYY-MM
-  period: 1 | 2;
+  period: 1 | 2 | 3;
   entryCount?: number;
   snacksSold?: number;
 }
@@ -23,8 +23,8 @@ export async function PUT(request: Request) {
   if (!locationId || !month || !/^\d{4}-\d{2}$/.test(month)) {
     return Response.json({ error: "Invalid payload" }, { status: 400 });
   }
-  if (period !== 1 && period !== 2) {
-    return Response.json({ error: "period must be 1 or 2" }, { status: 400 });
+  if (period !== 1 && period !== 2 && period !== 3) {
+    return Response.json({ error: "period must be 1, 2 or 3" }, { status: 400 });
   }
   if (entryCount !== undefined && (typeof entryCount !== "number" || entryCount < 0)) {
     return Response.json({ error: "Invalid entryCount" }, { status: 400 });

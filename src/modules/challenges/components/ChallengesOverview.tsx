@@ -51,7 +51,7 @@ function InlineNumberInput({
   label: string;
   locationId: string;
   month: string;
-  period: 1 | 2;
+  period: 1 | 2 | 3;
   initial: number | null;
   field: "entryCount" | "snacksSold";
   loading: boolean;
@@ -193,8 +193,8 @@ function LocationCard({
   loc: LocationOverview;
   month: string;
   loading: boolean;
-  onEntryUpdated: (id: string, period: 1 | 2, val: number) => void;
-  onSnacksUpdated: (id: string, period: 1 | 2, val: number) => void;
+  onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
+  onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
 }) {
   const totalBonus = loc.totalBonus;
   const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
@@ -213,8 +213,17 @@ function LocationCard({
         ) : null}
       </div>
 
+      {/* Metric column headers */}
+      <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
+        <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Metric</span>
+        <div className="flex items-center">
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-16 text-right mr-2">Value</span>
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-14 text-right">Bonus</span>
+        </div>
+      </div>
+
       {/* Metric rows */}
-      <div className="px-4 pt-2 pb-1">
+      <div className="px-4 pb-1">
         <MerchRow loc={loc} loading={loading} />
         <MetricRow
           label="Snacks"
@@ -264,30 +273,40 @@ function LocationCard({
 
       {/* Manual inputs — two periods */}
       <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg)]">
-        {([1, 2] as const).map((p) => (
-          <div key={p} className="grid grid-cols-2 gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0">
-            <InlineNumberInput
-              label={p === 1 ? "Entries 1–15" : "Entries 16–end"}
-              locationId={loc.locationId}
-              month={month}
-              period={p}
-              initial={p === 1 ? loc.entryCountP1 : loc.entryCountP2}
-              field="entryCount"
-              loading={loading}
-              onSaved={(val) => onEntryUpdated(loc.locationId, p, val)}
-            />
-            <InlineNumberInput
-              label={p === 1 ? "Snacks 1–15" : "Snacks 16–end"}
-              locationId={loc.locationId}
-              month={month}
-              period={p}
-              initial={p === 1 ? loc.snacksSoldP1 : loc.snacksSoldP2}
-              field="snacksSold"
-              loading={loading}
-              onSaved={(val) => onSnacksUpdated(loc.locationId, p, val)}
-            />
-          </div>
-        ))}
+        <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Monthly entries</span>
+          <span className="text-[9px] text-[var(--fg-4)]">Click a value to edit</span>
+        </div>
+        {([1, 2, 3] as const).map((p) => {
+          const entryLabel  = p === 1 ? "Entries 1–10"  : p === 2 ? "Entries 11–20"  : "Entries 21–end";
+          const snacksLabel = p === 1 ? "Snacks 1–10"   : p === 2 ? "Snacks 11–20"   : "Snacks 21–end";
+          const entryInit   = p === 1 ? loc.entryCountP1 : p === 2 ? loc.entryCountP2 : loc.entryCountP3;
+          const snacksInit  = p === 1 ? loc.snacksSoldP1 : p === 2 ? loc.snacksSoldP2 : loc.snacksSoldP3;
+          return (
+            <div key={p} className="grid grid-cols-2 gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0">
+              <InlineNumberInput
+                label={entryLabel}
+                locationId={loc.locationId}
+                month={month}
+                period={p}
+                initial={entryInit}
+                field="entryCount"
+                loading={loading}
+                onSaved={(val) => onEntryUpdated(loc.locationId, p, val)}
+              />
+              <InlineNumberInput
+                label={snacksLabel}
+                locationId={loc.locationId}
+                month={month}
+                period={p}
+                initial={snacksInit}
+                field="snacksSold"
+                loading={loading}
+                onSaved={(val) => onSnacksUpdated(loc.locationId, p, val)}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -316,19 +335,18 @@ export function ChallengesOverview() {
   // Re-derive computed metrics client-side after input updates would require re-calling API;
   // instead, just refetch so values stay consistent
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function handleEntryUpdated(_locationId: string, _period: 1 | 2, _val: number) {
+  function handleEntryUpdated(_locationId: string, _period: 1 | 2 | 3, _val: number) {
     fetchData(month);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function handleSnacksUpdated(_locationId: string, _period: 1 | 2, _val: number) {
+  function handleSnacksUpdated(_locationId: string, _period: 1 | 2 | 3, _val: number) {
     fetchData(month);
   }
 
   const locations = data?.locations ?? [];
 
   // Summary stats
-  const totalPotential = 10000;
   const totalEarned = locations.reduce((s, l) => s + l.totalBonus, 0);
 
   return (
@@ -336,10 +354,10 @@ export function ChallengesOverview() {
       {/* Header row */}
       <div className="flex items-center justify-between">
         <MonthSelector value={month} onChange={setMonth} />
-        {!loading && locations.length > 0 && (
+        {!loading && locations.length > 0 && totalEarned > 0 && (
           <div className="flex items-center gap-2 text-sm text-[var(--fg-3)]">
-            <span className="font-mono font-semibold text-[var(--fg)]">{totalEarned.toLocaleString()} ฿</span>
-            <span>/ {totalPotential.toLocaleString()} ฿ max earned across all shops</span>
+            <span className="font-mono font-semibold text-[var(--good)]">{totalEarned.toLocaleString()} ฿</span>
+            <span>earned across all shops</span>
           </div>
         )}
       </div>

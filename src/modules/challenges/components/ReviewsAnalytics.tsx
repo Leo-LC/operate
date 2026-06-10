@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
 import { MonthSelector } from "./MonthSelector";
 
@@ -71,108 +71,13 @@ function Stat({
   );
 }
 
-function EntryCountInput({
-  locationId,
-  month,
-  initial,
-  loading,
-  onSaved,
-}: {
-  locationId: string;
-  month: string;
-  initial: number | null;
-  loading: boolean;
-  onSaved: (count: number) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function startEdit() {
-    setDraft(initial !== null ? String(initial) : "");
-    setEditing(true);
-    setTimeout(() => inputRef.current?.select(), 0);
-  }
-
-  async function commit() {
-    const val = parseInt(draft, 10);
-    if (isNaN(val) || val < 0) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
-    try {
-      await fetch("/api/challenges/entries", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locationId, month, entryCount: val }),
-      });
-      onSaved(val);
-    } finally {
-      setSaving(false);
-      setEditing(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") commit();
-    if (e.key === "Escape") setEditing(false);
-  }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Entries</span>
-        <div className="h-7 w-10 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Entries</span>
-      {editing ? (
-        <input
-          ref={inputRef}
-          type="number"
-          min={0}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={handleKeyDown}
-          disabled={saving}
-          className="w-20 rounded-[var(--r-sm)] border border-[var(--bronze)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-lg tabular-nums text-[var(--fg)] outline-none"
-          autoFocus
-        />
-      ) : (
-        <button
-          onClick={startEdit}
-          title="Click to enter"
-          className="group flex w-fit items-baseline gap-1 text-left"
-        >
-          <span className="font-mono text-xl tabular-nums text-[var(--fg)]">
-            {initial !== null ? initial : "—"}
-          </span>
-          <span className="text-[10px] text-[var(--fg-4)] opacity-0 transition-opacity group-hover:opacity-100">
-            edit
-          </span>
-        </button>
-      )}
-    </div>
-  );
-}
 
 function LocationCardTile({
   card,
-  month,
   loading,
-  onEntryUpdated,
 }: {
   card: LocationCard;
-  month: string;
   loading: boolean;
-  onEntryUpdated: (locationId: string, count: number) => void;
 }) {
   const hasRatingData = card.currentRating > 0;
   const ratingStatus: "good" | "bad" | "neutral" =
@@ -181,11 +86,6 @@ function LocationCardTile({
       : card.avgRating >= card.ratingTarget
       ? "good"
       : "bad";
-
-  const ratio =
-    card.entryCount !== null && card.count > 0
-      ? Math.round(card.entryCount / card.count)
-      : null;
 
   return (
     <div className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-5">
@@ -209,23 +109,6 @@ function LocationCardTile({
           value={loading ? "—" : card.currentRating > 0 ? card.currentRating.toFixed(1) : "—"}
           sub={card.totalReviewCount > 0 ? `${card.totalReviewCount} total` : undefined}
           loading={loading}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 border-t border-[var(--line)] pt-3">
-        <EntryCountInput
-          locationId={card.locationId}
-          month={month}
-          initial={card.entryCount}
-          loading={loading}
-          onSaved={(count) => onEntryUpdated(card.locationId, count)}
-        />
-        <Stat
-          label="Entries / review"
-          value={loading ? "—" : ratio !== null ? `${ratio}:1` : "—"}
-          sub={ratio !== null ? (ratio <= 25 ? "✓ ≤ 25" : "target ≤ 25") : undefined}
-          loading={loading}
-          status={ratio !== null ? (ratio <= 25 ? "good" : "bad") : "neutral"}
         />
       </div>
     </div>
@@ -274,18 +157,6 @@ export function ReviewsAnalytics() {
     }
   }
 
-  function handleEntryUpdated(locationId: string, count: number) {
-    setData((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        locations: prev.locations.map((loc) =>
-          loc.locationId === locationId ? { ...loc, entryCount: count } : loc
-        ),
-      };
-    });
-  }
-
   const cards = data?.locations ?? [];
 
   return (
@@ -329,9 +200,7 @@ export function ReviewsAnalytics() {
             <LocationCardTile
               key={card.locationId}
               card={card}
-              month={month}
               loading={loading}
-              onEntryUpdated={handleEntryUpdated}
             />
           ))}
         </div>

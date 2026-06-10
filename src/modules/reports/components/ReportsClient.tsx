@@ -52,24 +52,6 @@ function monthStart() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
-function weekStart() {
-  const d = new Date();
-  d.setDate(d.getDate() - d.getDay() + 1);
-  return d.toISOString().slice(0, 10);
-}
-function lastMonthRange(): [string, string] {
-  const d = new Date();
-  const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
-  const m = d.getMonth() === 0 ? 12 : d.getMonth();
-  const from = `${y}-${String(m).padStart(2, "0")}-01`;
-  const to = new Date(y, m, 0).toISOString().slice(0, 10);
-  return [from, to];
-}
-function quarterStart() {
-  const d = new Date();
-  const q = Math.floor(d.getMonth() / 3);
-  return `${d.getFullYear()}-${String(q * 3 + 1).padStart(2, "0")}-01`;
-}
 
 // ── Shop Selector ────────────────────────────────────────────────────────────
 
@@ -208,6 +190,11 @@ function SectionHeader({ label, bg, color }: { label: string; bg: string; color:
 
 // ── Controls bar ─────────────────────────────────────────────────────────────
 
+function monthPickerValue(from: string): string {
+  // Derive yyyy-MM from the from date
+  return from.slice(0, 7);
+}
+
 function Controls({
   from,
   to,
@@ -225,28 +212,30 @@ function Controls({
   selectedShops: string[];
   onShopsChange: (ids: string[]) => void;
 }) {
-  const quickBtns: Array<{ label: string; fn: () => void }> = [
-    { label: "Today", fn: () => { onFromChange(today()); onToChange(today()); } },
-    { label: "This week", fn: () => { onFromChange(weekStart()); onToChange(today()); } },
-    { label: "This month", fn: () => { onFromChange(monthStart()); onToChange(today()); } },
-    {
-      label: "Last month",
-      fn: () => {
-        const [f, t] = lastMonthRange();
-        onFromChange(f);
-        onToChange(t);
-      },
-    },
-    { label: "This quarter", fn: () => { onFromChange(quarterStart()); onToChange(today()); } },
-  ];
+  function selectMonth(ym: string) {
+    const [y, m] = ym.split("-").map(Number);
+    const first = `${y}-${String(m).padStart(2, "0")}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const last = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    onFromChange(first);
+    onToChange(last);
+  }
 
   return (
     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
-      {quickBtns.map((b) => (
-        <Button key={b.label} variant="secondary" size="sm" onClick={b.fn}>
-          {b.label}
-        </Button>
-      ))}
+      <Button variant="secondary" size="sm" onClick={() => { onFromChange(today()); onToChange(today()); }}>
+        Today
+      </Button>
+      <input
+        type="month"
+        value={monthPickerValue(from)}
+        onChange={(e) => selectMonth(e.target.value)}
+        style={{
+          height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+          background: "var(--surface)", color: "var(--fg)", padding: "0 var(--s-3)",
+          fontSize: 13, fontFamily: "var(--font-sans)", outline: "none", cursor: "pointer",
+        }}
+      />
       <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
         <DateInput value={from} onChange={(e) => onFromChange(e.target.value)} />
         <span style={{ fontSize: 12, color: "var(--fg-4)" }}>–</span>
@@ -626,8 +615,8 @@ const TABS: { value: ReportsTab; label: string }[] = [
 
 export function ReportsClient() {
   const [activeTab, setActiveTab] = useState<ReportsTab>("operations");
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(today);
+  const [from, setFrom] = useState(() => monthStart());
+  const [to, setTo] = useState(() => today());
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
   const [data, setData] = useState<AccountingData | null>(null);

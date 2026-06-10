@@ -5,11 +5,14 @@ import {
   expCashTotal,
   expBankTotal,
   hrTotal,
+  fixedExpenseTotal,
   type DailyEntry,
+  type MonthlyFixedExpense,
 } from "@/modules/accounting/types";
 
 interface Props {
   entries: DailyEntry[];
+  fixedCost?: MonthlyFixedExpense | null;
   daysInMonth?: number;
   today?: Date;
   month?: number;
@@ -21,19 +24,19 @@ function thb(n: number): string {
   return (n < 0 ? "−" : "") + "฿" + Math.round(Math.abs(n)).toLocaleString("en");
 }
 
-export function AccountingSummaryCards({ entries }: Props) {
+export function AccountingSummaryCards({ entries, fixedCost }: Props) {
   const totals = entries.reduce(
     (acc, e) => ({
       salesNet: acc.salesNet + salesNetTotal(e),
       opex:     acc.opex     + expCashTotal(e) + expBankTotal(e),
       hr:       acc.hr       + hrTotal(e),
-      vat:      acc.vat      + e.vat_7,
     }),
-    { salesNet: 0, opex: 0, hr: 0, vat: 0 },
+    { salesNet: 0, opex: 0, hr: 0 },
   );
 
-  const netAfterOpex  = totals.salesNet - totals.opex;
-  const totalCosts    = totals.opex + totals.hr;
+  const fixed       = fixedCost ? fixedExpenseTotal(fixedCost) : 0;
+  const totalCosts  = totals.opex + totals.hr + fixed;
+  const whatsLeft   = totals.salesNet - totalCosts;
 
   const stats = [
     {
@@ -45,22 +48,17 @@ export function AccountingSummaryCards({ entries }: Props) {
       value: thb(totals.opex),
     },
     {
-      label: "Net after OpEx",
-      value: thb(netAfterOpex),
-      deltaDir: netAfterOpex > 0 ? "up" as const : netAfterOpex < 0 ? "down" as const : "neutral" as const,
-    },
-    {
       label: "HR",
       value: thb(totals.hr),
     },
     {
-      label: "VAT 7%",
-      value: thb(totals.vat),
-    },
-    {
       label: "Total costs",
       value: thb(totalCosts),
-      deltaDir: "neutral" as const,
+    },
+    {
+      label: "What's left",
+      value: thb(whatsLeft),
+      deltaDir: whatsLeft > 0 ? "up" as const : whatsLeft < 0 ? "down" as const : "neutral" as const,
     },
   ];
 

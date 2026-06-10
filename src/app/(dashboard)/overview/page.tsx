@@ -28,11 +28,16 @@ export default async function OverviewPage() {
 
   const cards = await fetchCards(baseUrl, cookie);
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const dateLabel = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Overview</h1>
-        <p className="text-sm text-muted-foreground">What needs your attention today, per shop.</p>
+      <div className="flex flex-col gap-1">
+        <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--fg-4)]">{dateLabel}</span>
+        <h1 className="text-2xl font-semibold text-[var(--fg)]">{greeting}.</h1>
+        <p className="text-sm text-[var(--fg-3)]">What needs your attention today, per shop.</p>
       </div>
       {cards.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">

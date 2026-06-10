@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { AccountingClient } from "@/modules/accounting/components/AccountingClient";
 import { getAllowedLocationIds } from "@/core/permissions/server";
+import { ACCOUNTING_EXCLUDED_LOCATION_IDS } from "@/lib/constants";
 import type { AdminLocation } from "@/modules/admin/types";
 
 export default async function AccountingPage({ searchParams }: { searchParams: Promise<{ location?: string }> }) {
@@ -30,7 +31,9 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   if (allowedIds !== null) query = query.in("id", allowedIds);
 
   const { data } = await query;
-  const locations: AdminLocation[] = data ?? [];
+  const locations: AdminLocation[] = (data ?? []).filter(
+    (l) => !ACCOUNTING_EXCLUDED_LOCATION_IDS.has(l.id)
+  );
   const canManage = session.user.role === "owner";
 
   const { location: locationParam } = await searchParams;

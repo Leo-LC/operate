@@ -120,12 +120,11 @@ export async function POST(request: Request) {
 
     for (const col of IMPORT_COLUMNS) {
       if (col.db === "date") continue;
-      if (col.db === "notes") {
-        row["notes"] = get("notes") || null;
-      } else {
-        row[col.db] = parseNumeric(get(col.csv));
-      }
+      row[col.db] = parseNumeric(get(col.csv));
     }
+    // notes is optional — include if column present
+    const notesIdx = headers.indexOf("notes");
+    row["notes"] = notesIdx >= 0 ? (cells[notesIdx] ?? "").trim() || null : null;
 
     toUpsert.push(row);
   }

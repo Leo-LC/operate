@@ -1,7 +1,46 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-import { IMPORT_COLUMNS } from "@/app/api/accounting/import/columns";
+
+// Full template columns in the same order as the accounting sheet.
+// Computed/display-only columns (sales_net_inc_vat, payment_delta, exp_cash_total,
+// exp_bank_total, exp_total, hr_total) are included for copy-paste convenience but
+// ignored by the import route.
+const TEMPLATE_COLUMNS = [
+  "date",
+  "sales_drinks_net",
+  "sales_ticket_net",
+  "sales_snack_net",
+  "sales_goodies_net",
+  "sales_card_surcharge",
+  "sales_net_inc_vat",
+  "vat_7",
+  "payment_cash",
+  "payment_scan",
+  "payment_credit_card",
+  "payment_delta",
+  "exp_staff_food_cash",
+  "exp_drinks_cash",
+  "exp_goodies_cash",
+  "exp_animals_cash",
+  "exp_supply_cash",
+  "exp_boss_fees_cash",
+  "exp_other_cash",
+  "exp_cash_total",
+  "exp_makro_bank",
+  "exp_other_bank",
+  "exp_bank_total",
+  "exp_total",
+  "hr_salary_cash",
+  "hr_salary_bank",
+  "hr_challenge_cash",
+  "hr_service_charge_cash",
+  "hr_accompte_cash",
+  "hr_total",
+  "cash_end_day",
+  "cash_to_boss",
+  "cash_safe",
+];
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -11,39 +50,43 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const locationName = searchParams.get("location_name") ?? "Your Location Name";
+  const monthParam = searchParams.get("month");
 
-  const headers = IMPORT_COLUMNS.map((c) => c.csv).join(",");
+  // Determine year/month — default to current month if not supplied
+  let year: number;
+  let month: number;
+  if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+    [year, month] = monthParam.split("-").map(Number) as [number, number];
+  } else {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth() + 1;
+  }
 
-  // Hint row: real date format, zeros for all numeric fields, placeholder notes
-  // Decimals use dot notation (e.g. 1234.50). Both dot and comma are accepted on import.
-  const hintValues = IMPORT_COLUMNS.map((c) => {
-    if (c.csv === "date")  return "YYYY-MM-DD";
-    if (c.csv === "notes") return "optional text";
-    return "0";
-  });
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const daysInMonth = new Date(year, month, 0).getDate();
 
-  // Example row so the date format is crystal-clear
-  const exampleValues = IMPORT_COLUMNS.map((c) => {
-    if (c.csv === "date")  return "2026-01-15";
-    if (c.csv === "notes") return "";
-    return "0";
+  const headerRow = TEMPLATE_COLUMNS.join(",");
+
+  // One row per calendar day, date pre-filled, all other cells empty
+  const dataRows = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = String(i + 1).padStart(2, "0");
+    const date = `${year}-${String(month).padStart(2, "0")}-${day}`;
+    return [date, ...Array(TEMPLATE_COLUMNS.length - 1).fill("")].join(",");
   });
 
   const csv = [
-    `# Import template for: ${locationName}`,
-    `# - date column: YYYY-MM-DD format (e.g. 2026-01-15)`,
-    `# - numeric columns: use dot OR comma as decimal separator (e.g. 1234.50 or 1234,50)`,
-    `# - uploading will OVERWRITE existing entries for the same date`,
-    `# - delete this comment block before uploading, or leave it — it will be ignored`,
-    headers,
-    hintValues.join(","),
-    exampleValues.join(","),
+    `# Accounting template: ${locationName} — ${monthStr}`,
+    `# Fill in values and import via the accounting module.`,
+    `# Computed columns (sales_net_inc_vat, payment_delta, *_total) are ignored on import.`,
+    headerRow,
+    ...dataRows,
   ].join("\n");
 
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="accounting-import-template.csv"`,
+      "Content-Disposition": `attachment; filename="accounting-${monthStr}.csv"`,
     },
   });
 }

@@ -1,5 +1,11 @@
 export const DEFAULT_ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 
+// Location UUIDs (from the locations table) excluded from the accounting module.
+// Resort Chiang Mai is tracked via reviews/challenges only — it has no daily accounting.
+export const ACCOUNTING_EXCLUDED_LOCATION_IDS = new Set([
+  "47f3b65b-28c8-482b-9542-399ed33723e6", // Capybara Resort Chiang Mai
+]);
+
 export const EXCLUDED_LOCATION_IDS = new Set([
   // "locations/787493951104592729", // Olives Bar Tapas (France)
   "locations/5898853216563266426", // Capybara Coffee Chiang Mai (unverified duplicate)
