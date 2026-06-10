@@ -236,15 +236,15 @@ function LocationCard({
         <MetricRow
           label="Panier moyen"
           value={loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—"}
-          sub={loc.panierMoyen.value !== null ? "target ≥ 170 ฿" : undefined}
+          sub={loc.panierMoyen.value !== null ? "target ≥ 190 ฿" : undefined}
           passes={loc.panierMoyen.passes}
           bonus={loc.panierMoyen.bonus}
           loading={loading}
         />
         <MetricRow
-          label={`Opex variable${loc.opex.threshold === 0.15 ? " (Phangan)" : ""}`}
+          label="Opex variable"
           value={pct(loc.opex.ratio)}
-          sub={loc.opex.ratio !== null ? `target < ${(loc.opex.threshold * 100).toFixed(0)}%` : undefined}
+          sub={loc.opex.ratio !== null ? "target < 9.5%" : undefined}
           passes={loc.opex.passes}
           bonus={loc.opex.bonus}
           loading={loading}
@@ -367,8 +367,8 @@ export function ChallengesOverview() {
         {[
           { label: "Merchandising", max: "5 000 ฿", tiers: "7/8/9%" },
           { label: "Snacks", max: "1 250 ฿", tiers: "≥ 0.45" },
-          { label: "Panier moyen", max: "1 250 ฿", tiers: "≥ 170 ฿" },
-          { label: "Opex variable", max: "1 250 ฿", tiers: "< 10%" },
+          { label: "Panier moyen", max: "1 250 ฿", tiers: "≥ 190 ฿" },
+          { label: "Opex variable", max: "1 250 ฿", tiers: "< 9.5%" },
           { label: "Reviews volume", max: "625 ฿", tiers: "≥ 4%" },
           { label: "Reviews note", max: "625 ฿", tiers: "GBP+0.1" },
         ].map((item) => (

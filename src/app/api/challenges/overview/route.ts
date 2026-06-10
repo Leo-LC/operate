@@ -11,19 +11,14 @@ const MERCH_TIERS = [
 
 const SNACKS_THRESHOLD = 0.45;
 const SNACKS_BONUS = 1250;
-const PANIER_THRESHOLD = 170;
+const PANIER_THRESHOLD = 190;
 const PANIER_BONUS = 1250;
-const OPEX_THRESHOLD_DEFAULT = 0.10;
-const OPEX_THRESHOLD_PHANGAN = 0.15;
+const OPEX_THRESHOLD_DEFAULT = 0.095;
 const OPEX_BONUS = 1250;
 const REVIEWS_VOLUME_THRESHOLD = 0.04;
 const REVIEWS_VOLUME_BONUS = 625;
 const REVIEWS_RATING_BONUS = 625;
 const REVIEWS_MIN_COUNT = 10;
-
-function isPhangan(title: string): boolean {
-  return /phangan/i.test(title);
-}
 
 function computeRatingTarget(currentRating: number): number {
   if (currentRating <= 0) return 0;
@@ -298,7 +293,7 @@ export async function GET(request: Request) {
     if (opexSum !== null && salesNetIncVat !== null && salesNetIncVat > 0) {
       opexRatio = opexSum / salesNetIncVat;
     }
-    const opexThreshold = isPhangan(title) ? OPEX_THRESHOLD_PHANGAN : OPEX_THRESHOLD_DEFAULT;
+    const opexThreshold = OPEX_THRESHOLD_DEFAULT;
     const opexPasses = opexRatio !== null ? opexRatio < opexThreshold : null;
     const opexBonus = opexPasses === true ? OPEX_BONUS : 0;
 
