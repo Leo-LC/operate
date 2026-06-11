@@ -110,6 +110,7 @@ export const authOptions: NextAuthOptions = {
             "email",
             "profile",
             "https://www.googleapis.com/auth/business.manage",
+            "https://www.googleapis.com/auth/spreadsheets.readonly",
           ].join(" "),
           prompt: "consent",
           access_type: "offline",

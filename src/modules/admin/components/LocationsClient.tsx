@@ -52,6 +52,7 @@ const EMPTY_FORM = {
   phone: "",
   vat_number: "",
   google_maps_url: "",
+  google_sheet_id: "",
   notes: "",
 };
 
@@ -206,6 +207,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       phone: loc.phone ?? "",
       vat_number: loc.vat_number ?? "",
       google_maps_url: loc.google_maps_url ?? "",
+      google_sheet_id: loc.google_sheet_id ?? "",
       notes: loc.notes ?? "",
     });
     setIsEditing(true);
@@ -229,6 +231,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           phone: form.phone.trim() || null,
           vat_number: form.vat_number.trim() || null,
           google_maps_url: form.google_maps_url.trim() || null,
+          google_sheet_id: form.google_sheet_id.trim() || null,
           notes: form.notes.trim() || null,
         }),
       });
@@ -267,6 +270,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           phone: form.phone.trim() || null,
           vat_number: form.vat_number.trim() || null,
           google_maps_url: form.google_maps_url.trim() || null,
+          google_sheet_id: form.google_sheet_id.trim() || null,
           notes: form.notes.trim() || null,
         }),
       });
@@ -394,6 +398,13 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           placeholder="https://maps.google.com/…"
         />
         <FormField
+          label="Accounting Sheet ID"
+          name="google_sheet_id"
+          value={form.google_sheet_id}
+          onChange={(v) => setField("google_sheet_id", v)}
+          placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+        />
+        <FormField
           label="Notes"
           name="notes"
           value={form.notes}
@@ -427,7 +438,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       </div>
 
       <div style={{ overflowY: "auto", flex: 1 }}>
-        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.external_id && !selected.google_maps_url && !selected.notes && (
+        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.external_id && !selected.google_maps_url && !selected.google_sheet_id && !selected.notes && (
           <p style={{ fontSize: 13, color: "var(--fg-4)", padding: "16px 0", textAlign: "center" }}>
             No information added yet. Click Edit to fill in the details.
           </p>
@@ -454,6 +465,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
             </div>
           </div>
         )}
+        <InfoRow icon={FileTextIcon} label="Accounting Sheet ID" value={selected.google_sheet_id} />
         <InfoRow icon={FileTextIcon} label="Notes" value={selected.notes} multiline />
 
         <div style={{ paddingTop: 8 }}>

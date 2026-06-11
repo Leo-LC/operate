@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, ListIcon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, ListIcon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { AccountingSummaryCards } from "@/modules/accounting/components/AccountingSummaryCards";
@@ -9,6 +9,7 @@ import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFo
 import { MonthlyFixedExpensesTable } from "@/modules/accounting/components/MonthlyFixedExpensesTable";
 import type { DailyEntry, MonthlyFixedExpense } from "@/modules/accounting/types";
 import type { AdminLocation } from "@/modules/admin/types";
+import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
 import { toast } from "sonner";
 
 type MainView = "smart" | "focus" | "fixed";
@@ -66,6 +67,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
   const [importConfirm, setImportConfirm] = useState<ImportConfirm | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting]         = useState(false);
+  const [sheetImportOpen, setSheetImportOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const monthStr  = `${year}-${String(month).padStart(2, "0")}`;
@@ -251,6 +253,19 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
                   {importing ? "Importing…" : "Import CSV"}
                 </Button>
               </>
+            )}
+
+            {/* Import from Google Sheets — owner only */}
+            {view !== "fixed" && canManage && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setSheetImportOpen(true)}
+                title="Import from Google Sheets"
+              >
+                <CloudDownloadIcon size={13} />
+                Sheets
+              </Button>
             )}
 
             {/* Delete month — owner only */}
@@ -456,6 +471,19 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           canManageCategories={canManage}
         />
       )}
+
+      {/* Google Sheets import modal — owner only */}
+      {sheetImportOpen && (() => {
+        const loc = locations.find((l) => l.id === locationId);
+        if (!loc) return null;
+        return (
+          <SheetImportModal
+            location={loc}
+            onClose={() => setSheetImportOpen(false)}
+            onImported={() => void fetchEntries()}
+          />
+        );
+      })()}
     </div>
   );
 }

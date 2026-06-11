@@ -42,6 +42,7 @@ export interface AdminLocation {
   phone?: string | null;
   vat_number?: string | null;
   google_maps_url?: string | null;
+  google_sheet_id?: string | null;
   notes?: string | null;
 }
 

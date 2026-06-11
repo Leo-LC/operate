@@ -10,7 +10,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params;
   const body = await req.json();
-  const allowed = ["name", "slug", "external_id", "is_active", "address_en", "address_th", "phone", "vat_number", "google_maps_url", "notes"] as const;
+  const allowed = ["name", "slug", "external_id", "is_active", "address_en", "address_th", "phone", "vat_number", "google_maps_url", "google_sheet_id", "notes"] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];
@@ -25,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .from("locations")
     .update(updates)
     .eq("id", id)
-    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, notes")
+    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes")
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
