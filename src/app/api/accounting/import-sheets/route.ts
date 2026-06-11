@@ -89,7 +89,13 @@ export async function POST(request: Request) {
 
   if (rows.length < 2) return Response.json({ error: "Sheet has no data rows (need at least a header row and one data row)." }, { status: 400 });
 
-  const headers = rows[0].map((h) => (h ?? "").trim().toLowerCase());
+  // Find the header row by scanning the first 5 rows for one containing "date"
+  const headerRowIndex = rows.slice(0, 5).findIndex(
+    (row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date")
+  );
+  if (headerRowIndex === -1) return Response.json({ error: "Could not find a header row containing 'date' in the first 5 rows of the sheet." }, { status: 400 });
+
+  const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
 
   const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !headers.includes(h));
   if (missing.length > 0) {
@@ -104,7 +110,7 @@ export async function POST(request: Request) {
   const parsed: ParsedRow[] = [];
   let skippedEmpty = 0;
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const cells = rows[i];
     const get = (name: string) => ((cells[idx(name)] ?? "") as string).trim();
     const dateVal = get("date");
