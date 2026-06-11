@@ -1,62 +1,10 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { parseDate, parseNumeric, SALES_COLUMNS, importLocationFromSheet } from "./lib";
 import { IMPORT_COLUMNS, REQUIRED_IMPORT_HEADERS } from "@/app/api/accounting/import/columns";
-
-function parseNumeric(raw: string): number {
-  const s = (raw ?? "").trim().replace(/[^\d.,-]/g, "");
-  if (!s || s === "-") return 0;
-  const lastComma = s.lastIndexOf(",");
-  const lastDot   = s.lastIndexOf(".");
-  if (lastComma > lastDot) {
-    return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
-  }
-  return parseFloat(s.replace(/,/g, "")) || 0;
-}
-
-const MONTH_MAP: Record<string, string> = {
-  jan:"01", feb:"02", mar:"03", apr:"04", may:"05", jun:"06",
-  jul:"07", aug:"08", sep:"09", oct:"10", nov:"11", dec:"12",
-};
-
-// Converts any common date format to YYYY-MM-DD, returns null if unparseable
-function parseDate(raw: string): string | null {
-  const s = raw.trim();
-  if (!s) return null;
-
-  // Already YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-  // DD MMM YYYY or D MMM YYYY — e.g. "01 Jan 2026", "1 January 2026"
-  const dmy = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
-  if (dmy) {
-    const m = MONTH_MAP[dmy[2].toLowerCase().slice(0, 3)];
-    if (m) return `${dmy[3]}-${m}-${dmy[1].padStart(2, "0")}`;
-  }
-
-  // DD/MM/YYYY or D/M/YYYY (day-first, as used in Thailand)
-  const slashDmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (slashDmy) return `${slashDmy[3]}-${slashDmy[2].padStart(2, "0")}-${slashDmy[1].padStart(2, "0")}`;
-
-  // YYYY/MM/DD
-  const slashYmd = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
-  if (slashYmd) return `${slashYmd[1]}-${slashYmd[2]}-${slashYmd[3]}`;
-
-  // MMM DD, YYYY — e.g. "Jan 1, 2026"
-  const mdy = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
-  if (mdy) {
-    const m = MONTH_MAP[mdy[1].toLowerCase().slice(0, 3)];
-    if (m) return `${mdy[3]}-${m}-${mdy[2].padStart(2, "0")}`;
-  }
-
-  return null;
-}
-
-// Only import rows that have at least one sales figure — skips future/unfilled days
-const SALES_COLUMNS = ["sales_drinks_net", "sales_ticket_net", "sales_snack_net", "sales_goodies_net", "sales_card_surcharge"];
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -93,167 +41,62 @@ export async function POST(request: Request) {
   const { location_id: locationId, preview = false } = body;
   if (!locationId) return Response.json({ error: "location_id is required" }, { status: 400 });
 
-  const supabase = getSupabaseServerClient();
-
-  const { data: loc, error: locErr } = await supabase
-    .from("locations")
-    .select("id, name, google_sheet_id")
-    .eq("id", locationId)
-    .eq("organization_id", DEFAULT_ORG_ID)
-    .single();
-
-  if (locErr || !loc) return Response.json({ error: "Location not found" }, { status: 400 });
-  if (!loc.google_sheet_id) return Response.json({ error: "No Google Sheet ID configured for this location. Go to Admin → Locations to add it." }, { status: 400 });
-
   const accessToken = await getOrganizationAccessToken();
   if (!accessToken) return Response.json({ error: "Google account not connected or token expired. Please sign out and back in." }, { status: 400 });
 
-  // Fetch the sheet data from Google Sheets API
-  const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(loc.google_sheet_id as string)}/values/DAILY_ENTRIES`;
-  const sheetRes = await fetch(sheetUrl, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  if (!sheetRes.ok) {
-    const errText = await sheetRes.text();
-    if (sheetRes.status === 403 || sheetRes.status === 401) {
-      return Response.json({ error: "Cannot access the spreadsheet. Make sure the Google account has access, then sign out and back in to grant the spreadsheets permission." }, { status: 400 });
-    }
-    if (sheetRes.status === 404) {
-      return Response.json({ error: "Spreadsheet or tab 'DAILY_ENTRIES' not found. Check the Sheet ID in Admin → Locations." }, { status: 400 });
-    }
-    return Response.json({ error: `Google Sheets API error: ${sheetRes.status} — ${errText}` }, { status: 500 });
-  }
-
-  const sheetData = (await sheetRes.json()) as { values?: string[][] };
-  const rows = sheetData.values ?? [];
-
-  if (rows.length < 2) return Response.json({ error: "Sheet has no data rows (need at least a header row and one data row)." }, { status: 400 });
-
-  // Find the header row by scanning the first 5 rows for one containing "date"
-  const headerRowIndex = rows.slice(0, 5).findIndex(
-    (row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date")
-  );
-  if (headerRowIndex === -1) return Response.json({ error: "Could not find a header row containing 'date' in the first 5 rows of the sheet." }, { status: 400 });
-
-  const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
-
-  const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !headers.includes(h));
-  if (missing.length > 0) {
-    return Response.json({ error: `Sheet is missing required columns: ${missing.join(", ")}` }, { status: 400 });
-  }
-
-  const idx = (name: string) => headers.indexOf(name);
-
-  // Parse all data rows, collecting valid dates
-  const errors: string[] = [];
-  type ParsedRow = { dateVal: string; row: Record<string, unknown> };
-  const parsed: ParsedRow[] = [];
-  let skippedEmpty = 0;
-
-  for (let i = headerRowIndex + 1; i < rows.length; i++) {
-    const cells = rows[i];
-    const get = (name: string) => ((cells[idx(name)] ?? "") as string).trim();
-    const rawDate = get("date");
-
-    if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
-
-    const dateVal = parseDate(rawDate);
-    if (!dateVal) {
-      errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`);
-      continue;
-    }
-
-    // Skip rows with no sales data (future/unfilled days pre-populated in the sheet)
-    const hasSales = SALES_COLUMNS.some((col) => parseNumeric(get(col)) !== 0);
-    if (!hasSales) { skippedEmpty++; continue; }
-
-    const row: Record<string, unknown> = {
-      organization_id: DEFAULT_ORG_ID,
-      location_id:     locationId,
-      entry_date:      dateVal,
-      updated_by:      session.user.userId ?? null,
-      created_by:      session.user.userId ?? null,
-      updated_at:      new Date().toISOString(),
-    };
-
-    for (const col of IMPORT_COLUMNS) {
-      if (col.db === "date") continue;
-      row[col.db] = parseNumeric(get(col.csv));
-    }
-    const notesIdx = idx("notes");
-    row["notes"] = notesIdx >= 0 ? (cells[notesIdx] ?? "").toString().trim() || null : null;
-
-    parsed.push({ dateVal, row });
-  }
-
-  if (parsed.length === 0 && errors.length === 0) {
-    return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null });
-  }
-
-  // Only treat a DB row as "already filled" if it has actual sales data.
-  // Empty DB rows (all zeros) will be overwritten by the sheet data.
-  const allDates = parsed.map((p) => p.dateVal);
-  const { data: existing } = await supabase
-    .from("daily_entries")
-    .select("entry_date")
-    .eq("location_id", locationId)
-    .in("entry_date", allDates)
-    .or("sales_drinks_net.gt.0,sales_ticket_net.gt.0,sales_snack_net.gt.0,sales_goodies_net.gt.0,sales_card_surcharge.gt.0");
-
-  const filledDates = new Set((existing ?? []).map((e) => e.entry_date as string));
-  const toUpsert = parsed.filter((p) => !filledDates.has(p.dateVal));
-  const skippedExisting = parsed.length - toUpsert.length;
-
-  if (toUpsert.length === 0) {
-    return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
-  }
-
-  // Preview mode — return what would be imported without writing anything
+  // Preview mode — parse sheet without writing
   if (preview) {
-    const dates = toUpsert.map((p) => p.dateVal).sort();
-    return Response.json({
-      preview: true,
-      would_insert: toUpsert.length,
-      date_from: dates[0],
-      date_to: dates[dates.length - 1],
-      skipped_existing: skippedExisting,
-      skipped_empty: skippedEmpty,
-      errors,
-    });
+    const supabase = getSupabaseServerClient();
+    const { data: loc } = await supabase.from("locations").select("id, name, google_sheet_id").eq("id", locationId).eq("organization_id", DEFAULT_ORG_ID).single();
+    if (!loc) return Response.json({ error: "Location not found" }, { status: 400 });
+    if (!loc.google_sheet_id) return Response.json({ error: "No Google Sheet ID configured for this location." }, { status: 400 });
+
+    const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(loc.google_sheet_id as string)}/values/DAILY_ENTRIES`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!sheetRes.ok) {
+      if (sheetRes.status === 403 || sheetRes.status === 401) return Response.json({ error: "Cannot access the spreadsheet. Make sure the Google account has access, then sign out and back in to grant the spreadsheets permission." }, { status: 400 });
+      if (sheetRes.status === 404) return Response.json({ error: "Spreadsheet or tab 'DAILY_ENTRIES' not found. Check the Sheet ID in Admin → Locations." }, { status: 400 });
+      return Response.json({ error: `Google Sheets API error: ${sheetRes.status}` }, { status: 500 });
+    }
+
+    const rows = ((await sheetRes.json()) as { values?: string[][] }).values ?? [];
+    if (rows.length < 2) return Response.json({ error: "Sheet has no data rows." }, { status: 400 });
+    const headerRowIndex = rows.slice(0, 5).findIndex((row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date"));
+    if (headerRowIndex === -1) return Response.json({ error: "Header row with 'date' not found." }, { status: 400 });
+    const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
+    const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !headers.includes(h));
+    if (missing.length > 0) return Response.json({ error: `Sheet is missing required columns: ${missing.join(", ")}` }, { status: 400 });
+
+    const idx = (name: string) => headers.indexOf(name);
+    const errors: string[] = [];
+    const validDates: string[] = [];
+    let skippedEmpty = 0;
+
+    for (let i = headerRowIndex + 1; i < rows.length; i++) {
+      const cells = rows[i];
+      const get = (name: string) => ((cells[idx(name)] ?? "") as string).trim();
+      const rawDate = get("date");
+      if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
+      const dateVal = parseDate(rawDate);
+      if (!dateVal) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
+      if (!SALES_COLUMNS.some((col) => parseNumeric(get(col)) !== 0)) { skippedEmpty++; continue; }
+      validDates.push(dateVal);
+    }
+
+    if (validDates.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+
+    const { data: existing } = await supabase.from("daily_entries").select("entry_date").eq("location_id", locationId).in("entry_date", validDates).or("sales_drinks_net.gt.0,sales_ticket_net.gt.0,sales_snack_net.gt.0,sales_goodies_net.gt.0,sales_card_surcharge.gt.0");
+    const filledDates = new Set((existing ?? []).map((e) => e.entry_date as string));
+    const toImport = validDates.filter((d) => !filledDates.has(d)).sort();
+    const skippedExisting = validDates.length - toImport.length;
+
+    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+
+    return Response.json({ preview: true, would_insert: toImport.length, date_from: toImport[0], date_to: toImport[toImport.length - 1], skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors });
   }
 
-  const { data: inserted, error: insertErr } = await supabase
-    .from("daily_entries")
-    .upsert(toUpsert.map((p) => p.row), { onConflict: "location_id,entry_date" })
-    .select("id");
-
-  if (insertErr) return Response.json({ error: insertErr.message }, { status: 500 });
-
-  const entryIds = (inserted ?? []).map((r) => r.id as string);
-
-  const { data: batch, error: batchErr } = await supabase
-    .from("sheet_import_batches")
-    .insert({
-      organization_id: DEFAULT_ORG_ID,
-      location_id:     locationId,
-      imported_by:     session.user.userId ?? null,
-      row_count:       entryIds.length,
-      entry_ids:       entryIds,
-    })
-    .select("id")
-    .single();
-
-  if (batchErr) return Response.json({ error: batchErr.message }, { status: 500 });
-
-  await writeAuditLog({
-    userId:     session.user.userId ?? null,
-    action:     "accounting.sheets.import",
-    moduleKey:  "accounting",
-    entityType: "daily_entry",
-    entityId:   locationId,
-    payload:    { location_id: locationId, location_name: loc.name, row_count: entryIds.length, batch_id: batch.id },
-  });
-
-  return Response.json({ inserted: entryIds.length, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: batch.id });
+  // Real import — delegate to shared lib
+  const supabase = getSupabaseServerClient();
+  const result = await importLocationFromSheet(locationId, session.user.userId ?? null, accessToken, supabase);
+  if (result.error) return Response.json({ error: result.error }, { status: 400 });
+  return Response.json({ inserted: result.inserted, skipped_existing: result.skipped_existing, skipped_empty: result.skipped_empty, errors: result.errors, batch_id: result.batch_id, preview: false });
 }

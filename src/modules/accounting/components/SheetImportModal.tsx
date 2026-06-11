@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { CloudDownloadIcon, HistoryIcon, XIcon, RotateCcwIcon, CheckCircleIcon, AlertTriangleIcon, Loader2Icon } from "lucide-react";
+import { CloudDownloadIcon, HistoryIcon, XIcon, RotateCcwIcon, CheckCircleIcon, AlertTriangleIcon, Loader2Icon, ZapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { AdminLocation } from "@/modules/admin/types";
@@ -33,18 +33,33 @@ interface ImportResult {
   batch_id: string | null;
 }
 
+interface BulkLocationResult {
+  location_id: string;
+  location_name: string;
+  inserted: number;
+  skipped_existing: number;
+  errors: string[];
+  error?: string;
+}
+
+interface BulkResult {
+  results: BulkLocationResult[];
+  total_inserted: number;
+  total_skipped: number;
+  failed_count: number;
+}
+
 interface Props {
   location: AdminLocation;
   onClose: () => void;
   onImported: () => void;
 }
 
-type Tab = "import" | "history";
+type Tab = "import" | "all" | "history";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
-
 function formatDateOnly(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleString("en", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -54,6 +69,7 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [revertingId, setRevertingId] = useState<string | null>(null);
@@ -87,7 +103,6 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
       if (data.preview === true) {
         setPreview(data as ImportPreview);
       } else {
-        // Nothing to import
         setResult(data as ImportResult);
       }
     } catch {
@@ -120,16 +135,37 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
     }
   }
 
+  async function handleImportAll() {
+    setImporting(true);
+    setBulkResult(null);
+    try {
+      const res = await fetch("/api/accounting/import-sheets/all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Bulk import failed"); return; }
+      setBulkResult(data as BulkResult);
+      if ((data as BulkResult).total_inserted > 0) {
+        toast.success(`Imported ${(data as BulkResult).total_inserted} rows across all shops`);
+        onImported();
+      } else {
+        toast.info("All shops already up to date");
+      }
+    } catch {
+      toast.error("Network error — bulk import failed");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   async function handleRevert(batch: ImportBatch) {
     if (!confirm(`Revert this import? This will delete ${batch.row_count} rows imported on ${formatDate(batch.imported_at)}.`)) return;
     setRevertingId(batch.id);
     try {
       const res = await fetch(`/api/accounting/import-sheets/${batch.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Revert failed");
-        return;
-      }
+      if (!res.ok) { toast.error(data.error ?? "Revert failed"); return; }
       toast.success(`Reverted — ${data.deleted} rows deleted`);
       onImported();
       await fetchHistory();
@@ -142,27 +178,18 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
 
   const hasSheetId = !!location.google_sheet_id;
 
+  const TABS: Array<{ id: Tab; label: string; icon: typeof CloudDownloadIcon }> = [
+    { id: "import", label: "This shop",    icon: CloudDownloadIcon },
+    { id: "all",    label: "All shops",    icon: ZapIcon            },
+    { id: "history", label: "History",     icon: HistoryIcon        },
+  ];
+
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 50,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 16,
-      }}
+      style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
-        background: "var(--bg)",
-        borderRadius: "var(--r-xl)",
-        border: "1px solid var(--line)",
-        width: "100%",
-        maxWidth: 520,
-        display: "flex",
-        flexDirection: "column",
-        maxHeight: "80vh",
-        overflow: "hidden",
-      }}>
+      <div style={{ background: "var(--bg)", borderRadius: "var(--r-xl)", border: "1px solid var(--line)", width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", maxHeight: "80vh", overflow: "hidden" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -176,34 +203,22 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
 
         {/* Tab nav */}
         <div style={{ display: "flex", borderBottom: "1px solid var(--line)", padding: "0 20px" }}>
-          {(["import", "history"] as Tab[]).map((t) => (
+          {TABS.map(({ id, label, icon: Icon }) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: "10px 0",
-                marginRight: 20,
-                fontSize: 13,
-                fontWeight: tab === t ? 600 : 400,
-                color: tab === t ? "var(--bronze)" : "var(--fg-4)",
-                background: "none",
-                border: "none",
-                borderBottom: tab === t ? "2px solid var(--bronze)" : "2px solid transparent",
-                cursor: "pointer",
-                textTransform: "capitalize",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
+              key={id}
+              onClick={() => setTab(id)}
+              style={{ padding: "10px 0", marginRight: 20, fontSize: 13, fontWeight: tab === id ? 600 : 400, color: tab === id ? "var(--bronze)" : "var(--fg-4)", background: "none", border: "none", borderBottom: tab === id ? "2px solid var(--bronze)" : "2px solid transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
             >
-              {t === "import" ? <CloudDownloadIcon style={{ width: 13, height: 13 }} /> : <HistoryIcon style={{ width: 13, height: 13 }} />}
-              {t === "import" ? "Import" : "History"}
+              <Icon style={{ width: 13, height: 13 }} />
+              {label}
             </button>
           ))}
         </div>
 
         {/* Body */}
         <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+
+          {/* ── This shop ── */}
           {tab === "import" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ background: "var(--bg-2)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
@@ -226,24 +241,14 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
 
                   {!preview ? (
                     <Button onClick={handlePreview} disabled={importing} style={{ alignSelf: "flex-start" }}>
-                      {importing ? (
-                        <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Checking sheet…</>
-                      ) : (
-                        <><CloudDownloadIcon className="mr-2 size-3.5" />Preview import</>
-                      )}
+                      {importing ? <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Checking sheet…</> : <><CloudDownloadIcon className="mr-2 size-3.5" />Preview import</>}
                     </Button>
                   ) : (
                     <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
                       <div style={{ padding: "12px 14px", background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
-                          {preview.would_insert} row{preview.would_insert !== 1 ? "s" : ""} ready to import
-                        </p>
-                        <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 3 }}>
-                          {formatDateOnly(preview.date_from)} → {formatDateOnly(preview.date_to)}
-                        </p>
-                        {preview.skipped_existing > 0 && (
-                          <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>{preview.skipped_existing} already filled in DB — will be skipped</p>
-                        )}
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{preview.would_insert} row{preview.would_insert !== 1 ? "s" : ""} ready to import</p>
+                        <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 3 }}>{formatDateOnly(preview.date_from)} → {formatDateOnly(preview.date_to)}</p>
+                        {preview.skipped_existing > 0 && <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>{preview.skipped_existing} already filled in DB — will be skipped</p>}
                       </div>
                       <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
                         <Button onClick={handleConfirmImport} disabled={importing}>
@@ -260,26 +265,57 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
                 <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: result.inserted > 0 ? "var(--good-soft, #d1fae5)" : "var(--bg-2)", borderBottom: result.errors.length > 0 ? "1px solid var(--line)" : undefined }}>
                     <CheckCircleIcon style={{ width: 15, height: 15, color: result.inserted > 0 ? "var(--good, #10b981)" : "var(--fg-4)" }} />
-                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
-                      {result.inserted > 0 ? `${result.inserted} row${result.inserted !== 1 ? "s" : ""} imported` : "Nothing new to import"}
-                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{result.inserted > 0 ? `${result.inserted} row${result.inserted !== 1 ? "s" : ""} imported` : "Nothing new to import"}</span>
                   </div>
                   <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
-                    {result.skipped_existing > 0 && (
-                      <p style={{ fontSize: 12, color: "var(--fg-4)" }}>{result.skipped_existing} row{result.skipped_existing !== 1 ? "s" : ""} skipped — already in database</p>
-                    )}
-                    {result.skipped_empty > 0 && (
-                      <p style={{ fontSize: 12, color: "var(--fg-4)" }}>{result.skipped_empty} empty row{result.skipped_empty !== 1 ? "s" : ""} skipped</p>
-                    )}
-                    {result.errors.map((e, i) => (
-                      <p key={i} style={{ fontSize: 12, color: "var(--bad)" }}>{e}</p>
-                    ))}
+                    {result.skipped_existing > 0 && <p style={{ fontSize: 12, color: "var(--fg-4)" }}>{result.skipped_existing} row{result.skipped_existing !== 1 ? "s" : ""} skipped — already in database</p>}
+                    {result.skipped_empty > 0 && <p style={{ fontSize: 12, color: "var(--fg-4)" }}>{result.skipped_empty} empty row{result.skipped_empty !== 1 ? "s" : ""} skipped</p>}
+                    {result.errors.map((e, i) => <p key={i} style={{ fontSize: 12, color: "var(--bad)" }}>{e}</p>)}
                   </div>
                 </div>
               )}
             </div>
           )}
 
+          {/* ── All shops ── */}
+          {tab === "all" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <p style={{ fontSize: 13, color: "var(--fg-3)", lineHeight: 1.5 }}>
+                Imports all shops with a configured Sheet ID at once. Skips dates already filled in the database. Safe to run repeatedly.
+              </p>
+
+              {!bulkResult ? (
+                <Button onClick={handleImportAll} disabled={importing} style={{ alignSelf: "flex-start" }}>
+                  {importing
+                    ? <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Importing all shops…</>
+                    : <><ZapIcon className="mr-2 size-3.5" />Import all shops</>}
+                </Button>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: bulkResult.total_inserted > 0 ? "var(--good-soft, #d1fae5)" : "var(--bg-2)", borderRadius: "var(--r-md)", border: "1px solid var(--line)" }}>
+                    <CheckCircleIcon style={{ width: 15, height: 15, color: bulkResult.total_inserted > 0 ? "var(--good, #10b981)" : "var(--fg-4)" }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
+                      {bulkResult.total_inserted > 0 ? `${bulkResult.total_inserted} rows imported across ${bulkResult.results.filter(r => r.inserted > 0).length} shop${bulkResult.results.filter(r => r.inserted > 0).length !== 1 ? "s" : ""}` : "All shops already up to date"}
+                    </span>
+                  </div>
+                  {bulkResult.results.map((r) => (
+                    <div key={r.location_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", fontSize: 13 }}>
+                      <span style={{ fontWeight: 500, color: "var(--fg)" }}>{r.location_name}</span>
+                      {r.error
+                        ? <span style={{ fontSize: 12, color: "var(--bad)" }}>{r.error}</span>
+                        : <span style={{ fontSize: 12, color: r.inserted > 0 ? "var(--good, #10b981)" : "var(--fg-4)" }}>
+                            {r.inserted > 0 ? `+${r.inserted} rows` : "up to date"}
+                          </span>
+                      }
+                    </div>
+                  ))}
+                  <Button variant="ghost" onClick={() => setBulkResult(null)} style={{ alignSelf: "flex-start", marginTop: 4 }}>Run again</Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── History ── */}
           {tab === "history" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {loadingHistory ? (
@@ -297,23 +333,11 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
                         {batch.reverted_at && <span style={{ marginLeft: 8, fontSize: 11, color: "var(--fg-4)", fontWeight: 400, background: "var(--bg-2)", padding: "2px 6px", borderRadius: "var(--r-sm)" }}>Reverted</span>}
                       </p>
                       <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>{formatDate(batch.imported_at)}</p>
-                      {batch.reverted_at && (
-                        <p style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>Reverted {formatDate(batch.reverted_at)}</p>
-                      )}
+                      {batch.reverted_at && <p style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>Reverted {formatDate(batch.reverted_at)}</p>}
                     </div>
                     {!batch.reverted_at && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={revertingId === batch.id}
-                        onClick={() => void handleRevert(batch)}
-                        style={{ color: "var(--bad)", flexShrink: 0 }}
-                      >
-                        {revertingId === batch.id ? (
-                          <Loader2Icon className="size-3.5 animate-spin" />
-                        ) : (
-                          <><RotateCcwIcon className="mr-1.5 size-3.5" />Revert</>
-                        )}
+                      <Button size="sm" variant="ghost" disabled={revertingId === batch.id} onClick={() => void handleRevert(batch)} style={{ color: "var(--bad)", flexShrink: 0 }}>
+                        {revertingId === batch.id ? <Loader2Icon className="size-3.5 animate-spin" /> : <><RotateCcwIcon className="mr-1.5 size-3.5" />Revert</>}
                       </Button>
                     )}
                   </div>
@@ -321,6 +345,7 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
               )}
             </div>
           )}
+
         </div>
       </div>
     </div>
