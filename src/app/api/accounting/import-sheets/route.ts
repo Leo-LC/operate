@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { parseDate, parseNumeric, SALES_COLUMNS, importLocationFromSheet } from "./lib";
-import { IMPORT_COLUMNS, REQUIRED_IMPORT_HEADERS } from "@/app/api/accounting/import/columns";
+import { REQUIRED_IMPORT_HEADERS } from "@/app/api/accounting/import/columns";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
