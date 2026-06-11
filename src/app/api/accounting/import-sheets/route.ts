@@ -191,25 +191,27 @@ export async function POST(request: Request) {
     return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null });
   }
 
-  // Check which dates already exist in the DB — skip those
+  // Only treat a DB row as "already filled" if it has actual sales data.
+  // Empty DB rows (all zeros) will be overwritten by the sheet data.
   const allDates = parsed.map((p) => p.dateVal);
   const { data: existing } = await supabase
     .from("daily_entries")
     .select("entry_date")
     .eq("location_id", locationId)
-    .in("entry_date", allDates);
+    .in("entry_date", allDates)
+    .or("sales_drinks_net.gt.0,sales_ticket_net.gt.0,sales_snack_net.gt.0,sales_goodies_net.gt.0,sales_card_surcharge.gt.0");
 
-  const existingDates = new Set((existing ?? []).map((e) => e.entry_date as string));
-  const toInsert = parsed.filter((p) => !existingDates.has(p.dateVal));
-  const skippedExisting = parsed.length - toInsert.length;
+  const filledDates = new Set((existing ?? []).map((e) => e.entry_date as string));
+  const toUpsert = parsed.filter((p) => !filledDates.has(p.dateVal));
+  const skippedExisting = parsed.length - toUpsert.length;
 
-  if (toInsert.length === 0) {
+  if (toUpsert.length === 0) {
     return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null });
   }
 
   const { data: inserted, error: insertErr } = await supabase
     .from("daily_entries")
-    .insert(toInsert.map((p) => p.row))
+    .upsert(toUpsert.map((p) => p.row), { onConflict: "location_id,entry_date" })
     .select("id");
 
   if (insertErr) return Response.json({ error: insertErr.message }, { status: 500 });
