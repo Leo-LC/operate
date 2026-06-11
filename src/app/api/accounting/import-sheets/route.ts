@@ -17,6 +17,47 @@ function parseNumeric(raw: string): number {
   return parseFloat(s.replace(/,/g, "")) || 0;
 }
 
+const MONTH_MAP: Record<string, string> = {
+  jan:"01", feb:"02", mar:"03", apr:"04", may:"05", jun:"06",
+  jul:"07", aug:"08", sep:"09", oct:"10", nov:"11", dec:"12",
+};
+
+// Converts any common date format to YYYY-MM-DD, returns null if unparseable
+function parseDate(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // DD MMM YYYY or D MMM YYYY — e.g. "01 Jan 2026", "1 January 2026"
+  const dmy = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (dmy) {
+    const m = MONTH_MAP[dmy[2].toLowerCase().slice(0, 3)];
+    if (m) return `${dmy[3]}-${m}-${dmy[1].padStart(2, "0")}`;
+  }
+
+  // DD/MM/YYYY or D/M/YYYY (day-first, as used in Thailand)
+  const slashDmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashDmy) return `${slashDmy[3]}-${slashDmy[2].padStart(2, "0")}-${slashDmy[1].padStart(2, "0")}`;
+
+  // YYYY/MM/DD
+  const slashYmd = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if (slashYmd) return `${slashYmd[1]}-${slashYmd[2]}-${slashYmd[3]}`;
+
+  // MMM DD, YYYY — e.g. "Jan 1, 2026"
+  const mdy = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+  if (mdy) {
+    const m = MONTH_MAP[mdy[1].toLowerCase().slice(0, 3)];
+    if (m) return `${mdy[3]}-${m}-${mdy[2].padStart(2, "0")}`;
+  }
+
+  return null;
+}
+
+// Only import rows that have at least one sales figure — skips future/unfilled days
+const SALES_COLUMNS = ["sales_drinks_net", "sales_ticket_net", "sales_snack_net", "sales_goodies_net", "sales_card_surcharge"];
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -113,15 +154,19 @@ export async function POST(request: Request) {
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const cells = rows[i];
     const get = (name: string) => ((cells[idx(name)] ?? "") as string).trim();
-    const dateVal = get("date");
+    const rawDate = get("date");
 
-    if (!dateVal) { skippedEmpty++; continue; }
-    if (dateVal === "YYYY-MM-DD") { skippedEmpty++; continue; }
+    if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
-      errors.push(`Row ${i + 1}: invalid date "${dateVal}" — expected YYYY-MM-DD`);
+    const dateVal = parseDate(rawDate);
+    if (!dateVal) {
+      errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`);
       continue;
     }
+
+    // Skip rows with no sales data (future/unfilled days pre-populated in the sheet)
+    const hasSales = SALES_COLUMNS.some((col) => parseNumeric(get(col)) !== 0);
+    if (!hasSales) { skippedEmpty++; continue; }
 
     const row: Record<string, unknown> = {
       organization_id: DEFAULT_ORG_ID,
