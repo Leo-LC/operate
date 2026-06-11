@@ -177,7 +177,7 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
                 <div style={{ display: "flex", gap: 10, background: "var(--warn-soft, #fef3c7)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
                   <AlertTriangleIcon style={{ width: 16, height: 16, color: "var(--warn, #d97706)", flexShrink: 0, marginTop: 1 }} />
                   <p style={{ fontSize: 13, color: "var(--fg-3)" }}>
-                    No Google Sheet ID configured for this location. Go to <strong>Admin → Locations</strong> and paste the spreadsheet ID into the "Accounting Sheet ID" field.
+                    No Google Sheet ID configured for this location. Go to <strong>Admin → Locations</strong> and paste the spreadsheet ID into the &quot;Accounting Sheet ID&quot; field.
                   </p>
                 </div>
               ) : (
