@@ -14,7 +14,18 @@ interface ImportBatch {
   locations: { name: string } | null;
 }
 
+interface ImportPreview {
+  preview: true;
+  would_insert: number;
+  date_from: string;
+  date_to: string;
+  skipped_existing: number;
+  skipped_empty: number;
+  errors: string[];
+}
+
 interface ImportResult {
+  preview: false;
   inserted: number;
   skipped_existing: number;
   skipped_empty: number;
@@ -34,9 +45,14 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function formatDateOnly(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleString("en", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function SheetImportModal({ location, onClose, onImported }: Props) {
   const [tab, setTab] = useState<Tab>("import");
   const [importing, setImporting] = useState(false);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -56,9 +72,33 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
     if (tab === "history") fetchHistory();
   }, [tab, fetchHistory]);
 
-  async function handleImport() {
+  async function handlePreview() {
     setImporting(true);
+    setPreview(null);
     setResult(null);
+    try {
+      const res = await fetch("/api/accounting/import-sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_id: location.id, preview: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Failed to read sheet"); return; }
+      if (data.preview === true) {
+        setPreview(data as ImportPreview);
+      } else {
+        // Nothing to import
+        setResult(data as ImportResult);
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleConfirmImport() {
+    setImporting(true);
     try {
       const res = await fetch("/api/accounting/import-sheets", {
         method: "POST",
@@ -66,10 +106,8 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
         body: JSON.stringify({ location_id: location.id }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Import failed");
-        return;
-      }
+      if (!res.ok) { toast.error(data.error ?? "Import failed"); return; }
+      setPreview(null);
       setResult(data as ImportResult);
       if ((data as ImportResult).inserted > 0) {
         toast.success(`Imported ${(data as ImportResult).inserted} rows`);
@@ -183,15 +221,38 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <p style={{ fontSize: 13, color: "var(--fg-3)", lineHeight: 1.5 }}>
-                    Pulls data from the <strong>DAILY_ENTRIES</strong> tab of this shop&apos;s spreadsheet. Only rows with dates not already in the database will be imported.
+                    Pulls data from the <strong>DAILY_ENTRIES</strong> tab. Only rows with sales data not already in the database will be imported.
                   </p>
-                  <Button onClick={handleImport} disabled={importing} style={{ alignSelf: "flex-start" }}>
-                    {importing ? (
-                      <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Importing…</>
-                    ) : (
-                      <><CloudDownloadIcon className="mr-2 size-3.5" />Import now</>
-                    )}
-                  </Button>
+
+                  {!preview ? (
+                    <Button onClick={handlePreview} disabled={importing} style={{ alignSelf: "flex-start" }}>
+                      {importing ? (
+                        <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Checking sheet…</>
+                      ) : (
+                        <><CloudDownloadIcon className="mr-2 size-3.5" />Preview import</>
+                      )}
+                    </Button>
+                  ) : (
+                    <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
+                      <div style={{ padding: "12px 14px", background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
+                          {preview.would_insert} row{preview.would_insert !== 1 ? "s" : ""} ready to import
+                        </p>
+                        <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 3 }}>
+                          {formatDateOnly(preview.date_from)} → {formatDateOnly(preview.date_to)}
+                        </p>
+                        {preview.skipped_existing > 0 && (
+                          <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>{preview.skipped_existing} already filled in DB — will be skipped</p>
+                        )}
+                      </div>
+                      <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
+                        <Button onClick={handleConfirmImport} disabled={importing}>
+                          {importing ? <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Importing…</> : "Confirm import"}
+                        </Button>
+                        <Button variant="ghost" onClick={() => setPreview(null)} disabled={importing}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

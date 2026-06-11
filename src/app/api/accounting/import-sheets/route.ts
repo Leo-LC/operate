@@ -86,11 +86,11 @@ export async function POST(request: Request) {
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  let body: { location_id?: string };
+  let body: { location_id?: string; preview?: boolean };
   try { body = await request.json(); }
   catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  const { location_id: locationId } = body;
+  const { location_id: locationId, preview = false } = body;
   if (!locationId) return Response.json({ error: "location_id is required" }, { status: 400 });
 
   const supabase = getSupabaseServerClient();
@@ -206,7 +206,21 @@ export async function POST(request: Request) {
   const skippedExisting = parsed.length - toUpsert.length;
 
   if (toUpsert.length === 0) {
-    return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null });
+    return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+  }
+
+  // Preview mode — return what would be imported without writing anything
+  if (preview) {
+    const dates = toUpsert.map((p) => p.dateVal).sort();
+    return Response.json({
+      preview: true,
+      would_insert: toUpsert.length,
+      date_from: dates[0],
+      date_to: dates[dates.length - 1],
+      skipped_existing: skippedExisting,
+      skipped_empty: skippedEmpty,
+      errors,
+    });
   }
 
   const { data: inserted, error: insertErr } = await supabase
