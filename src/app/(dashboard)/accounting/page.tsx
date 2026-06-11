@@ -24,7 +24,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from("locations")
-    .select("id, name, slug, external_id, is_active, created_at")
+    .select("id, name, slug, external_id, is_active, created_at, google_sheet_id")
     .eq("is_active", true)
     .order("name");
 
