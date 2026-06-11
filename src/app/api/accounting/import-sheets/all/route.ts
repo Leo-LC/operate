@@ -24,13 +24,17 @@ export async function POST(request: Request) {
 
   const userId = session?.user?.userId ?? null;
 
+  let body: { preview?: boolean; location_ids?: string[] } = {};
+  try { body = await request.json(); } catch { /* empty body is fine */ }
+  const { preview = false, location_ids } = body;
+
   const accessToken = await getOrganizationAccessToken();
   if (!accessToken) return Response.json({ error: "Google account not connected or token expired." }, { status: 400 });
 
   const supabase = getSupabaseServerClient();
 
   // Get all active locations that have a sheet configured
-  const { data: locations, error: locErr } = await supabase
+  let locQuery = supabase
     .from("locations")
     .select("id, name")
     .eq("organization_id", DEFAULT_ORG_ID)
@@ -38,19 +42,23 @@ export async function POST(request: Request) {
     .not("google_sheet_id", "is", null)
     .order("name");
 
+  if (location_ids && location_ids.length > 0) locQuery = locQuery.in("id", location_ids);
+
+  const { data: locations, error: locErr } = await locQuery;
   if (locErr) return Response.json({ error: locErr.message }, { status: 500 });
   if (!locations || locations.length === 0) return Response.json({ error: "No locations with a Sheet ID configured." }, { status: 400 });
 
-  // Import each location sequentially
+  // Process each location sequentially
   const results: ImportLocationResult[] = [];
   for (const loc of locations) {
-    const result = await importLocationFromSheet(loc.id as string, userId, accessToken, supabase);
+    const result = await importLocationFromSheet(loc.id as string, userId, accessToken, supabase, preview);
     results.push(result);
   }
 
   const totalInserted = results.reduce((s, r) => s + r.inserted, 0);
+  const totalWouldInsert = results.reduce((s, r) => s + (r.would_insert ?? 0), 0);
   const totalSkipped  = results.reduce((s, r) => s + r.skipped_existing, 0);
   const failed        = results.filter((r) => r.error);
 
-  return Response.json({ results, total_inserted: totalInserted, total_skipped: totalSkipped, failed_count: failed.length });
+  return Response.json({ preview, results, total_inserted: totalInserted, total_would_insert: totalWouldInsert, total_skipped: totalSkipped, failed_count: failed.length });
 }

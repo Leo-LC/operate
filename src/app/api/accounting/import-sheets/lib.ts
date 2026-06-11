@@ -55,6 +55,10 @@ export type ImportLocationResult = {
   errors: string[];
   batch_id: string | null;
   error?: string;
+  // populated in preview mode only
+  would_insert?: number;
+  date_from?: string;
+  date_to?: string;
 };
 
 export async function importLocationFromSheet(
@@ -62,6 +66,7 @@ export async function importLocationFromSheet(
   userId: string | null,
   accessToken: string,
   supabase: SupabaseClient,
+  preview = false,
 ): Promise<ImportLocationResult> {
   const { data: loc, error: locErr } = await supabase
     .from("locations")
@@ -147,6 +152,12 @@ export async function importLocationFromSheet(
   const skippedExisting = parsed.length - toUpsert.length;
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null };
+
+  // Preview mode — return what would be imported without writing
+  if (preview) {
+    const dates = toUpsert.map((p) => p.dateVal).sort();
+    return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, would_insert: toUpsert.length, date_from: dates[0], date_to: dates[dates.length - 1] };
+  }
 
   const { data: inserted, error: insertErr } = await supabase
     .from("daily_entries")

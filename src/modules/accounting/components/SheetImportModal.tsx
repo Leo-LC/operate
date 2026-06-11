@@ -40,11 +40,16 @@ interface BulkLocationResult {
   skipped_existing: number;
   errors: string[];
   error?: string;
+  would_insert?: number;
+  date_from?: string;
+  date_to?: string;
 }
 
 interface BulkResult {
+  preview?: boolean;
   results: BulkLocationResult[];
   total_inserted: number;
+  total_would_insert: number;
   total_skipped: number;
   failed_count: number;
 }
@@ -70,6 +75,7 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [revertingId, setRevertingId] = useState<string | null>(null);
@@ -135,25 +141,69 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
     }
   }
 
-  async function handleImportAll() {
+  async function handlePreviewAll() {
     setImporting(true);
     setBulkResult(null);
+    setConfirmedIds(new Set());
     try {
       const res = await fetch("/api/accounting/import-sheets/all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preview: true }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? "Bulk import failed"); return; }
+      if (!res.ok) { toast.error(data.error ?? "Preview failed"); return; }
       setBulkResult(data as BulkResult);
-      if ((data as BulkResult).total_inserted > 0) {
-        toast.success(`Imported ${(data as BulkResult).total_inserted} rows across all shops`);
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleConfirmAll() {
+    if (!bulkResult) return;
+    const toImport = bulkResult.results.filter((r) => !r.error && (r.would_insert ?? 0) > 0).map((r) => r.location_id);
+    if (toImport.length === 0) return;
+    setImporting(true);
+    try {
+      const res = await fetch("/api/accounting/import-sheets/all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_ids: toImport }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Import failed"); return; }
+      setBulkResult(data as BulkResult);
+      setConfirmedIds(new Set(toImport));
+      toast.success(`Imported ${(data as BulkResult).total_inserted} rows across all shops`);
+      onImported();
+    } catch {
+      toast.error("Network error — import failed");
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleConfirmOne(locationId: string) {
+    setImporting(true);
+    try {
+      const res = await fetch("/api/accounting/import-sheets/all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_ids: [locationId] }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "Import failed"); return; }
+      const r = (data as BulkResult).results[0];
+      if (r) {
+        setBulkResult((prev) => prev ? { ...prev, results: prev.results.map((p) => p.location_id === locationId ? r : p) } : prev);
+        setConfirmedIds((prev) => { const next = new Set(prev); next.add(locationId); return next; });
+        toast.success(`${r.location_name}: ${r.inserted} row${r.inserted !== 1 ? "s" : ""} imported`);
         onImported();
-      } else {
-        toast.info("All shops already up to date");
       }
     } catch {
-      toast.error("Network error — bulk import failed");
+      toast.error("Network error");
     } finally {
       setImporting(false);
     }
@@ -281,21 +331,67 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
           {tab === "all" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <p style={{ fontSize: 13, color: "var(--fg-3)", lineHeight: 1.5 }}>
-                Imports all shops with a configured Sheet ID at once. Skips dates already filled in the database. Safe to run repeatedly.
+                Checks all shops and shows what would be imported before writing anything.
               </p>
 
               {!bulkResult ? (
-                <Button onClick={handleImportAll} disabled={importing} style={{ alignSelf: "flex-start" }}>
+                <Button onClick={handlePreviewAll} disabled={importing} style={{ alignSelf: "flex-start" }}>
                   {importing
-                    ? <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Importing all shops…</>
-                    : <><ZapIcon className="mr-2 size-3.5" />Import all shops</>}
+                    ? <><Loader2Icon className="mr-2 size-3.5 animate-spin" />Checking all sheets…</>
+                    : <><ZapIcon className="mr-2 size-3.5" />Preview all shops</>}
                 </Button>
+              ) : bulkResult.preview ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Summary + confirm all */}
+                  {bulkResult.total_would_insert > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--bg-2)", borderRadius: "var(--r-md)", border: "1px solid var(--line)", gap: 12 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
+                        {bulkResult.total_would_insert} rows ready across {bulkResult.results.filter(r => (r.would_insert ?? 0) > 0).length} shop{bulkResult.results.filter(r => (r.would_insert ?? 0) > 0).length !== 1 ? "s" : ""}
+                      </span>
+                      <Button size="sm" onClick={handleConfirmAll} disabled={importing}>
+                        {importing ? <Loader2Icon className="size-3.5 animate-spin" /> : "Confirm all"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Per-shop rows */}
+                  {bulkResult.results.map((r) => {
+                    const done = confirmedIds.has(r.location_id);
+                    const hasData = (r.would_insert ?? 0) > 0;
+                    return (
+                      <div key={r.location_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", gap: 12, opacity: r.error || (!hasData && !done) ? 0.5 : 1 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{r.location_name}</p>
+                          {r.error
+                            ? <p style={{ fontSize: 12, color: "var(--bad)", marginTop: 2 }}>{r.error}</p>
+                            : hasData
+                              ? <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>{r.would_insert} row{r.would_insert !== 1 ? "s" : ""} — {formatDateOnly(r.date_from!)} → {formatDateOnly(r.date_to!)}</p>
+                              : <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>Already up to date</p>
+                          }
+                        </div>
+                        {done
+                          ? <CheckCircleIcon style={{ width: 16, height: 16, color: "var(--good, #10b981)", flexShrink: 0 }} />
+                          : hasData && !r.error && (
+                              <Button size="sm" variant="secondary" disabled={importing} onClick={() => void handleConfirmOne(r.location_id)}>
+                                {importing ? <Loader2Icon className="size-3.5 animate-spin" /> : "Confirm"}
+                              </Button>
+                            )
+                        }
+                      </div>
+                    );
+                  })}
+
+                  <Button variant="ghost" onClick={() => { setBulkResult(null); setConfirmedIds(new Set()); }} style={{ alignSelf: "flex-start", marginTop: 4 }}>
+                    Reset
+                  </Button>
+                </div>
               ) : (
+                /* Post-import results */
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: bulkResult.total_inserted > 0 ? "var(--good-soft, #d1fae5)" : "var(--bg-2)", borderRadius: "var(--r-md)", border: "1px solid var(--line)" }}>
                     <CheckCircleIcon style={{ width: 15, height: 15, color: bulkResult.total_inserted > 0 ? "var(--good, #10b981)" : "var(--fg-4)" }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
-                      {bulkResult.total_inserted > 0 ? `${bulkResult.total_inserted} rows imported across ${bulkResult.results.filter(r => r.inserted > 0).length} shop${bulkResult.results.filter(r => r.inserted > 0).length !== 1 ? "s" : ""}` : "All shops already up to date"}
+                      {bulkResult.total_inserted > 0 ? `${bulkResult.total_inserted} rows imported` : "All shops already up to date"}
                     </span>
                   </div>
                   {bulkResult.results.map((r) => (
@@ -303,13 +399,11 @@ export function SheetImportModal({ location, onClose, onImported }: Props) {
                       <span style={{ fontWeight: 500, color: "var(--fg)" }}>{r.location_name}</span>
                       {r.error
                         ? <span style={{ fontSize: 12, color: "var(--bad)" }}>{r.error}</span>
-                        : <span style={{ fontSize: 12, color: r.inserted > 0 ? "var(--good, #10b981)" : "var(--fg-4)" }}>
-                            {r.inserted > 0 ? `+${r.inserted} rows` : "up to date"}
-                          </span>
+                        : <span style={{ fontSize: 12, color: r.inserted > 0 ? "var(--good, #10b981)" : "var(--fg-4)" }}>{r.inserted > 0 ? `+${r.inserted} rows` : "up to date"}</span>
                       }
                     </div>
                   ))}
-                  <Button variant="ghost" onClick={() => setBulkResult(null)} style={{ alignSelf: "flex-start", marginTop: 4 }}>Run again</Button>
+                  <Button variant="ghost" onClick={() => { setBulkResult(null); setConfirmedIds(new Set()); }} style={{ alignSelf: "flex-start", marginTop: 4 }}>Run again</Button>
                 </div>
               )}
             </div>
