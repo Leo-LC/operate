@@ -14,7 +14,7 @@ export default async function AdminLocationsPage() {
   const [{ data: locations }, { data: employees }] = await Promise.all([
     supabase
       .from("locations")
-      .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, notes")
+      .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes")
       .order("name"),
     supabase
       .from("employees")
