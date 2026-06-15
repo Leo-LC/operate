@@ -10,13 +10,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(Number(searchParams.get("limit") ?? "50"), 200);
   const offset = Number(searchParams.get("offset") ?? "0");
+  const entityId = searchParams.get("entity_id");
 
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("audit_logs")
     .select("id, user_id, action, module_key, entity_type, entity_id, payload, created_at, users ( email )")
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .order("created_at", { ascending: false });
+  if (entityId) query = query.eq("entity_id", entityId);
+  else query = query.range(offset, offset + limit - 1);
+  const { data, error } = await query;
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

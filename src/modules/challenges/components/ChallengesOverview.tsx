@@ -130,6 +130,8 @@ function MetricRow({
   bonus,
   loading,
   sub,
+  progress,
+  isOwner,
 }: {
   label: string;
   value: string;
@@ -137,40 +139,51 @@ function MetricRow({
   bonus: number;
   loading: boolean;
   sub?: string;
+  progress?: number;
+  isOwner?: boolean;
 }) {
+  const barColor = passes === true ? "var(--good)" : passes === false ? "var(--warn)" : "var(--fg-4)";
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-[var(--line)] last:border-b-0">
-      <div className="flex items-center gap-2 min-w-0">
-        <StatusDot passes={passes} />
-        <span className="text-xs text-[var(--fg-3)] truncate">{label}</span>
+    <div className="flex flex-col border-b border-[var(--line)] last:border-b-0 py-1.5 gap-1">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <StatusDot passes={passes} />
+          <span className="text-xs text-[var(--fg-3)] truncate">{label}</span>
+        </div>
+        <div className="flex flex-col items-end shrink-0 ml-2">
+          {loading ? (
+            <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
+          ) : (
+            <>
+              <span className={`font-mono text-xs tabular-nums ${statusColor(passes)}`}>{value}</span>
+              {sub && isOwner && <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{sub}</span>}
+            </>
+          )}
+        </div>
+        <div className="w-14 text-right shrink-0 ml-2">
+          {loading ? (
+            <div className="h-3 w-8 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
+          ) : (
+            <span className={`font-mono text-xs tabular-nums ${passes === true ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
+              {passes === true ? `${bonus.toLocaleString()} ฿` : ""}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex flex-col items-end shrink-0 ml-2">
-        {loading ? (
-          <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
-        ) : (
-          <>
-            <span className={`font-mono text-xs tabular-nums ${statusColor(passes)}`}>{value}</span>
-            {sub && <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{sub}</span>}
-          </>
-        )}
-      </div>
-      <div className="w-14 text-right shrink-0 ml-2">
-        {loading ? (
-          <div className="h-3 w-8 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
-        ) : (
-          <span className={`font-mono text-xs tabular-nums ${passes === true ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
-            {passes === true ? `${bonus.toLocaleString()} ฿` : ""}
-          </span>
-        )}
-      </div>
+      {!loading && progress !== undefined && (
+        <div className="h-1 rounded-full bg-[var(--bg-2)] overflow-hidden mx-6">
+          <div style={{ width: `${Math.round(Math.min(1, progress) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
+        </div>
+      )}
     </div>
   );
 }
 
-function MerchRow({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
+function MerchRow({ loc, loading, isOwner }: { loc: LocationOverview; loading: boolean; isOwner?: boolean }) {
   const tierLabels = ["—", "7%+ (P1)", "8%+ (P2)", "9%+ (P3)"];
   const tier = loc.merchandising.tier;
   const passes = tier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  const progress = loc.merchandising.ratio !== null ? Math.min(1, loc.merchandising.ratio / 0.07) : undefined;
   return (
     <MetricRow
       label="Merchandising"
@@ -179,6 +192,8 @@ function MerchRow({ loc, loading }: { loc: LocationOverview; loading: boolean })
       passes={passes}
       bonus={loc.merchandising.bonus}
       loading={loading}
+      progress={progress}
+      isOwner={isOwner}
     />
   );
 }
@@ -187,17 +202,50 @@ function LocationCard({
   loc,
   month,
   loading,
+  isOwner,
   onEntryUpdated,
   onSnacksUpdated,
 }: {
   loc: LocationOverview;
   month: string;
   loading: boolean;
+  isOwner?: boolean;
   onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
   onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
 }) {
   const totalBonus = loc.totalBonus;
   const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
+
+  // Plain-language gap lines for failing metrics
+  const gapLines = !loading && hasBonusData ? (() => {
+    const lines: string[] = [];
+    if (loc.snacks.passes === false && loc.snacks.ratio !== null) {
+      const needed = loc.entryCount !== null
+        ? Math.ceil(loc.entryCount * 0.45) - (loc.snacksSold ?? 0)
+        : null;
+      lines.push(needed !== null && needed > 0
+        ? `${needed} more snacks to hit ratio target`
+        : `Snacks ratio ${loc.snacks.ratio.toFixed(2)} — need ≥ 0.45`);
+    }
+    if (loc.panierMoyen.passes === false && loc.panierMoyen.value !== null) {
+      lines.push(`Avg basket ${fmt(loc.panierMoyen.value, 0)} ฿ — need ≥ 190 ฿`);
+    }
+    if (loc.opex.passes === false && loc.opex.ratio !== null) {
+      lines.push(`Opex ${pct(loc.opex.ratio)} — need < 9.5%`);
+    }
+    if (loc.reviews.volumePass === false) {
+      const needed = loc.entryCount !== null
+        ? Math.ceil(loc.entryCount * 0.04) - loc.reviews.count
+        : null;
+      lines.push(needed !== null && needed > 0
+        ? `${needed} more reviews needed for volume bonus`
+        : `Review volume below 4% target`);
+    }
+    if (loc.reviews.ratingPass === false && loc.reviews.count >= 10) {
+      lines.push(`Avg rating ${loc.reviews.avgRating.toFixed(1)} — need ≥ ${loc.reviews.ratingTarget.toFixed(1)}`);
+    }
+    return lines;
+  })() : [];
 
   return (
     <div className="flex flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
@@ -213,6 +261,20 @@ function LocationCard({
         ) : null}
       </div>
 
+      {/* Plain-language gaps */}
+      {gapLines.length === 0 && hasBonusData && (
+        <div className="px-4 py-2 border-b border-[var(--line)] bg-[var(--good-soft)]">
+          <span className="text-xs font-medium text-[var(--good)]">All metrics passing — full bonus unlocked</span>
+        </div>
+      )}
+      {gapLines.length > 0 && (
+        <div className="px-4 py-2 border-b border-[var(--line)] flex flex-col gap-0.5">
+          {gapLines.map((line, i) => (
+            <span key={i} className="text-xs text-[var(--warn)]">→ {line}</span>
+          ))}
+        </div>
+      )}
+
       {/* Metric column headers */}
       <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
         <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Metric</span>
@@ -224,7 +286,7 @@ function LocationCard({
 
       {/* Metric rows */}
       <div className="px-4 pb-1">
-        <MerchRow loc={loc} loading={loading} />
+        <MerchRow loc={loc} loading={loading} isOwner={isOwner} />
         <MetricRow
           label="Snacks"
           value={loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—"}
@@ -232,6 +294,8 @@ function LocationCard({
           passes={loc.snacks.passes}
           bonus={loc.snacks.bonus}
           loading={loading}
+          progress={loc.snacks.ratio !== null ? Math.min(1, loc.snacks.ratio / 0.45) : undefined}
+          isOwner={isOwner}
         />
         <MetricRow
           label="Panier moyen"
@@ -240,6 +304,8 @@ function LocationCard({
           passes={loc.panierMoyen.passes}
           bonus={loc.panierMoyen.bonus}
           loading={loading}
+          progress={loc.panierMoyen.value !== null ? Math.min(1, loc.panierMoyen.value / 190) : undefined}
+          isOwner={isOwner}
         />
         <MetricRow
           label="Opex variable"
@@ -248,6 +314,8 @@ function LocationCard({
           passes={loc.opex.passes}
           bonus={loc.opex.bonus}
           loading={loading}
+          progress={loc.opex.ratio !== null ? Math.min(1, loc.opex.threshold / loc.opex.ratio) : undefined}
+          isOwner={isOwner}
         />
         <MetricRow
           label="Reviews — volume"
@@ -256,6 +324,8 @@ function LocationCard({
           passes={loc.reviews.volumePass}
           bonus={loc.reviews.volumeBonus}
           loading={loading}
+          progress={loc.reviews.volumeRatio !== null ? Math.min(1, loc.reviews.volumeRatio / 0.04) : undefined}
+          isOwner={isOwner}
         />
         <MetricRow
           label="Reviews — note"
@@ -267,6 +337,8 @@ function LocationCard({
           }
           passes={loc.reviews.ratingPass}
           bonus={loc.reviews.ratingBonus}
+          progress={loc.reviews.count > 0 && loc.reviews.ratingTarget > 0 ? Math.min(1, loc.reviews.avgRating / loc.reviews.ratingTarget) : undefined}
+          isOwner={isOwner}
           loading={loading}
         />
       </div>
@@ -312,7 +384,7 @@ function LocationCard({
   );
 }
 
-export function ChallengesOverview() {
+export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -402,6 +474,7 @@ export function ChallengesOverview() {
               loc={loc}
               month={month}
               loading={loading}
+              isOwner={isOwner}
               onEntryUpdated={(id, p, val) => handleEntryUpdated(id, p, val)}
               onSnacksUpdated={(id, p, val) => handleSnacksUpdated(id, p, val)}
             />

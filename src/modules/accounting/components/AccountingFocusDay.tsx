@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
-import { PencilIcon } from "lucide-react";
+import { PencilIcon, HistoryIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { DailyEntryModal } from "@/modules/accounting/components/DailyEntryModal";
@@ -57,27 +57,41 @@ function BreakdownBar({ label, value, max, tone }: BarProps) {
   );
 }
 
+interface AuditLog {
+  id: string;
+  user_email: string | null;
+  action: string;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+}
+
 interface Props {
   year: number;
   month: number;
   entries: DailyEntry[];
   locationId: string;
   locations: AdminLocation[];
+  canManage?: boolean;
   onEntryUpdate: (entry: DailyEntry) => void;
   onEntryDelete: (id: string) => void;
 }
 
-export function AccountingFocusDay({ year, month, entries, locationId, locations, onEntryUpdate, onEntryDelete }: Props) {
+export function AccountingFocusDay({ year, month, entries, locationId, locations, canManage, onEntryUpdate, onEntryDelete }: Props) {
   const days = daysInMonth(year, month);
   const today = new Date();
   const defaultDay = year === today.getFullYear() && month === today.getMonth() + 1
     ? today.getDate()
     : days;
 
-  const [selectedDay, setSelectedDay] = useState(defaultDay);
-  const [editOpen, setEditOpen]       = useState(false);
-  const [modalForm, setModalForm]     = useState<EntryFormState>(toFormState({}));
-  const [modalSaving, setModalSaving] = useState(false);
+  const [selectedDay, setSelectedDay]   = useState(defaultDay);
+  const [editOpen, setEditOpen]         = useState(false);
+  const [modalForm, setModalForm]       = useState<EntryFormState>(toFormState({}));
+  const [modalSaving, setModalSaving]   = useState(false);
+  const [entryNotes, setEntryNotes]     = useState<Record<string, string>>({});
+  const [pendingNotes, setPendingNotes] = useState<Record<string, string>>({});
+  const [historyOpen, setHistoryOpen]   = useState(false);
+  const [historyLogs, setHistoryLogs]   = useState<AuditLog[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const entryMap = useMemo(() => {
     const m = new Map<string, DailyEntry>();
@@ -116,9 +130,27 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
 
   const allDays = Array.from({ length: days }, (_, i) => i + 1);
 
-  function openEdit() {
+  async function openEdit() {
     const date = isoDate(year, month, selectedDay);
     setModalForm(toFormState(entryMap.get(date) ?? {}));
+    setPendingNotes({});
+
+    // Fetch existing notes if editing an existing entry
+    const existingEntry = entryMap.get(date);
+    if (existingEntry?.id) {
+      try {
+        const res = await fetch(`/api/accounting/entries/${existingEntry.id}/notes`);
+        if (res.ok) {
+          const json = await res.json() as { notes: Record<string, string> };
+          setEntryNotes(json.notes ?? {});
+        }
+      } catch {
+        setEntryNotes({});
+      }
+    } else {
+      setEntryNotes({});
+    }
+
     setEditOpen(true);
   }
 
@@ -151,7 +183,24 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
         toast.error(err.error ?? "Save failed");
         return;
       }
-      onEntryUpdate(await res.json() as DailyEntry);
+      const savedEntry = await res.json() as DailyEntry;
+      onEntryUpdate(savedEntry);
+
+      // Save any pending field notes (new entries get their ID here)
+      const allNotes = { ...entryNotes, ...pendingNotes };
+      const noteEntries = Object.entries(allNotes).filter(([, v]) => v.trim() !== "");
+      if (noteEntries.length > 0 && savedEntry.id) {
+        await Promise.allSettled(
+          noteEntries.map(([field, note]) =>
+            fetch(`/api/accounting/entries/${savedEntry.id}/notes`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ field_name: field, note }),
+            })
+          )
+        );
+      }
+
       setEditOpen(false);
       toast.success("Entry saved");
     } finally {
@@ -167,6 +216,22 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
     onEntryDelete(e.id);
     setEditOpen(false);
     toast.success("Entry deleted");
+  }
+
+  async function openHistory() {
+    const e = entryMap.get(isoDate(year, month, selectedDay));
+    if (!e?.id) return;
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/admin/audit-logs?entity_id=${e.id}`);
+      if (!res.ok) { setHistoryLogs([]); return; }
+      setHistoryLogs((await res.json() as AuditLog[]));
+    } catch {
+      setHistoryLogs([]);
+    } finally {
+      setHistoryLoading(false);
+    }
   }
 
   const locationName = locations.find((l) => l.id === locationId)?.name ?? "";
@@ -222,10 +287,18 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
             <div className="eyebrow" style={{ color: "var(--fg-4)" }}>
               Net — {weekdayShort(year, month, selectedDay)} {selectedDay}
             </div>
-            <Button size="sm" variant="secondary" onClick={openEdit} style={{ gap: 6 }}>
-              <PencilIcon size={12} />
-              Edit day
-            </Button>
+            <div style={{ display: "flex", gap: 6 }}>
+              {canManage && entry && (
+                <Button size="sm" variant="ghost" onClick={() => void openHistory()} title="View edit history" style={{ gap: 6 }}>
+                  <HistoryIcon size={12} />
+                  History
+                </Button>
+              )}
+              <Button size="sm" variant="secondary" onClick={openEdit} style={{ gap: 6 }}>
+                <PencilIcon size={12} />
+                Edit day
+              </Button>
+            </div>
           </div>
           <div className="mono tabular-nums" style={{
             fontSize: 44, fontWeight: 500, marginTop: 6, letterSpacing: "-0.02em",
@@ -353,6 +426,50 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
         </div>
       )}
 
+      {/* Audit history drawer */}
+      {historyOpen && (
+        <>
+          <div
+            onClick={() => setHistoryOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 40 }}
+          />
+          <div style={{
+            position: "fixed", top: 0, right: 0, bottom: 0, width: 380,
+            background: "var(--surface)", borderLeft: "1px solid var(--line)",
+            zIndex: 41, display: "flex", flexDirection: "column", boxShadow: "-4px 0 24px rgba(0,0,0,0.1)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Edit history</span>
+              <button onClick={() => setHistoryOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg-4)", padding: 4 }}>
+                <XIcon size={16} />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
+              {historyLoading ? (
+                <p style={{ fontSize: 13, color: "var(--fg-4)", paddingTop: 20 }}>Loading…</p>
+              ) : historyLogs.length === 0 ? (
+                <p style={{ fontSize: 13, color: "var(--fg-4)", paddingTop: 20 }}>No history recorded for this entry.</p>
+              ) : historyLogs.map((log, i) => (
+                <div key={log.id} style={{ paddingTop: 16, paddingBottom: 16, borderBottom: i < historyLogs.length - 1 ? "1px solid var(--line)" : undefined }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg)" }}>{log.action}</span>
+                    <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>
+                      {new Date(log.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{log.user_email ?? "Unknown user"}</span>
+                  {log.payload && Object.keys(log.payload).length > 0 && (
+                    <div style={{ marginTop: 8, padding: "8px 10px", background: "var(--bg-2)", borderRadius: "var(--r-sm)", fontSize: 11, fontFamily: "monospace", color: "var(--fg-3)", maxHeight: 120, overflowY: "auto", wordBreak: "break-all" }}>
+                      {JSON.stringify(log.payload, null, 2)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Edit modal */}
       {editOpen && (
         <DailyEntryModal
@@ -363,7 +480,9 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
           existingId={entry?.id}
           computedCashEndDay={selectedComputed?.cashEndDay}
           computedCashSafe={selectedComputed?.cashSafe}
+          entryNotes={{ ...entryNotes, ...pendingNotes }}
           onChange={(field, val) => setModalForm((prev) => ({ ...prev, [field]: val }))}
+          onNoteChange={(field, note) => setPendingNotes((prev) => ({ ...prev, [field]: note }))}
           onSave={(e) => void handleModalSave(e)}
           onDelete={entry ? () => void handleModalDelete() : undefined}
           onClose={() => setEditOpen(false)}

@@ -313,6 +313,7 @@ export function DailyEntriesTable({
           borderBottom: "1px solid var(--line)",
           alignItems: "flex-end",
           gap: 12,
+          position: "sticky", top: 0, zIndex: 10,
         }}>
           <div className="eyebrow" style={{ color: "var(--fg-4)" }}>Day</div>
           {COLS.map((c) => (

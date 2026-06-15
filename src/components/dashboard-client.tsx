@@ -500,8 +500,14 @@ export function DashboardClient({ user }: DashboardClientProps) {
                             filters.ratings.has("two") ||
                             filters.ratings.has("three")) && (
                             <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="1-3 star reviews">
+                              {(oneFiltered.length + twoFiltered.length) > 0 && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", background: "var(--bad-soft)", border: "1px solid var(--bad)" }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--bad)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Negative / Urgent</span>
+                                  <span style={{ fontSize: 11, color: "var(--bad)" }}>— reply manually and escalate if needed. Contact: contact@capybaracoffeethailand.com</span>
+                                </div>
+                              )}
                               <ReviewListVirtual
-                                reviews={attentionDisplayed}
+                                reviews={[...attentionDisplayed].sort((a, b) => starNum(a) - starNum(b))}
                                 getComment={(id) => replyDrafts[id] ?? ""}
                                 onCommentChange={setDraft}
                                 onReplySent={handleReplySent}

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { TrashIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { TrashIcon, ChevronLeftIcon, ChevronRightIcon, MessageSquareIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Drawer } from "@/components/ui/drawer";
@@ -29,7 +29,9 @@ interface Props {
   computedCashEndDay?: number;
   computedCashSafe?: number;
   initialSection?: string;
+  entryNotes?: Record<string, string>;
   onChange: (field: keyof typeof EMPTY_ENTRY, val: string) => void;
+  onNoteChange?: (field: string, note: string) => void;
   onSave: (e: React.FormEvent) => void;
   onDelete?: () => void;
   onClose: () => void;
@@ -42,15 +44,41 @@ function NumInput({
   field,
   form,
   onChange,
+  note,
+  onNoteChange,
 }: {
   label: string;
   field: keyof typeof EMPTY_ENTRY;
   form: EntryFormState;
   onChange: (field: keyof typeof EMPTY_ENTRY, val: string) => void;
+  note?: string;
+  onNoteChange?: (note: string) => void;
 }) {
+  const [showNote, setShowNote] = useState(!!note);
+  const hasValue = Number(form[field]) !== 0;
+  const hasNote = !!note;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+        {(hasValue || hasNote) && onNoteChange && (
+          <button
+            type="button"
+            onClick={() => setShowNote((v) => !v)}
+            title={hasNote ? "Edit note" : "Add note"}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 3,
+              fontSize: 9, color: hasNote ? "var(--bronze)" : "var(--fg-mute)",
+              background: "none", border: "none", cursor: "pointer", padding: "0 2px",
+              fontFamily: "var(--font-sans)", letterSpacing: "0.04em",
+            }}
+          >
+            <MessageSquareIcon style={{ width: 10, height: 10 }} />
+            {hasNote ? "note" : "+ note"}
+          </button>
+        )}
+      </div>
       <input
         type="number"
         step="0.01"
@@ -60,7 +88,7 @@ function NumInput({
         style={{
           height: 32,
           borderRadius: "var(--r-sm)",
-          border: "1px solid var(--line)",
+          border: `1px solid ${hasNote ? "var(--bronze)" : "var(--line)"}`,
           background: "var(--bg-2)",
           padding: "0 var(--s-2)",
           fontSize: 13,
@@ -70,6 +98,87 @@ function NumInput({
           width: "100%",
         }}
       />
+      {showNote && onNoteChange && (
+        <textarea
+          placeholder="Add a note for this field…"
+          value={note ?? ""}
+          onChange={(e) => onNoteChange(e.target.value)}
+          rows={2}
+          style={{
+            borderRadius: "var(--r-sm)",
+            border: "1px solid var(--bronze)",
+            background: "var(--surface)",
+            padding: "var(--s-1) var(--s-2)",
+            fontSize: 11,
+            color: "var(--fg-2)",
+            resize: "none",
+            outline: "none",
+            fontFamily: "var(--font-sans)",
+            width: "100%",
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ValidationWarnings({ form, preview }: { form: EntryFormState; preview: DailyEntry }) {
+  const warnings: { level: "error" | "warn"; text: string }[] = [];
+
+  const sales = salesNetTotal(preview);
+  const cashPaid = (preview.payment_cash ?? 0) + (preview.payment_scan ?? 0) + (preview.payment_credit_card ?? 0);
+  const delta = paymentDelta(preview);
+
+  if (sales === 0 && (cashPaid > 0 || Number(form.vat_7) > 0)) {
+    warnings.push({ level: "warn", text: "Sales are zero — is the shop closed today?" });
+  }
+  if (sales > 0 && preview.sales_ticket_net === 0) {
+    warnings.push({ level: "warn", text: "Entry sales missing — required for Challenges calculations" });
+  }
+  if (cashPaid > 0 && preview.payment_cash > sales + 1000) {
+    warnings.push({ level: "error", text: "Cash collected exceeds total sales — double-check figures" });
+  }
+  if (sales > 0 && cashPaid > 0 && Math.abs(delta) > 1000) {
+    warnings.push({ level: "warn", text: `Payment methods don't match sales (gap: ฿${Math.round(Math.abs(delta)).toLocaleString()})` });
+  }
+  if (
+    preview.exp_staff_food_cash === 0 &&
+    preview.exp_drinks_cash === 0 &&
+    preview.exp_goodies_cash === 0 &&
+    preview.exp_animals_cash === 0 &&
+    preview.exp_supply_cash === 0 &&
+    preview.exp_boss_fees_cash === 0 &&
+    preview.exp_other_cash === 0 &&
+    preview.exp_makro_bank === 0 &&
+    preview.exp_other_bank === 0 &&
+    sales > 0
+  ) {
+    warnings.push({ level: "warn", text: "No expenses recorded — a typical operating day usually has some" });
+  }
+
+  if (warnings.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {warnings.map((w, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            padding: "8px 12px",
+            borderRadius: "var(--r-sm)",
+            background: w.level === "error" ? "var(--bad-soft)" : "var(--warn-soft)",
+            border: `1px solid ${w.level === "error" ? "var(--bad)" : "var(--warn)"}`,
+            fontSize: 12,
+            color: w.level === "error" ? "var(--bad)" : "var(--warn)",
+          }}
+        >
+          <span style={{ flexShrink: 0, fontWeight: 600 }}>{w.level === "error" ? "!" : "⚠"}</span>
+          <span>{w.text}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -124,7 +233,9 @@ export function DailyEntryModal({
   computedCashEndDay,
   computedCashSafe,
   initialSection,
+  entryNotes = {},
   onChange,
+  onNoteChange,
   onSave,
   onDelete,
   onClose,
@@ -268,6 +379,9 @@ export function DailyEntryModal({
       footer={footer}
     >
       <form id="daily-entry-form" onSubmit={onSave} style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+        {/* Validation warnings */}
+        <ValidationWarnings form={form} preview={preview} />
+
         {/* Section tabs */}
         <div
           style={{
@@ -333,6 +447,8 @@ export function DailyEntryModal({
                   label={f.label}
                   form={form}
                   onChange={onChange}
+                  note={entryNotes[f.key as string]}
+                  onNoteChange={onNoteChange ? (note) => onNoteChange(f.key as string, note) : undefined}
                 />
               ))}
               {s.id === "treasury" && (

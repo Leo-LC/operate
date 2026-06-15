@@ -37,11 +37,11 @@
   ═══════════════════════════════════════════ */
   :root {
     /* ── Design tokens: surfaces ── */
-    --sand:        #f4ede0;
-    --sand-2:      #efe6d4;
-    --wheat:       #ebe2cf;
-    --paper:       #faf6ed;
-    --paper-2:     #f7f2e6;
+    --sand:        #f8f6f3;
+    --sand-2:      #f2f0ec;
+    --wheat:       #ece9e3;
+    --paper:       #ffffff;
+    --paper-2:     #f8f7f4;
     --card:        #ffffff;
 
     /* ── Design tokens: ink ── */
@@ -58,14 +58,14 @@
     --bronze-soft: #e6d4ba;
 
     /* ── Design tokens: status ── */
-    --good:        #6f8b5b;
-    --good-soft:   #dfe6cf;
-    --warn:        #c69748;
-    --warn-soft:   #f3e3c1;
-    --bad:         #b85a4a;
-    --bad-soft:    #f0d4cd;
-    --info:        #6a8cb8;
-    --info-soft:   #d6e1ed;
+    --good:        #16a34a;
+    --good-soft:   #dcfce7;
+    --warn:        #d97706;
+    --warn-soft:   #fef3c7;
+    --bad:         #dc2626;
+    --bad-soft:    #fee2e2;
+    --info:        #2563eb;
+    --info-soft:   #dbeafe;
 
     /* ── Design tokens: lines ── */
     --line:        rgba(43, 35, 27, 0.10);
@@ -150,10 +150,13 @@
     --accent:             var(--sand-2);
     --accent-foreground:  var(--ink);
     --destructive:        var(--bad);
+    --destructive-foreground: #ffffff;
     --border:             var(--line);
     --input:              var(--line-2);
     --ring:               var(--bronze);
     --radius:             var(--r-sm);
+    --success:            var(--good);
+    --warning:            var(--warn);
 
     /* ── Chart tokens ── */
     --chart-1: var(--good);

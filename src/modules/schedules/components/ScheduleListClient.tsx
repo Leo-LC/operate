@@ -92,7 +92,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
       setShowCreate(false);
       setCreateNameOverride(null);
       toast.success("Schedule created");
-      router.push(`/dashboard/scheduling/${created.id}`);
+      router.push(`/scheduling/${created.id}`);
     } finally {
       setSubmitting(false);
     }
@@ -373,7 +373,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
               <tr
                 key={s.id}
                 style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined, cursor: "pointer" }}
-                onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}
+                onClick={() => router.push(`/scheduling/${s.id}`)}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
               >
@@ -399,7 +399,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                     <Button size="icon" variant="ghost" title="Download as PDF" disabled={printingId === s.id} onClick={() => void printSchedule(s)}>
                       <PrinterIcon style={{ width: 13, height: 13 }} />
                     </Button>
-                    <Button size="icon" variant="ghost" title="Edit schedule" onClick={() => router.push(`/dashboard/scheduling/${s.id}`)}>
+                    <Button size="icon" variant="ghost" title="Edit schedule" onClick={() => router.push(`/scheduling/${s.id}`)}>
                       <PencilIcon style={{ width: 13, height: 13 }} />
                     </Button>
                     <Button size="icon" variant="danger" title="Delete" onClick={() => setDeleteTarget(s)}>

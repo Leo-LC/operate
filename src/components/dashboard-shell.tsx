@@ -9,7 +9,8 @@ import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
-  SunIcon, MoonIcon, LogOutIcon, TrophyIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
@@ -22,22 +23,73 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-const NAV_ITEMS = [
-  { id: "overview",   label: "Overview",   href: "/overview",   icon: HomeIcon,         module: null },
-  { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
-  { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,       module: "challenges" },
-  { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
-  { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
-  { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
-  { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
-  { id: "documents",  label: "Documents",  href: "/documents",  icon: FileTextIcon,     module: "documents" },
-  { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon,   module: "accounting" },
-  { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
-  { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },
-  { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
-  { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
-  { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
-] as const;
+type NavItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  module: string | null;
+  disabled?: boolean;
+  comingSoon?: string;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Home",
+    items: [
+      { id: "overview", label: "Overview", href: "/overview", icon: HomeIcon, module: null },
+    ],
+  },
+  {
+    label: "Daily Operations",
+    items: [
+      { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+      { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
+      { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon, module: "accounting" },
+      { id: "treasury",   label: "Treasury",   href: "/treasury",   icon: VaultIcon,      module: null },
+      { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,   module: "payments" },
+    ],
+  },
+  {
+    label: "Performance",
+    items: [
+      { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
+      { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,     module: "challenges" },
+      { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,       module: "reviews" },
+    ],
+  },
+  {
+    label: "Compliance",
+    items: [
+      { id: "documents", label: "Documents", href: "/documents", icon: FileTextIcon, module: "documents" },
+    ],
+  },
+  {
+    label: "Knowledge",
+    items: [
+      { id: "wiki",     label: "Wiki",     href: "/wiki",     icon: BookOpenIcon, module: "wiki" },
+      { id: "brand",    label: "Brand",    href: "/brand",    icon: PaletteIcon,  module: "brand" },
+      { id: "contacts", label: "Contacts", href: "/contacts", icon: UsersIcon,    module: "contacts" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "admin", label: "Admin", href: "/admin", icon: ShieldIcon, module: "admin" },
+    ],
+  },
+];
 
 /* Deterministic avatar colour from initials */
 const AVATAR_HUES = [24, 38, 185, 145, 260, 310];
@@ -201,42 +253,90 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             overflowY: "auto",
           }}
         >
-          {NAV_ITEMS.map((item) => {
-            if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) {
-              return null;
-            }
-            const active = isActive(item.href);
-            const Icon = item.icon;
+          {NAV_GROUPS.map((group, gi) => {
+            const visibleItems = group.items.filter((item) => {
+              if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
+              if (!item.module && item.id !== "overview" && item.id !== "treasury") return false;
+              return true;
+            });
+            if (visibleItems.length === 0) return null;
             return (
-              <Link
-                key={item.id}
-                href={item.href}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "7px 10px",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: active ? 500 : 400,
-                  color: active ? "var(--fg)" : "var(--fg-3)",
-                  background: active ? "var(--surface)" : "transparent",
-                  border: `1px solid ${active ? "var(--line)" : "transparent"}`,
-                  textDecoration: "none",
-                  transition: "background var(--dur) var(--ease)",
-                }}
-                className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg-2)] active:!bg-[var(--row-active)]"
-              >
-                <Icon
-                  size={16}
+              <div key={group.label} style={{ marginTop: gi === 0 ? 0 : 12 }}>
+                <div
                   style={{
-                    color: active ? "var(--bronze)" : "var(--fg-3)",
-                    flexShrink: 0,
-                    strokeWidth: 1.5,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--fg-mute)",
+                    padding: "4px 10px 6px",
+                    userSelect: "none",
                   }}
-                />
-                <span>{item.label}</span>
-              </Link>
+                >
+                  {group.label}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  {visibleItems.map((item) => {
+                    const active = isActive(item.href);
+                    const Icon = item.icon;
+                    if (item.disabled) {
+                      return (
+                        <div
+                          key={item.id}
+                          title={item.comingSoon}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "7px 10px",
+                            borderRadius: 8,
+                            fontSize: 13,
+                            fontWeight: 400,
+                            color: "var(--fg-mute)",
+                            cursor: "not-allowed",
+                            opacity: 0.5,
+                          }}
+                        >
+                          <Icon size={16} style={{ color: "var(--fg-mute)", flexShrink: 0, strokeWidth: 1.5 }} />
+                          <span>{item.label}</span>
+                          <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--fg-mute)", fontStyle: "italic" }}>soon</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          fontSize: 13,
+                          fontWeight: active ? 500 : 400,
+                          color: active ? "var(--fg)" : "var(--fg-3)",
+                          background: active ? "var(--surface)" : "transparent",
+                          border: `1px solid ${active ? "var(--line)" : "transparent"}`,
+                          textDecoration: "none",
+                          transition: "background var(--dur) var(--ease)",
+                        }}
+                        className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg-2)] active:!bg-[var(--row-active)]"
+                      >
+                        <Icon
+                          size={16}
+                          style={{
+                            color: active ? "var(--bronze)" : "var(--fg-3)",
+                            flexShrink: 0,
+                            strokeWidth: 1.5,
+                          }}
+                        />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>

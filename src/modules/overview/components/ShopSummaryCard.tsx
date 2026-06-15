@@ -62,18 +62,29 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+function formatCashDiff(diff: number): string {
+  const sign = diff >= 0 ? "+" : "-";
+  return `${sign}฿${Math.abs(diff).toLocaleString()}`;
+}
+
 export function ShopSummaryCard({ card }: { card: ShopCard }) {
   const { accounting, schedule, entries, attendanceDue, nextVaccine, documents } = card;
   const docIssues = documents.expired + documents.expiring;
 
   const shortName = card.name.replace(/^Capybara Coffee\s*/i, "").trim() || card.name;
 
+  const hasCritical =
+    accounting.daysBehind >= 3 ||
+    documents.expired > 0;
+
   const hasWarning =
     accounting.daysBehind > 0 ||
+    (accounting.cashDiff !== null && Math.abs(accounting.cashDiff) > 500) ||
     schedule?.nextWeekMissing ||
-    (entries.nearingEnd && !(entries.period === 1 ? entries.period1Filled : entries.period2Filled)) ||
-    attendanceDue ||
     docIssues > 0;
+
+  const statusColor = hasCritical ? "var(--bad)" : hasWarning ? "var(--warn)" : "var(--good)";
+  const statusLabel = hasCritical ? "Attention needed" : hasWarning ? "Watch" : "OK";
 
   return (
     <div className="flex flex-col rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
@@ -81,87 +92,99 @@ export function ShopSummaryCard({ card }: { card: ShopCard }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
         <p className="text-sm font-semibold text-[var(--fg)]">{shortName}</p>
         <span
-          className="h-2 w-2 rounded-full shrink-0"
-          style={{ background: hasWarning ? "var(--bad)" : "var(--good)" }}
-        />
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium"
+          style={{ color: statusColor }}
+        >
+          <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: statusColor }} />
+          {statusLabel}
+        </span>
       </div>
 
-      {/* Sections */}
-      <div className="flex flex-col px-4 py-1">
+      {/* 5-point status list */}
+      <div className="flex flex-col divide-y divide-[var(--line)]">
         {/* Accounting */}
-        <Section label="Accounting">
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-xs text-[var(--fg-4)]">Accounting</span>
           {accounting.daysBehind === 0 ? (
-            <OkRow label="Up to date" />
+            <span className="text-xs font-medium" style={{ color: "var(--good)" }}>Submitted</span>
           ) : (
-            <WarnRow
-              label={`${accounting.daysBehind} day${accounting.daysBehind === 1 ? "" : "s"} of entries to fill`}
-              href={`/accounting?location=${card.id}`}
-            />
+            <Link href={`/accounting?location=${card.id}`} className="text-xs font-medium hover:underline" style={{ color: "var(--bad)" }}>
+              {accounting.daysBehind}d behind →
+            </Link>
           )}
-        </Section>
+        </div>
 
-        {/* Schedule (weekends only) */}
-        {schedule !== null && (
-          <Section label="Schedule">
-            {schedule.nextWeekMissing ? (
-              <WarnRow label="Next week's schedule not ready" href="/scheduling/schedules" />
-            ) : (
-              <OkRow label="Next week ready" />
-            )}
-          </Section>
+        {/* Cash diff (only if notable) */}
+        {accounting.cashDiff !== null && Math.abs(accounting.cashDiff) > 200 && (
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-xs text-[var(--fg-4)]">Cash diff</span>
+            <span
+              className="text-xs font-medium tabular-nums"
+              style={{ color: Math.abs(accounting.cashDiff) > 500 ? "var(--bad)" : "var(--warn)" }}
+            >
+              {formatCashDiff(accounting.cashDiff)}
+            </span>
+          </div>
         )}
-
-        {/* Entries */}
-        {(() => {
-          const { period, period1Filled, period2Filled, nearingEnd } = entries;
-          const currentFilled = period === 1 ? period1Filled : period2Filled;
-          if (!nearingEnd && period1Filled && period2Filled) return null;
-          if (nearingEnd && !currentFilled) {
-            const label =
-              period === 1
-                ? "Period 1 entries (days 1–15) not filled"
-                : "Period 2 entries (days 16–end) not filled";
-            return (
-              <Section label="Entries">
-                <WarnRow label={label} href="/challenges/overview" />
-              </Section>
-            );
-          }
-          return null;
-        })()}
 
         {/* Attendance */}
-        {attendanceDue && (
-          <Section label="Attendance">
-            <WarnRow label="Complete attendance before payroll" href="/attendance" />
-          </Section>
-        )}
-
-        {/* Animals */}
-        <Section label="Animals">
-          {nextVaccine ? (
-            <InfoRow label={`Next vaccine — ${nextVaccine.animalName} · ${formatDate(nextVaccine.date)}`} />
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-xs text-[var(--fg-4)]">Attendance</span>
+          {attendanceDue ? (
+            <Link href="/attendance" className="text-xs font-medium hover:underline" style={{ color: "var(--warn)" }}>
+              Due →
+            </Link>
           ) : (
-            <InfoRow label="No upcoming vaccines" />
+            <span className="text-xs font-medium" style={{ color: "var(--good)" }}>OK</span>
           )}
-        </Section>
+        </div>
 
         {/* Documents */}
-        <Section label="Documents">
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-xs text-[var(--fg-4)]">Documents</span>
           {docIssues === 0 ? (
-            <OkRow label="All documents up to date" />
+            <span className="text-xs font-medium" style={{ color: "var(--good)" }}>OK</span>
           ) : (
-            <WarnRow
-              label={[
+            <Link href="/documents" className="text-xs font-medium hover:underline" style={{ color: documents.expired > 0 ? "var(--bad)" : "var(--warn)" }}>
+              {[
                 documents.expired > 0 ? `${documents.expired} expired` : null,
-                documents.expiring > 0 ? `${documents.expiring} expiring soon` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-              href="/documents"
-            />
+                documents.expiring > 0 ? `${documents.expiring} expiring` : null,
+              ].filter(Boolean).join(", ")} →
+            </Link>
           )}
-        </Section>
+        </div>
+
+        {/* Schedule or next vaccine */}
+        {schedule !== null ? (
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-xs text-[var(--fg-4)]">Schedule</span>
+            {schedule.nextWeekMissing ? (
+              <Link href="/scheduling" className="text-xs font-medium hover:underline" style={{ color: "var(--warn)" }}>
+                Not ready →
+              </Link>
+            ) : (
+              <span className="text-xs font-medium" style={{ color: "var(--good)" }}>Ready</span>
+            )}
+          </div>
+        ) : nextVaccine ? (
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-xs text-[var(--fg-4)]">Next vaccine</span>
+            <span className="text-xs text-[var(--fg-3)]">
+              {nextVaccine.animalName} · {formatDate(nextVaccine.date)}
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Link to full shop accounting */}
+      <div className="px-4 py-2.5 border-t border-[var(--line)] bg-[var(--surface-2)]">
+        <Link
+          href={`/accounting?location=${card.id}`}
+          className="text-xs font-medium hover:underline"
+          style={{ color: "var(--bronze)" }}
+        >
+          Open accounting →
+        </Link>
       </div>
     </div>
   );

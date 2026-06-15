@@ -15,10 +15,17 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
+export interface OverviewAlert {
+  priority: "critical" | "warning" | "pending";
+  label: string;
+  shop: string;
+  href: string;
+}
+
 export interface ShopCard {
   id: string;
   name: string;
-  accounting: { daysBehind: number };
+  accounting: { daysBehind: number; cashDiff: number | null };
   schedule: { nextWeekMissing: boolean } | null;
   entries: {
     period: 1 | 2;
@@ -77,7 +84,7 @@ export async function GET() {
   const locationIds = locations.map((l) => l.id);
 
   // Parallel fetches for all locations at once
-  const [accountingRes, scheduleRes, entriesRes, animalsRes, documentsRes] = await Promise.all([
+  const [accountingRes, scheduleRes, entriesRes, animalsRes, documentsRes, cashRes] = await Promise.all([
     // Days filled this month (one row per day, so count = filled days)
     supabase
       .from("daily_entries")
@@ -123,6 +130,15 @@ export async function GET() {
       .is("deleted_at", null)
       .in("status", ["expired", "expiring"])
       .in("location_id", locationIds),
+
+    // Latest cash difference per location (most recent daily entry with cash data)
+    supabase
+      .from("daily_entries")
+      .select("location_id, entry_date, payment_cash, cash_end_day")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .in("location_id", locationIds)
+      .order("entry_date", { ascending: false })
+      .limit(locationIds.length * 2),
   ]);
 
   // Build lookup maps
@@ -166,6 +182,18 @@ export async function GET() {
     docsByLoc.set(row.location_id, existing);
   }
 
+  // Latest cash difference per location (payment_cash - cash_end_day where both are set)
+  type CashRow = { location_id: string; entry_date: string; payment_cash: number | null; cash_end_day: number | null };
+  const cashDiffByLoc = new Map<string, number>();
+  const seenCashLoc = new Set<string>();
+  for (const row of (cashRes.data ?? []) as CashRow[]) {
+    if (seenCashLoc.has(row.location_id)) continue;
+    if (row.payment_cash != null && row.cash_end_day != null) {
+      cashDiffByLoc.set(row.location_id, row.cash_end_day - row.payment_cash);
+      seenCashLoc.add(row.location_id);
+    }
+  }
+
   // Days that should have been filled = days elapsed before today (yesterday is the last completable day)
   const daysShouldBeFilled = dayOfMonth - 1;
 
@@ -176,7 +204,10 @@ export async function GET() {
     return {
       id: loc.id,
       name: loc.name as string,
-      accounting: { daysBehind: Math.max(0, daysShouldBeFilled - filled) },
+      accounting: {
+        daysBehind: Math.max(0, daysShouldBeFilled - filled),
+        cashDiff: cashDiffByLoc.get(loc.id) ?? null,
+      },
       schedule: isWeekend
         ? { nextWeekMissing: !scheduleLocIds.has(loc.id) }
         : null,
@@ -192,5 +223,87 @@ export async function GET() {
     };
   });
 
-  return Response.json({ cards });
+  // Build cross-shop alerts list (sorted: critical first, then warning, then pending)
+  const alerts: OverviewAlert[] = [];
+
+  for (const card of cards) {
+    const shortName = card.name.replace(/^Capybara Coffee\s*/i, "").trim() || card.name;
+
+    if (card.accounting.daysBehind >= 3) {
+      alerts.push({
+        priority: "critical",
+        label: `${card.accounting.daysBehind} days of accounting not submitted`,
+        shop: shortName,
+        href: `/accounting?location=${card.id}`,
+      });
+    } else if (card.accounting.daysBehind > 0) {
+      alerts.push({
+        priority: "warning",
+        label: `${card.accounting.daysBehind} day${card.accounting.daysBehind === 1 ? "" : "s"} of accounting missing`,
+        shop: shortName,
+        href: `/accounting?location=${card.id}`,
+      });
+    }
+
+    if (card.accounting.cashDiff !== null && Math.abs(card.accounting.cashDiff) > 500) {
+      const sign = card.accounting.cashDiff > 0 ? "+" : "";
+      alerts.push({
+        priority: "warning",
+        label: `Cash difference: ${sign}฿${Math.abs(card.accounting.cashDiff).toLocaleString()}`,
+        shop: shortName,
+        href: `/accounting?location=${card.id}`,
+      });
+    }
+
+    if (card.documents.expired > 0) {
+      alerts.push({
+        priority: "critical",
+        label: `${card.documents.expired} expired document${card.documents.expired === 1 ? "" : "s"}`,
+        shop: shortName,
+        href: "/documents",
+      });
+    }
+
+    if (card.documents.expiring > 0) {
+      alerts.push({
+        priority: "warning",
+        label: `${card.documents.expiring} document${card.documents.expiring === 1 ? "" : "s"} expiring soon`,
+        shop: shortName,
+        href: "/documents",
+      });
+    }
+
+    if (card.schedule?.nextWeekMissing) {
+      alerts.push({
+        priority: "warning",
+        label: "Next week's schedule not ready",
+        shop: shortName,
+        href: "/scheduling",
+      });
+    }
+
+    if (card.attendanceDue) {
+      alerts.push({
+        priority: "pending",
+        label: "Complete attendance before month-end payroll",
+        shop: shortName,
+        href: "/attendance",
+      });
+    }
+
+    if (card.entries.nearingEnd && !(card.entries.period === 1 ? card.entries.period1Filled : card.entries.period2Filled)) {
+      alerts.push({
+        priority: "pending",
+        label: `Period ${card.entries.period} challenge entries not filled`,
+        shop: shortName,
+        href: "/challenges/overview",
+      });
+    }
+  }
+
+  // Sort: critical → warning → pending
+  const priorityOrder = { critical: 0, warning: 1, pending: 2 } as const;
+  alerts.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  return Response.json({ cards, alerts });
 }

@@ -33,6 +33,12 @@ interface AccountingData {
   locations: { id: string; name: string }[];
   overview: ShopAgg;
   byShop: ShopAgg[];
+  completeness?: {
+    totalExpected: number;
+    totalFilled: number;
+    percent: number;
+    shopsIncomplete: string[];
+  };
 }
 
 // ── Formatting ───────────────────────────────────────────────────────────────
@@ -250,8 +256,45 @@ function Controls({
 
 // ── Operations Tab ────────────────────────────────────────────────────────────
 
+function computeInsights(byShop: ShopAgg[]): string[] {
+  if (byShop.length < 2) return [];
+  const insights: string[] = [];
+
+  // Shop with lowest merch ratio
+  const goodsShops = byShop.filter((s) => s.revenue > 0).map((s) => ({
+    name: s.locationName.replace(/^Capybara Coffee\s*/i, "").trim() || s.locationName,
+    goodsPct: s.revenue > 0 ? (s.goodies / s.revenue) * 100 : 0,
+    expPct: s.revenue > 0 ? ((s.expenses + s.hrCosts) / s.revenue) * 100 : 0,
+    revenue: s.revenue,
+    margin: s.margin,
+  }));
+
+  const lowestMerch = [...goodsShops].sort((a, b) => a.goodsPct - b.goodsPct)[0];
+  if (lowestMerch && lowestMerch.goodsPct < 5) {
+    insights.push(`${lowestMerch.name} has the lowest merch ratio this period: ${fmtPct(lowestMerch.goodsPct)}`);
+  }
+
+  // Shop with expenses most above average
+  const avgExpPct = goodsShops.reduce((s, sh) => s + sh.expPct, 0) / goodsShops.length;
+  const highestExp = [...goodsShops].sort((a, b) => b.expPct - a.expPct)[0];
+  if (highestExp && highestExp.expPct > avgExpPct * 1.15) {
+    insights.push(`${highestExp.name} expenses are ${fmtPct(highestExp.expPct - avgExpPct)} above the group average`);
+  }
+
+  // Revenue gap between top and bottom
+  const sorted = [...goodsShops].sort((a, b) => b.revenue - a.revenue);
+  if (sorted.length >= 2 && sorted[0].revenue > 0) {
+    const gap = Math.round(((sorted[0].revenue - sorted[sorted.length - 1].revenue) / sorted[0].revenue) * 100);
+    if (gap > 30) {
+      insights.push(`${sorted[0].name} earns ${gap}% more revenue than ${sorted[sorted.length - 1].name} this period`);
+    }
+  }
+
+  return insights.slice(0, 3);
+}
+
 function OperationsView({ data }: { data: AccountingData }) {
-  const { overview: o, byShop } = data;
+  const { overview: o, byShop, completeness } = data;
   const totalPayments = o.cash + o.scan + o.creditCard;
 
   function pct(n: number) {
@@ -259,9 +302,32 @@ function OperationsView({ data }: { data: AccountingData }) {
   }
 
   const sortedShops = [...byShop].sort((a, b) => b.revenue - a.revenue);
+  const insights = computeInsights(byShop);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      {/* Data completeness banner */}
+      {completeness && completeness.percent < 100 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 16px",
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--warn)",
+            background: "var(--warn-soft)",
+            fontSize: 13,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "var(--warn)" }}>Data: {completeness.percent}% complete</span>
+          <span style={{ color: "var(--warn)", opacity: 0.8 }}>
+            {completeness.totalFilled} of {completeness.totalExpected} expected entries
+            {completeness.shopsIncomplete.length > 0 ? ` — missing: ${completeness.shopsIncomplete.join(", ")}` : ""}
+          </span>
+        </div>
+      )}
+
       {/* KPI Banner */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
         <KpiCard label="Total Revenue" value={`฿${fmtN(o.revenue)}`} />
@@ -277,6 +343,34 @@ function OperationsView({ data }: { data: AccountingData }) {
           tone={o.margin >= 20 ? "good" : o.margin >= 0 ? "neutral" : "bad"}
         />
       </div>
+
+      {/* Insight cards */}
+      {insights.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Insights</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {insights.map((insight, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "var(--r-md)",
+                  border: "1px solid var(--line)",
+                  background: "var(--surface)",
+                  fontSize: 13,
+                  color: "var(--fg-2)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ color: "var(--bronze)", flexShrink: 0 }}>→</span>
+                {insight}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Revenue by category */}
       <div
@@ -606,11 +700,11 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type ReportsTab = "operations" | "treasury";
+type ReportsTab = "operations" | "byshop";
 
 const TABS: { value: ReportsTab; label: string }[] = [
   { value: "operations", label: "Operations" },
-  { value: "treasury", label: "Treasury" },
+  { value: "byshop", label: "By Shop" },
 ];
 
 export function ReportsClient() {
@@ -709,6 +803,7 @@ export function ReportsClient() {
           ? <OperationsView data={data} />
           : <TreasuryView data={data} />
       )}
+
     </div>
   );
 }

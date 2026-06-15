@@ -29,6 +29,14 @@ const STATUS_TONES: Record<DocumentStatus, PillTone> = {
   not_relevant: "neutral",
 };
 
+const STATUS_SORT_PRIORITY: Record<DocumentStatus, number> = {
+  expired: 0,
+  missing: 1,
+  expiring: 2,
+  valid: 3,
+  not_relevant: 4,
+};
+
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const ALL_TYPES: DocumentType[] = [
@@ -150,7 +158,24 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(d);
     }
-    return CATEGORY_ORDER.filter((c) => groups[c]).map((c) => ({ category: c, docs: groups[c] }));
+    // Sort docs within each category: expired → missing → expiring → valid → not_relevant
+    for (const cat of Object.keys(groups)) {
+      groups[cat].sort((a, b) => STATUS_SORT_PRIORITY[computeStatus(a)] - STATUS_SORT_PRIORITY[computeStatus(b)]);
+    }
+    // Sort categories so those with urgent docs appear first
+    const urgencyScore = (cat: string) => {
+      let score = 0;
+      for (const d of groups[cat]) {
+        const s = computeStatus(d);
+        if (s === "expired") score += 100;
+        else if (s === "missing") score += 10;
+        else if (s === "expiring") score += 1;
+      }
+      return score;
+    };
+    return CATEGORY_ORDER.filter((c) => groups[c])
+      .sort((a, b) => urgencyScore(b) - urgencyScore(a))
+      .map((c) => ({ category: c, docs: groups[c] }));
   }, [displayed]);
 
   // ── form helpers ─────────────────────────────────────────────────────────
@@ -480,7 +505,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                   </div>
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
-                      <thead>
+                      <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
                         <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
                           {["Code", "Document", "Location", "Has doc", "Status", "Expiry / due", ""].map((h, i) => (
                             <th

@@ -73,10 +73,36 @@ export async function GET(request: Request) {
       return { locationId: loc.id, locationName: loc.name, ...agg(shopEntries) };
     });
 
+  // Data completeness: how many calendar days in range vs. how many have entries
+  function countDaysInRange(fromStr: string, toStr: string): number {
+    const d1 = new Date(fromStr);
+    const d2 = new Date(toStr);
+    return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1);
+  }
+
+  const totalDaysInRange = countDaysInRange(from, to);
+  const selectedShopCount = selectedIds.length;
+  const expectedEntries = totalDaysInRange * selectedShopCount;
+  const actualEntries = filtered.length;
+  const completenessPercent = expectedEntries > 0 ? Math.round((actualEntries / expectedEntries) * 100) : 100;
+
+  const shopsWithMissingData = byShop
+    .filter((s) => {
+      const shopEntries = filtered.filter((e) => e.location_id === s.locationId);
+      return shopEntries.length < totalDaysInRange;
+    })
+    .map((s) => s.locationName.replace(/^Capybara Coffee\s*/i, "").trim());
+
   return Response.json({
     period: { from, to },
     locations: allLocations,
     overview,
     byShop,
+    completeness: {
+      totalExpected: expectedEntries,
+      totalFilled: actualEntries,
+      percent: completenessPercent,
+      shopsIncomplete: shopsWithMissingData,
+    },
   });
 }

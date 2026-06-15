@@ -82,7 +82,7 @@ export const REPLY_TEMPLATES: {
   },
   4: {
     generic: [
-      "Thank you for your 4-star review! We appreciate your feedback. If there's anything we can improve for a 5-star experience next time, feel free to reach out at capybaracoffeethailand@gmail.com 🙏",
+      "Thank you for your 4-star review! We appreciate your feedback. If there's anything we can improve for a 5-star experience next time, feel free to reach out at contact@capybaracoffeethailand.com 🙏",
       "Thanks a lot for the 4 stars! We're glad you had a good experience and we’re always trying to improve—if you have suggestions, we’d love to hear them. 🤎",
       "We really appreciate your 4-star rating. Knowing what you enjoyed (and what we can do better) helps us keep improving. Thank you for visiting us. ☕️",
       "Thank you for taking the time to leave a 4-star review! We hope your next visit can be a full 5-star experience. Feel free to share any ideas with us. 🙏",

@@ -19,9 +19,9 @@ function daysInMonth(year: number, month: number) {
 }
 
 const VIEWS: Array<{ id: MainView; label: string; icon: typeof ListIcon }> = [
-  { id: "smart", label: "Smart table", icon: ListIcon },
-  { id: "focus", label: "Focus day",   icon: EyeIcon  },
-  { id: "fixed", label: "Fixed costs", icon: TableIcon },
+  { id: "focus", label: "Daily Entry",    icon: EyeIcon  },
+  { id: "smart", label: "Monthly Review", icon: ListIcon },
+  { id: "fixed", label: "Fixed Costs",    icon: TableIcon },
 ];
 
 interface Props {
@@ -59,7 +59,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
       ? initialLocationId
       : (locations[0]?.id ?? "")
   );
-  const [view, setView]             = useState<MainView>("smart");
+  const [view, setView]             = useState<MainView>("focus");
   const [entries, setEntries]       = useState<DailyEntry[]>([]);
   const [fixedCost, setFixedCost]   = useState<MonthlyFixedExpense | null>(null);
   const [loading, setLoading]       = useState(false);
@@ -458,6 +458,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           entries={entries}
           locationId={locationId}
           locations={locations}
+          canManage={canManage}
           onEntryUpdate={handleEntryUpdate}
           onEntryDelete={handleEntryDelete}
         />

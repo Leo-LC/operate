@@ -625,6 +625,44 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
         </div>
       ) : (
         <>
+          {/* Exception summary */}
+          {(() => {
+            const withAbsence = summaries.filter((s) => s.absence_days > 0);
+            const withOt = summaries.filter((s) => s.totalOtHours > 0);
+            const withUnpaid = summaries.filter((s) => s.totalUnpaidDays > 0 && s.absence_days === 0);
+            if (withAbsence.length === 0 && withOt.length === 0 && withUnpaid.length === 0) return null;
+            return (
+              <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+                <div style={{ padding: "8px var(--s-5)", background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
+                  <span className="eyebrow" style={{ color: "var(--fg-4)" }}>Attendance issues this month</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {withAbsence.map((s, i) => (
+                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "10px var(--s-5)", borderTop: i > 0 ? "1px solid var(--line)" : undefined }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--bad)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, minWidth: 140 }}>{s.employee_name}</span>
+                      <span style={{ fontSize: 12, color: "var(--bad)" }}>{s.absence_days} absence{s.absence_days > 1 ? "s" : ""}</span>
+                    </div>
+                  ))}
+                  {withUnpaid.map((s, i) => (
+                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "10px var(--s-5)", borderTop: (i > 0 || withAbsence.length > 0) ? "1px solid var(--line)" : undefined }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--warn)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, minWidth: 140 }}>{s.employee_name}</span>
+                      <span style={{ fontSize: 12, color: "var(--warn)" }}>{s.totalUnpaidDays}d unpaid leave</span>
+                    </div>
+                  ))}
+                  {withOt.map((s, i) => (
+                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "10px var(--s-5)", borderTop: (i > 0 || withAbsence.length > 0 || withUnpaid.length > 0) ? "1px solid var(--line)" : undefined }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--info)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, minWidth: 140 }}>{s.employee_name}</span>
+                      <span style={{ fontSize: 12, color: "var(--info)" }}>{s.totalOtHours}h OT</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Calendar grid */}
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-3)", marginBottom: 2 }}>
