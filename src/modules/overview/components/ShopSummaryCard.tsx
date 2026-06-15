@@ -6,61 +6,7 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-function SectionLabel({ label }: { label: string }) {
-  return (
-    <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">
-      {label}
-    </span>
-  );
-}
 
-function OkRow({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-[var(--good)] text-xs shrink-0">✓</span>
-      <span className="text-xs text-[var(--fg-4)]">{label}</span>
-    </div>
-  );
-}
-
-function WarnRow({ label, href }: { label: string; href?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2 py-1">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[var(--bad)] text-xs shrink-0">⚠</span>
-        <span className="text-xs text-[var(--fg-2)] truncate">{label}</span>
-      </div>
-      {href && (
-        <Link
-          href={href}
-          className="shrink-0 text-[10px] font-medium text-[var(--bronze)] hover:underline"
-        >
-          Go →
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function InfoRow({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-[var(--fg-4)] text-xs shrink-0">·</span>
-      <span className="text-xs text-[var(--fg-3)]">{label}</span>
-    </div>
-  );
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="py-2 border-b border-[var(--line)] last:border-b-0">
-      <div className="mb-1">
-        <SectionLabel label={label} />
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function formatCashDiff(diff: number): string {
   const sign = diff >= 0 ? "+" : "-";
@@ -68,7 +14,7 @@ function formatCashDiff(diff: number): string {
 }
 
 export function ShopSummaryCard({ card }: { card: ShopCard }) {
-  const { accounting, schedule, entries, attendanceDue, nextVaccine, documents } = card;
+  const { accounting, schedule, attendanceDue, nextVaccine, documents } = card;
   const docIssues = documents.expired + documents.expiring;
 
   const shortName = card.name.replace(/^Capybara Coffee\s*/i, "").trim() || card.name;
