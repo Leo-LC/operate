@@ -162,6 +162,9 @@ function LocationListItem({ loc, active, onClick }: { loc: AdminLocation; active
         onMouseLeave={() => setHovered(false)}
       >
         {loc.name}
+        {!loc.is_active && (
+          <span style={{ marginLeft: 6, fontSize: 11, color: "var(--fg-4)" }}>(opening soon)</span>
+        )}
       </button>
     </li>
   );
@@ -178,6 +181,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   const selected = locations.find((l) => l.id === selectedId) ?? null;
   const locationStaff = employees.filter((e) => e.location_id === selectedId);
@@ -318,6 +322,33 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
     }
   }
 
+  async function handleOpen(loc: AdminLocation) {
+    setOpeningId(loc.id);
+    try {
+      const res = await fetch(`/api/admin/locations/${loc.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: true }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to open location");
+      }
+      const updated: AdminLocation = await res.json();
+      setLocations((prev) =>
+        prev
+          .map((l) => (l.id === updated.id ? updated : l))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+      toast.success(`"${updated.name}" is now live`);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setOpeningId(null);
+    }
+  }
+
   const formPanel = (
     <form
       onSubmit={isAdding ? handleAdd : handleSaveEdit}
@@ -419,8 +450,34 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
   const detailPanel = selected && !isEditing && !isAdding && (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: 12, borderBottom: "1px solid var(--line)" }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>{selected.name}</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>{selected.name}</h2>
+          {!selected.is_active && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--bronze)",
+                background: "var(--bronze-soft)",
+                borderRadius: 999,
+                padding: "2px 8px",
+              }}
+            >
+              Opening soon
+            </span>
+          )}
+        </div>
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          {!selected.is_active && (
+            <Button
+              size="sm"
+              disabled={openingId === selected.id}
+              onClick={() => void handleOpen(selected)}
+            >
+              <CheckIcon className="mr-1.5 size-3.5" />
+              {openingId === selected.id ? "Opening…" : "Open location"}
+            </Button>
+          )}
           <Button size="sm" variant="secondary" onClick={() => openEdit(selected)}>
             <PencilIcon className="mr-1.5 size-3.5" />
             Edit

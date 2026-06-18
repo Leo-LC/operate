@@ -20,52 +20,52 @@ INSERT INTO locations (organization_id, name, slug, external_id, is_active)
 VALUES
   (
     'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee Phangan',
+    'Phangan',
     'phangan',
     'locations/16151596174163473059',
     true
   ),
   (
     'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee Bangkok Ekkamai',
-    'bangkok-ekkamai',
+    'Ekkamai',
+    'ekkamai',
     'locations/10878815915536987618',
     true
   ),
   (
     'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee Samui',
+    'Samui',
     'samui',
     'locations/10753238730025479271',
     true
   ),
   (
     'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee Bangkok Silom',
-    'bangkok-silom',
+    'Silom',
+    'silom',
     'locations/2465044010509373862',
     true
   ),
   (
     'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee & Zen Resort Spa Chiang Mai',
-    'chiang-mai-zen',
-    'locations/17423194230027303735',
-    true
-  ),
-  (
-    'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee Pattaya',
+    'Pattaya',
     'pattaya',
     'locations/1605645991793886964',
     true
   ),
   (
     'a1b2c3d4-0000-0000-0000-000000000001',
-    'Capybara Coffee Chiang Mai',
+    'Chiang Mai',
     'chiang-mai',
     'locations/1389494344977514093',
     true
+  ),
+  (
+    'a1b2c3d4-0000-0000-0000-000000000001',
+    'Laguna',
+    'laguna',
+    NULL,
+    false
   )
 ON CONFLICT (organization_id, slug) DO NOTHING;
 

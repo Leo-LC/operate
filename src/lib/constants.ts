@@ -1,10 +1,6 @@
 export const DEFAULT_ORG_ID = "a1b2c3d4-0000-0000-0000-000000000001";
 
-// Location UUIDs (from the locations table) excluded from the accounting module.
-// Resort Chiang Mai is tracked via reviews/challenges only — it has no daily accounting.
-export const ACCOUNTING_EXCLUDED_LOCATION_IDS = new Set([
-  "47f3b65b-28c8-482b-9542-399ed33723e6", // Capybara Resort Chiang Mai
-]);
+export const ACCOUNTING_EXCLUDED_LOCATION_IDS = new Set<string>([]);
 
 export const EXCLUDED_LOCATION_IDS = new Set([
   // "locations/787493951104592729", // Olives Bar Tapas (France)
@@ -12,13 +8,12 @@ export const EXCLUDED_LOCATION_IDS = new Set([
 ]);
 
 export const LOCATION_NAMES: Record<string, string> = {
-  "locations/16151596174163473059": "Capybara Coffee Phangan",
-  "locations/10878815915536987618": "Capybara Coffee Bangkok Ekkamai",
-  "locations/10753238730025479271": "Capybara Coffee Samui",
-  "locations/2465044010509373862": "Capybara Coffee Bangkok Silom",
-  "locations/17423194230027303735": "Capybara Coffee & Zen Resort Spa Chiang Mai",
-  "locations/1605645991793886964": "Capybara Coffee Pattaya",
-  "locations/1389494344977514093": "Capybara Coffee Chiang Mai",
+  "locations/16151596174163473059": "Phangan",
+  "locations/10878815915536987618": "Ekkamai",
+  "locations/10753238730025479271": "Samui",
+  "locations/2465044010509373862": "Silom",
+  "locations/1605645991793886964": "Pattaya",
+  "locations/1389494344977514093": "Chiang Mai",
 };
 
 export type ReplyRatingBucket = 4 | 5;
