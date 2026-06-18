@@ -9,7 +9,7 @@ import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
-  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -115,8 +115,14 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
   const [cmdOpen, setCmdOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  /* Close the mobile drawer whenever the route changes */
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   /* ── Global keyboard shortcuts ── */
   const gKeyRef = useRef(false);
@@ -197,8 +203,16 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         color: "var(--fg)",
       }}
     >
+      {/* ── Mobile drawer backdrop ── */}
+      <div
+        className={`app-mobile-backdrop${mobileNavOpen ? " is-open" : ""}`}
+        onClick={() => setMobileNavOpen(false)}
+        aria-hidden
+      />
+
       {/* ── Sidebar ── */}
       <aside
+        className={`app-sidebar${mobileNavOpen ? " is-open" : ""}`}
         style={{
           width: "var(--sidebar-w)",
           flexShrink: 0,
@@ -240,6 +254,25 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             </span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>v2.6</span>
           </Link>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Close navigation"
+            className="app-mobile-menu-btn"
+            style={{
+              width: 28,
+              height: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-sm)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            <XIcon size={16} strokeWidth={1.5} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -435,9 +468,31 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             flexShrink: 0,
           }}
         >
+          {/* Mobile nav trigger */}
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation"
+            className="app-mobile-menu-btn hover:!bg-[var(--row-hover)]"
+            style={{
+              width: 34,
+              height: 34,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-md)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <MenuIcon size={18} strokeWidth={1.5} />
+          </button>
+
           {/* ⌘K search trigger */}
           <button
             onClick={() => setCmdOpen(true)}
+            className="app-search-btn hover:!border-[var(--line-strong)]"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -454,10 +509,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               textAlign: "left",
               transition: "border-color var(--dur) var(--ease)",
             }}
-            className="hover:!border-[var(--line-strong)]"
           >
             <SearchIcon size={15} style={{ flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>Jump to module, employee, document…</span>
+            <span className="app-search-label" style={{ flex: 1 }}>Jump to module, employee, document…</span>
             <kbd
               style={{
                 fontSize: 10,
@@ -543,6 +597,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
         {/* Module content */}
         <main
+          className="app-main"
           style={{
             flex: 1,
             padding: "var(--s-5) var(--s-6) var(--s-7)",

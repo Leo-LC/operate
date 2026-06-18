@@ -23,6 +23,63 @@
   }
 }
 
+/* App shell: collapsible sidebar + responsive topbar below 1024px.
+   The shell itself stays inline-styled (desktop default); these classes only
+   take effect inside the mobile media query, overriding via !important since
+   they must win over the inline styles set for desktop. */
+.app-mobile-menu-btn {
+  display: none;
+}
+
+.app-mobile-backdrop {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .app-mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    transform: translateX(-100%);
+    transition: transform 200ms var(--ease, ease);
+    z-index: 60 !important;
+    box-shadow: var(--shadow-2);
+  }
+
+  .app-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .app-mobile-backdrop.is-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 55;
+  }
+
+  .app-search-btn {
+    min-width: 0 !important;
+    width: 34px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+
+  .app-search-btn .app-search-label,
+  .app-search-btn kbd {
+    display: none;
+  }
+
+  .app-main {
+    padding: var(--s-4) var(--s-4) var(--s-6) !important;
+  }
+}
+
 /* Tabs: allow horizontal scroll instead of wrapping/overflowing on narrow screens */
 .reviews-tab-nav {
   display: flex;
