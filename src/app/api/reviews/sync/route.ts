@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES, REVIEWS_BASE } from "@/lib/constants";
-import { fetchAllLocations, getPreferredAccountId } from "@/lib/google-business";
+import { fetchAllLocations, getActiveLocationExternalIds, getPreferredAccountId } from "@/lib/google-business";
 import type { Review } from "@/types/review";
 import type { ReviewWithLocation } from "@/types/review";
 
@@ -72,14 +72,21 @@ export async function GET(request: Request) {
             .filter(Boolean)
         : null;
 
-    const locations = await fetchAllLocations(accessToken, accountId);
+    const [locations, activeExternalIds] = await Promise.all([
+      fetchAllLocations(accessToken, accountId),
+      getActiveLocationExternalIds(),
+    ]);
+    const activeLocations = locations.filter((loc) => {
+      const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+      return activeExternalIds.has(shortName);
+    });
     const filteredLocations =
       selectedIds && selectedIds.length > 0
-        ? locations.filter((loc) => {
+        ? activeLocations.filter((loc) => {
             const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
             return selectedIds.includes(shortName);
           })
-        : locations;
+        : activeLocations;
 
     const allUnreplied: ReviewWithLocation[] = [];
     const concurrency = 4;

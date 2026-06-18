@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES, DEFAULT_ORG_ID, REVIEWS_BASE, EXCLUDED_LOCATION_IDS } from "@/lib/constants";
-import { fetchAllLocations, getPreferredAccountId } from "@/lib/google-business";
+import { fetchAllLocations, getActiveLocationExternalIds, getPreferredAccountId } from "@/lib/google-business";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import type { Review } from "@/types/review";
 
@@ -63,7 +63,10 @@ export async function POST(request: Request) {
 
   try {
     const accountId = await getPreferredAccountId(accessToken);
-    const locations = await fetchAllLocations(accessToken, accountId);
+    const [locations, activeExternalIds] = await Promise.all([
+      fetchAllLocations(accessToken, accountId),
+      getActiveLocationExternalIds(),
+    ]);
     const supabase = getSupabaseServerClient();
     const syncedAt = new Date().toISOString();
     let totalSynced = 0;
@@ -78,6 +81,7 @@ export async function POST(request: Request) {
         batch.map(async (loc) => {
           const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
           if (EXCLUDED_LOCATION_IDS.has(shortName)) return;
+          if (!activeExternalIds.has(shortName)) return;
           const locationTitle = LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
 
           try {

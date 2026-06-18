@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES } from "@/lib/constants";
-import { fetchAllLocations, getPreferredAccountId } from "@/lib/google-business";
+import { fetchAllLocations, getActiveLocationExternalIds, getPreferredAccountId } from "@/lib/google-business";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -16,18 +16,26 @@ export async function GET() {
 
   try {
     const accountId = await getPreferredAccountId(accessToken);
-    const locations = await fetchAllLocations(accessToken, accountId);
+    const [locations, activeExternalIds] = await Promise.all([
+      fetchAllLocations(accessToken, accountId),
+      getActiveLocationExternalIds(),
+    ]);
 
-    const items = locations.map((loc) => {
-      const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
-      return {
-        id: shortName,
-        title: LOCATION_NAMES[shortName] ?? loc.title ?? shortName,
-        address: loc.storefrontAddress?.addressLines?.join(", ") ?? null,
-        locality: loc.storefrontAddress?.locality ?? null,
-        placeId: loc.metadata?.placeId ?? null,
-      };
-    });
+    const items = locations
+      .filter((loc) => {
+        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+        return activeExternalIds.has(shortName);
+      })
+      .map((loc) => {
+        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+        return {
+          id: shortName,
+          title: LOCATION_NAMES[shortName] ?? loc.title ?? shortName,
+          address: loc.storefrontAddress?.addressLines?.join(", ") ?? null,
+          locality: loc.storefrontAddress?.locality ?? null,
+          placeId: loc.metadata?.placeId ?? null,
+        };
+      });
 
     return Response.json({ locations: items });
   } catch (e) {

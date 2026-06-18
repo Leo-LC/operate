@@ -1,5 +1,21 @@
-import { LOCATIONS_BASE } from "@/lib/constants";
+import { DEFAULT_ORG_ID, LOCATIONS_BASE } from "@/lib/constants";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 import type { Location } from "@/types/review";
+
+// Google Business Profile locations whose corresponding `locations` row is missing
+// (e.g. deleted, like the old resort) or not yet active (e.g. "opening soon", like
+// Laguna pre-launch) must stay out of reviews/challenges entirely.
+export async function getActiveLocationExternalIds(): Promise<Set<string>> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("locations")
+    .select("external_id")
+    .eq("organization_id", DEFAULT_ORG_ID)
+    .eq("is_active", true)
+    .not("external_id", "is", null);
+  if (error) throw new Error(`Failed to load active locations: ${error.message}`);
+  return new Set((data ?? []).map((row) => row.external_id as string));
+}
 
 type GbpAccount = { name?: string | null; accountName?: string | null };
 
