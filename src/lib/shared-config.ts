@@ -75,9 +75,26 @@ export async function writeSharedConfig(config: SharedConfig): Promise<void> {
     updated_at: new Date(config.updatedAt || Date.now()).toISOString(),
   };
 
-  const { error } = await supabase
+  // shared_config is a singleton table (enforced by a unique index on a
+  // constant expression), so there is always at most one row. Update it by
+  // id rather than upserting, since a fresh insert without an id would
+  // collide with that singleton constraint instead of the id conflict
+  // target.
+  const { data: existing, error: selectError } = await supabase
     .from("shared_config")
-    .upsert(payload, { onConflict: "id" });
+    .select("id")
+    .limit(1)
+    .maybeSingle();
+
+  if (selectError) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to read shared_config id from Supabase:", selectError);
+    throw selectError;
+  }
+
+  const { error } = existing
+    ? await supabase.from("shared_config").update(payload).eq("id", existing.id)
+    : await supabase.from("shared_config").insert(payload);
 
   if (error) {
     // eslint-disable-next-line no-console
