@@ -23,7 +23,7 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
   ];
 
   return (
-    <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--line)", marginBottom: 24 }}>
+    <div className="reviews-tab-nav">
       {tabs.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
         return (
@@ -37,6 +37,7 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
               fontWeight: 500,
               color: active ? "var(--fg)" : "var(--fg-4)",
               textDecoration: "none",
+              whiteSpace: "nowrap",
               borderBottom: active ? "2px solid var(--bronze)" : "2px solid transparent",
               marginBottom: -1,
               transition: "color 150ms, border-color 150ms",

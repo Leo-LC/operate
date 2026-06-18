@@ -326,9 +326,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
   return (
         <>
           {total > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0,1fr)", gap: "12px 20px", marginTop: 16 }}>
+            <div className="reviews-grid">
               {/* Row 1: stats spans full width */}
-              <div className="dashboard-stats-wrapper" style={{ gridColumn: "span 2", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 16px" }}>
+              <div className="dashboard-stats-wrapper reviews-grid-full" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 16px" }}>
                 <div className="dashboard-stats">
                   <span className="dashboard-stat-item">
                     <span aria-hidden className="text-lg">

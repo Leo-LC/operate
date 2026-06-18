@@ -81,8 +81,8 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Right: sign-in */}
-          <div className="flex flex-col gap-4 lg:pt-4">
+          {/* Right: sign-in (shown first on mobile so it's not below the fold) */}
+          <div className="order-first flex flex-col gap-4 lg:order-none lg:pt-4">
             <div className="rounded-xl border border-border/70 bg-card shadow-lg shadow-foreground/5 backdrop-blur-sm">
               <div className="px-7 pt-7 pb-5 text-center">
                 <h2 className="font-serif text-xl text-foreground">Sign in to continue</h2>
@@ -104,7 +104,7 @@ export default async function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 mt-auto border-t border-border/60 px-6 py-4 text-[11px] text-muted-foreground/50 sm:px-10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 text-center sm:text-left">
           <span>Operate · Internal operations platform</span>
           <span>Deployed on Vercel · Data by Supabase</span>
         </div>

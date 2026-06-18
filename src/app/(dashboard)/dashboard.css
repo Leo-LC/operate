@@ -1,5 +1,47 @@
 /* Dashboard: compact stats and subtle layout (structured CSS) */
 
+/* Reviews inbox: two-column layout (filters + content), collapsing to one
+   column on small screens so the sidebar isn't squeezed next to the list. */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 12px 20px;
+  margin-top: 16px;
+}
+
+.reviews-grid-full {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reviews-grid-full {
+    grid-column: span 1;
+  }
+}
+
+/* Tabs: allow horizontal scroll instead of wrapping/overflowing on narrow screens */
+.reviews-tab-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.reviews-tab-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.reviews-tab-nav a {
+  flex-shrink: 0;
+}
+
 .dashboard-stats {
   display: flex;
   flex-wrap: wrap;
