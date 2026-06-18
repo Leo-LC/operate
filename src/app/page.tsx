@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { LoginCard } from "@/components/login-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -23,7 +24,10 @@ const FEATURES = [
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
-  if (session) redirect("/overview");
+  if (session) {
+    const permissions = await getUserPermissionsFromDb(session.user?.userId, session.user?.role);
+    redirect(permissions.global_role === "reviewer" ? "/reviews" : "/overview");
+  }
 
   return (
     <div className="relative min-h-screen bg-background">

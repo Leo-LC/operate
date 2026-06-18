@@ -255,6 +255,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
+              if (permissions.global_role === "reviewer") return item.id === "reviews";
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
               if (!item.module && item.id !== "overview" && item.id !== "treasury") return false;
               return true;
