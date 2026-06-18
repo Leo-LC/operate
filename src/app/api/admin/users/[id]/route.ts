@@ -53,7 +53,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.global_role !== undefined) {
-    const validRoles = ["owner", "admin", "member"];
+    const validRoles = ["owner", "admin", "member", "reviewer"];
     if (!validRoles.includes(body.global_role)) {
       return Response.json({ error: "Invalid global_role" }, { status: 400 });
     }

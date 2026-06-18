@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   const email = body.email?.trim().toLowerCase();
   if (!email) return Response.json({ error: "email is required" }, { status: 400 });
 
-  const validRoles = ["owner", "admin", "member"] as const;
+  const validRoles = ["owner", "admin", "member", "reviewer"] as const;
   const global_role = validRoles.includes(body.global_role as (typeof validRoles)[number])
     ? body.global_role
     : "member";

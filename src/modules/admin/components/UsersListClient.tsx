@@ -12,6 +12,7 @@ const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   admin: "Admin",
   member: "Member",
+  reviewer: "Reviewer",
 };
 
 const ALL_MODULES = [
@@ -50,7 +51,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
   const [showForm, setShowForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
-  const [inviteRole, setInviteRole] = useState<"owner" | "admin" | "member">("member");
+  const [inviteRole, setInviteRole] = useState<"owner" | "admin" | "member" | "reviewer">("member");
   const [invitePassword, setInvitePassword] = useState("");
   const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
   const [selectedLocations, setSelectedLocations] = useState<Set<string>>(new Set());
@@ -176,11 +177,12 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Role</label>
-                <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as "owner" | "admin" | "member")}
+                <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as "owner" | "admin" | "member" | "reviewer")}
                   style={{ ...inputStyle, cursor: "pointer" }}>
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
                   <option value="owner">Owner</option>
+                  <option value="reviewer">Reviewer (Reviews only)</option>
                 </select>
               </div>
             </div>
@@ -188,6 +190,9 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
 
           <div>
             <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 12 }}>Module access</p>
+            {inviteRole === "reviewer" ? (
+              <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>Reviewer role is locked to Reviews access only.</p>
+            ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {ALL_MODULES.map((m) => {
                 const checked = selectedModules.has(m.key);
@@ -206,6 +211,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
                 );
               })}
             </div>
+            )}
           </div>
 
           {allLocations.length > 0 && (

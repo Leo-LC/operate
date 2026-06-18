@@ -15,6 +15,7 @@ const ROLE_OPTIONS = [
   { value: "member", label: "Member" },
   { value: "admin", label: "Admin" },
   { value: "owner", label: "Owner" },
+  { value: "reviewer", label: "Reviewer (Reviews only)" },
 ];
 
 interface UserDetailClientProps {
@@ -172,6 +173,7 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
   const grantedModuleKeys = new Set(user.module_access.map((m) => m.module_key));
   const grantedLocationIds = new Set(user.location_access.map((la) => la.location_id));
   const hasFullAccess = user.global_role === "owner" || user.global_role === "admin";
+  const isReviewerLocked = user.global_role === "reviewer";
 
   const selectSm: React.CSSProperties = {
     height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)",
@@ -245,15 +247,28 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
         </div>
       )}
 
+      {isReviewerLocked && (
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line-strong)", background: "var(--bg-2)", padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <span style={{ marginTop: 2, display: "inline-flex", width: 20, height: 20, flexShrink: 0, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--line-strong)", color: "var(--surface)", fontSize: 10, fontWeight: 700 }}>i</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Locked to Reviews</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>
+              Reviewer role grants read+write access to the Reviews module only — no other module access is possible for this role.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Module access */}
       <section style={sectionStyle}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Module Access</h2>
-          {hasFullAccess && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
+          {(hasFullAccess || isReviewerLocked) && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {ALL_MODULES.map((mod) => {
-            const granted = hasFullAccess || grantedModuleKeys.has(mod);
+            const granted = hasFullAccess || (isReviewerLocked ? mod === "reviews" : grantedModuleKeys.has(mod));
+            const locked = hasFullAccess || isReviewerLocked;
             return (
               <label
                 key={mod}
@@ -261,15 +276,15 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
                   display: "flex", alignItems: "center", gap: 8,
                   borderRadius: "var(--r-sm)",
                   border: `1px solid ${granted ? "var(--bronze)" : "var(--line)"}`,
-                  padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: hasFullAccess ? "default" : "pointer",
+                  padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: locked ? "default" : "pointer",
                   background: granted ? "var(--bronze-soft)" : "var(--bg)",
                   color: granted ? "var(--bronze)" : "var(--fg-4)",
-                  opacity: hasFullAccess ? 0.6 : 1,
+                  opacity: locked ? 0.6 : 1,
                   transition: "all 150ms",
                 }}
               >
-                <input type="checkbox" className="sr-only" checked={granted} disabled={hasFullAccess}
-                  onChange={() => !hasFullAccess && (granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true))} />
+                <input type="checkbox" className="sr-only" checked={granted} disabled={locked}
+                  onChange={() => !locked && (granted ? void handleRevokeModule(mod) : void handleGrantModule(mod, true))} />
                 {mod}
               </label>
             );

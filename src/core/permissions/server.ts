@@ -19,10 +19,23 @@ export async function getUserPermissionsFromDb(
 
     if (!user) return derivePermissionsFromRole(fallbackRole);
 
-    const global_role = user.global_role as "owner" | "admin" | "member";
+    const global_role = user.global_role as "owner" | "admin" | "member" | "reviewer";
 
     if (global_role === "owner") {
       return { global_role: "owner", module_access: [], location_access: [], all_locations: true };
+    }
+
+    if (global_role === "reviewer") {
+      const { data: locationRows } = await supabase
+        .from("user_location_access")
+        .select("location_id")
+        .eq("user_id", userId);
+      return {
+        global_role: "reviewer",
+        module_access: [{ module_key: "reviews", can_read: true, can_write: true }],
+        location_access: (locationRows ?? []).map((l) => ({ location_id: l.location_id as string })),
+        all_locations: false,
+      };
     }
 
     const [{ data: moduleRows }, { data: locationRows }] = await Promise.all([
