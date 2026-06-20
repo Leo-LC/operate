@@ -7,6 +7,14 @@ interface OverviewData {
   locations: LocationOverview[];
 }
 
+// Mirrors the bonus amounts in src/app/api/challenges/overview/route.ts, used to show
+// what a locked metric would pay out once the revenue gate is reached.
+const SNACKS_BONUS = 1250;
+const PANIER_BONUS = 1250;
+const OPEX_BONUS = 1250;
+const REVIEWS_VOLUME_BONUS = 625;
+const REVIEWS_RATING_BONUS = 625;
+
 function currentMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -157,7 +165,7 @@ function InlineNumberInput({
               commit();
             }}
             onKeyDown={handleKeyDown}
-            className="w-20 cursor-text rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--bg)] px-1.5 py-1 font-mono text-sm tabular-nums text-[var(--fg)] outline-none transition-colors hover:border-[var(--bronze)] focus:border-[var(--bronze)] focus:ring-1 focus:ring-[var(--bronze)] disabled:opacity-60"
+            className="w-20 cursor-text rounded-[var(--r-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-1.5 py-1 font-mono text-sm tabular-nums text-[var(--fg)] outline-none transition-colors hover:border-[var(--bronze)] focus:border-[var(--bronze)] focus:ring-1 focus:ring-[var(--bronze)] disabled:opacity-60"
             style={ringColor ? { borderColor: ringColor } : undefined}
           />
           {saveState === "saved" && (
@@ -181,6 +189,8 @@ function MetricRow({
   sub,
   progress,
   isOwner,
+  locked,
+  potentialBonus,
 }: {
   label: string;
   value: string;
@@ -190,8 +200,13 @@ function MetricRow({
   sub?: string;
   progress?: number;
   isOwner?: boolean;
+  /** Revenue gate is active and this metric would pass, but the bonus isn't awarded yet. */
+  locked?: boolean;
+  /** What this metric would pay out once the revenue gate is reached. */
+  potentialBonus?: number;
 }) {
   const barColor = passes === true ? "var(--good)" : passes === false ? "var(--warn)" : "var(--fg-4)";
+  const lockedQualifying = !!locked && passes === true;
   return (
     <div className="flex flex-col border-b border-[var(--line)] last:border-b-0 py-1.5 gap-1">
       <div className="flex items-center justify-between">
@@ -209,9 +224,13 @@ function MetricRow({
             </>
           )}
         </div>
-        <div className="w-14 text-right shrink-0 ml-2">
+        <div className="w-16 text-right shrink-0 ml-2">
           {loading ? (
             <div className="h-3 w-8 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
+          ) : lockedQualifying ? (
+            <span className="font-mono text-xs tabular-nums text-[var(--bronze)]" title="Unlocks once the revenue gate is reached">
+              🔒 {(potentialBonus ?? bonus).toLocaleString()} ฿
+            </span>
           ) : (
             <span className={`font-mono text-xs tabular-nums ${passes === true ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
               {passes === true ? `${bonus.toLocaleString()} ฿` : ""}
@@ -312,8 +331,7 @@ function LocationCard({
         ? `${fmt(needed, 0)} ฿ more revenue needed to unlock snacks/panier/opex/reviews`
         : `Revenue gate not yet reached — unlocks snacks/panier/opex/reviews`);
     }
-    const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
-    if (!revenueLocked && loc.snacks.passes === false && loc.snacks.ratio !== null) {
+    if (loc.snacks.passes === false && loc.snacks.ratio !== null) {
       const needed = loc.entryCount !== null
         ? Math.ceil(loc.entryCount * 0.45) - (loc.snacksSold ?? 0)
         : null;
@@ -321,13 +339,13 @@ function LocationCard({
         ? `${needed} more snacks to hit ratio target`
         : `Snacks ratio ${loc.snacks.ratio.toFixed(2)} — need ≥ 0.45`);
     }
-    if (!revenueLocked && loc.panierMoyen.passes === false && loc.panierMoyen.value !== null) {
+    if (loc.panierMoyen.passes === false && loc.panierMoyen.value !== null) {
       lines.push(`Avg basket ${fmt(loc.panierMoyen.value, 0)} ฿ — need ≥ 190 ฿`);
     }
-    if (!revenueLocked && loc.opex.passes === false && loc.opex.ratio !== null) {
+    if (loc.opex.passes === false && loc.opex.ratio !== null) {
       lines.push(`Opex ${pct(loc.opex.ratio)} — need < 9.5%`);
     }
-    if (!revenueLocked && loc.reviews.volumePass === false) {
+    if (loc.reviews.volumePass === false) {
       const needed = loc.entryCount !== null
         ? Math.ceil(loc.entryCount * 0.04) - loc.reviews.count
         : null;
@@ -335,11 +353,13 @@ function LocationCard({
         ? `${needed} more reviews needed for volume bonus`
         : `Review volume below 4% target`);
     }
-    if (!revenueLocked && loc.reviews.ratingPass === false && loc.reviews.count >= 10) {
+    if (loc.reviews.ratingPass === false && loc.reviews.count >= 10) {
       lines.push(`Avg rating ${loc.reviews.avgRating.toFixed(1)} — need ≥ ${loc.reviews.ratingTarget.toFixed(1)}`);
     }
     return lines;
   })() : [];
+
+  const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
 
   return (
     <div className="flex flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
@@ -362,9 +382,9 @@ function LocationCard({
         </div>
       )}
       {gapLines.length > 0 && (
-        <div className="px-4 py-2 border-b border-[var(--line)] flex flex-col gap-0.5">
+        <div className={`px-4 py-2 border-b border-[var(--line)] flex flex-col gap-0.5 ${revenueLocked ? "bg-[var(--bronze-soft)]" : ""}`}>
           {gapLines.map((line, i) => (
-            <span key={i} className="text-xs text-[var(--warn)]">→ {line}</span>
+            <span key={i} className={`text-xs ${revenueLocked && i === 0 ? "text-[var(--bronze-2)]" : "text-[var(--warn)]"}`}>→ {line}</span>
           ))}
         </div>
       )}
@@ -388,6 +408,8 @@ function LocationCard({
           sub={loc.snacks.ratio !== null ? "target ≥ 0.45" : undefined}
           passes={loc.snacks.passes}
           bonus={loc.snacks.bonus}
+          locked={revenueLocked}
+          potentialBonus={SNACKS_BONUS}
           loading={loading}
           progress={loc.snacks.ratio !== null ? Math.min(1, loc.snacks.ratio / 0.45) : undefined}
           isOwner={isOwner}
@@ -398,6 +420,8 @@ function LocationCard({
           sub={loc.panierMoyen.value !== null ? "target ≥ 190 ฿" : undefined}
           passes={loc.panierMoyen.passes}
           bonus={loc.panierMoyen.bonus}
+          locked={revenueLocked}
+          potentialBonus={PANIER_BONUS}
           loading={loading}
           progress={loc.panierMoyen.value !== null ? Math.min(1, loc.panierMoyen.value / 190) : undefined}
           isOwner={isOwner}
@@ -408,6 +432,8 @@ function LocationCard({
           sub={loc.opex.ratio !== null ? "target < 9.5%" : undefined}
           passes={loc.opex.passes}
           bonus={loc.opex.bonus}
+          locked={revenueLocked}
+          potentialBonus={OPEX_BONUS}
           loading={loading}
           progress={loc.opex.ratio !== null ? Math.min(1, loc.opex.threshold / loc.opex.ratio) : undefined}
           isOwner={isOwner}
@@ -418,6 +444,8 @@ function LocationCard({
           sub={loc.reviews.volumeRatio !== null ? "target ≥ 4%" : undefined}
           passes={loc.reviews.volumePass}
           bonus={loc.reviews.volumeBonus}
+          locked={revenueLocked}
+          potentialBonus={REVIEWS_VOLUME_BONUS}
           loading={loading}
           progress={loc.reviews.volumeRatio !== null ? Math.min(1, loc.reviews.volumeRatio / 0.04) : undefined}
           isOwner={isOwner}
@@ -432,6 +460,8 @@ function LocationCard({
           }
           passes={loc.reviews.ratingPass}
           bonus={loc.reviews.ratingBonus}
+          locked={revenueLocked}
+          potentialBonus={REVIEWS_RATING_BONUS}
           progress={loc.reviews.count > 0 && loc.reviews.ratingTarget > 0 ? Math.min(1, loc.reviews.avgRating / loc.reviews.ratingTarget) : undefined}
           isOwner={isOwner}
           loading={loading}
@@ -439,7 +469,7 @@ function LocationCard({
       </div>
 
       {/* Manual inputs — two periods */}
-      <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg)]">
+      <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg-2)]">
         <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
           <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Monthly entries</span>
           <span className="text-[9px] text-[var(--fg-4)]">Type a value, then Tab/Enter to move on — saves on blur</span>
@@ -535,7 +565,7 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
       <div className="flex flex-wrap gap-3">
         {[
           { label: "Revenue gate", max: "unlocks below", tiers: "1.2M/0.9M/0.7M ฿" },
-          { label: "Merchandising", max: "5 000 ฿", tiers: "7/8/9%" },
+          { label: "Merchandising", max: "up to 5 000 ฿", tiers: "7%→1 500 · 8%→3 000 · 9%→5 000" },
           { label: "Snacks", max: "1 250 ฿", tiers: "≥ 0.45" },
           { label: "Panier moyen", max: "1 250 ฿", tiers: "≥ 190 ฿" },
           { label: "Opex variable", max: "1 250 ฿", tiers: "< 9.5%" },
