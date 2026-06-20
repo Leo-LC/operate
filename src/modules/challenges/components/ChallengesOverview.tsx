@@ -247,32 +247,36 @@ function MetricRow({
   );
 }
 
-function RevenueGateRow({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
+// Styled distinctly from the metric rows below: this is an unlock threshold,
+// not a challenge that pays out its own bonus.
+function RevenueGateBanner({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
   const { amount, threshold, unlocked, ratio } = loc.revenue;
   if (threshold === null) return null; // no gating defined for this shop
 
+  if (loading) {
+    return <div className="mx-4 mt-3 h-12 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />;
+  }
+
   const passes = amount !== null ? unlocked : null;
-  const barColor = passes === true ? "var(--good)" : passes === false ? "var(--warn)" : "var(--fg-4)";
+  const isUnlocked = passes === true;
+  const barColor = isUnlocked ? "var(--good)" : "var(--bronze)";
 
   return (
-    <div className="flex flex-col border-b border-[var(--line)] py-1.5 gap-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <StatusDot passes={passes} />
-          <span className="text-xs text-[var(--fg-3)] truncate">Revenue gate</span>
-        </div>
-        <div className="flex flex-col items-end shrink-0 ml-2">
-          {loading ? (
-            <div className="h-3 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
-          ) : (
-            <span className={`font-mono text-xs tabular-nums ${statusColor(passes)}`}>
-              {amount !== null ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿` : `target ${fmt(threshold, 0)} ฿`}
-            </span>
-          )}
-        </div>
+    <div
+      className={`mx-4 mt-3 flex flex-col gap-1.5 rounded-[var(--r-sm)] border px-3 py-2 ${
+        isUnlocked ? "border-[var(--good)] bg-[var(--good-soft)]" : "border-[var(--bronze)] bg-[var(--bronze-soft)]"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className={`text-[10px] font-semibold uppercase tracking-wide ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
+          {isUnlocked ? "Revenue gate — unlocked" : "Revenue gate — unlock threshold"}
+        </span>
+        <span className={`font-mono text-xs tabular-nums ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
+          {amount !== null ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿` : `target ${fmt(threshold, 0)} ฿`}
+        </span>
       </div>
-      {!loading && ratio !== null && (
-        <div className="h-1 rounded-full bg-[var(--bg-2)] overflow-hidden mx-6">
+      {ratio !== null && (
+        <div className="h-1.5 rounded-full bg-[var(--bg-2)] overflow-hidden">
           <div style={{ width: `${Math.round(Math.min(1, ratio) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
         </div>
       )}
@@ -349,6 +353,9 @@ function LocationCard({
         ) : null}
       </div>
 
+      {/* Revenue gate — unlock threshold, not a challenge metric */}
+      <RevenueGateBanner loc={loc} loading={loading} />
+
       {/* Metric column headers */}
       <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
         <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Metric</span>
@@ -360,7 +367,6 @@ function LocationCard({
 
       {/* Metric rows */}
       <div className="px-4 pb-1">
-        <RevenueGateRow loc={loc} loading={loading} />
         <MerchRow loc={loc} loading={loading} isOwner={isOwner} />
         <MetricRow
           label="Snacks"
