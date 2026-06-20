@@ -258,7 +258,7 @@ function RevenueGateRow({ loc, loading }: { loc: LocationOverview; loading: bool
     <div className="flex flex-col border-b border-[var(--line)] py-1.5 gap-1">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          {passes === false ? <span className="text-[var(--warn)]">🔒</span> : <StatusDot passes={passes} />}
+          <StatusDot passes={passes} />
           <span className="text-xs text-[var(--fg-3)] truncate">Revenue gate</span>
         </div>
         <div className="flex flex-col items-end shrink-0 ml-2">
@@ -275,11 +275,6 @@ function RevenueGateRow({ loc, loading }: { loc: LocationOverview; loading: bool
         <div className="h-1 rounded-full bg-[var(--bg-2)] overflow-hidden mx-6">
           <div style={{ width: `${Math.round(Math.min(1, ratio) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
         </div>
-      )}
-      {!loading && passes === false && (
-        <span className="mx-6 text-[10px] text-[var(--warn)]">
-          Locks snacks, panier moyen, opex &amp; reviews bonuses until reached (merchandising stays unlocked)
-        </span>
       )}
     </div>
   );
@@ -322,44 +317,16 @@ function LocationCard({
   const totalBonus = loc.totalBonus;
   const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
 
-  // Plain-language gap lines for failing metrics
-  const gapLines = !loading && hasBonusData ? (() => {
-    const lines: string[] = [];
-    if (loc.revenue.threshold !== null && loc.revenue.unlocked === false) {
-      const needed = loc.revenue.threshold - (loc.revenue.amount ?? 0);
-      lines.push(needed > 0
-        ? `${fmt(needed, 0)} ฿ more revenue needed to unlock snacks/panier/opex/reviews`
-        : `Revenue gate not yet reached — unlocks snacks/panier/opex/reviews`);
-    }
-    if (loc.snacks.passes === false && loc.snacks.ratio !== null) {
-      const needed = loc.entryCount !== null
-        ? Math.ceil(loc.entryCount * 0.45) - (loc.snacksSold ?? 0)
-        : null;
-      lines.push(needed !== null && needed > 0
-        ? `${needed} more snacks to hit ratio target`
-        : `Snacks ratio ${loc.snacks.ratio.toFixed(2)} — need ≥ 0.45`);
-    }
-    if (loc.panierMoyen.passes === false && loc.panierMoyen.value !== null) {
-      lines.push(`Avg basket ${fmt(loc.panierMoyen.value, 0)} ฿ — need ≥ 190 ฿`);
-    }
-    if (loc.opex.passes === false && loc.opex.ratio !== null) {
-      lines.push(`Opex ${pct(loc.opex.ratio)} — need < 9.5%`);
-    }
-    if (loc.reviews.volumePass === false) {
-      const needed = loc.entryCount !== null
-        ? Math.ceil(loc.entryCount * 0.04) - loc.reviews.count
-        : null;
-      lines.push(needed !== null && needed > 0
-        ? `${needed} more reviews needed for volume bonus`
-        : `Review volume below 4% target`);
-    }
-    if (loc.reviews.ratingPass === false && loc.reviews.count >= 10) {
-      lines.push(`Avg rating ${loc.reviews.avgRating.toFixed(1)} — need ≥ ${loc.reviews.ratingTarget.toFixed(1)}`);
-    }
-    return lines;
-  })() : [];
-
   const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
+
+  // Sum of bonuses that would be earned right now if the revenue gate were reached.
+  const potentialLockedBonus = revenueLocked
+    ? (loc.snacks.passes === true ? SNACKS_BONUS : 0) +
+      (loc.panierMoyen.passes === true ? PANIER_BONUS : 0) +
+      (loc.opex.passes === true ? OPEX_BONUS : 0) +
+      (loc.reviews.volumePass === true ? REVIEWS_VOLUME_BONUS : 0) +
+      (loc.reviews.ratingPass === true ? REVIEWS_RATING_BONUS : 0)
+    : 0;
 
   return (
     <div className="flex flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
@@ -369,25 +336,18 @@ function LocationCard({
         {loading ? (
           <div className="h-5 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
         ) : hasBonusData ? (
-          <span className={`font-mono text-sm font-semibold tabular-nums ${totalBonus > 0 ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
-            {totalBonus.toLocaleString()} ฿
-          </span>
+          <div className="flex items-baseline gap-1.5">
+            <span className={`font-mono text-sm font-semibold tabular-nums ${totalBonus > 0 ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
+              {totalBonus.toLocaleString()} ฿
+            </span>
+            {potentialLockedBonus > 0 && (
+              <span className="font-mono text-xs font-medium tabular-nums text-[var(--bronze)]" title="Unlocks once the revenue gate is reached">
+                + 🔒 {potentialLockedBonus.toLocaleString()} ฿
+              </span>
+            )}
+          </div>
         ) : null}
       </div>
-
-      {/* Plain-language gaps */}
-      {gapLines.length === 0 && hasBonusData && (
-        <div className="px-4 py-2 border-b border-[var(--line)] bg-[var(--good-soft)]">
-          <span className="text-xs font-medium text-[var(--good)]">All metrics passing — full bonus unlocked</span>
-        </div>
-      )}
-      {gapLines.length > 0 && (
-        <div className={`px-4 py-2 border-b border-[var(--line)] flex flex-col gap-0.5 ${revenueLocked ? "bg-[var(--bronze-soft)]" : ""}`}>
-          {gapLines.map((line, i) => (
-            <span key={i} className={`text-xs ${revenueLocked && i === 0 ? "text-[var(--bronze-2)]" : "text-[var(--warn)]"}`}>→ {line}</span>
-          ))}
-        </div>
-      )}
 
       {/* Metric column headers */}
       <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
