@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
-import { LOCATION_NAMES, REVIEWS_BASE } from "@/lib/constants";
+import { LOCATION_NAMES, REVIEWS_BASE, REVIEWS_ONLY_LOCATION_IDS } from "@/lib/constants";
 import { fetchAllLocations, getActiveLocationExternalIds, getPreferredAccountId } from "@/lib/google-business";
 import type { Review } from "@/types/review";
 import type { ReviewWithLocation } from "@/types/review";
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     ]);
     const activeLocations = locations.filter((loc) => {
       const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
-      return activeExternalIds.has(shortName);
+      return activeExternalIds.has(shortName) || REVIEWS_ONLY_LOCATION_IDS.has(shortName);
     });
     const filteredLocations =
       selectedIds && selectedIds.length > 0

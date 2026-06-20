@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
-import { LOCATION_NAMES } from "@/lib/constants";
+import { LOCATION_NAMES, REVIEWS_ONLY_LOCATION_IDS } from "@/lib/constants";
 import { fetchAllLocations, getActiveLocationExternalIds, getPreferredAccountId } from "@/lib/google-business";
 
 export async function GET() {
@@ -24,7 +24,7 @@ export async function GET() {
     const items = locations
       .filter((loc) => {
         const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
-        return activeExternalIds.has(shortName);
+        return activeExternalIds.has(shortName) || REVIEWS_ONLY_LOCATION_IDS.has(shortName);
       })
       .map((loc) => {
         const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");

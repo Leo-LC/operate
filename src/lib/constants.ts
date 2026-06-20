@@ -7,6 +7,13 @@ export const EXCLUDED_LOCATION_IDS = new Set([
   "locations/5898853216563266426", // Capybara Coffee Chiang Mai (unverified duplicate)
 ]);
 
+// Google Business Profile locations that have no row in the `locations` table
+// (so they're invisible to accounting, challenges, scheduling, etc. by default)
+// but should still be reachable from the reviews module specifically.
+export const REVIEWS_ONLY_LOCATION_IDS = new Set([
+  "locations/17423194230027303735", // Capybara Coffee & Zen Resort Spa Chiang Mai
+]);
+
 export const LOCATION_NAMES: Record<string, string> = {
   "locations/16151596174163473059": "Phangan",
   "locations/10878815915536987618": "Ekkamai",
