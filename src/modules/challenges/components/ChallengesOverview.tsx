@@ -247,7 +247,7 @@ function MetricRow({
   );
 }
 
-// Styled distinctly from the metric rows below: this is an unlock threshold,
+// Styled distinctly from the metric rows below: this is a gate,
 // not a challenge that pays out its own bonus.
 function RevenueGateBanner({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
   const { amount, threshold, unlocked, ratio } = loc.revenue;
@@ -269,7 +269,7 @@ function RevenueGateBanner({ loc, loading }: { loc: LocationOverview; loading: b
     >
       <div className="flex items-center justify-between gap-2">
         <span className={`text-[10px] font-semibold uppercase tracking-wide ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
-          {isUnlocked ? "Revenue gate — unlocked" : "Revenue gate — unlock threshold"}
+          {isUnlocked ? "Revenue gate — unlocked" : "Revenue gate"}
         </span>
         <span className={`font-mono text-xs tabular-nums ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
           {amount !== null ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿` : `target ${fmt(threshold, 0)} ฿`}
@@ -353,7 +353,7 @@ function LocationCard({
         ) : null}
       </div>
 
-      {/* Revenue gate — unlock threshold, not a challenge metric */}
+      {/* Revenue gate — not a challenge metric */}
       <RevenueGateBanner loc={loc} loading={loading} />
 
       {/* Metric column headers */}
@@ -381,7 +381,7 @@ function LocationCard({
           isOwner={isOwner}
         />
         <MetricRow
-          label="Panier moyen"
+          label="Average basket"
           value={loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—"}
           sub={loc.panierMoyen.value !== null ? "target ≥ 190 ฿" : undefined}
           passes={loc.panierMoyen.passes}
@@ -533,7 +533,7 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
           { label: "Revenue gate", max: "unlocks below", tiers: "1.2M/0.9M/0.7M ฿" },
           { label: "Merchandising", max: "up to 5 000 ฿", tiers: "7%→1 500 · 8%→3 000 · 9%→5 000" },
           { label: "Snacks", max: "1 250 ฿", tiers: "≥ 0.45" },
-          { label: "Panier moyen", max: "1 250 ฿", tiers: "≥ 190 ฿" },
+          { label: "Average basket", max: "1 250 ฿", tiers: "≥ 190 ฿" },
           { label: "Opex variable", max: "1 250 ฿", tiers: "< 9.5%" },
           { label: "Reviews volume", max: "625 ฿", tiers: "≥ 4%" },
           { label: "Reviews note", max: "625 ฿", tiers: "GBP+0.1" },
