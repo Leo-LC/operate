@@ -38,6 +38,17 @@ function StatusDot({ passes }: { passes: boolean | null }) {
   return <span className="text-[var(--fg-4)]">—</span>;
 }
 
+// Moves focus to the next editable cell in DOM order, mimicking Tab on Enter.
+function focusNextCell(current: HTMLElement) {
+  const cells = Array.from(
+    document.querySelectorAll<HTMLInputElement>('[data-challenge-cell="true"]')
+  );
+  const idx = cells.indexOf(current as HTMLInputElement);
+  if (idx >= 0 && idx < cells.length - 1) cells[idx + 1].focus();
+}
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 function InlineNumberInput({
   label,
   locationId,
@@ -57,67 +68,105 @@ function InlineNumberInput({
   loading: boolean;
   onSaved: (val: number) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(initial !== null ? String(initial) : "");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const focusedRef = useRef(false);
+  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function startEdit() {
-    setDraft(initial !== null ? String(initial) : "");
-    setEditing(true);
-    setTimeout(() => inputRef.current?.select(), 0);
-  }
+  // Sync from background-refreshed data, but never clobber what the user is actively typing.
+  useEffect(() => {
+    if (!focusedRef.current) setDraft(initial !== null ? String(initial) : "");
+  }, [initial]);
+
+  useEffect(() => {
+    return () => {
+      if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
+    };
+  }, []);
 
   async function commit() {
-    const val = parseInt(draft, 10);
-    if (isNaN(val) || val < 0) { setEditing(false); return; }
-    setSaving(true);
+    const trimmed = draft.trim();
+    if (trimmed === "") {
+      setDraft(initial !== null ? String(initial) : "");
+      return;
+    }
+    const val = parseInt(trimmed, 10);
+    if (isNaN(val) || val < 0) {
+      setDraft(initial !== null ? String(initial) : "");
+      return;
+    }
+    if (val === initial) return;
+
+    setSaveState("saving");
     try {
       const body: Record<string, unknown> = { locationId, month, period };
       if (field === "entryCount") body.entryCount = val;
       else body.snacksSold = val;
-      await fetch("/api/challenges/entries", {
+      const res = await fetch("/api/challenges/entries", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (!res.ok) throw new Error(await res.text());
       onSaved(val);
-    } finally {
-      setSaving(false);
-      setEditing(false);
+      setSaveState("saved");
+      savedTimeoutRef.current = setTimeout(() => setSaveState("idle"), 1200);
+    } catch (e) {
+      console.error("[InlineNumberInput] save failed:", e);
+      setSaveState("error");
+      setDraft(initial !== null ? String(initial) : "");
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") commit();
-    if (e.key === "Escape") setEditing(false);
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const target = e.currentTarget;
+      target.blur(); // triggers commit via onBlur
+      focusNextCell(target);
+    } else if (e.key === "Escape") {
+      setDraft(initial !== null ? String(initial) : "");
+      e.currentTarget.blur();
+    }
   }
+
+  const ringColor =
+    saveState === "error" ? "var(--bad)" : saveState === "saving" ? "var(--bronze)" : undefined;
 
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{label}</span>
       {loading ? (
-        <div className="h-5 w-12 animate-pulse rounded bg-[var(--bg-2)]" />
-      ) : editing ? (
-        <input
-          ref={inputRef}
-          type="number"
-          min={0}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={handleKeyDown}
-          disabled={saving}
-          className="w-20 rounded-[var(--r-sm)] border border-[var(--bronze)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-sm tabular-nums text-[var(--fg)] outline-none"
-          autoFocus
-        />
+        <div className="h-7 w-20 animate-pulse rounded bg-[var(--bg-2)]" />
       ) : (
-        <button onClick={startEdit} title="Click to enter" className="group flex w-fit items-baseline gap-1 text-left">
-          <span className="font-mono text-sm tabular-nums text-[var(--fg)]">
-            {initial !== null ? initial.toLocaleString("en-GB") : "—"}
-          </span>
-          <span className="text-[10px] text-[var(--fg-4)] opacity-0 transition-opacity group-hover:opacity-100">edit</span>
-        </button>
+        <div className="relative w-20">
+          <input
+            data-challenge-cell="true"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            value={draft}
+            disabled={saveState === "saving"}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={(e) => {
+              focusedRef.current = true;
+              e.target.select();
+            }}
+            onBlur={() => {
+              focusedRef.current = false;
+              commit();
+            }}
+            onKeyDown={handleKeyDown}
+            className="w-20 cursor-text rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--bg)] px-1.5 py-1 font-mono text-sm tabular-nums text-[var(--fg)] outline-none transition-colors hover:border-[var(--bronze)] focus:border-[var(--bronze)] focus:ring-1 focus:ring-[var(--bronze)] disabled:opacity-60"
+            style={ringColor ? { borderColor: ringColor } : undefined}
+          />
+          {saveState === "saved" && (
+            <span className="absolute -right-1 -top-1 text-[var(--good)]" title="Saved">✓</span>
+          )}
+          {saveState === "error" && (
+            <span className="absolute -right-1 -top-1 text-[var(--bad)]" title="Save failed — reverted">!</span>
+          )}
+        </div>
       )}
     </div>
   );
@@ -179,6 +228,44 @@ function MetricRow({
   );
 }
 
+function RevenueGateRow({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
+  const { amount, threshold, unlocked, ratio } = loc.revenue;
+  if (threshold === null) return null; // no gating defined for this shop
+
+  const passes = amount !== null ? unlocked : null;
+  const barColor = passes === true ? "var(--good)" : passes === false ? "var(--warn)" : "var(--fg-4)";
+
+  return (
+    <div className="flex flex-col border-b border-[var(--line)] py-1.5 gap-1">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          {passes === false ? <span className="text-[var(--warn)]">🔒</span> : <StatusDot passes={passes} />}
+          <span className="text-xs text-[var(--fg-3)] truncate">Revenue gate</span>
+        </div>
+        <div className="flex flex-col items-end shrink-0 ml-2">
+          {loading ? (
+            <div className="h-3 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
+          ) : (
+            <span className={`font-mono text-xs tabular-nums ${statusColor(passes)}`}>
+              {amount !== null ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿` : `target ${fmt(threshold, 0)} ฿`}
+            </span>
+          )}
+        </div>
+      </div>
+      {!loading && ratio !== null && (
+        <div className="h-1 rounded-full bg-[var(--bg-2)] overflow-hidden mx-6">
+          <div style={{ width: `${Math.round(Math.min(1, ratio) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
+        </div>
+      )}
+      {!loading && passes === false && (
+        <span className="mx-6 text-[10px] text-[var(--warn)]">
+          Locks snacks, panier moyen, opex &amp; reviews bonuses until reached (merchandising stays unlocked)
+        </span>
+      )}
+    </div>
+  );
+}
+
 function MerchRow({ loc, loading, isOwner }: { loc: LocationOverview; loading: boolean; isOwner?: boolean }) {
   const tierLabels = ["—", "7%+ (P1)", "8%+ (P2)", "9%+ (P3)"];
   const tier = loc.merchandising.tier;
@@ -219,7 +306,14 @@ function LocationCard({
   // Plain-language gap lines for failing metrics
   const gapLines = !loading && hasBonusData ? (() => {
     const lines: string[] = [];
-    if (loc.snacks.passes === false && loc.snacks.ratio !== null) {
+    if (loc.revenue.threshold !== null && loc.revenue.unlocked === false) {
+      const needed = loc.revenue.threshold - (loc.revenue.amount ?? 0);
+      lines.push(needed > 0
+        ? `${fmt(needed, 0)} ฿ more revenue needed to unlock snacks/panier/opex/reviews`
+        : `Revenue gate not yet reached — unlocks snacks/panier/opex/reviews`);
+    }
+    const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
+    if (!revenueLocked && loc.snacks.passes === false && loc.snacks.ratio !== null) {
       const needed = loc.entryCount !== null
         ? Math.ceil(loc.entryCount * 0.45) - (loc.snacksSold ?? 0)
         : null;
@@ -227,13 +321,13 @@ function LocationCard({
         ? `${needed} more snacks to hit ratio target`
         : `Snacks ratio ${loc.snacks.ratio.toFixed(2)} — need ≥ 0.45`);
     }
-    if (loc.panierMoyen.passes === false && loc.panierMoyen.value !== null) {
+    if (!revenueLocked && loc.panierMoyen.passes === false && loc.panierMoyen.value !== null) {
       lines.push(`Avg basket ${fmt(loc.panierMoyen.value, 0)} ฿ — need ≥ 190 ฿`);
     }
-    if (loc.opex.passes === false && loc.opex.ratio !== null) {
+    if (!revenueLocked && loc.opex.passes === false && loc.opex.ratio !== null) {
       lines.push(`Opex ${pct(loc.opex.ratio)} — need < 9.5%`);
     }
-    if (loc.reviews.volumePass === false) {
+    if (!revenueLocked && loc.reviews.volumePass === false) {
       const needed = loc.entryCount !== null
         ? Math.ceil(loc.entryCount * 0.04) - loc.reviews.count
         : null;
@@ -241,7 +335,7 @@ function LocationCard({
         ? `${needed} more reviews needed for volume bonus`
         : `Review volume below 4% target`);
     }
-    if (loc.reviews.ratingPass === false && loc.reviews.count >= 10) {
+    if (!revenueLocked && loc.reviews.ratingPass === false && loc.reviews.count >= 10) {
       lines.push(`Avg rating ${loc.reviews.avgRating.toFixed(1)} — need ≥ ${loc.reviews.ratingTarget.toFixed(1)}`);
     }
     return lines;
@@ -286,6 +380,7 @@ function LocationCard({
 
       {/* Metric rows */}
       <div className="px-4 pb-1">
+        <RevenueGateRow loc={loc} loading={loading} />
         <MerchRow loc={loc} loading={loading} isOwner={isOwner} />
         <MetricRow
           label="Snacks"
@@ -347,7 +442,7 @@ function LocationCard({
       <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
           <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Monthly entries</span>
-          <span className="text-[9px] text-[var(--fg-4)]">Click a value to edit</span>
+          <span className="text-[9px] text-[var(--fg-4)]">Type a value, then Tab/Enter to move on — saves on blur</span>
         </div>
         {([1, 2, 3] as const).map((p) => {
           const entryLabel  = p === 1 ? "Entries 1–10"  : p === 2 ? "Entries 11–20"  : "Entries 21–end";
@@ -389,8 +484,10 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async (m: string) => {
-    setLoading(true);
+  // `silent` skips the loading flag so a background refresh (after saving a cell)
+  // doesn't swap the whole grid into skeleton placeholders mid-edit.
+  const fetchData = useCallback(async (m: string, opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const res = await fetch(`/api/challenges/overview?month=${m}`);
       if (!res.ok) throw new Error(await res.text());
@@ -398,22 +495,22 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
     } catch (e) {
       console.error("[ChallengesOverview] fetch error:", e);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchData(month); }, [month, fetchData]);
 
-  // Re-derive computed metrics client-side after input updates would require re-calling API;
-  // instead, just refetch so values stay consistent
+  // The bonus/ratio metrics are computed server-side, so re-derive them by refetching —
+  // but silently, so it doesn't interrupt whatever cell the user is editing next.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleEntryUpdated(_locationId: string, _period: 1 | 2 | 3, _val: number) {
-    fetchData(month);
+    fetchData(month, { silent: true });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleSnacksUpdated(_locationId: string, _period: 1 | 2 | 3, _val: number) {
-    fetchData(month);
+    fetchData(month, { silent: true });
   }
 
   const locations = data?.locations ?? [];
@@ -437,6 +534,7 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
       {/* Legend row */}
       <div className="flex flex-wrap gap-3">
         {[
+          { label: "Revenue gate", max: "unlocks below", tiers: "1.2M/0.9M/0.7M ฿" },
           { label: "Merchandising", max: "5 000 ฿", tiers: "7/8/9%" },
           { label: "Snacks", max: "1 250 ฿", tiers: "≥ 0.45" },
           { label: "Panier moyen", max: "1 250 ฿", tiers: "≥ 190 ฿" },

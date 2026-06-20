@@ -20,6 +20,21 @@ const REVIEWS_VOLUME_BONUS = 625;
 const REVIEWS_RATING_BONUS = 625;
 const REVIEWS_MIN_COUNT = 10;
 
+// Monthly net revenue (incl. VAT) a shop must reach to unlock the snacks, panier
+// moyen, opex and reviews challenges. Merchandising/goodies is never gated.
+const REVENUE_THRESHOLDS: Record<string, number> = {
+  samui: 1_200_000,
+  ekkamai: 1_200_000,
+  silom: 1_200_000,
+  pattaya: 900_000,
+  "chiang mai": 900_000,
+  phangan: 700_000,
+};
+
+function normalizeLocationKey(title: string): string {
+  return title.replace(/^Capybara Coffee\s*/i, "").trim().toLowerCase();
+}
+
 function computeRatingTarget(currentRating: number): number {
   if (currentRating <= 0) return 0;
   return Math.min(4.5, Math.round((currentRating + 0.1) * 10) / 10);
@@ -47,6 +62,12 @@ export interface LocationOverview {
   snacksSoldP3: number | null;
 
   // Computed metrics
+  revenue: {
+    amount: number | null;
+    threshold: number | null; // null = no gating defined for this location
+    unlocked: boolean | null; // null = no data yet
+    ratio: number | null; // amount / threshold, for progress bar (can exceed 1)
+  };
   merchandising: {
     ratio: number | null;
     tier: 0 | 1 | 2 | 3;
@@ -271,12 +292,20 @@ export async function GET(request: Request) {
       else if (merchRatio >= MERCH_TIERS[1].threshold) merchTier = 2;
       else if (merchRatio >= MERCH_TIERS[2].threshold) merchTier = 1;
     }
+
+    // ── Revenue gate ── unlocks snacks/panier/opex/reviews (merchandising is exempt)
+    const revenueThreshold = REVENUE_THRESHOLDS[normalizeLocationKey(title)] ?? null;
+    const revenueUnlocked =
+      revenueThreshold === null ? true : salesNetIncVat !== null && salesNetIncVat >= revenueThreshold;
+    const revenueLocked = revenueThreshold !== null && !revenueUnlocked;
+    const revenueRatio = revenueThreshold !== null ? (salesNetIncVat ?? 0) / revenueThreshold : null;
+
     // ── Snacks ──
     let snackRatio: number | null = null;
     if (snacksSold !== null && entryCount !== null && entryCount > 0) {
       snackRatio = snacksSold / entryCount;
     }
-    const snackPasses = snackRatio !== null ? snackRatio >= SNACKS_THRESHOLD : null;
+    const snackPasses = revenueLocked ? false : snackRatio !== null ? snackRatio >= SNACKS_THRESHOLD : null;
     const snackBonus = snackPasses === true ? SNACKS_BONUS : 0;
 
     // ── Panier moyen ──
@@ -284,7 +313,7 @@ export async function GET(request: Request) {
     if (salesNetIncVat !== null && acc?.salesTicketNet !== null && entryCount !== null && entryCount > 0) {
       panierValue = (salesNetIncVat - (acc?.salesTicketNet ?? 0)) / entryCount;
     }
-    const panierPasses = panierValue !== null ? panierValue >= PANIER_THRESHOLD : null;
+    const panierPasses = revenueLocked ? false : panierValue !== null ? panierValue >= PANIER_THRESHOLD : null;
     const panierBonus = panierPasses === true ? PANIER_BONUS : 0;
 
     // ── Opex ──
@@ -294,7 +323,7 @@ export async function GET(request: Request) {
       opexRatio = opexSum / salesNetIncVat;
     }
     const opexThreshold = OPEX_THRESHOLD_DEFAULT;
-    const opexPasses = opexRatio !== null ? opexRatio < opexThreshold : null;
+    const opexPasses = revenueLocked ? false : opexRatio !== null ? opexRatio < opexThreshold : null;
     const opexBonus = opexPasses === true ? OPEX_BONUS : 0;
 
     // ── Reviews ──
@@ -303,9 +332,10 @@ export async function GET(request: Request) {
     const currentRating = gbp?.avgRating ?? 0;
     const ratingTarget = computeRatingTarget(currentRating);
     const volumeRatio = entryCount !== null && entryCount > 0 ? revCount / entryCount : null;
-    const volumePass = volumeRatio !== null ? volumeRatio >= REVIEWS_VOLUME_THRESHOLD : null;
-    const ratingPass =
-      revCount >= REVIEWS_MIN_COUNT && currentRating > 0 && ratingTarget > 0
+    const volumePass = revenueLocked ? false : volumeRatio !== null ? volumeRatio >= REVIEWS_VOLUME_THRESHOLD : null;
+    const ratingPass = revenueLocked
+      ? false
+      : revCount >= REVIEWS_MIN_COUNT && currentRating > 0 && ratingTarget > 0
         ? revAvg >= ratingTarget
         : null;
     const volumeBonus = volumePass === true ? REVIEWS_VOLUME_BONUS : 0;
@@ -328,6 +358,12 @@ export async function GET(request: Request) {
       snacksSoldP1: inputs.snacksSoldP1,
       snacksSoldP2: inputs.snacksSoldP2,
       snacksSoldP3: inputs.snacksSoldP3,
+      revenue: {
+        amount: salesNetIncVat,
+        threshold: revenueThreshold,
+        unlocked: revenueThreshold === null ? null : revenueUnlocked,
+        ratio: revenueRatio,
+      },
       merchandising: { ratio: merchRatio, tier: merchTier, bonus: [0, 1500, 3000, 5000][merchTier] as 0 },
       snacks: { ratio: snackRatio, passes: snackPasses, bonus: snackBonus },
       panierMoyen: { value: panierValue, passes: panierPasses, bonus: panierBonus },
