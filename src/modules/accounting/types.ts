@@ -59,7 +59,7 @@ export const EMPTY_ENTRY: Omit<DailyEntry, "id" | "organization_id" | "location_
 
 /** Sum of sales lines entered by staff. Amounts are VAT-inclusive as entered. */
 export function salesNetTotal(e: DailyEntry): number {
-  return e.sales_drinks_net + e.sales_ticket_net + e.sales_snack_net + e.sales_goodies_net;
+  return e.sales_drinks_net + e.sales_ticket_net + e.sales_snack_net + e.sales_goodies_net + e.sales_card_surcharge;
 }
 
 export function expCashTotal(e: DailyEntry): number {
