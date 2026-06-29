@@ -82,7 +82,7 @@ function NumInput({
       <input
         type="number"
         step="0.01"
-        value={form[field] === "0" || form[field] === 0 ? "" : form[field] as string}
+        value={form[field] === "0" ? "" : form[field] as string}
         placeholder="0"
         onChange={(e) => onChange(field, e.target.value)}
         className="mono tabular-nums"
