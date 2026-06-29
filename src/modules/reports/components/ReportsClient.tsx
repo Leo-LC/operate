@@ -254,6 +254,162 @@ function Controls({
   );
 }
 
+// ── Performance Metrics ───────────────────────────────────────────────────────
+
+interface MetricDef {
+  key: string;
+  label: string;
+  getValue: (s: ShopAgg) => number | null;
+  /** Returns a CSS var string based on the ratio value */
+  color: (ratio: number) => string;
+  /** Text shown below the value */
+  target: string;
+  /** Max ratio for the progress bar (1 = 100%) */
+  barMax: number;
+  /** If true, lower is better (bar fills from right) */
+  lowerIsBetter?: boolean;
+}
+
+const PERF_METRICS: MetricDef[] = [
+  {
+    key: "goodies",
+    label: "% Goodies",
+    getValue: (s) => s.revenue > 0 ? (s.goodies / s.revenue) * 100 : null,
+    color: (v) => v >= 9 ? "var(--good)" : v >= 8 ? "var(--good)" : v >= 7 ? "var(--warn)" : "var(--bad)",
+    target: "target ≥ 7%",
+    barMax: 12,
+  },
+  {
+    key: "opex",
+    label: "Opex variable",
+    getValue: (s) => s.revenue > 0 ? (s.expenses / s.revenue) * 100 : null,
+    color: (v) => v < 9.5 ? "var(--good)" : v < 12 ? "var(--warn)" : "var(--bad)",
+    target: "target < 9.5%",
+    barMax: 20,
+    lowerIsBetter: true,
+  },
+  {
+    key: "drinks",
+    label: "% Drinks",
+    getValue: (s) => s.revenue > 0 ? (s.drinks / s.revenue) * 100 : null,
+    color: () => "var(--info)",
+    target: "of revenue",
+    barMax: 100,
+  },
+  {
+    key: "snacks",
+    label: "% Snacks rev.",
+    getValue: (s) => s.revenue > 0 ? (s.snacks / s.revenue) * 100 : null,
+    color: () => "var(--info)",
+    target: "of revenue",
+    barMax: 30,
+  },
+];
+
+function MetricBar({
+  value,
+  max,
+  color,
+  lowerIsBetter,
+}: {
+  value: number;
+  max: number;
+  color: string;
+  lowerIsBetter?: boolean;
+}) {
+  const pct = Math.min(100, (value / max) * 100);
+  return (
+    <div
+      style={{
+        height: 4, borderRadius: 9999, background: "var(--bg-2)", overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          [lowerIsBetter ? "left" : "left"]: 0,
+          width: `${pct}%`,
+          height: "100%",
+          borderRadius: 9999,
+          background: color,
+          transition: "width 0.4s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
+  const activeShops = shops.filter((s) => s.revenue > 0);
+  if (activeShops.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+        background: "var(--surface)", overflow: "hidden",
+      }}
+    >
+      <SectionHeader label="Performance metrics" bg="var(--bronze-soft)" color="var(--bronze-2)" />
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "var(--bg-2)" }}>
+              <th style={{ padding: "8px var(--s-5)", textAlign: "left", color: "var(--fg-3)", fontWeight: 500, borderTop: "1px solid var(--line)", minWidth: 120 }}>
+                Metric
+              </th>
+              {activeShops.map((s) => (
+                <th
+                  key={s.locationId}
+                  style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500, borderTop: "1px solid var(--line)", whiteSpace: "nowrap", minWidth: 110 }}
+                >
+                  {s.locationName.replace(/^Capybara Coffee\s*/i, "").trim() || s.locationName}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {PERF_METRICS.map((metric) => (
+              <tr
+                key={metric.key}
+                style={{ borderTop: "1px solid var(--line)" }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+              >
+                <td style={{ padding: "10px var(--s-5)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={{ fontWeight: 500, color: "var(--fg)" }}>{metric.label}</span>
+                    <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{metric.target}</span>
+                  </div>
+                </td>
+                {activeShops.map((s) => {
+                  const val = metric.getValue(s);
+                  if (val === null) {
+                    return (
+                      <td key={s.locationId} style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-4)" }}>—</td>
+                    );
+                  }
+                  const color = metric.color(val);
+                  return (
+                    <td key={s.locationId} style={{ padding: "10px var(--s-5)", textAlign: "right" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <span className="mono" style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, color }}>{fmtPct(val)}</span>
+                        <MetricBar value={val} max={metric.barMax} color={color} lowerIsBetter={metric.lowerIsBetter} />
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Operations Tab ────────────────────────────────────────────────────────────
 
 function computeInsights(byShop: ShopAgg[]): string[] {
@@ -546,6 +702,11 @@ function OperationsView({ data }: { data: AccountingData }) {
           </table>
         </div>
       </div>
+
+      {/* Performance metrics */}
+      {sortedShops.some((s) => s.revenue > 0) && (
+        <PerformanceMetrics shops={sortedShops} />
+      )}
     </div>
   );
 }
