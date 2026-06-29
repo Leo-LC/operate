@@ -2,17 +2,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
+const BASE_TABS = [
   { label: "Overview", href: "/challenges/overview" },
   { label: "Reviews", href: "/challenges/reviews" },
 ] as const;
 
-export function ChallengesNav() {
+const OWNER_TABS = [
+  ...BASE_TABS,
+  { label: "Methodology", href: "/challenges/methodology" },
+] as const;
+
+export function ChallengesNav({ isOwner }: { isOwner?: boolean }) {
   const pathname = usePathname();
+  const tabs = isOwner ? OWNER_TABS : BASE_TABS;
 
   return (
     <nav className="mt-4 flex gap-1">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
           <Link
