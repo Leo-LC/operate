@@ -14,6 +14,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { salesNetTotal, type DailyEntry } from "@/modules/accounting/types";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
       .is("deleted_at", null),
     supabase
       .from("daily_entries")
-      .select("sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, sales_card_surcharge")
+      .select("*")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("location_id", location_id)
       .gte("entry_date", fromDate)
@@ -68,10 +69,7 @@ export async function POST(request: Request) {
   const defaultPct = locRes.data?.default_service_charge_pct ?? 1;
   const existingMap = new Map((existingRes.data ?? []).map((r) => [r.employee_id as string, r]));
 
-  const totalNetRevenue = (dailyRes.data ?? []).reduce((sum, row) => {
-    return sum + (row.sales_drinks_net ?? 0) + (row.sales_ticket_net ?? 0) +
-           (row.sales_snack_net ?? 0) + (row.sales_goodies_net ?? 0) + (row.sales_card_surcharge ?? 0);
-  }, 0);
+  const totalNetRevenue = (dailyRes.data ?? []).reduce((sum, row) => sum + salesNetTotal(row as DailyEntry), 0);
 
   const locationEmployees = (empRes.data ?? []).filter((e) => {
     const locs = (e.employee_locations as { location_id: string }[] | null) ?? [];

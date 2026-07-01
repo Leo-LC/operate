@@ -39,6 +39,7 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading]   = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [revenue, setRevenue]   = useState<number | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -49,16 +50,13 @@ export function PaymentsClient({ initialLocations }: Props) {
   const [employeePrimaryLoc, setEmployeePrimaryLoc] = useState("");
   const [employeeSubmitting, setEmployeeSubmitting] = useState(false);
 
-  // Base salary override modal
-  type BaseSalaryModalState = { record: PaymentRecord; emp: Employee } | null;
-  const [baseSalaryModal, setBaseSalaryModal] = useState<BaseSalaryModalState>(null);
-  const [baseSalaryValue, setBaseSalaryValue] = useState("");
-  const [baseSalaryReason, setBaseSalaryReason] = useState("");
-  const [baseSalarySaving, setBaseSalarySaving] = useState(false);
-
-  // Adjustments modal (view/add/remove)
-  type AdjustmentsModalState = { record: PaymentRecord; emp: Employee } | null;
-  const [adjustmentsModal, setAdjustmentsModal] = useState<AdjustmentsModalState>(null);
+  // Payment record modal — base salary, service charge and adjustments in one place
+  type PaymentModalState = { record: PaymentRecord; emp: Employee } | null;
+  const [paymentModal, setPaymentModal] = useState<PaymentModalState>(null);
+  const [pmBaseSalary, setPmBaseSalary] = useState("");
+  const [pmServiceCharge, setPmServiceCharge] = useState("");
+  const [pmReason, setPmReason] = useState("");
+  const [pmSaving, setPmSaving] = useState(false);
   const [newAdjAmount, setNewAdjAmount] = useState("");
   const [newAdjReason, setNewAdjReason] = useState("");
   const [adjSaving, setAdjSaving] = useState(false);
@@ -71,14 +69,17 @@ export function PaymentsClient({ initialLocations }: Props) {
     if (!locationId) return;
     setLoading(true);
     try {
-      const [recRes, empRes] = await Promise.all([
+      const [recRes, empRes, revRes] = await Promise.all([
         fetch(`/api/payments?year=${year}&month=${month}&location_id=${encodeURIComponent(locationId)}`),
         fetch("/api/admin/employees"),
+        fetch(`/api/payments/revenue?year=${year}&month=${month}&location_id=${encodeURIComponent(locationId)}`),
       ]);
       const recData = await recRes.json();
       const empData = await empRes.json();
+      const revData = await revRes.json().catch(() => ({}));
       setRecords(Array.isArray(recData) ? recData as PaymentRecord[] : []);
       setEmployees(Array.isArray(empData) ? empData as Employee[] : []);
+      setRevenue(revRes.ok && typeof (revData as { revenue?: number }).revenue === "number" ? (revData as { revenue: number }).revenue : null);
     } finally {
       setLoading(false);
     }
@@ -206,23 +207,35 @@ export function PaymentsClient({ initialLocations }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [employeeModal]);
 
-  function openBaseSalaryModal(record: PaymentRecord, emp: Employee) {
-    setBaseSalaryModal({ record, emp });
-    setBaseSalaryValue(String(record.base_salary));
-    setBaseSalaryReason("");
+  function openPaymentModal(record: PaymentRecord, emp: Employee) {
+    setPaymentModal({ record, emp });
+    setPmBaseSalary(String(record.base_salary));
+    setPmServiceCharge(String(record.service_charge));
+    setPmReason("");
+    setNewAdjAmount("");
+    setNewAdjReason("");
   }
 
-  async function handleBaseSalarySave() {
-    if (!baseSalaryModal) return;
-    const value = parseFloat(baseSalaryValue);
-    if (!Number.isFinite(value)) { toast.error("Enter a valid amount"); return; }
-    if (!baseSalaryReason.trim()) { toast.error("A reason is required"); return; }
-    setBaseSalarySaving(true);
+  async function handleSavePayment() {
+    if (!paymentModal) return;
+    const { record } = paymentModal;
+    const baseSalary = parseFloat(pmBaseSalary);
+    const serviceCharge = parseFloat(pmServiceCharge);
+    if (!Number.isFinite(baseSalary) || !Number.isFinite(serviceCharge)) { toast.error("Enter valid amounts"); return; }
+
+    const patch: Record<string, unknown> = {};
+    if (baseSalary !== record.base_salary) patch.base_salary = baseSalary;
+    if (serviceCharge !== record.service_charge) patch.service_charge = serviceCharge;
+    if (Object.keys(patch).length === 0) { setPaymentModal(null); return; }
+    if (!pmReason.trim()) { toast.error("A reason is required when overriding these values"); return; }
+    patch.reason = pmReason.trim();
+
+    setPmSaving(true);
     try {
-      const res = await fetch(`/api/payments/${baseSalaryModal.record.id}`, {
+      const res = await fetch(`/api/payments/${record.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base_salary: value, reason: baseSalaryReason.trim() }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };
@@ -230,27 +243,21 @@ export function PaymentsClient({ initialLocations }: Props) {
       }
       const updated = await res.json() as PaymentRecord;
       setRecords((prev) => prev.map((r) => r.id === updated.id ? updated : r));
-      setBaseSalaryModal(null);
-      toast.success("Base salary updated");
+      setPaymentModal(null);
+      toast.success("Payment updated");
     } finally {
-      setBaseSalarySaving(false);
+      setPmSaving(false);
     }
   }
 
-  function openAdjustmentsModal(record: PaymentRecord, emp: Employee) {
-    setAdjustmentsModal({ record, emp });
-    setNewAdjAmount("");
-    setNewAdjReason("");
-  }
-
   async function handleAddAdjustment() {
-    if (!adjustmentsModal) return;
+    if (!paymentModal) return;
     const amount = parseFloat(newAdjAmount);
     if (!Number.isFinite(amount) || amount === 0) { toast.error("Enter a non-zero amount"); return; }
     if (!newAdjReason.trim()) { toast.error("A reason is required"); return; }
     setAdjSaving(true);
     try {
-      const res = await fetch(`/api/payments/${adjustmentsModal.record.id}/adjustments`, {
+      const res = await fetch(`/api/payments/${paymentModal.record.id}/adjustments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount, reason: newAdjReason.trim() }),
@@ -261,7 +268,7 @@ export function PaymentsClient({ initialLocations }: Props) {
       }
       const updated = await res.json() as PaymentRecord;
       setRecords((prev) => prev.map((r) => r.id === updated.id ? updated : r));
-      setAdjustmentsModal({ record: updated, emp: adjustmentsModal.emp });
+      setPaymentModal({ record: updated, emp: paymentModal.emp });
       setNewAdjAmount("");
       setNewAdjReason("");
       toast.success("Adjustment added");
@@ -271,7 +278,7 @@ export function PaymentsClient({ initialLocations }: Props) {
   }
 
   async function handleDeleteAdjustment(adjustmentId: string) {
-    if (!adjustmentsModal) return;
+    if (!paymentModal) return;
     setAdjDeletingId(adjustmentId);
     try {
       const res = await fetch(`/api/payments/adjustments/${adjustmentId}`, { method: "DELETE" });
@@ -279,23 +286,23 @@ export function PaymentsClient({ initialLocations }: Props) {
         const err = await res.json().catch(() => ({})) as { error?: string };
         toast.error(err.error ?? "Failed to remove adjustment"); return;
       }
-      const updatedAdjustments = adjustmentsModal.record.adjustments.filter((a) => a.id !== adjustmentId);
-      const updatedRecord = { ...adjustmentsModal.record, adjustments: updatedAdjustments };
+      const updatedAdjustments = paymentModal.record.adjustments.filter((a) => a.id !== adjustmentId);
+      const updatedRecord = { ...paymentModal.record, adjustments: updatedAdjustments };
       setRecords((prev) => prev.map((r) => r.id === updatedRecord.id ? updatedRecord : r));
-      setAdjustmentsModal({ record: updatedRecord, emp: adjustmentsModal.emp });
+      setPaymentModal({ record: updatedRecord, emp: paymentModal.emp });
     } finally {
       setAdjDeletingId(null);
     }
   }
 
   useEffect(() => {
-    if (!baseSalaryModal && !adjustmentsModal) return;
+    if (!paymentModal) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") { setBaseSalaryModal(null); setAdjustmentsModal(null); }
+      if (e.key === "Escape") { setPaymentModal(null); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [baseSalaryModal, adjustmentsModal]);
+  }, [paymentModal]);
 
   function exportPaymentsPdf(single?: { employee: Employee; record: PaymentRecord }) {
     const locationName = initialLocations.find((l) => l.id === locationId)?.name ?? "";
@@ -464,8 +471,13 @@ export function PaymentsClient({ initialLocations }: Props) {
       />
 
       {/* Stats band */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-3)" }}>
         {[
+          {
+            label: "Location revenue",
+            value: revenue != null ? fmtThb(revenue) : "—",
+            hint: `${monthName} · net, for service charge control`,
+          },
           {
             label: "Total payroll",
             value: stats.total > 0 ? fmtThb(stats.total) : "—",
@@ -544,11 +556,13 @@ export function PaymentsClient({ initialLocations }: Props) {
               return (
                 <div
                   key={emp.id}
+                  onClick={() => { if (record) openPaymentModal(record, emp); }}
                   style={{
                     display: "grid", gridTemplateColumns: COL_GRID,
                     padding: "12px var(--s-4)", alignItems: "center", gap: 12,
                     borderBottom: "1px solid var(--line)",
                     fontSize: 13, transition: "background var(--dur) var(--ease)",
+                    cursor: record ? "pointer" : "default",
                   }}
                   className="group/row hover:bg-[var(--row-hover)]"
                 >
@@ -561,7 +575,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                     <div>
                       <button
                         type="button"
-                        onClick={() => openEmployeeModal(emp)}
+                        onClick={(e) => { e.stopPropagation(); openEmployeeModal(emp); }}
                         style={{
                           fontSize: 13, fontWeight: 500, color: "var(--fg)",
                           background: "none", border: "none", cursor: "pointer", textAlign: "left",
@@ -586,43 +600,27 @@ export function PaymentsClient({ initialLocations }: Props) {
                     </div>
                   </div>
 
-                  {/* Base salary — click to override with a reason */}
+                  {/* Base salary */}
                   <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                    {record ? (
-                      <button
-                        type="button"
-                        onClick={() => openBaseSalaryModal(record, emp)}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                      >
-                        {record.base_salary > 0 ? fmtThb(record.base_salary) : <span style={{ color: "var(--fg-4)" }}>—</span>}
-                      </button>
-                    ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                    {record
+                      ? (record.base_salary > 0 ? fmtThb(record.base_salary) : <span style={{ color: "var(--fg-4)" }}>—</span>)
+                      : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
-                  {/* Service charge — automatic, read-only */}
+                  {/* Service charge */}
                   <div className="mono tabular-nums" style={{ textAlign: "right" }}>
                     {record
                       ? (record.service_charge > 0 ? fmtThb(record.service_charge) : <span style={{ color: "var(--fg-4)" }}>—</span>)
                       : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
-                  {/* Adjustments — click to view/add/remove, each with a reason */}
+                  {/* Adjustments */}
                   <div className="mono tabular-nums" style={{ textAlign: "right" }}>
-                    {record ? (
-                      <button
-                        type="button"
-                        onClick={() => openAdjustmentsModal(record, emp)}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "inherit", fontFamily: "inherit" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                      >
-                        {adjCount > 0
+                    {record
+                      ? (adjCount > 0
                           ? <span style={{ color: adj >= 0 ? "var(--good)" : "var(--bad)" }}>{adj >= 0 ? "+" : "−"}{fmtThb(Math.abs(adj))} ({adjCount})</span>
-                          : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>+ add</span>}
-                      </button>
-                    ) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                          : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>—</span>)
+                      : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
                   {/* Total */}
@@ -688,7 +686,7 @@ export function PaymentsClient({ initialLocations }: Props) {
           </div>
 
           <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
-            Click <strong>Generate period</strong> to snapshot base salary and service charge for every employee. Click Base salary or Adjustments to edit — every change needs a reason.
+            Click <strong>Generate period</strong> to snapshot base salary and service charge for every employee. Click a row to edit base salary, service charge and adjustments — every override needs a reason.
           </p>
         </div>
       ) : (
@@ -794,8 +792,8 @@ export function PaymentsClient({ initialLocations }: Props) {
 
               {/* Action bar */}
               <div style={{ padding: "var(--s-4) var(--s-5)", borderTop: "1px solid var(--line)", display: "flex", gap: "var(--s-2)" }}>
-                <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => openAdjustmentsModal(selectedRecord, selectedEmployee)}>
-                  <PlusIcon size={13} />Adjustment
+                <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => openPaymentModal(selectedRecord, selectedEmployee)}>
+                  <PlusIcon size={13} />Edit payment
                 </Button>
                 <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf({ employee: selectedEmployee, record: selectedRecord })}>
                   <PrinterIcon size={13} />Slip PDF
@@ -871,8 +869,8 @@ export function PaymentsClient({ initialLocations }: Props) {
         </div>
       )}
 
-      {/* Base salary override modal */}
-      {baseSalaryModal && (
+      {/* Payment record modal — base salary, service charge and adjustments in one place */}
+      {paymentModal && (
         <div
           style={{
             position: "fixed", inset: 0, zIndex: 50,
@@ -880,23 +878,24 @@ export function PaymentsClient({ initialLocations }: Props) {
             background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
             padding: "var(--s-4)",
           }}
-          onClick={(e) => { if (e.target === e.currentTarget) setBaseSalaryModal(null); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setPaymentModal(null); }}
         >
           <div
             style={{
-              width: "100%", maxWidth: 360,
+              width: "100%", maxWidth: 460,
               borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
               background: "var(--surface)", boxShadow: "var(--shadow-2)",
               padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-4)",
+              maxHeight: "90vh", overflowY: "auto",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                Override base salary — {baseSalaryModal.emp.first_name}
+                Edit payment — {paymentModal.emp.first_name} {paymentModal.emp.last_name}
               </h2>
               <button
                 type="button"
-                onClick={() => setBaseSalaryModal(null)}
+                onClick={() => setPaymentModal(null)}
                 style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
               >
                 <XIcon style={{ width: 16, height: 16 }} />
@@ -904,29 +903,45 @@ export function PaymentsClient({ initialLocations }: Props) {
             </div>
 
             <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
-              Employee&apos;s base salary is {fmtThb(baseSalaryModal.emp.base_salary_monthly ?? 0)}/mo. Overriding it here only affects this period&apos;s record.
+              Base salary is {fmtThb(paymentModal.emp.base_salary_monthly ?? 0)}/mo · service charge share is {paymentModal.emp.service_charge_pct ?? "location default"}%
+              {revenue != null && <> of {fmtThb(revenue)} revenue this period</>}. Overriding either value here only affects this period&apos;s record.
             </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Base salary (฿)</label>
-              <input
-                type="number" step="1" autoFocus
-                value={baseSalaryValue}
-                onChange={(e) => setBaseSalaryValue(e.target.value)}
-                style={{
-                  height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-                  background: "var(--bg-2)", padding: "0 var(--s-3)",
-                  fontSize: 14, color: "var(--fg)", outline: "none", width: "100%",
-                }}
-              />
+            <div style={{ display: "flex", gap: "var(--s-3)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Base salary (฿)</label>
+                <input
+                  type="number" step="1" autoFocus
+                  value={pmBaseSalary}
+                  onChange={(e) => setPmBaseSalary(e.target.value)}
+                  style={{
+                    height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                    background: "var(--bg-2)", padding: "0 var(--s-3)",
+                    fontSize: 14, color: "var(--fg)", outline: "none", width: "100%",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Service charge (฿)</label>
+                <input
+                  type="number" step="1"
+                  value={pmServiceCharge}
+                  onChange={(e) => setPmServiceCharge(e.target.value)}
+                  style={{
+                    height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                    background: "var(--bg-2)", padding: "0 var(--s-3)",
+                    fontSize: 14, color: "var(--fg)", outline: "none", width: "100%",
+                  }}
+                />
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Reason <span style={{ color: "var(--bad)" }}>*</span></label>
+              <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Reason for override <span style={{ color: "var(--bad)" }}>*</span></label>
               <input
                 type="text"
-                value={baseSalaryReason}
-                onChange={(e) => setBaseSalaryReason(e.target.value)}
+                value={pmReason}
+                onChange={(e) => setPmReason(e.target.value)}
                 placeholder="e.g. started mid-month, 12 working days"
                 style={{
                   height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
@@ -936,119 +951,81 @@ export function PaymentsClient({ initialLocations }: Props) {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "var(--s-2)" }}>
-              <Button type="button" variant="secondary" size="sm" style={{ flex: 1 }} onClick={() => setBaseSalaryModal(null)} disabled={baseSalarySaving}>
-                Cancel
-              </Button>
-              <Button type="button" size="sm" style={{ flex: 1 }} onClick={() => void handleBaseSalarySave()} disabled={baseSalarySaving}>
-                {baseSalarySaving ? <Loader2Icon size={14} className="animate-spin" /> : "Save"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            <Button type="button" size="sm" onClick={() => void handleSavePayment()} disabled={pmSaving}>
+              {pmSaving ? <Loader2Icon size={14} className="animate-spin" /> : "Save changes"}
+            </Button>
 
-      {/* Adjustments modal */}
-      {adjustmentsModal && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 50,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
-            padding: "var(--s-4)",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setAdjustmentsModal(null); }}
-        >
-          <div
-            style={{
-              width: "100%", maxWidth: 420,
-              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-              background: "var(--surface)", boxShadow: "var(--shadow-2)",
-              padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-4)",
-              maxHeight: "85vh", overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                Adjustments — {adjustmentsModal.emp.first_name}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setAdjustmentsModal(null)}
-                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
-              >
-                <XIcon style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
+            {/* Adjustments */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)", paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)" }}>
+              <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Adjustments</p>
 
-            {/* Existing adjustments */}
-            {adjustmentsModal.record.adjustments.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {adjustmentsModal.record.adjustments.map((a) => (
-                  <div
-                    key={a.id}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                      padding: "8px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-                      background: "var(--bg-2)",
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div className="mono tabular-nums" style={{ fontSize: 13, fontWeight: 500, color: a.amount >= 0 ? "var(--good)" : "var(--bad)" }}>
-                        {a.amount >= 0 ? "+" : "−"}{fmtThb(Math.abs(a.amount))}
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--fg-4)" }}>{a.reason}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteAdjustment(a.id)}
-                      disabled={adjDeletingId === a.id}
-                      style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}
-                      title="Remove"
+              {paymentModal.record.adjustments.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {paymentModal.record.adjustments.map((a) => (
+                    <div
+                      key={a.id}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                        padding: "8px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                        background: "var(--bg-2)",
+                      }}
                     >
-                      {adjDeletingId === a.id ? <Loader2Icon size={14} className="animate-spin" /> : <Trash2Icon size={14} />}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 12, color: "var(--fg-4)" }}>No adjustments yet.</p>
-            )}
+                      <div style={{ minWidth: 0 }}>
+                        <div className="mono tabular-nums" style={{ fontSize: 13, fontWeight: 500, color: a.amount >= 0 ? "var(--good)" : "var(--bad)" }}>
+                          {a.amount >= 0 ? "+" : "−"}{fmtThb(Math.abs(a.amount))}
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--fg-4)" }}>{a.reason}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteAdjustment(a.id)}
+                        disabled={adjDeletingId === a.id}
+                        style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}
+                        title="Remove"
+                      >
+                        {adjDeletingId === a.id ? <Loader2Icon size={14} className="animate-spin" /> : <Trash2Icon size={14} />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: "var(--fg-4)" }}>No adjustments yet.</p>
+              )}
 
-            {/* Add new */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)", paddingTop: "var(--s-2)", borderTop: "1px solid var(--line)" }}>
-              <p className="eyebrow" style={{ color: "var(--fg-4)" }}>Add adjustment</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Amount (฿) — negative to deduct</label>
+              <div style={{ display: "flex", gap: "var(--s-2)" }}>
                 <input
                   type="number" step="1"
                   value={newAdjAmount}
                   onChange={(e) => setNewAdjAmount(e.target.value)}
-                  placeholder="e.g. -500 or 1500"
+                  placeholder="Amount, e.g. -500"
                   style={{
                     height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
                     background: "var(--bg-2)", padding: "0 var(--s-3)",
-                    fontSize: 14, color: "var(--fg)", outline: "none", width: "100%",
+                    fontSize: 13, color: "var(--fg)", outline: "none", width: 120,
                   }}
                 />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Reason <span style={{ color: "var(--bad)" }}>*</span></label>
                 <input
                   type="text"
                   value={newAdjReason}
                   onChange={(e) => setNewAdjReason(e.target.value)}
-                  placeholder="e.g. missed shift on the 12th"
+                  placeholder="Reason"
                   style={{
                     height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
                     background: "var(--bg-2)", padding: "0 var(--s-3)",
-                    fontSize: 13, color: "var(--fg)", outline: "none", width: "100%",
+                    fontSize: 13, color: "var(--fg)", outline: "none", flex: 1,
                   }}
                 />
               </div>
-              <Button type="button" size="sm" onClick={() => void handleAddAdjustment()} disabled={adjSaving}>
+              <Button type="button" size="sm" variant="secondary" onClick={() => void handleAddAdjustment()} disabled={adjSaving}>
                 {adjSaving ? <Loader2Icon size={14} className="animate-spin" /> : <>Add adjustment</>}
               </Button>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: "var(--s-3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Total</span>
+              <span className="mono tabular-nums" style={{ fontSize: 15, fontWeight: 700, color: "var(--fg)" }}>
+                {fmtThb(totalPayment(paymentModal.record))}
+              </span>
             </div>
           </div>
         </div>
