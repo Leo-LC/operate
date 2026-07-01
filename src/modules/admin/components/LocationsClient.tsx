@@ -54,6 +54,7 @@ const EMPTY_FORM = {
   google_maps_url: "",
   google_sheet_id: "",
   notes: "",
+  default_service_charge_pct: "1",
 };
 
 type FormState = typeof EMPTY_FORM;
@@ -213,6 +214,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       google_maps_url: loc.google_maps_url ?? "",
       google_sheet_id: loc.google_sheet_id ?? "",
       notes: loc.notes ?? "",
+      default_service_charge_pct: loc.default_service_charge_pct != null ? String(loc.default_service_charge_pct) : "1",
     });
     setIsEditing(true);
     setIsAdding(false);
@@ -237,6 +239,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           google_maps_url: form.google_maps_url.trim() || null,
           google_sheet_id: form.google_sheet_id.trim() || null,
           notes: form.notes.trim() || null,
+          default_service_charge_pct: form.default_service_charge_pct ? parseFloat(form.default_service_charge_pct) : 1,
         }),
       });
       if (!res.ok) {
@@ -276,6 +279,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           google_maps_url: form.google_maps_url.trim() || null,
           google_sheet_id: form.google_sheet_id.trim() || null,
           notes: form.notes.trim() || null,
+          default_service_charge_pct: form.default_service_charge_pct ? parseFloat(form.default_service_charge_pct) : 1,
         }),
       });
       if (!res.ok) {
@@ -397,6 +401,13 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
             onChange={(v) => setField("vat_number", v)}
             placeholder="0105XXXXXXXXX"
           />
+          <FormField
+            label="Default service charge %"
+            name="default_service_charge_pct"
+            value={form.default_service_charge_pct}
+            onChange={(v) => setField("default_service_charge_pct", v)}
+            placeholder="1"
+          />
         </div>
         <FormField
           label="Address (English)"
@@ -503,6 +514,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
 
         <InfoRow icon={PhoneIcon} label="Phone" value={selected.phone} />
         <InfoRow icon={ReceiptIcon} label="VAT number" value={selected.vat_number} />
+        <InfoRow icon={ReceiptIcon} label="Default service charge" value={selected.default_service_charge_pct != null ? `${selected.default_service_charge_pct}%` : null} />
         <InfoRow icon={LinkIcon} label="GBP Location ID" value={selected.external_id} />
         <InfoRow icon={MapPinIcon} label="Address (English)" value={selected.address_en} multiline />
         <InfoRow icon={MapPinIcon} label="Address (Thai)" value={selected.address_th} multiline />

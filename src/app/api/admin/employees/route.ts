@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       id, organization_id, location_id, first_name, last_name, position,
       nationality, national_id, work_permit_number, work_permit_expires_at,
       email, phone, active, notes, base_salary_monthly, has_thai_bank_account,
-      credit_note,
+      credit_note, service_charge_pct,
       user_id, archived_at, created_at, updated_at,
       locations ( name ),
       employee_locations ( id, location_id, is_primary, locations ( name ) )
@@ -57,6 +57,7 @@ export async function GET(request: Request) {
       base_salary_monthly: emp.base_salary_monthly ?? null,
       has_thai_bank_account: emp.has_thai_bank_account ?? false,
       credit_note: (emp as unknown as { credit_note?: string | null }).credit_note ?? null,
+      service_charge_pct: (emp as unknown as { service_charge_pct?: number | null }).service_charge_pct ?? null,
       archived_at: emp.archived_at ?? null,
       user_id: emp.user_id ?? null,
       created_at: emp.created_at,
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
     base_salary_monthly?: number;
     has_thai_bank_account?: boolean;
     credit_note?: string;
+    service_charge_pct?: number;
     user_id?: string;
     location_ids?: string[];
     primary_location_id?: string;
@@ -129,6 +131,7 @@ export async function POST(request: Request) {
       base_salary_monthly: body.base_salary_monthly ?? null,
       has_thai_bank_account: body.has_thai_bank_account ?? false,
       credit_note: body.credit_note?.trim() ?? null,
+      service_charge_pct: body.service_charge_pct ?? null,
       user_id: body.user_id ?? null,
     })
     .select()

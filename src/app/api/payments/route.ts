@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
   let query = supabase
     .from("employee_payment_records")
-    .select("*")
+    .select("*, adjustments:payment_adjustments(*)")
     .eq("organization_id", DEFAULT_ORG_ID)
     .order("period_year", { ascending: false })
     .order("period_month", { ascending: false });
@@ -44,12 +44,7 @@ export async function POST(request: Request) {
     period_year: number;
     period_month: number;
     base_salary?: number;
-    deductions?: number;
-    deduction_note?: string;
-    overtime_pay?: number;
     service_charge?: number;
-    bonus_amount?: number;
-    bonus_note?: string;
     payment_method?: string;
     notes?: string;
   };
@@ -68,17 +63,12 @@ export async function POST(request: Request) {
     period_year: body.period_year,
     period_month: body.period_month,
     base_salary: body.base_salary ?? 0,
-    deductions: body.deductions ?? 0,
-    deduction_note: body.deduction_note ?? null,
-    overtime_pay: body.overtime_pay ?? 0,
     service_charge: body.service_charge ?? 0,
-    bonus_amount: body.bonus_amount ?? 0,
-    bonus_note: body.bonus_note ?? null,
     payment_method: body.payment_method ?? "cash",
     notes: body.notes ?? null,
     created_by: session.user.userId ?? null,
     updated_at: new Date().toISOString(),
-  }, { onConflict: "employee_id,period_year,period_month" }).select().single();
+  }, { onConflict: "employee_id,period_year,period_month" }).select("*, adjustments:payment_adjustments(*)").single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json(data, { status: 201 });

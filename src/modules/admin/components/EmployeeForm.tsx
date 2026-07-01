@@ -22,6 +22,7 @@ export type EmployeeFormState = {
   base_salary_monthly: string;
   has_thai_bank_account: boolean;
   credit_note: string;
+  service_charge_pct: string;
 };
 
 export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
@@ -38,6 +39,7 @@ export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
   base_salary_monthly: "",
   has_thai_bank_account: false,
   credit_note: "",
+  service_charge_pct: "",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -146,6 +148,10 @@ export function EmployeeForm({
             <span style={{ color: "var(--fg)" }}>Thai bank account</span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>(salary paid by transfer)</span>
           </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140 }}>
+            <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Service charge %</label>
+            <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(e) => onChange("service_charge_pct", e.target.value)} style={inputStyle} placeholder="location default" />
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
             <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Note</label>
             <input type="text" value={form.credit_note} onChange={(e) => onChange("credit_note", e.target.value)} style={inputStyle} placeholder="e.g. took extra day off Jan 15" />
