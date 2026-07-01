@@ -125,7 +125,7 @@ export async function GET(request: Request) {
     supabase
       .from("daily_entries")
       .select(
-        "location_id, sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, sales_card_surcharge, vat_7, exp_drinks_cash, exp_animals_cash, exp_makro_bank"
+        "location_id, sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, sales_card_surcharge, exp_drinks_cash, exp_animals_cash, exp_makro_bank"
       )
       .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", `${year}-${String(monthNum).padStart(2, "0")}-01`)
@@ -185,13 +185,13 @@ export async function GET(request: Request) {
       opexSum: 0,
       internalName: gbpToInternalName.get(canonicalId) ?? null,
     };
+    // Sales fields are already VAT-inclusive as entered by staff (see accounting/types.ts salesNetTotal)
     const rowSalesNet =
       (row.sales_drinks_net ?? 0) +
       (row.sales_ticket_net ?? 0) +
       (row.sales_snack_net ?? 0) +
       (row.sales_goodies_net ?? 0) +
-      (row.sales_card_surcharge ?? 0) +
-      (row.vat_7 ?? 0);
+      (row.sales_card_surcharge ?? 0);
     existing.salesNetIncVat += rowSalesNet;
     existing.salesGoodiesNet += row.sales_goodies_net ?? 0;
     existing.salesTicketNet += row.sales_ticket_net ?? 0;
