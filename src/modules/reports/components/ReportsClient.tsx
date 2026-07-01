@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ChevronDownIcon,
+  ChevronLeftIcon,
   ChevronRightIcon,
   WalletIcon,
   FileTextIcon,
@@ -472,8 +473,7 @@ function Controls({
   selectedShops: string[];
   onShopsChange: (ids: string[]) => void;
 }) {
-  function selectMonth(ym: string) {
-    const [y, m] = ym.split("-").map(Number);
+  function selectMonth(y: number, m: number) {
     const first = `${y}-${String(m).padStart(2, "0")}-01`;
     const lastDay = new Date(y, m, 0).getDate();
     const last = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
@@ -481,21 +481,54 @@ function Controls({
     onToChange(last);
   }
 
+  const [pickerYear, pickerMonth] = monthPickerValue(from).split("-").map(Number);
+  const monthName = new Date(pickerYear, pickerMonth - 1, 1).toLocaleString("en", { month: "long", year: "numeric" });
+
+  function prevMonth() {
+    if (pickerMonth === 1) selectMonth(pickerYear - 1, 12);
+    else selectMonth(pickerYear, pickerMonth - 1);
+  }
+
+  function nextMonth() {
+    if (pickerMonth === 12) selectMonth(pickerYear + 1, 1);
+    else selectMonth(pickerYear, pickerMonth + 1);
+  }
+
   return (
     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
       <Button variant="secondary" size="sm" onClick={() => { onFromChange(today()); onToChange(today()); }}>
         Today
       </Button>
-      <input
-        type="month"
-        value={monthPickerValue(from)}
-        onChange={(e) => selectMonth(e.target.value)}
-        style={{
-          height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-          background: "var(--surface)", color: "var(--fg)", padding: "0 var(--s-3)",
-          fontSize: 13, fontFamily: "var(--font-sans)", outline: "none", cursor: "pointer",
-        }}
-      />
+      <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <button
+          type="button"
+          onClick={prevMonth}
+          style={{
+            width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+            color: "var(--fg-3)", cursor: "pointer",
+          }}
+        >
+          <ChevronLeftIcon size={14} />
+        </button>
+        <span
+          className="mono tabular-nums"
+          style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
+        >
+          {monthName}
+        </span>
+        <button
+          type="button"
+          onClick={nextMonth}
+          style={{
+            width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+            color: "var(--fg-3)", cursor: "pointer",
+          }}
+        >
+          <ChevronRightIcon size={14} />
+        </button>
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
         <DateInput value={from} onChange={(e) => onFromChange(e.target.value)} />
         <span style={{ fontSize: 12, color: "var(--fg-4)" }}>–</span>
