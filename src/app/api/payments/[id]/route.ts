@@ -2,7 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+
+// Overriding these away from their computed value must come with a reason —
+// they're meant to always start from the employee's base salary / revenue share.
+const REASON_REQUIRED_FIELDS = new Set(["base_salary", "service_charge"]);
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -17,21 +22,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const supabase = getSupabaseServerClient();
 
-  // Whitelist patchable fields to exclude removed status/paid_at
-  const allowed = [
-    "base_salary",
-    "deductions",
-    "deduction_note",
-    "overtime_pay",
-    "service_charge",
-    "bonus_amount",
-    "bonus_note",
-    "payment_method",
-    "notes",
-  ] as const;
+  const allowed = ["base_salary", "service_charge", "payment_method", "notes"] as const;
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of allowed) {
     if (key in body) patch[key] = body[key as keyof typeof body];
+  }
+
+  const changedReasonFields = allowed.filter((key) => key in body && REASON_REQUIRED_FIELDS.has(key));
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (changedReasonFields.length > 0 && !reason) {
+    return Response.json({ error: "A reason is required when overriding this value" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -39,10 +39,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .update(patch)
     .eq("id", id)
     .eq("organization_id", DEFAULT_ORG_ID)
-    .select()
+    .select("*, adjustments:payment_adjustments(*)")
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  if (changedReasonFields.length > 0) {
+    await writeAuditLog({
+      userId: session.user.userId ?? null,
+      action: "payments.record.override",
+      moduleKey: "payments",
+      entityType: "employee_payment_record",
+      entityId: id,
+      payload: { fields: changedReasonFields, reason, values: Object.fromEntries(changedReasonFields.map((f) => [f, patch[f]])) },
+    });
+  }
+
   return Response.json(data);
 }
 

@@ -44,6 +44,7 @@ export interface AdminLocation {
   google_maps_url?: string | null;
   google_sheet_id?: string | null;
   notes?: string | null;
+  default_service_charge_pct?: number;
 }
 
 export interface EmployeeLocationRow {
@@ -72,6 +73,7 @@ export interface Employee {
   base_salary_monthly: number | null;
   has_thai_bank_account: boolean;
   credit_note: string | null;
+  service_charge_pct: number | null;
   archived_at: string | null;
   user_id: string | null;
   created_at: string;
