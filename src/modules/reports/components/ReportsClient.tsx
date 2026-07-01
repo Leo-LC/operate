@@ -1,7 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronDownIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  WalletIcon,
+  FileTextIcon,
+  UsersIcon,
+  PercentIcon,
+  LockIcon,
+  AlertTriangleIcon,
+  LightbulbIcon,
+  BarChart3Icon,
+  ActivityIcon,
+  CreditCardIcon,
+  ReceiptIcon,
+  ClipboardListIcon,
+  PercentCircleIcon,
+} from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -26,6 +42,31 @@ interface ShopAgg {
   cash: number;
   scan: number;
   creditCard: number;
+  expStaffFoodCash: number;
+  expDrinksCash: number;
+  expGoodiesCash: number;
+  expAnimalsCash: number;
+  expSupplyCash: number;
+  expOtherCash: number;
+  expMakroBank: number;
+  expOtherBank: number;
+  hrSalaryCash: number;
+  hrServiceChargeCash: number;
+  hrChallengeCash: number;
+  vat: number;
+  cashToBoss: number;
+  closingCashSafe: number;
+}
+
+interface DailyTotal {
+  date: string;
+  revenue: number;
+}
+
+interface MonthlyExpensesData {
+  categories: { key: string; label: string }[];
+  totals: Record<string, number>;
+  entered: boolean;
 }
 
 interface AccountingData {
@@ -33,6 +74,9 @@ interface AccountingData {
   locations: { id: string; name: string }[];
   overview: ShopAgg;
   byShop: ShopAgg[];
+  previousPeriod: { period: { from: string; to: string }; overview: ShopAgg };
+  dailyTotals: DailyTotal[];
+  monthlyExpenses: MonthlyExpensesData;
   completeness?: {
     totalExpected: number;
     totalFilled: number;
@@ -47,8 +91,35 @@ function fmtN(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
+function fmtMoney(n: number) {
+  return n < 0 ? `(฿${fmtN(Math.abs(n))})` : `฿${fmtN(n)}`;
+}
+
 function fmtPct(n: number) {
   return `${n.toFixed(1)}%`;
+}
+
+function monthShortLabel(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short" });
+}
+
+function dayLabel(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function pctChangeParts(curr: number, prev: number): { delta: string; dir: "up" | "down" | "neutral" } {
+  if (!prev) return { delta: "—", dir: "neutral" };
+  const change = ((curr - prev) / Math.abs(prev)) * 100;
+  const dir = change > 0.05 ? "up" : change < -0.05 ? "down" : "neutral";
+  const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "–";
+  return { delta: `${arrow} ${Math.abs(change).toFixed(1)}%`, dir };
+}
+
+function ppChangeParts(curr: number, prev: number): { delta: string; dir: "up" | "down" | "neutral" } {
+  const diff = curr - prev;
+  const dir = diff > 0.05 ? "up" : diff < -0.05 ? "down" : "neutral";
+  const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "–";
+  return { delta: `${arrow} ${Math.abs(diff).toFixed(1)}pp`, dir };
 }
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
@@ -57,6 +128,15 @@ function today() { return new Date().toISOString().slice(0, 10); }
 function monthStart() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+function countDaysInRange(fromStr: string, toStr: string): number {
+  const d1 = new Date(fromStr);
+  const d2 = new Date(toStr);
+  return Math.max(0, Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1);
+}
+function daysInMonth(dateStr: string): number {
+  const d = new Date(dateStr);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 }
 
 // ── Shop Selector ────────────────────────────────────────────────────────────
@@ -153,51 +233,225 @@ function ShopSelector({
   );
 }
 
+// ── Sparkline ────────────────────────────────────────────────────────────────
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null;
+  const w = 64;
+  const h = 28;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible", flexShrink: 0 }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // ── KPI Card ─────────────────────────────────────────────────────────────────
 
 function KpiCard({
   label,
   value,
-  sub,
-  tone = "neutral",
+  delta,
+  deltaDir = "neutral",
+  hint,
+  icon,
+  iconColor = "var(--bronze)",
+  sparklineData,
+  footer,
 }: {
   label: string;
   value: string;
-  sub?: string;
-  tone?: "neutral" | "good" | "bad" | "info";
+  delta?: string;
+  deltaDir?: "up" | "down" | "neutral";
+  hint?: string;
+  icon?: React.ReactNode;
+  iconColor?: string;
+  sparklineData?: number[];
+  footer?: React.ReactNode;
 }) {
-  const deltaDir = tone === "good" ? "up" as const : tone === "bad" ? "down" as const : "neutral" as const;
   return (
     <div
       style={{
         borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
         background: "var(--surface)", padding: "var(--s-5)",
+        display: "flex", flexDirection: "column", gap: 8,
       }}
     >
-      <Stat label={label} value={value} deltaDir={deltaDir} hint={sub} />
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <Stat label={label} value={value} delta={delta} deltaDir={deltaDir} hint={hint} icon={icon} iconColor={iconColor} />
+        {sparklineData && sparklineData.length >= 2 && <Sparkline data={sparklineData} color={iconColor} />}
+      </div>
+      {footer}
     </div>
   );
 }
 
-// ── Section header ────────────────────────────────────────────────────────────
+// ── Section card + header ─────────────────────────────────────────────────────
 
-function SectionHeader({ label, bg, color }: { label: string; bg: string; color: string }) {
+function SectionHeader({ label, bg, color, icon }: { label: string; bg: string; color: string; icon?: React.ReactNode }) {
   return (
     <div
       style={{
         padding: "10px var(--s-5)", borderBottom: "1px solid var(--line)",
-        background: bg,
+        background: bg, display: "flex", alignItems: "center", gap: 8,
       }}
     >
+      {icon && <span style={{ color, display: "inline-flex" }}>{icon}</span>}
       <h3 className="eyebrow" style={{ color, margin: 0 }}>{label}</h3>
     </div>
   );
 }
 
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+        background: "var(--surface)", overflow: "hidden",
+        display: "flex", flexDirection: "column",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ── Bar list row (used by Revenue Mix / Cost Drivers / HR Breakdown / Payments) ──
+
+function MetricBar({
+  value,
+  max,
+  color,
+}: {
+  value: number;
+  max: number;
+  color: string;
+}) {
+  const pct = Math.min(100, (value / max) * 100);
+  return (
+    <div style={{ height: 4, borderRadius: 9999, background: "var(--bg-2)", overflow: "hidden", position: "relative" }}>
+      <div
+        style={{
+          position: "absolute", top: 0, left: 0,
+          width: `${pct}%`, height: "100%", borderRadius: 9999,
+          background: color, transition: "width 0.4s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+function BarListRow({
+  index,
+  label,
+  amount,
+  pctOfTotal,
+  color,
+}: {
+  index: number;
+  label: string;
+  amount: number;
+  pctOfTotal: number;
+  color: string;
+}) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", alignItems: "center", gap: 10, padding: "8px 0" }}>
+      <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>{index}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+        <span style={{ fontSize: 13, color: "var(--fg-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <MetricBar value={pctOfTotal} max={100} color={color} />
+      </div>
+      <span className="mono" style={{ textAlign: "right", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>{fmtMoney(amount)}</span>
+      <span style={{ textAlign: "right", fontSize: 12, color: "var(--fg-4)" }}>{fmtPct(pctOfTotal)}</span>
+    </div>
+  );
+}
+
+function BarListHeader() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+      <span />
+      <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Category</span>
+      <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
+      <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of sales</span>
+    </div>
+  );
+}
+
+// ── Rule-based insights ───────────────────────────────────────────────────────
+
+interface NeedsActionItem { label: string; tone: "bad" | "warn" | "info" }
+
+function computeNeedsAction(
+  o: ShopAgg,
+  monthlyExpenses: MonthlyExpensesData,
+  completeness: AccountingData["completeness"]
+): NeedsActionItem[] {
+  const items: NeedsActionItem[] = [];
+
+  if (o.closingCashSafe < 0) {
+    items.push({ label: `Closing cash safe is negative (${fmtMoney(o.closingCashSafe)})`, tone: "bad" });
+  }
+  if (!monthlyExpenses.entered) {
+    items.push({ label: "Monthly expenses not entered", tone: "warn" });
+  }
+  if (o.cashToBoss > 0) {
+    items.push({ label: `Verify cash sent to boss (฿${fmtN(o.cashToBoss)})`, tone: "info" });
+  }
+  const otherExp = o.expOtherCash + o.expOtherBank;
+  if (o.revenue > 0 && otherExp / o.revenue > 0.05) {
+    items.push({ label: `High "Other" expense (฿${fmtN(otherExp)})`, tone: "warn" });
+  }
+  if (completeness && completeness.percent < 100) {
+    items.push({ label: `Enter missing daily entries (${completeness.percent}% complete)`, tone: "warn" });
+  }
+
+  return items;
+}
+
+function computeManagementNotes(o: ShopAgg): string[] {
+  const notes: string[] = [];
+  if (o.revenue <= 0) return notes;
+
+  const cats = [
+    { label: "Ticket sales", value: o.tickets },
+    { label: "Drink sales", value: o.drinks },
+    { label: "Snack sales", value: o.snacks },
+    { label: "Goodies sales", value: o.goodies },
+  ];
+  const top = [...cats].sort((a, b) => b.value - a.value)[0];
+  if (top.value > 0) {
+    notes.push(`${top.label} drive ${fmtPct((top.value / o.revenue) * 100)} of total revenue.`);
+  }
+
+  const hrPct = (o.hrCosts / o.revenue) * 100;
+  notes.push(
+    hrPct <= 30
+      ? `HR ratio (${fmtPct(hrPct)}) is in a healthy range.`
+      : `HR ratio (${fmtPct(hrPct)}) is above target — review staffing costs.`
+  );
+
+  const secondaryPct = cats.filter((c) => c.label !== top.label).reduce((s, c) => s + c.value, 0) / o.revenue * 100;
+  if (secondaryPct < 25) {
+    notes.push("Secondary categories remain a smaller share of revenue — opportunity to grow.");
+  }
+
+  return notes.slice(0, 3);
+}
+
 // ── Controls bar ─────────────────────────────────────────────────────────────
 
 function monthPickerValue(from: string): string {
-  // Derive yyyy-MM from the from date
   return from.slice(0, 7);
 }
 
@@ -260,13 +514,9 @@ interface MetricDef {
   key: string;
   label: string;
   getValue: (s: ShopAgg) => number | null;
-  /** Returns a CSS var string based on the ratio value */
   color: (ratio: number) => string;
-  /** Text shown below the value */
   target: string;
-  /** Max ratio for the progress bar (1 = 100%) */
   barMax: number;
-  /** If true, lower is better (bar fills from right) */
   lowerIsBetter?: boolean;
 }
 
@@ -306,52 +556,12 @@ const PERF_METRICS: MetricDef[] = [
   },
 ];
 
-function MetricBar({
-  value,
-  max,
-  color,
-  lowerIsBetter,
-}: {
-  value: number;
-  max: number;
-  color: string;
-  lowerIsBetter?: boolean;
-}) {
-  const pct = Math.min(100, (value / max) * 100);
-  return (
-    <div
-      style={{
-        height: 4, borderRadius: 9999, background: "var(--bg-2)", overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          [lowerIsBetter ? "left" : "left"]: 0,
-          width: `${pct}%`,
-          height: "100%",
-          borderRadius: 9999,
-          background: color,
-          transition: "width 0.4s ease",
-        }}
-      />
-    </div>
-  );
-}
-
 function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
   const activeShops = shops.filter((s) => s.revenue > 0);
   if (activeShops.length === 0) return null;
 
   return (
-    <div
-      style={{
-        borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-        background: "var(--surface)", overflow: "hidden",
-      }}
-    >
+    <Card>
       <SectionHeader label="Performance metrics" bg="var(--bronze-soft)" color="var(--bronze-2)" />
       <div style={{ overflowX: "auto" }}>
         <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
@@ -396,7 +606,7 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
                     <td key={s.locationId} style={{ padding: "10px var(--s-5)", textAlign: "right" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                         <span className="mono" style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, color }}>{fmtPct(val)}</span>
-                        <MetricBar value={val} max={metric.barMax} color={color} lowerIsBetter={metric.lowerIsBetter} />
+                        <MetricBar value={val} max={metric.barMax} color={color} />
                       </div>
                     </td>
                   );
@@ -406,283 +616,463 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 
 // ── Operations Tab ────────────────────────────────────────────────────────────
 
-function computeInsights(byShop: ShopAgg[]): string[] {
-  if (byShop.length < 2) return [];
-  const insights: string[] = [];
-
-  // Shop with lowest merch ratio
-  const goodsShops = byShop.filter((s) => s.revenue > 0).map((s) => ({
-    name: s.locationName.replace(/^Capybara Coffee\s*/i, "").trim() || s.locationName,
-    goodsPct: s.revenue > 0 ? (s.goodies / s.revenue) * 100 : 0,
-    expPct: s.revenue > 0 ? ((s.expenses + s.hrCosts) / s.revenue) * 100 : 0,
-    revenue: s.revenue,
-    margin: s.margin,
-  }));
-
-  const lowestMerch = [...goodsShops].sort((a, b) => a.goodsPct - b.goodsPct)[0];
-  if (lowestMerch && lowestMerch.goodsPct < 5) {
-    insights.push(`${lowestMerch.name} has the lowest merch ratio this period: ${fmtPct(lowestMerch.goodsPct)}`);
-  }
-
-  // Shop with expenses most above average
-  const avgExpPct = goodsShops.reduce((s, sh) => s + sh.expPct, 0) / goodsShops.length;
-  const highestExp = [...goodsShops].sort((a, b) => b.expPct - a.expPct)[0];
-  if (highestExp && highestExp.expPct > avgExpPct * 1.15) {
-    insights.push(`${highestExp.name} expenses are ${fmtPct(highestExp.expPct - avgExpPct)} above the group average`);
-  }
-
-  // Revenue gap between top and bottom
-  const sorted = [...goodsShops].sort((a, b) => b.revenue - a.revenue);
-  if (sorted.length >= 2 && sorted[0].revenue > 0) {
-    const gap = Math.round(((sorted[0].revenue - sorted[sorted.length - 1].revenue) / sorted[0].revenue) * 100);
-    if (gap > 30) {
-      insights.push(`${sorted[0].name} earns ${gap}% more revenue than ${sorted[sorted.length - 1].name} this period`);
-    }
-  }
-
-  return insights.slice(0, 3);
-}
-
 function OperationsView({ data }: { data: AccountingData }) {
-  const { overview: o, byShop, completeness } = data;
-  const totalPayments = o.cash + o.scan + o.creditCard;
+  const { overview: o, byShop, completeness, previousPeriod, dailyTotals, monthlyExpenses } = data;
+  const p = previousPeriod.overview;
+  const prevMonthName = monthShortLabel(previousPeriod.period.to);
 
-  function pct(n: number) {
-    return totalPayments > 0 ? fmtPct((n / totalPayments) * 100) : "—";
+  const totalPayments = o.cash + o.scan + o.creditCard;
+  function paymentPct(n: number) {
+    return totalPayments > 0 ? (n / totalPayments) * 100 : 0;
   }
 
   const sortedShops = [...byShop].sort((a, b) => b.revenue - a.revenue);
-  const insights = computeInsights(byShop);
+
+  // ── KPI derived values ──────────────────────────────────────────────────────
+  const netAfterExpenses = o.revenue - o.expenses;
+  const prevNetAfterExpenses = p.revenue - p.expenses;
+  const hrPctOfSales = o.revenue > 0 ? (o.hrCosts / o.revenue) * 100 : 0;
+  const prevHrPctOfSales = p.revenue > 0 ? (p.hrCosts / p.revenue) * 100 : 0;
+
+  const revenueDelta = pctChangeParts(o.revenue, p.revenue);
+  const netAfterExpDelta = pctChangeParts(netAfterExpenses, prevNetAfterExpenses);
+  const netAfterHrDelta = pctChangeParts(o.netProfit, p.netProfit);
+  const hrPctDelta = ppChangeParts(hrPctOfSales, prevHrPctOfSales);
+
+  const dailySeries = dailyTotals.map((d) => d.revenue);
+
+  // ── Needs action / management notes ─────────────────────────────────────────
+  const needsAction = computeNeedsAction(o, monthlyExpenses, completeness);
+  const managementNotes = computeManagementNotes(o);
+  const allGood = needsAction.length === 0 && (!completeness || completeness.percent >= 100);
+
+  // ── Daily rhythm ─────────────────────────────────────────────────────────────
+  const activeDays = dailyTotals.filter((d) => d.revenue > 0);
+  const elapsedDays = countDaysInRange(data.period.from, data.period.to);
+  const avgPerDay = elapsedDays > 0 ? o.revenue / elapsedDays : 0;
+  const bestDay = activeDays.length > 0 ? [...activeDays].sort((a, b) => b.revenue - a.revenue)[0] : null;
+  const worstDay = activeDays.length > 0 ? [...activeDays].sort((a, b) => a.revenue - b.revenue)[0] : null;
+  const projectedFullMonth = avgPerDay * daysInMonth(data.period.to);
+  const monthPace = p.revenue > 0 ? (projectedFullMonth / p.revenue) * 100 : null;
+
+  // ── Revenue mix / cost drivers / HR breakdown rows ──────────────────────────
+  const revenueRows = [
+    { label: "Sales drinks net", value: o.drinks },
+    { label: "Sales ticket net", value: o.tickets },
+    { label: "Sales snack net", value: o.snacks },
+    { label: "Sales goodies net", value: o.goodies },
+    { label: "Sales card surcharge", value: o.surcharge },
+  ].filter((r) => r.value !== 0).sort((a, b) => b.value - a.value);
+
+  const costRows = [
+    { label: "Staff food cash", value: o.expStaffFoodCash },
+    { label: "Drinks cash", value: o.expDrinksCash },
+    { label: "Goodies cash", value: o.expGoodiesCash },
+    { label: "Animals cash", value: o.expAnimalsCash },
+    { label: "Supply cash", value: o.expSupplyCash },
+    { label: "Other cash", value: o.expOtherCash },
+    { label: "Makro bank", value: o.expMakroBank },
+    { label: "Other bank", value: o.expOtherBank },
+  ].filter((r) => r.value !== 0).sort((a, b) => b.value - a.value);
+  const totalOpex = costRows.reduce((s, r) => s + r.value, 0);
+
+  const hrRows = [
+    { label: "Salary (cash + bank)", value: o.hrSalaryCash },
+    { label: "Service charge (cash)", value: o.hrServiceChargeCash },
+    { label: "Challenge (cash)", value: o.hrChallengeCash },
+  ].filter((r) => r.value !== 0).sort((a, b) => b.value - a.value);
+
+  const grandTotalCosts = o.expenses + o.hrCosts;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      {/* Data completeness banner */}
-      {completeness && completeness.percent < 100 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "10px 16px",
-            borderRadius: "var(--r-md)",
-            border: "1px solid var(--warn)",
-            background: "var(--warn-soft)",
-            fontSize: 13,
-          }}
-        >
-          <span style={{ fontWeight: 600, color: "var(--warn)" }}>Data: {completeness.percent}% complete</span>
-          <span style={{ color: "var(--warn)", opacity: 0.8 }}>
-            {completeness.totalFilled} of {completeness.totalExpected} expected entries
-            {completeness.shopsIncomplete.length > 0 ? ` — missing: ${completeness.shopsIncomplete.join(", ")}` : ""}
+      {/* Status banner */}
+      <div
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
+          gap: 12, padding: "10px 16px", borderRadius: "var(--r-md)",
+          border: `1px solid ${allGood ? "var(--good)" : "var(--warn)"}`,
+          background: allGood ? "var(--good-soft)" : "var(--warn-soft)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Pill tone={allGood ? "good" : "warn"} dot>{allGood ? "All data looks good" : "Needs attention"}</Pill>
+          <span style={{ fontSize: 13, color: allGood ? "var(--good)" : "var(--warn)" }}>
+            {allGood
+              ? `All key data has been entered for this period.`
+              : `${needsAction.length} item${needsAction.length === 1 ? "" : "s"} need${needsAction.length === 1 ? "s" : ""} attention.`}
           </span>
         </div>
-      )}
+        {completeness && (
+          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
+            Data as of {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {completeness.percent}% complete
+          </span>
+        )}
+      </div>
 
-      {/* KPI Banner */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        <KpiCard label="Total Revenue" value={`฿${fmtN(o.revenue)}`} />
-        <KpiCard label="Total Expenses" value={`฿${fmtN(o.expenses + o.hrCosts)}`} tone="bad" />
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         <KpiCard
-          label="Net Profit"
-          value={`฿${fmtN(o.netProfit)}`}
-          tone={o.netProfit >= 0 ? "good" : "bad"}
+          label="Total Sales Net"
+          value={`฿${fmtN(o.revenue)}`}
+          delta={revenueDelta.delta}
+          deltaDir={revenueDelta.dir}
+          hint={`vs ${prevMonthName}`}
+          icon={<WalletIcon style={{ width: 17, height: 17 }} />}
+          iconColor="var(--good)"
+          sparklineData={dailySeries}
         />
         <KpiCard
-          label="Net Margin"
-          value={fmtPct(o.margin)}
-          tone={o.margin >= 20 ? "good" : o.margin >= 0 ? "neutral" : "bad"}
+          label="Net After Expenses"
+          value={`฿${fmtN(netAfterExpenses)}`}
+          delta={netAfterExpDelta.delta}
+          deltaDir={netAfterExpDelta.dir}
+          hint={`vs ${prevMonthName}`}
+          icon={<FileTextIcon style={{ width: 17, height: 17 }} />}
+          iconColor="var(--info)"
+          sparklineData={dailySeries}
+        />
+        <KpiCard
+          label="Net After HR"
+          value={`฿${fmtN(o.netProfit)}`}
+          delta={netAfterHrDelta.delta}
+          deltaDir={netAfterHrDelta.dir}
+          hint={`vs ${prevMonthName}`}
+          icon={<UsersIcon style={{ width: 17, height: 17 }} />}
+          iconColor="var(--purple)"
+          sparklineData={dailySeries}
+        />
+        <KpiCard
+          label="HR % of Sales"
+          value={fmtPct(hrPctOfSales)}
+          delta={hrPctDelta.delta}
+          deltaDir={hrPctDelta.dir}
+          hint={`vs ${prevMonthName}`}
+          icon={<PercentIcon style={{ width: 17, height: 17 }} />}
+          iconColor="var(--warn)"
+        />
+        <KpiCard
+          label="Closing Cash Safe"
+          value={fmtMoney(o.closingCashSafe)}
+          icon={<LockIcon style={{ width: 17, height: 17 }} />}
+          iconColor={o.closingCashSafe < 0 ? "var(--bad)" : "var(--good)"}
+          footer={
+            <Pill tone={o.closingCashSafe < 0 ? "bad" : "good"} size="sm">
+              {o.closingCashSafe < 0 ? "Needs attention" : "Healthy"}
+            </Pill>
+          }
         />
       </div>
 
-      {/* Insight cards */}
-      {insights.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Insights</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {insights.map((insight, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: "var(--r-md)",
-                  border: "1px solid var(--line)",
-                  background: "var(--surface)",
-                  fontSize: 13,
-                  color: "var(--fg-2)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span style={{ color: "var(--bronze)", flexShrink: 0 }}>→</span>
-                {insight}
-              </div>
+      {/* Revenue Mix + Cost Drivers */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Card>
+          <SectionHeader label="Revenue Mix" bg="var(--good-soft)" color="var(--good)" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
+          <div style={{ padding: "var(--s-4) var(--s-5)" }}>
+            <BarListHeader />
+            {revenueRows.map((r, i) => (
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--good)" />
             ))}
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--good)" }}>Total Sales Net</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--good)" }}>฿{fmtN(o.revenue)}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionHeader label="Cost Drivers (Operating Expenses)" bg="var(--warn-soft)" color="var(--warn)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ padding: "var(--s-4) var(--s-5)" }}>
+            <BarListHeader />
+            {costRows.map((r, i) => (
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--warn)" />
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--warn)" }}>Total Operating Expenses</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--warn)" }}>฿{fmtN(totalOpex)}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* HR Breakdown + Needs Action */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Card>
+          <SectionHeader label="HR Breakdown" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ padding: "var(--s-4) var(--s-5)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+              <span />
+              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Item</span>
+              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
+              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of HR</span>
+            </div>
+            {hrRows.map((r, i) => (
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--purple)" />
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--purple)" }}>Total HR Cost</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>฿{fmtN(o.hrCosts)}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionHeader label="Needs Action" bg="var(--bad-soft)" color="var(--bad)" icon={<AlertTriangleIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {needsAction.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--fg-4)", padding: "var(--s-4) var(--s-5)" }}>Nothing needs attention right now.</p>
+            ) : (
+              needsAction.map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                    padding: "10px var(--s-5)", borderTop: i === 0 ? "none" : "1px solid var(--line)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span
+                      style={{
+                        width: 6, height: 6, borderRadius: "var(--r-pill)", flexShrink: 0,
+                        background: item.tone === "bad" ? "var(--bad)" : item.tone === "warn" ? "var(--warn)" : "var(--info)",
+                      }}
+                    />
+                    <span style={{ fontSize: 13, color: "var(--fg-2)" }}>{item.label}</span>
+                  </div>
+                  <ChevronRightIcon style={{ width: 14, height: 14, color: "var(--fg-4)", flexShrink: 0 }} />
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Daily Rhythm + Management Notes */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Card>
+          <SectionHeader label="Daily Rhythm" bg="var(--bg-2)" color="var(--fg-3)" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ padding: "var(--s-4) var(--s-5)", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--s-4)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Avg / Day</span>
+              <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>฿{fmtN(avgPerDay)}</span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs {prevMonthName} ฿{fmtN(elapsedDays > 0 ? p.revenue / Math.max(1, countDaysInRange(previousPeriod.period.from, previousPeriod.period.to)) : 0)}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Best Day</span>
+              <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--good)" }}>{bestDay ? `฿${fmtN(bestDay.revenue)}` : "—"}</span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{bestDay ? dayLabel(bestDay.date) : ""}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Worst Day</span>
+              <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--bad)" }}>{worstDay ? `฿${fmtN(worstDay.revenue)}` : "—"}</span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{worstDay ? dayLabel(worstDay.date) : ""}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Month Pace</span>
+              <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{monthPace !== null ? `${monthPace.toFixed(0)}%` : "—"}</span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs {prevMonthName}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionHeader label="Management Notes" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<LightbulbIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ padding: "var(--s-4) var(--s-5)", display: "flex", flexDirection: "column", gap: 8 }}>
+            {managementNotes.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--fg-4)" }}>Not enough data yet to generate notes.</p>
+            ) : (
+              managementNotes.map((note, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <span style={{ color: "var(--bronze)", flexShrink: 0, lineHeight: "20px" }}>○</span>
+                  <span style={{ fontSize: 13, color: "var(--fg-2)", lineHeight: "20px" }}>{note}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Payment Methods */}
+      <Card>
+        <SectionHeader label="Payment Methods" bg="var(--info-soft)" color="var(--info)" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
+        <div style={{ padding: "var(--s-4) var(--s-5)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+            <span />
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Type</span>
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of sales</span>
+          </div>
+          {[
+            { label: "Cash", value: o.cash },
+            { label: "Scan / QR", value: o.scan },
+            { label: "Credit Card", value: o.creditCard },
+          ].map((row, i) => (
+            <BarListRow key={row.label} index={i + 1} label={row.label} amount={row.value} pctOfTotal={paymentPct(row.value)} color="var(--info)" />
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--info)" }}>Total Payments</span>
+            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--info)" }}>฿{fmtN(totalPayments)}</span>
           </div>
         </div>
-      )}
+      </Card>
 
-      {/* Revenue by category */}
-      <div
-        style={{
-          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-          background: "var(--surface)", overflow: "hidden",
-        }}
-      >
-        <SectionHeader label="Revenue by category" bg="var(--good-soft)" color="var(--good)" />
+      {/* Monthly Expenses + HR Ratios & Pending */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Card>
+          <SectionHeader label="Monthly Expenses" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "var(--bg-2)" }}>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "left", color: "var(--fg-3)", fontWeight: 500 }}>Item</th>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>Amount (THB)</th>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>% of Monthly Exp.</th>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyExpenses.categories.map((cat) => {
+                  const val = monthlyExpenses.totals[cat.key] ?? 0;
+                  const total = Object.values(monthlyExpenses.totals).reduce((s, v) => s + v, 0);
+                  return (
+                    <tr key={cat.key} style={{ borderTop: "1px solid var(--line)" }}>
+                      <td style={{ padding: "8px var(--s-5)", color: "var(--fg-3)" }}>Expense {cat.label}</td>
+                      <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{val > 0 ? fmtN(val) : "–"}</td>
+                      <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{total > 0 && val > 0 ? fmtPct((val / total) * 100) : "0.00%"}</td>
+                      <td style={{ padding: "8px var(--s-5)", textAlign: "right" }}>
+                        <Pill tone={val > 0 ? "good" : "bad"} size="sm">{val > 0 ? "Entered" : "Not entered"}</Pill>
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
+                  <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total Monthly Expenses</td>
+                  <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>
+                    {fmtN(Object.values(monthlyExpenses.totals).reduce((s, v) => s + v, 0))}
+                  </td>
+                  <td style={{ padding: "8px var(--s-5)", textAlign: "right" }} />
+                  <td style={{ padding: "8px var(--s-5)", textAlign: "right" }}>
+                    <Pill tone={monthlyExpenses.entered ? "good" : "bad"} size="sm">{monthlyExpenses.entered ? "Entered" : "Not entered"}</Pill>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionHeader label="HR Ratios & Pending" bg="var(--bg-2)" color="var(--fg-3)" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "var(--bg-2)" }}>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "left", color: "var(--fg-3)", fontWeight: 500 }}>Metric</th>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>Value</th>
+                  <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>Context</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: "% HR / Sales", value: fmtPct(hrPctOfSales), context: hrPctOfSales <= 30 ? "Healthy range" : "Above target" },
+                  { label: "Net After Expenses", value: `฿${fmtN(netAfterExpenses)}`, context: "Before HR deduction" },
+                  { label: "Net After Exp. + HR", value: `฿${fmtN(o.netProfit)}`, context: "Post payroll result" },
+                  { label: "Cash to Boss", value: `฿${fmtN(o.cashToBoss)}`, context: "Cash sent to boss this period" },
+                  { label: "Closing Cash Safe", value: fmtMoney(o.closingCashSafe), context: o.closingCashSafe < 0 ? "Negative balance" : "Positive balance" },
+                ].map((row) => (
+                  <tr key={row.label} style={{ borderTop: "1px solid var(--line)" }}>
+                    <td style={{ padding: "8px var(--s-5)", color: "var(--fg-3)" }}>{row.label}</td>
+                    <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 500 }}>{row.value}</td>
+                    <td style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-4)" }}>{row.context}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* VAT & Total Costs */}
+      <Card>
+        <SectionHeader label="VAT & Total Costs" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ overflowX: "auto" }}>
           <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "var(--bg-2)" }}>
-                <th style={{ padding: "8px var(--s-5)", textAlign: "left", color: "var(--fg-3)", fontWeight: 500 }}>Category</th>
-                {sortedShops.map((s) => (
-                  <th key={s.locationId} style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500, whiteSpace: "nowrap" }}>
-                    {s.locationName}
-                  </th>
-                ))}
-                <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg)", fontWeight: 600 }}>Total</th>
+                <th style={{ padding: "8px var(--s-5)", textAlign: "left", color: "var(--fg-3)", fontWeight: 500 }}>Metric</th>
+                <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>Amount (THB)</th>
+                <th style={{ padding: "8px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontWeight: 500 }}>% of Sales</th>
               </tr>
             </thead>
             <tbody>
-              {(["drinks", "tickets", "snacks", "goodies", "surcharge"] as const).map((key, i) => {
-                const labels: Record<string, string> = { drinks: "Drinks", tickets: "Tickets", snacks: "Snacks", goodies: "Goodies", surcharge: "Card surcharge" };
-                return (
-                  <tr
-                    key={key}
-                    style={{ borderTop: i === 0 ? "1px solid var(--line)" : "1px solid var(--line)" }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
-                  >
-                    <td style={{ padding: "8px var(--s-5)", color: "var(--fg-3)" }}>{labels[key]}</td>
-                    {sortedShops.map((s) => (
-                      <td key={s.locationId} className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                        {s[key] > 0 ? fmtN(s[key]) : <span style={{ color: "var(--fg-mute)" }}>—</span>}
-                      </td>
-                    ))}
-                    <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                      {fmtN(sortedShops.reduce((sum, s) => sum + s[key], 0))}
-                    </td>
-                  </tr>
-                );
-              })}
+              <tr style={{ borderTop: "1px solid var(--line)" }}>
+                <td style={{ padding: "8px var(--s-5)", color: "var(--fg-3)" }}>Total VAT</td>
+                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{fmtN(o.vat)}</td>
+                <td style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{o.revenue > 0 ? fmtPct((o.vat / o.revenue) * 100) : "—"}</td>
+              </tr>
+              <tr style={{ borderTop: "1px solid var(--line)" }}>
+                <td style={{ padding: "8px var(--s-5)", color: "var(--fg-3)" }}>Grand Total Costs</td>
+                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{fmtN(grandTotalCosts)}</td>
+                <td style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{o.revenue > 0 ? fmtPct((grandTotalCosts / o.revenue) * 100) : "—"}</td>
+              </tr>
               <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total revenue</td>
-                {sortedShops.map((s) => (
-                  <td key={s.locationId} className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)", fontWeight: 500 }}>
-                    {fmtN(s.revenue)}
-                  </td>
-                ))}
-                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)", fontWeight: 700 }}>
-                  {fmtN(o.revenue)}
-                </td>
+                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total Sales Net</td>
+                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>{fmtN(o.revenue)}</td>
+                <td style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>100.00%</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
-      {/* Payment method split */}
-      <div
-        style={{
-          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-          background: "var(--surface)", overflow: "hidden",
-        }}
-      >
-        <SectionHeader label="Payment methods" bg="var(--info-soft)" color="var(--info)" />
-        <div style={{ padding: "var(--s-5)", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-5)" }}>
-          {[
-            { label: "Cash", value: o.cash },
-            { label: "Scan / QR", value: o.scan },
-            { label: "Credit card", value: o.creditCard },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{label}</p>
-              <p className="mono" style={{ fontSize: 20, fontWeight: 700, margin: 0, fontVariantNumeric: "tabular-nums" }}>฿{fmtN(value)}</p>
-              <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{pct(value)} of payments</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Expenses + HR */}
-      <div
-        style={{
-          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-          background: "var(--surface)", overflow: "hidden",
-        }}
-      >
-        <SectionHeader label="Expenses &amp; HR" bg="var(--warn-soft)" color="var(--warn)" />
-        <div style={{ padding: "var(--s-5)", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-5)" }}>
-          {[
-            { label: "Expenses", value: o.expenses },
-            { label: "HR costs", value: o.hrCosts },
-            { label: "Grand total costs", value: o.expenses + o.hrCosts },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{label}</p>
-              <p className="mono" style={{ fontSize: 20, fontWeight: 700, color: "var(--bad)", margin: 0, fontVariantNumeric: "tabular-nums" }}>฿{fmtN(value)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Per-shop comparison */}
-      <div
-        style={{
-          borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-          background: "var(--surface)", overflow: "hidden",
-        }}
-      >
-        <SectionHeader label="Per-shop comparison" bg="var(--bg-2)" color="var(--fg-3)" />
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "var(--bg-2)" }}>
-                {["Shop", "Revenue", "Expenses", "HR", "Net Profit", "Margin"].map((h, i) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "8px var(--s-5)", textAlign: i === 0 ? "left" : "right",
-                      color: "var(--fg-3)", fontWeight: 500, borderTop: "1px solid var(--line)",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedShops.map((s) => (
-                <tr
-                  key={s.locationId}
-                  style={{ borderTop: "1px solid var(--line)" }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
-                >
-                  <td style={{ padding: "10px var(--s-5)", fontWeight: 500 }}>{s.locationName}</td>
-                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.revenue)}</td>
-                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.expenses)}</td>
-                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.hrCosts)}</td>
-                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontWeight: 500, color: s.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
-                    ฿{fmtN(s.netProfit)}
-                  </td>
-                  <td style={{ padding: "10px var(--s-5)", textAlign: "right" }}>
-                    <Pill
-                      tone={s.margin >= 20 ? "good" : s.margin >= 0 ? "neutral" : "bad"}
-                      size="sm"
+      {/* Per-shop comparison (kept from previous layout — not part of reference image but useful) */}
+      {sortedShops.length > 1 && (
+        <Card>
+          <SectionHeader label="Per-shop comparison" bg="var(--bg-2)" color="var(--fg-3)" />
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "var(--bg-2)" }}>
+                  {["Shop", "Revenue", "Expenses", "HR", "Net Profit", "Margin"].map((h, i) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "8px var(--s-5)", textAlign: i === 0 ? "left" : "right",
+                        color: "var(--fg-3)", fontWeight: 500, borderTop: "1px solid var(--line)",
+                      }}
                     >
-                      {fmtPct(s.margin)}
-                    </Pill>
-                  </td>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-              {sortedShops.length > 1 && (
+              </thead>
+              <tbody>
+                {sortedShops.map((s) => (
+                  <tr
+                    key={s.locationId}
+                    style={{ borderTop: "1px solid var(--line)" }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+                  >
+                    <td style={{ padding: "10px var(--s-5)", fontWeight: 500 }}>{s.locationName}</td>
+                    <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.revenue)}</td>
+                    <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.expenses)}</td>
+                    <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(s.hrCosts)}</td>
+                    <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontWeight: 500, color: s.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
+                      ฿{fmtN(s.netProfit)}
+                    </td>
+                    <td style={{ padding: "10px var(--s-5)", textAlign: "right" }}>
+                      <Pill tone={s.margin >= 20 ? "good" : s.margin >= 0 ? "neutral" : "bad"} size="sm">
+                        {fmtPct(s.margin)}
+                      </Pill>
+                    </td>
+                  </tr>
+                ))}
                 <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
                   <td style={{ padding: "10px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)" }}>฿{fmtN(o.revenue)}</td>
@@ -697,11 +1087,11 @@ function OperationsView({ data }: { data: AccountingData }) {
                     </Pill>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Performance metrics */}
       {sortedShops.some((s) => s.revenue > 0) && (

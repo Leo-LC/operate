@@ -66,6 +66,8 @@
     --bad-soft:    #fee2e2;
     --info:        #2563eb;
     --info-soft:   #dbeafe;
+    --purple:      #9333ea;
+    --purple-soft: #f3e8ff;
 
     /* ── Design tokens: lines ── */
     --line:        rgba(43, 35, 27, 0.10);
@@ -210,6 +212,8 @@
     --bad-soft:    #4a2a24;
     --info:        #91afd1;
     --info-soft:   #2c3a4a;
+    --purple:      #b48fe0;
+    --purple-soft: #3a2c4a;
 
     /* ── Design tokens: lines dark ── */
     --line:        rgba(240, 231, 213, 0.08);

@@ -8,6 +8,8 @@ interface StatProps extends React.ComponentProps<"div"> {
   deltaDir?: "up" | "down" | "neutral"
   hint?: string
   sparkline?: React.ReactNode
+  icon?: React.ReactNode
+  iconColor?: string
 }
 
 export function Stat({
@@ -17,6 +19,8 @@ export function Stat({
   deltaDir = "neutral",
   hint,
   sparkline,
+  icon,
+  iconColor = "var(--bronze)",
   className,
   ...props
 }: StatProps) {
@@ -32,18 +36,37 @@ export function Stat({
       className={cn("flex flex-col gap-1", className)}
       {...props}
     >
-      <span
-        style={{
-          fontSize: 11,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          fontWeight: 500,
-          color: "var(--fg-4)",
-          fontFamily: "var(--font-sans)",
-        }}
-      >
-        {label}
-      </span>
+      <div className="flex items-center gap-2">
+        {icon && (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              borderRadius: "var(--r-pill)",
+              background: `color-mix(in srgb, ${iconColor} 16%, transparent)`,
+              color: iconColor,
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </span>
+        )}
+        <span
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            fontWeight: 500,
+            color: "var(--fg-4)",
+            fontFamily: "var(--font-sans)",
+          }}
+        >
+          {label}
+        </span>
+      </div>
       <div className="flex items-end gap-2">
         <span
           className="mono tabular-nums"
