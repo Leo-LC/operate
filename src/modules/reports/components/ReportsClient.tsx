@@ -1240,13 +1240,15 @@ function MetricToggle({
 // ── By Shop comparison modes ──────────────────────────────────────────────────
 
 type ShopCompareMode =
+  | "revenue"
   | "rev-vs-costs"
   | "rev-vs-opex"
   | "rev-vs-hr"
   | "cost-split"
   | "revenue-mix"
   | "payments"
-  | "net-profit";
+  | "net-profit"
+  | "custom";
 
 interface ShopMetricDef {
   key: string;
@@ -1254,6 +1256,7 @@ interface ShopMetricDef {
   shortLabel: string;
   color: string;
   opacity?: number;
+  format?: "currency" | "percent";
   getValue: (s: ShopAgg) => number;
 }
 
@@ -1262,17 +1265,76 @@ interface ShopCompareConfig {
   label: string;
   title: string;
   metrics: ShopMetricDef[];
+  defaultSortKey: string;
   sortBy: (s: ShopAgg) => number;
   shareLabel?: (s: ShopAgg, overview: ShopAgg) => string;
   badge?: (s: ShopAgg) => { text: string; color: string };
   toggleable?: boolean;
 }
 
+const MAX_CUSTOM_METRICS = 3;
+
+const ALL_SHOP_METRICS: ShopMetricDef[] = [
+  { key: "revenue", label: "Revenue", shortLabel: "Rev", color: "var(--good)", opacity: 0.85, getValue: (s) => s.revenue },
+  { key: "netProfit", label: "Net profit", shortLabel: "Profit", color: "var(--good)", opacity: 0.8, getValue: (s) => s.netProfit },
+  { key: "margin", label: "Margin", shortLabel: "Margin", color: "var(--fg-3)", opacity: 0.75, format: "percent", getValue: (s) => s.margin },
+  { key: "expenses", label: "Operating expenses", shortLabel: "Opex", color: "var(--warn)", opacity: 0.7, getValue: (s) => s.expenses },
+  { key: "hrCosts", label: "HR costs", shortLabel: "HR", color: "var(--info)", opacity: 0.7, getValue: (s) => s.hrCosts },
+  { key: "exp-hr", label: "Expenses + HR", shortLabel: "Exp+HR", color: "var(--bad)", opacity: 0.6, getValue: (s) => s.expenses + s.hrCosts },
+  { key: "drinks", label: "Drinks", shortLabel: "Drinks", color: "var(--bronze)", opacity: 0.85, getValue: (s) => s.drinks },
+  { key: "tickets", label: "Tickets", shortLabel: "Tickets", color: "var(--info)", opacity: 0.75, getValue: (s) => s.tickets },
+  { key: "snacks", label: "Snacks", shortLabel: "Snacks", color: "var(--good)", opacity: 0.75, getValue: (s) => s.snacks },
+  { key: "goodies", label: "Goodies", shortLabel: "Goodies", color: "var(--warn)", opacity: 0.75, getValue: (s) => s.goodies },
+  { key: "surcharge", label: "Surcharge", shortLabel: "Surch.", color: "var(--fg-3)", opacity: 0.6, getValue: (s) => s.surcharge },
+  { key: "cash", label: "Cash", shortLabel: "Cash", color: "var(--good)", opacity: 0.75, getValue: (s) => s.cash },
+  { key: "scan", label: "Scan / QR", shortLabel: "Scan", color: "var(--info)", opacity: 0.75, getValue: (s) => s.scan },
+  { key: "creditCard", label: "Credit card", shortLabel: "Card", color: "var(--bronze)", opacity: 0.75, getValue: (s) => s.creditCard },
+  { key: "payments-total", label: "Total collected", shortLabel: "Total", color: "var(--good)", opacity: 0.75, getValue: (s) => s.cash + s.scan + s.creditCard },
+  { key: "expStaffFoodCash", label: "Staff food", shortLabel: "Staff food", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expStaffFoodCash },
+  { key: "expDrinksCash", label: "Drinks supply", shortLabel: "Drinks", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expDrinksCash },
+  { key: "expGoodiesCash", label: "Goodies supply", shortLabel: "Goodies", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expGoodiesCash },
+  { key: "expAnimalsCash", label: "Animals", shortLabel: "Animals", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expAnimalsCash },
+  { key: "expSupplyCash", label: "Supply", shortLabel: "Supply", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expSupplyCash },
+  { key: "expOtherCash", label: "Other opex (cash)", shortLabel: "Opex cash", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expOtherCash },
+  { key: "expMakroBank", label: "Makro (bank)", shortLabel: "Makro", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expMakroBank },
+  { key: "expOtherBank", label: "Other opex (bank)", shortLabel: "Opex bank", color: "var(--warn)", opacity: 0.65, getValue: (s) => s.expOtherBank },
+  { key: "hrSalaryCash", label: "Salary", shortLabel: "Salary", color: "var(--info)", opacity: 0.65, getValue: (s) => s.hrSalaryCash },
+  { key: "hrServiceChargeCash", label: "Service charge", shortLabel: "Svc chg", color: "var(--info)", opacity: 0.65, getValue: (s) => s.hrServiceChargeCash },
+  { key: "hrChallengeCash", label: "Challenge bonus", shortLabel: "Challenge", color: "var(--info)", opacity: 0.65, getValue: (s) => s.hrChallengeCash },
+  { key: "vat", label: "VAT", shortLabel: "VAT", color: "var(--fg-3)", opacity: 0.6, getValue: (s) => s.vat },
+  { key: "cashToBoss", label: "Cash to boss", shortLabel: "To boss", color: "var(--fg-3)", opacity: 0.6, getValue: (s) => s.cashToBoss },
+  { key: "closingCashSafe", label: "Closing cash safe", shortLabel: "Safe", color: "var(--fg-3)", opacity: 0.6, getValue: (s) => s.closingCashSafe },
+];
+
+function getShopMetric(key: string): ShopMetricDef {
+  return ALL_SHOP_METRICS.find((m) => m.key === key) ?? ALL_SHOP_METRICS[0];
+}
+
+function customDefaultEnabledMetrics(): Record<string, boolean> {
+  return Object.fromEntries(ALL_SHOP_METRICS.map((m) => [m.key, m.key === "revenue"]));
+}
+
 const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
+  {
+    id: "revenue",
+    label: "Revenue",
+    title: "Revenue ranking by shop",
+    defaultSortKey: "revenue",
+    sortBy: (s) => s.revenue,
+    shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of total` : "—"),
+    badge: (s) => ({
+      text: fmtPct(s.margin),
+      color: s.margin >= 20 ? "var(--good)" : s.margin >= 0 ? "var(--fg-3)" : "var(--bad)",
+    }),
+    metrics: [
+      { key: "revenue", label: "Revenue", shortLabel: "Rev", color: "var(--good)", opacity: 0.85, getValue: (s) => s.revenue },
+    ],
+  },
   {
     id: "rev-vs-costs",
     label: "Rev vs costs",
     title: "Revenue vs. expenses by shop",
+    defaultSortKey: "revenue",
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of revenue` : "—"),
     badge: (s) => ({
@@ -1288,6 +1350,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     id: "rev-vs-opex",
     label: "Rev vs opex",
     title: "Revenue vs. operating expenses by shop",
+    defaultSortKey: "revenue",
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of revenue` : "—"),
     badge: (s) => ({
@@ -1303,6 +1366,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     id: "rev-vs-hr",
     label: "Rev vs HR",
     title: "Revenue vs. HR costs by shop",
+    defaultSortKey: "revenue",
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.hrCosts / o.revenue) * 100)} HR load` : "—"),
     badge: (s) => ({
@@ -1318,6 +1382,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     id: "cost-split",
     label: "Cost split",
     title: "Operating vs. HR costs by shop",
+    defaultSortKey: "exp-hr",
     sortBy: (s) => s.expenses + s.hrCosts,
     shareLabel: (s) => `฿${fmtN(s.expenses + s.hrCosts)} total costs`,
     badge: (s) => ({
@@ -1333,6 +1398,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     id: "revenue-mix",
     label: "Revenue mix",
     title: "Revenue mix by shop",
+    defaultSortKey: "revenue",
     sortBy: (s) => s.revenue,
     shareLabel: (s) => `฿${fmtN(s.revenue)} total`,
     badge: (s) => ({
@@ -1352,6 +1418,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     id: "payments",
     label: "Payments",
     title: "Payment methods by shop",
+    defaultSortKey: "payments-total",
     sortBy: (s) => s.cash + s.scan + s.creditCard,
     shareLabel: (s) => `฿${fmtN(s.cash + s.scan + s.creditCard)} collected`,
     toggleable: true,
@@ -1365,6 +1432,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     id: "net-profit",
     label: "Net profit",
     title: "Net profit by shop",
+    defaultSortKey: "netProfit",
     sortBy: (s) => s.netProfit,
     shareLabel: (s, o) => (o.netProfit !== 0 ? `${fmtPct((s.netProfit / o.netProfit) * 100)} of profit` : "—"),
     badge: (s) => ({
@@ -1382,6 +1450,20 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
       },
     ],
   },
+  {
+    id: "custom",
+    label: "Custom",
+    title: "Custom metrics by shop",
+    defaultSortKey: "revenue",
+    sortBy: (s) => s.revenue,
+    shareLabel: (s) => `฿${fmtN(s.revenue)} revenue`,
+    badge: (s) => ({
+      text: fmtPct(s.margin),
+      color: s.margin >= 20 ? "var(--good)" : s.margin >= 0 ? "var(--fg-3)" : "var(--bad)",
+    }),
+    toggleable: true,
+    metrics: ALL_SHOP_METRICS,
+  },
 ];
 
 function getShopCompareConfig(mode: ShopCompareMode): ShopCompareConfig {
@@ -1394,17 +1476,20 @@ function ShopComparisonBar({
   color,
   opacity = 1,
   label,
+  format = "currency",
 }: {
   amount: number;
   widthPct: number;
   color: string;
   opacity?: number;
   label: string;
+  format?: "currency" | "percent";
 }) {
+  const display = format === "percent" ? fmtPct(amount) : `฿${fmtN(amount)}`;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)", width: 64, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-        ฿{fmtN(amount)}
+        {display}
       </span>
       <div style={{ flex: 1, height: 14, borderRadius: "var(--r-pill)", background: "var(--bg-2)", overflow: "hidden" }}>
         <div style={{ height: "100%", borderRadius: "var(--r-pill)", background: color, opacity, width: `${Math.min(100, widthPct)}%` }} />
@@ -1414,19 +1499,65 @@ function ShopComparisonBar({
   );
 }
 
+function SortSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (key: string) => void;
+  options: { key: string; label: string }[];
+}) {
+  return (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--fg-4)" }}>
+      Sort by
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          height: 28,
+          padding: "0 8px",
+          fontSize: 12,
+          borderRadius: "var(--r-sm)",
+          border: "1px solid var(--line)",
+          background: "var(--surface)",
+          color: "var(--fg)",
+          cursor: "pointer",
+        }}
+      >
+        {options.map((opt) => (
+          <option key={opt.key} value={opt.key}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 // ── Treasury (CEO) View ───────────────────────────────────────────────────────
 
 function TreasuryView({ data }: { data: AccountingData }) {
   const { overview: o, byShop } = data;
-  const [compareMode, setCompareMode] = useState<ShopCompareMode>("rev-vs-costs");
+  const [compareMode, setCompareMode] = useState<ShopCompareMode>("revenue");
   const config = getShopCompareConfig(compareMode);
 
+  const [sortMetricKey, setSortMetricKey] = useState(config.defaultSortKey);
+
   const [enabledMetrics, setEnabledMetrics] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(config.metrics.map((m) => [m.key, true])),
+    compareMode === "custom"
+      ? customDefaultEnabledMetrics()
+      : Object.fromEntries(config.metrics.map((m) => [m.key, true])),
   );
 
   useEffect(() => {
-    setEnabledMetrics(Object.fromEntries(getShopCompareConfig(compareMode).metrics.map((m) => [m.key, true])));
+    const nextConfig = getShopCompareConfig(compareMode);
+    setSortMetricKey(nextConfig.defaultSortKey);
+    if (compareMode === "custom") {
+      setEnabledMetrics(customDefaultEnabledMetrics());
+    } else {
+      setEnabledMetrics(Object.fromEntries(nextConfig.metrics.map((m) => [m.key, true])));
+    }
   }, [compareMode]);
 
   const activeMetrics = useMemo(
@@ -1434,10 +1565,14 @@ function TreasuryView({ data }: { data: AccountingData }) {
     [config.metrics, enabledMetrics],
   );
 
+  const sortMetric = useMemo(() => getShopMetric(sortMetricKey), [sortMetricKey]);
+
   const sortedShops = useMemo(
-    () => [...byShop].sort((a, b) => config.sortBy(b) - config.sortBy(a)),
-    [byShop, config],
+    () => [...byShop].sort((a, b) => sortMetric.getValue(b) - sortMetric.getValue(a)),
+    [byShop, sortMetric],
   );
+
+  const showRank = activeMetrics.length === 1 || compareMode === "revenue" || compareMode === "net-profit";
 
   const scaleMax = useMemo(() => {
     if (activeMetrics.length === 0) return 1;
@@ -1453,19 +1588,35 @@ function TreasuryView({ data }: { data: AccountingData }) {
       const isActive = prev[key] !== false;
       const activeCount = Object.entries(prev).filter(([, v]) => v !== false).length;
       if (isActive && activeCount <= 1) return prev;
+      if (!isActive && compareMode === "custom" && activeCount >= MAX_CUSTOM_METRICS) return prev;
       return { ...prev, [key]: !isActive };
     });
   }
 
   function calloutDetail(shop: ShopAgg) {
+    const sortVal = sortMetric.getValue(shop);
+    const sortDisplay = sortMetric.format === "percent" ? fmtPct(sortVal) : `฿${fmtN(sortVal)}`;
+    if (compareMode === "revenue") {
+      return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
+    }
     if (compareMode === "net-profit") {
       return `฿${fmtN(shop.netProfit)} profit · ${fmtPct(shop.margin)} margin`;
+    }
+    if (compareMode === "custom") {
+      return `${sortDisplay} ${sortMetric.label.toLowerCase()} · ${fmtPct(shop.margin)} margin`;
     }
     if (compareMode === "revenue-mix" || compareMode === "payments") {
       return `฿${fmtN(config.sortBy(shop))} total · ${fmtPct(shop.margin)} margin`;
     }
     return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
   }
+
+  const compareHint =
+    compareMode === "revenue"
+      ? "Shops ranked by total revenue, highest first."
+      : compareMode === "custom"
+        ? `Toggle up to ${MAX_CUSTOM_METRICS} metrics to display. Sort independently using the dropdown.`
+        : "Choose a comparison view, then toggle individual metrics where available.";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
@@ -1521,39 +1672,58 @@ function TreasuryView({ data }: { data: AccountingData }) {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--s-4)", flexWrap: "wrap" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 500, margin: 0 }}>{config.title}</h3>
-                <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>Choose a comparison view, then toggle individual metrics where available.</p>
+                <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{compareHint}</p>
               </div>
-              <Segmented
-                value={compareMode}
-                onChange={setCompareMode}
-                size="sm"
-                options={SHOP_COMPARE_MODES.map((m) => ({ value: m.id, label: m.label }))}
-              />
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", flexWrap: "wrap" }}>
+                <SortSelect
+                  value={sortMetricKey}
+                  onChange={setSortMetricKey}
+                  options={ALL_SHOP_METRICS.map((m) => ({ key: m.key, label: m.label }))}
+                />
+                <Segmented
+                  value={compareMode}
+                  onChange={setCompareMode}
+                  size="sm"
+                  options={SHOP_COMPARE_MODES.map((m) => ({ value: m.id, label: m.label }))}
+                />
+              </div>
             </div>
 
             {config.toggleable && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {config.metrics.map((metric) => (
-                  <MetricToggle
-                    key={metric.key}
-                    label={metric.label}
-                    color={metric.color}
-                    active={enabledMetrics[metric.key] !== false}
-                    onChange={() => toggleMetric(metric.key)}
-                  />
-                ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {compareMode === "custom" && (
+                  <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>
+                    {activeMetrics.length}/{MAX_CUSTOM_METRICS} metrics selected
+                  </p>
+                )}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {config.metrics.map((metric) => (
+                    <MetricToggle
+                      key={metric.key}
+                      label={metric.label}
+                      color={metric.color}
+                      active={enabledMetrics[metric.key] !== false}
+                      onChange={() => toggleMetric(metric.key)}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-            {sortedShops.map((s) => {
+            {sortedShops.map((s, rank) => {
               const shareText = config.shareLabel?.(s, o);
               const badge = config.badge?.(s);
               return (
                 <div key={s.locationId} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+                      {showRank && (
+                        <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-4)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                          #{rank + 1}
+                        </span>
+                      )}
                       <span style={{ fontSize: 14, fontWeight: 500 }}>{s.locationName}</span>
                       {shareText && (
                         <span style={{ fontSize: 11, color: "var(--fg-4)", whiteSpace: "nowrap" }}>{shareText}</span>
@@ -1568,7 +1738,7 @@ function TreasuryView({ data }: { data: AccountingData }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {activeMetrics.map((metric) => {
                       const value = metric.getValue(s);
-                      const isLoss = compareMode === "net-profit" && value < 0;
+                      const isLoss = (metric.key === "netProfit" || compareMode === "net-profit") && value < 0;
                       return (
                         <ShopComparisonBar
                           key={metric.key}
@@ -1577,6 +1747,7 @@ function TreasuryView({ data }: { data: AccountingData }) {
                           color={isLoss ? "var(--bad)" : metric.color}
                           opacity={metric.opacity ?? 1}
                           label={isLoss ? "Loss" : metric.shortLabel}
+                          format={metric.format}
                         />
                       );
                     })}
