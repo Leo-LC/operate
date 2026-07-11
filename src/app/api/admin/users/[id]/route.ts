@@ -2,7 +2,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
+import { ADMIN_USER_SELECT, mapAdminUser, sanitizeAuditUpdates } from "@/modules/admin/lib/users";
 import bcrypt from "bcryptjs";
+import { encryptPassword } from "@/lib/password-crypto";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -12,31 +14,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const supabase = getSupabaseServerClient();
   const { data: user, error } = await supabase
     .from("users")
-    .select(`
-      id, email, name, global_role, organization_id, created_at, updated_at,
-      user_module_access!user_module_access_user_id_fkey ( id, module_key, can_read, can_write, granted_at ),
-      user_location_access!user_location_access_user_id_fkey ( id, location_id, granted_at, locations ( name ) )
-    `)
+    .select(ADMIN_USER_SELECT)
     .eq("id", params.id)
     .single();
 
   if (error || !user) return Response.json({ error: "User not found" }, { status: 404 });
 
-  type LaRow = { id: string; location_id: string; granted_at: string; locations: { name: string } | null };
-  const mapped = {
-    ...user,
-    module_access: user.user_module_access ?? [],
-    location_access: (user.user_location_access as unknown as LaRow[] ?? []).map((la) => ({
-      id: la.id,
-      location_id: la.location_id,
-      location_name: la.locations?.name ?? la.location_id,
-      granted_at: la.granted_at,
-    })),
-    user_module_access: undefined,
-    user_location_access: undefined,
-  };
-
-  return Response.json(mapped);
+  return Response.json(mapAdminUser(user, { includeAssignedPassword: true }));
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -60,14 +44,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     updates.global_role = body.global_role;
   }
   if (body.name !== undefined) updates.name = body.name;
-  if (body.password) updates.password_hash = await bcrypt.hash(body.password, 10);
+  if (body.password) {
+    updates.password_hash = await bcrypt.hash(body.password, 10);
+    updates.assigned_password_encrypted = encryptPassword(body.password);
+  }
 
   const supabase = getSupabaseServerClient();
   const { data: user, error } = await supabase
     .from("users")
     .update(updates)
     .eq("id", params.id)
-    .select()
+    .select(ADMIN_USER_SELECT)
     .single();
 
   if (error || !user) return Response.json({ error: "User not found or update failed" }, { status: 404 });
@@ -78,10 +65,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     moduleKey: "admin",
     entityType: "user",
     entityId: params.id,
-    payload: updates,
+    payload: sanitizeAuditUpdates(updates),
   });
 
-  return Response.json(user);
+  return Response.json(mapAdminUser(user, { includeAssignedPassword: true }));
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, TrashIcon } from "lucide-react";
+import { ArrowLeftIcon, TrashIcon, EyeIcon, EyeOffIcon, CopyIcon, CheckIcon } from "lucide-react";
 import type { AdminUser, AdminLocation } from "@/modules/admin/types";
 import type { ModuleKey } from "@/core/permissions/types";
 
@@ -29,6 +29,8 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
   const [savingRole, setSavingRole] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showAssignedPassword, setShowAssignedPassword] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -68,6 +70,12 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
         toast.error((err as { error?: string }).error ?? "Failed to set password");
         return;
       }
+      const updated = await res.json() as AdminUser;
+      setUser((prev) => ({
+        ...prev,
+        has_password: updated.has_password,
+        assigned_password: updated.assigned_password,
+      }));
       setNewPassword("");
       toast.success("Password updated");
     } finally {
@@ -154,6 +162,17 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
     toast.success("Location access revoked");
   }
 
+  async function handleCopyPassword() {
+    if (!user.assigned_password) return;
+    try {
+      await navigator.clipboard.writeText(user.assigned_password);
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
+    } catch {
+      toast.error("Failed to copy password");
+    }
+  }
+
   async function handleDelete() {
     setDeleting(true);
     try {
@@ -217,6 +236,52 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       {/* Password */}
       <section style={sectionStyle}>
         <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Password</h2>
+
+        {user.assigned_password ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label className="eyebrow" style={{ color: "var(--fg-3)", fontSize: 10 }}>Assigned password</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <code
+                style={{
+                  ...selectSm,
+                  width: 220,
+                  padding: "0 10px",
+                  fontFamily: "var(--font-mono, monospace)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {showAssignedPassword ? user.assigned_password : "••••••••"}
+              </code>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAssignedPassword((v) => !v)}
+                style={{ gap: 6 }}
+              >
+                {showAssignedPassword ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
+                {showAssignedPassword ? "Hide" : "Show"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleCopyPassword()}
+                style={{ gap: 6 }}
+              >
+                {copiedPassword ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+                {copiedPassword ? "Copied" : "Copy"}
+              </Button>
+            </div>
+          </div>
+        ) : user.has_password ? (
+          <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
+            A password is set, but it was assigned before password tracking was enabled. Set a new password below to store it for future viewing.
+          </p>
+        ) : (
+          <p style={{ fontSize: 12, color: "var(--fg-4)" }}>No password assigned yet.</p>
+        )}
+
         <form onSubmit={(e) => void handleSetPassword(e)} style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label className="eyebrow" style={{ color: "var(--fg-3)", fontSize: 10 }}>New password</label>

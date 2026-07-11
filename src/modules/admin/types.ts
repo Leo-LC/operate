@@ -10,6 +10,8 @@ export interface AdminUser {
   organization_id: string | null;
   created_at: string;
   updated_at: string;
+  has_password?: boolean;
+  assigned_password?: string | null;
   module_access: ModuleAccessRow[];
   location_access: LocationAccessRow[];
 }

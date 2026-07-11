@@ -2,7 +2,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
+import { ADMIN_USER_SELECT, mapAdminUser } from "@/modules/admin/lib/users";
 import bcrypt from "bcryptjs";
+import { encryptPassword } from "@/lib/password-crypto";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -12,30 +14,12 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data: users, error } = await supabase
     .from("users")
-    .select(`
-      id, email, name, global_role, organization_id, created_at, updated_at,
-      user_module_access!user_module_access_user_id_fkey ( id, module_key, can_read, can_write, granted_at ),
-      user_location_access!user_location_access_user_id_fkey ( id, location_id, granted_at, locations ( name ) )
-    `)
+    .select(ADMIN_USER_SELECT)
     .order("created_at", { ascending: true });
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  type LaRow = { id: string; location_id: string; granted_at: string; locations: { name: string } | null };
-  const mapped = users?.map((u) => ({
-    ...u,
-    module_access: (u.user_module_access ?? []),
-    location_access: (u.user_location_access as unknown as LaRow[] ?? []).map((la) => ({
-      id: la.id,
-      location_id: la.location_id,
-      location_name: la.locations?.name ?? la.location_id,
-      granted_at: la.granted_at,
-    })),
-    user_module_access: undefined,
-    user_location_access: undefined,
-  }));
-
-  return Response.json(mapped);
+  return Response.json((users ?? []).map((u) => mapAdminUser(u)));
 }
 
 export async function POST(request: Request) {
@@ -59,6 +43,7 @@ export async function POST(request: Request) {
     : "member";
 
   const password_hash = body.password ? await bcrypt.hash(body.password, 10) : null;
+  const assigned_password_encrypted = body.password ? encryptPassword(body.password) : null;
 
   const supabase = getSupabaseServerClient();
 
@@ -71,8 +56,15 @@ export async function POST(request: Request) {
 
   const { data: user, error } = await supabase
     .from("users")
-    .insert({ email, name: body.name ?? null, global_role, organization_id: org?.id ?? null, password_hash })
-    .select()
+    .insert({
+      email,
+      name: body.name ?? null,
+      global_role,
+      organization_id: org?.id ?? null,
+      password_hash,
+      assigned_password_encrypted,
+    })
+    .select(ADMIN_USER_SELECT)
     .single();
 
   if (error) {
@@ -86,8 +78,8 @@ export async function POST(request: Request) {
     moduleKey: "admin",
     entityType: "user",
     entityId: user.id,
-    payload: { email, global_role },
+    payload: { email, global_role, has_password: !!password_hash },
   });
 
-  return Response.json(user, { status: 201 });
+  return Response.json(mapAdminUser(user), { status: 201 });
 }
