@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 
+import { CHALLENGE_LABELS } from "@/modules/challenges/labels";
+
 export const metadata = { title: "Methodology — Challenges" };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -40,7 +42,7 @@ function MetricCard({
         <div className="flex items-center gap-2">
           {gated && (
             <span className="rounded-[var(--r-sm)] bg-[var(--bronze-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--bronze-2)]">
-              Revenue gate
+              {CHALLENGE_LABELS.gatedBadge}
             </span>
           )}
           <span className="font-mono text-xs tabular-nums text-[var(--good)]">{bonus}</span>
@@ -70,9 +72,9 @@ export default async function MethodologyPage() {
         is applied, and what threshold must be met to earn the bonus.
       </p>
 
-      {/* Revenue gate */}
-      <Section title="Revenue gate">
-        <MetricCard title="Monthly revenue (net incl. VAT)" gated={false} bonus="Gate only — no direct bonus">
+      {/* Sales target */}
+      <Section title={CHALLENGE_LABELS.salesTarget}>
+        <MetricCard title="Monthly sales (net incl. VAT)" gated={false} bonus="Gate only — no direct bonus">
           <Field label="DB table"><Code>daily_entries</Code></Field>
           <Field label="Formula">
             <Code>
@@ -88,15 +90,15 @@ export default async function MethodologyPage() {
             </span>
           </Field>
           <Field label="Effect">
-            Snacks, Average basket, Opex, and both Reviews metrics are only awarded if the shop clears
-            its revenue threshold. Merchandising is always active regardless.
+            Snacks, Spend per visit, Running costs, and both Review metrics are only awarded if the shop clears
+            its sales target. Product sales % is always active regardless.
           </Field>
         </MetricCard>
       </Section>
 
       {/* Merchandising */}
       <Section title="Metrics">
-        <MetricCard title="Merchandising (goodies)" gated={false} bonus="up to 5,000 ฿">
+        <MetricCard title={CHALLENGE_LABELS.productsPct} gated={false} bonus="up to 5,000 ฿">
           <Field label="DB table"><Code>daily_entries</Code></Field>
           <Field label="Formula">
             <Code>sales_goodies_net / salesNetIncVat</Code>
@@ -106,10 +108,10 @@ export default async function MethodologyPage() {
               ≥ 7% → 1,500 ฿ &nbsp;|&nbsp; ≥ 8% → 3,000 ฿ &nbsp;|&nbsp; ≥ 9% → 5,000 ฿
             </span>
           </Field>
-          <Field label="Gate">Not subject to the revenue gate.</Field>
+          <Field label="Gate">Not subject to the sales target.</Field>
         </MetricCard>
 
-        <MetricCard title="Snacks" gated bonus="1,250 ฿">
+        <MetricCard title={CHALLENGE_LABELS.snacks} gated bonus="1,250 ฿">
           <Field label="DB table"><Code>location_entries</Code> (manual input)</Field>
           <Field label="Formula">
             <Code>snacks_sold / entry_count ≥ 0.45</Code>
@@ -124,7 +126,7 @@ export default async function MethodologyPage() {
           </Field>
         </MetricCard>
 
-        <MetricCard title="Average basket (Panier moyen)" gated bonus="1,250 ฿">
+        <MetricCard title={CHALLENGE_LABELS.spendPerVisit} gated bonus="1,250 ฿">
           <Field label="DB tables"><Code>daily_entries</Code> + <Code>location_entries</Code></Field>
           <Field label="Formula">
             <Code>(salesNetIncVat − salesTicketNet) / entry_count ≥ 190 ฿</Code>
@@ -138,7 +140,7 @@ export default async function MethodologyPage() {
           </Field>
         </MetricCard>
 
-        <MetricCard title="Opex variable" gated bonus="1,250 ฿">
+        <MetricCard title={CHALLENGE_LABELS.runningCostsPct} gated bonus="1,250 ฿">
           <Field label="DB table"><Code>daily_entries</Code></Field>
           <Field label="Formula">
             <Code>(exp_drinks_cash + exp_animals_cash + exp_makro_bank) / salesNetIncVat {"<"} 9.5%</Code>
@@ -148,7 +150,7 @@ export default async function MethodologyPage() {
           </Field>
         </MetricCard>
 
-        <MetricCard title="Reviews — volume" gated bonus="625 ฿">
+        <MetricCard title={CHALLENGE_LABELS.reviewCount} gated bonus="625 ฿">
           <Field label="DB tables"><Code>reviews_cache</Code> + <Code>location_entries</Code></Field>
           <Field label="Formula">
             <Code>review_count_this_month / entry_count ≥ 4%</Code>
@@ -162,7 +164,7 @@ export default async function MethodologyPage() {
           </Field>
         </MetricCard>
 
-        <MetricCard title="Reviews — rating" gated bonus="625 ฿">
+        <MetricCard title={CHALLENGE_LABELS.reviewRating} gated bonus="625 ฿">
           <Field label="DB tables"><Code>reviews_cache</Code> + <Code>location_gbp_ratings</Code></Field>
           <Field label="Target">
             <Code>target = MIN(4.5, ROUND(currentGBPRating + 0.1, 1))</Code>

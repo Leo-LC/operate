@@ -1,7 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { PrinterIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { MonthSelector } from "./MonthSelector";
 import type { LocationOverview } from "@/app/api/challenges/overview/route";
+import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
+import { CHALLENGE_LABELS, LEGEND_ITEMS, PERIOD_LABELS } from "@/modules/challenges/labels";
 
 interface OverviewData {
   locations: LocationOverview[];
@@ -228,7 +233,7 @@ function MetricRow({
           {loading ? (
             <div className="h-3 w-8 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
           ) : lockedQualifying ? (
-            <span className="font-mono text-xs tabular-nums text-[var(--bronze)]" title="Unlocks once the revenue gate is reached">
+            <span className="font-mono text-xs tabular-nums text-[var(--bronze)]" title={CHALLENGE_LABELS.lockedTooltip}>
               🔒 {(potentialBonus ?? bonus).toLocaleString()} ฿
             </span>
           ) : (
@@ -269,7 +274,7 @@ function RevenueGateBanner({ loc, loading }: { loc: LocationOverview; loading: b
     >
       <div className="flex items-center justify-between gap-2">
         <span className={`text-[10px] font-semibold uppercase tracking-wide ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
-          {isUnlocked ? "Revenue gate — unlocked" : "Revenue gate"}
+          {isUnlocked ? CHALLENGE_LABELS.salesTargetReached : CHALLENGE_LABELS.salesTarget}
         </span>
         <span className={`font-mono text-xs tabular-nums ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
           {amount !== null ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿` : `target ${fmt(threshold, 0)} ฿`}
@@ -291,7 +296,7 @@ function MerchRow({ loc, loading, isOwner }: { loc: LocationOverview; loading: b
   const progress = loc.merchandising.ratio !== null ? Math.min(1, loc.merchandising.ratio / 0.07) : undefined;
   return (
     <MetricRow
-      label="Merchandising"
+      label={CHALLENGE_LABELS.productsPct}
       value={pct(loc.merchandising.ratio)}
       sub={tier > 0 ? tierLabels[tier] : undefined}
       passes={passes}
@@ -345,7 +350,7 @@ function LocationCard({
               {totalBonus.toLocaleString()} ฿
             </span>
             {potentialLockedBonus > 0 && (
-              <span className="font-mono text-xs font-medium tabular-nums text-[var(--bronze)]" title="Unlocks once the revenue gate is reached">
+              <span className="font-mono text-xs font-medium tabular-nums text-[var(--bronze)]" title={CHALLENGE_LABELS.lockedTooltip}>
                 + 🔒 {potentialLockedBonus.toLocaleString()} ฿
               </span>
             )}
@@ -381,7 +386,7 @@ function LocationCard({
           isOwner={isOwner}
         />
         <MetricRow
-          label="Average basket"
+          label={CHALLENGE_LABELS.spendPerVisit}
           value={loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—"}
           sub={loc.panierMoyen.value !== null ? "target ≥ 190 ฿" : undefined}
           passes={loc.panierMoyen.passes}
@@ -393,7 +398,7 @@ function LocationCard({
           isOwner={isOwner}
         />
         <MetricRow
-          label="Opex variable"
+          label={CHALLENGE_LABELS.runningCostsPct}
           value={pct(loc.opex.ratio)}
           sub={loc.opex.ratio !== null ? "target < 9.5%" : undefined}
           passes={loc.opex.passes}
@@ -405,7 +410,7 @@ function LocationCard({
           isOwner={isOwner}
         />
         <MetricRow
-          label="Reviews — volume"
+          label={CHALLENGE_LABELS.reviewCount}
           value={loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`}
           sub={loc.reviews.volumeRatio !== null ? "target ≥ 4%" : undefined}
           passes={loc.reviews.volumePass}
@@ -417,7 +422,7 @@ function LocationCard({
           isOwner={isOwner}
         />
         <MetricRow
-          label="Reviews — note"
+          label={CHALLENGE_LABELS.reviewRating}
           value={loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—"}
           sub={
             loc.reviews.currentRating > 0 && loc.reviews.ratingTarget > 0
@@ -437,12 +442,12 @@ function LocationCard({
       {/* Manual inputs — two periods */}
       <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg-2)]">
         <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Monthly entries</span>
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">{CHALLENGE_LABELS.visitorCounts}</span>
           <span className="text-[9px] text-[var(--fg-4)]">Type a value, then Tab/Enter to move on — saves on blur</span>
         </div>
         {([1, 2, 3] as const).map((p) => {
-          const entryLabel  = p === 1 ? "Entries 1–10"  : p === 2 ? "Entries 11–20"  : "Entries 21–end";
-          const snacksLabel = p === 1 ? "Snacks 1–10"   : p === 2 ? "Snacks 11–20"   : "Snacks 21–end";
+          const entryLabel  = PERIOD_LABELS.visitors[p - 1];
+          const snacksLabel = PERIOD_LABELS.snacks[p - 1];
           const entryInit   = p === 1 ? loc.entryCountP1 : p === 2 ? loc.entryCountP2 : loc.entryCountP3;
           const snacksInit  = p === 1 ? loc.snacksSoldP1 : p === 2 ? loc.snacksSoldP2 : loc.snacksSoldP3;
           return (
@@ -514,30 +519,47 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
   // Summary stats
   const totalEarned = locations.reduce((s, l) => s + l.totalBonus, 0);
 
+  function exportOverviewPdf() {
+    if (locations.length === 0) return;
+    const html = buildOverviewPrintHtml(locations, month);
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (!win) {
+      URL.revokeObjectURL(url);
+      toast.error("Pop-up blocked — please allow pop-ups");
+      return;
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header row */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <MonthSelector value={month} onChange={setMonth} />
-        {!loading && locations.length > 0 && totalEarned > 0 && (
-          <div className="flex items-center gap-2 text-sm text-[var(--fg-3)]">
-            <span className="font-mono font-semibold text-[var(--good)]">{totalEarned.toLocaleString()} ฿</span>
-            <span>earned across all shops</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {!loading && locations.length > 0 && totalEarned > 0 && (
+            <div className="flex items-center gap-2 text-sm text-[var(--fg-3)]">
+              <span className="font-mono font-semibold text-[var(--good)]">{totalEarned.toLocaleString()} ฿</span>
+              <span>earned across all shops</span>
+            </div>
+          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={exportOverviewPdf}
+            disabled={loading || locations.length === 0}
+          >
+            <PrinterIcon size={13} />
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       {/* Legend row */}
       <div className="flex flex-wrap gap-3">
-        {[
-          { label: "Revenue gate", max: "unlocks below", tiers: "1.2M/0.9M/0.7M ฿" },
-          { label: "Merchandising", max: "up to 5 000 ฿", tiers: "7%→1 500 · 8%→3 000 · 9%→5 000" },
-          { label: "Snacks", max: "1 250 ฿", tiers: "≥ 0.45" },
-          { label: "Average basket", max: "1 250 ฿", tiers: "≥ 190 ฿" },
-          { label: "Opex variable", max: "1 250 ฿", tiers: "< 9.5%" },
-          { label: "Reviews volume", max: "625 ฿", tiers: "≥ 4%" },
-          { label: "Reviews note", max: "625 ฿", tiers: "GBP+0.1" },
-        ].map((item) => (
+        {LEGEND_ITEMS.map((item) => (
           <div
             key={item.label}
             className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
