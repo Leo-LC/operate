@@ -278,7 +278,11 @@ const PRINT_CSS = [
   "@media print{@page{margin:8mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}",
 ].join("");
 
-export function buildOverviewPrintHtml(locations: LocationOverview[], month: string): string {
+export function buildOverviewPrintHtml(
+  locations: LocationOverview[],
+  month: string,
+  opts?: { summaryOnly?: boolean },
+): string {
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
     month: "long",
     year: "numeric",
@@ -289,7 +293,9 @@ export function buildOverviewPrintHtml(locations: LocationOverview[], month: str
     month: "long",
     year: "numeric",
   });
-  const title = `Challenges — ${monthLabel} — All shops`;
+  const title = opts?.summaryOnly
+    ? `Challenges — ${monthLabel} — Summary`
+    : `Challenges — ${monthLabel} — All shops`;
 
   const summaryHeaders = [
     "Shop",
@@ -305,7 +311,7 @@ export function buildOverviewPrintHtml(locations: LocationOverview[], month: str
     .map((h) => `<th>${escHtml(h)}</th>`)
     .join("");
 
-  const locationBlocks = locations.map(buildLocationBlock).join("");
+  const locationBlocks = opts?.summaryOnly ? "" : locations.map(buildLocationBlock).join("");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${PRINT_CSS}</style></head><body>
 <div class="accent"></div>

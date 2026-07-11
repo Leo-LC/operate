@@ -298,7 +298,7 @@ function MerchRow({ loc, loading, isOwner }: { loc: LocationOverview; loading: b
     <MetricRow
       label={CHALLENGE_LABELS.productsPct}
       value={pct(loc.merchandising.ratio)}
-      sub={tier > 0 ? tierLabels[tier] : undefined}
+      sub={loc.merchandising.ratio !== null ? (tier > 0 ? tierLabels[tier] : "target ≥ 7%") : undefined}
       passes={passes}
       bonus={loc.merchandising.bonus}
       loading={loading}
@@ -519,9 +519,7 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
   // Summary stats
   const totalEarned = locations.reduce((s, l) => s + l.totalBonus, 0);
 
-  function exportOverviewPdf() {
-    if (locations.length === 0) return;
-    const html = buildOverviewPrintHtml(locations, month);
+  function openPrintHtml(html: string) {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const win = window.open(url, "_blank");
@@ -531,6 +529,11 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
       return;
     }
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  function exportOverviewPdf(summaryOnly = false) {
+    if (locations.length === 0) return;
+    openPrintHtml(buildOverviewPrintHtml(locations, month, { summaryOnly }));
   }
 
   return (
@@ -548,11 +551,20 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
           <Button
             size="sm"
             variant="secondary"
-            onClick={exportOverviewPdf}
+            onClick={() => exportOverviewPdf(true)}
             disabled={loading || locations.length === 0}
           >
             <PrinterIcon size={13} />
-            Export PDF
+            Summary PDF
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => exportOverviewPdf(false)}
+            disabled={loading || locations.length === 0}
+          >
+            <PrinterIcon size={13} />
+            Full PDF
           </Button>
         </div>
       </div>
