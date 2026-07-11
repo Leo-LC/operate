@@ -15,13 +15,6 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-export interface OverviewAlert {
-  priority: "critical" | "warning" | "pending";
-  label: string;
-  shop: string;
-  href: string;
-}
-
 export interface ShopCard {
   id: string;
   name: string;
@@ -223,87 +216,5 @@ export async function GET() {
     };
   });
 
-  // Build cross-shop alerts list (sorted: critical first, then warning, then pending)
-  const alerts: OverviewAlert[] = [];
-
-  for (const card of cards) {
-    const shortName = card.name.replace(/^Capybara Coffee\s*/i, "").trim() || card.name;
-
-    if (card.accounting.daysBehind >= 3) {
-      alerts.push({
-        priority: "critical",
-        label: `${card.accounting.daysBehind} days of accounting not submitted`,
-        shop: shortName,
-        href: `/accounting?location=${card.id}`,
-      });
-    } else if (card.accounting.daysBehind > 0) {
-      alerts.push({
-        priority: "warning",
-        label: `${card.accounting.daysBehind} day${card.accounting.daysBehind === 1 ? "" : "s"} of accounting missing`,
-        shop: shortName,
-        href: `/accounting?location=${card.id}`,
-      });
-    }
-
-    if (card.accounting.cashDiff !== null && Math.abs(card.accounting.cashDiff) > 500) {
-      const sign = card.accounting.cashDiff > 0 ? "+" : "";
-      alerts.push({
-        priority: "warning",
-        label: `Cash difference: ${sign}฿${Math.abs(card.accounting.cashDiff).toLocaleString()}`,
-        shop: shortName,
-        href: `/accounting?location=${card.id}`,
-      });
-    }
-
-    if (card.documents.expired > 0) {
-      alerts.push({
-        priority: "critical",
-        label: `${card.documents.expired} expired document${card.documents.expired === 1 ? "" : "s"}`,
-        shop: shortName,
-        href: "/documents",
-      });
-    }
-
-    if (card.documents.expiring > 0) {
-      alerts.push({
-        priority: "warning",
-        label: `${card.documents.expiring} document${card.documents.expiring === 1 ? "" : "s"} expiring soon`,
-        shop: shortName,
-        href: "/documents",
-      });
-    }
-
-    if (card.schedule?.nextWeekMissing) {
-      alerts.push({
-        priority: "warning",
-        label: "Next week's schedule not ready",
-        shop: shortName,
-        href: "/scheduling",
-      });
-    }
-
-    if (card.attendanceDue) {
-      alerts.push({
-        priority: "pending",
-        label: "Complete attendance before month-end payroll",
-        shop: shortName,
-        href: "/attendance",
-      });
-    }
-
-    if (card.entries.nearingEnd && !(card.entries.period === 1 ? card.entries.period1Filled : card.entries.period2Filled)) {
-      alerts.push({
-        priority: "pending",
-        label: `Period ${card.entries.period} challenge entries not filled`,
-        shop: shortName,
-        href: "/challenges/overview",
-      });
-    }
-  }
-
-  // Sort: critical → warning → pending
-  const priorityOrder = { critical: 0, warning: 1, pending: 2 } as const;
-  alerts.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-
-  return Response.json({ cards, alerts });
+  return Response.json({ cards });
 }

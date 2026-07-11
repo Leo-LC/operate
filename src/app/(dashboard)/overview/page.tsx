@@ -2,17 +2,16 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { ShopSummaryCard } from "@/modules/overview/components/ShopSummaryCard";
-import { AlertsBanner } from "@/modules/overview/components/AlertsBanner";
-import type { ShopCard, OverviewAlert } from "@/app/api/overview/cards/route";
+import type { ShopCard } from "@/app/api/overview/cards/route";
 
-async function fetchCards(baseUrl: string, cookie: string): Promise<{ cards: ShopCard[]; alerts: OverviewAlert[] }> {
+async function fetchCards(baseUrl: string, cookie: string): Promise<ShopCard[]> {
   const res = await fetch(`${baseUrl}/api/overview/cards`, {
     headers: { cookie },
     cache: "no-store",
   });
-  if (!res.ok) return { cards: [], alerts: [] };
-  const json = await res.json() as { cards: ShopCard[]; alerts: OverviewAlert[] };
-  return { cards: json.cards ?? [], alerts: json.alerts ?? [] };
+  if (!res.ok) return [];
+  const json = await res.json() as { cards: ShopCard[] };
+  return json.cards ?? [];
 }
 
 export default async function OverviewPage() {
@@ -27,7 +26,7 @@ export default async function OverviewPage() {
   const cookie = headersList.get("cookie") ?? "";
   const baseUrl = `${protocol}://${host}`;
 
-  const { cards, alerts } = await fetchCards(baseUrl, cookie);
+  const cards = await fetchCards(baseUrl, cookie);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -40,9 +39,6 @@ export default async function OverviewPage() {
         <h1 className="text-2xl font-semibold text-[var(--fg)]">{greeting}.</h1>
         <p className="text-sm text-[var(--fg-3)]">What needs your attention today.</p>
       </div>
-
-      {/* Alerts banner — shown whenever there are alerts */}
-      {alerts.length > 0 && <AlertsBanner alerts={alerts} />}
 
       {/* Shop cards */}
       {cards.length === 0 ? (
