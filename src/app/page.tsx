@@ -110,7 +110,13 @@ export default async function Home() {
       <footer className="relative z-10 mt-auto border-t border-border/60 px-6 py-4 text-[11px] text-muted-foreground/50 sm:px-10">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 text-center sm:text-left">
           <span>Operate · Internal operations platform</span>
-          <span>Deployed on Vercel · Data by Supabase</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-end">
+            <a href="/privacy" className="hover:text-muted-foreground transition-colors">
+              Privacy Policy
+            </a>
+            <span aria-hidden>·</span>
+            <span>Deployed on Vercel · Data by Supabase</span>
+          </div>
         </div>
       </footer>
     </div>
