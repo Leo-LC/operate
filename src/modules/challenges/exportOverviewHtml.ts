@@ -67,7 +67,10 @@ function metricSummaryCell(
 
 function salesTargetCell(loc: LocationOverview): string {
   const { amount, threshold, unlocked } = loc.revenue;
-  if (threshold === null) return '<span class="muted">—</span>';
+  if (threshold === null) {
+    const amountStr = amount !== null ? fmt(amount, 0) : "—";
+    return `<span class="muted">${amountStr} / ${escHtml(CHALLENGE_LABELS.salesTargetTbd)}</span>`;
+  }
   const amountStr = amount !== null ? fmt(amount, 0) : "—";
   const thresholdStr = fmt(threshold, 0);
   if (unlocked === true) {

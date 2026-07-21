@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { PrinterIcon } from "lucide-react";
+import { Lock, PrinterIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MonthSelector } from "./MonthSelector";
 import type { LocationOverview } from "@/app/api/challenges/overview/route";
@@ -49,6 +49,34 @@ function StatusDot({ passes }: { passes: boolean | null }) {
   if (passes === true) return <span className="text-[var(--good)]">✓</span>;
   if (passes === false) return <span className="text-[var(--bad)]">✗</span>;
   return <span className="text-[var(--fg-4)]">—</span>;
+}
+
+/** Fixed-width bonus cell — lock icon + amount stay on one line so cards stay aligned. */
+function BonusAmount({
+  amount,
+  variant,
+  title,
+}: {
+  amount: number;
+  variant: "earned" | "locked" | "empty";
+  title?: string;
+}) {
+  if (variant === "empty") {
+    return <span className="block min-h-[1rem]" aria-hidden />;
+  }
+
+  const color =
+    variant === "locked" ? "text-[var(--bronze)]" : "text-[var(--good)]";
+
+  return (
+    <span
+      className={`inline-flex items-center justify-end gap-0.5 font-mono text-xs tabular-nums whitespace-nowrap ${color}`}
+      title={title}
+    >
+      {variant === "locked" && <Lock className="size-3 shrink-0" aria-hidden />}
+      <span>{amount.toLocaleString()}&nbsp;฿</span>
+    </span>
+  );
 }
 
 // Moves focus to the next editable cell in DOM order, mimicking Tab on Enter.
@@ -219,33 +247,42 @@ function MetricRow({
           <StatusDot passes={passes} />
           <span className="text-xs text-[var(--fg-3)] truncate">{label}</span>
         </div>
-        <div className="flex flex-col items-end shrink-0 ml-2">
+        <div className="flex flex-col items-end shrink-0 ml-2 min-h-[2rem] justify-center">
           {loading ? (
             <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
           ) : (
             <>
               <span className={`font-mono text-xs tabular-nums ${statusColor(passes)}`}>{value}</span>
-              {sub && isOwner && <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{sub}</span>}
+              {isOwner && (
+                <span className={`font-mono text-[10px] tabular-nums leading-tight min-h-[0.875rem] ${sub ? "text-[var(--fg-4)]" : "text-transparent select-none"}`}>
+                  {sub ?? "\u00a0"}
+                </span>
+              )}
             </>
           )}
         </div>
-        <div className="w-16 text-right shrink-0 ml-2">
+        <div className="w-20 text-right shrink-0 ml-2">
           {loading ? (
-            <div className="h-3 w-8 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
+            <div className="h-3 w-12 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
           ) : lockedQualifying ? (
-            <span className="font-mono text-xs tabular-nums text-[var(--bronze)]" title={CHALLENGE_LABELS.lockedTooltip}>
-              🔒 {(potentialBonus ?? bonus).toLocaleString()} ฿
-            </span>
+            <BonusAmount
+              amount={potentialBonus ?? bonus}
+              variant="locked"
+              title={CHALLENGE_LABELS.lockedTooltip}
+            />
           ) : (
-            <span className={`font-mono text-xs tabular-nums ${passes === true ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
-              {passes === true ? `${bonus.toLocaleString()} ฿` : ""}
-            </span>
+            <BonusAmount
+              amount={bonus}
+              variant={passes === true ? "earned" : "empty"}
+            />
           )}
         </div>
       </div>
-      {!loading && progress !== undefined && (
+      {!loading && (
         <div className="h-1 rounded-full bg-[var(--bg-2)] overflow-hidden mx-6">
-          <div style={{ width: `${Math.round(Math.min(1, progress) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
+          {progress !== undefined && (
+            <div style={{ width: `${Math.round(Math.min(1, progress) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
+          )}
         </div>
       )}
     </div>
@@ -256,35 +293,68 @@ function MetricRow({
 // not a challenge that pays out its own bonus.
 function RevenueGateBanner({ loc, loading }: { loc: LocationOverview; loading: boolean }) {
   const { amount, threshold, unlocked, ratio } = loc.revenue;
-  if (threshold === null) return null; // no gating defined for this shop
 
   if (loading) {
-    return <div className="mx-4 mt-3 h-12 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />;
+    return <div className="mx-4 mt-3 h-[3.75rem] animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />;
   }
 
-  const passes = amount !== null ? unlocked : null;
+  const hasThreshold = threshold !== null;
+  const passes = hasThreshold ? (amount !== null ? unlocked : null) : null;
   const isUnlocked = passes === true;
-  const barColor = isUnlocked ? "var(--good)" : "var(--bronze)";
+  const barColor = isUnlocked ? "var(--good)" : hasThreshold ? "var(--bronze)" : "var(--fg-4)";
+  const progressRatio = hasThreshold && ratio !== null ? Math.min(1, ratio) : 0;
+
+  const bannerStyle = isUnlocked
+    ? "border-[var(--good)] bg-[var(--good-soft)]"
+    : hasThreshold
+      ? "border-[var(--bronze)] bg-[var(--bronze-soft)]"
+      : "border-[var(--line)] bg-[var(--bg-2)]";
+
+  const labelStyle = isUnlocked
+    ? "text-[var(--good)]"
+    : hasThreshold
+      ? "text-[var(--bronze-2)]"
+      : "text-[var(--fg-4)]";
+
+  const valueStyle = isUnlocked
+    ? "text-[var(--good)]"
+    : hasThreshold
+      ? "text-[var(--bronze-2)]"
+      : "text-[var(--fg-4)]";
+
+  const amountLabel = hasThreshold
+    ? amount !== null
+      ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿`
+      : `target ${fmt(threshold, 0)} ฿`
+    : amount !== null
+      ? `${fmt(amount, 0)} / ${CHALLENGE_LABELS.salesTargetTbd}`
+      : CHALLENGE_LABELS.salesTargetTbd;
 
   return (
     <div
-      className={`mx-4 mt-3 flex flex-col gap-1.5 rounded-[var(--r-sm)] border px-3 py-2 ${
-        isUnlocked ? "border-[var(--good)] bg-[var(--good-soft)]" : "border-[var(--bronze)] bg-[var(--bronze-soft)]"
-      }`}
+      className={`mx-4 mt-3 flex h-[3.75rem] flex-col justify-center gap-1.5 rounded-[var(--r-sm)] border px-3 py-2 ${bannerStyle}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className={`text-[10px] font-semibold uppercase tracking-wide ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
+        <span className={`text-[10px] font-semibold uppercase tracking-wide ${labelStyle}`}>
           {isUnlocked ? CHALLENGE_LABELS.salesTargetReached : CHALLENGE_LABELS.salesTarget}
         </span>
-        <span className={`font-mono text-xs tabular-nums ${isUnlocked ? "text-[var(--good)]" : "text-[var(--bronze-2)]"}`}>
-          {amount !== null ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿` : `target ${fmt(threshold, 0)} ฿`}
+        <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${valueStyle}`}>
+          {amountLabel}
         </span>
       </div>
-      {ratio !== null && (
-        <div className="h-1.5 rounded-full bg-[var(--bg-2)] overflow-hidden">
-          <div style={{ width: `${Math.round(Math.min(1, ratio) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
-        </div>
-      )}
+      <div className="h-1.5 rounded-full bg-[var(--bg-2)] overflow-hidden">
+        {hasThreshold && ratio !== null && (
+          <div
+            style={{
+              width: `${Math.round(progressRatio * 100)}%`,
+              height: "100%",
+              background: barColor,
+              borderRadius: 9999,
+              transition: "width 0.4s ease",
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -338,24 +408,29 @@ function LocationCard({
     : 0;
 
   return (
-    <div className="flex flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
+    <div className="flex h-full flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
       {/* Card header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
         <p className="text-sm font-medium text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
         {loading ? (
           <div className="h-5 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
-        ) : hasBonusData ? (
-          <div className="flex items-baseline gap-1.5">
-            <span className={`font-mono text-sm font-semibold tabular-nums ${totalBonus > 0 ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
-              {totalBonus.toLocaleString()} ฿
+        ) : (
+          <div className="flex min-h-[1.25rem] items-baseline gap-1.5">
+            <span className={`font-mono text-sm font-semibold tabular-nums whitespace-nowrap ${totalBonus > 0 ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
+              {hasBonusData ? `${totalBonus.toLocaleString()}\u00a0฿` : "—"}
             </span>
             {potentialLockedBonus > 0 && (
-              <span className="font-mono text-xs font-medium tabular-nums text-[var(--bronze)]" title={CHALLENGE_LABELS.lockedTooltip}>
-                + 🔒 {potentialLockedBonus.toLocaleString()} ฿
+              <span
+                className="inline-flex items-baseline gap-0.5 font-mono text-xs font-medium tabular-nums whitespace-nowrap text-[var(--bronze)]"
+                title={CHALLENGE_LABELS.lockedTooltip}
+              >
+                <span>+</span>
+                <Lock className="size-3 shrink-0 self-center" aria-hidden />
+                <span>{potentialLockedBonus.toLocaleString()}&nbsp;฿</span>
               </span>
             )}
           </div>
-        ) : null}
+        )}
       </div>
 
       {/* Revenue gate — not a challenge metric */}
@@ -366,7 +441,7 @@ function LocationCard({
         <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">Metric</span>
         <div className="flex items-center">
           <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-16 text-right mr-2">Value</span>
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-14 text-right">Bonus</span>
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-20 text-right">Bonus</span>
         </div>
       </div>
 
@@ -439,8 +514,8 @@ function LocationCard({
         />
       </div>
 
-      {/* Manual inputs — two periods */}
-      <div className="flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg-2)]">
+      {/* Manual inputs — pinned to card bottom when grid stretches row height */}
+      <div className="mt-auto flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg-2)]">
         <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
           <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">{CHALLENGE_LABELS.visitorCounts}</span>
           <span className="text-[9px] text-[var(--fg-4)]">Type a value, then Tab/Enter to move on — saves on blur</span>
@@ -595,7 +670,7 @@ export function ChallengesOverview({ isOwner }: { isOwner?: boolean } = {}) {
           <span className="text-sm text-[var(--fg-4)]">No data yet for this month.</span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 items-stretch">
           {locations.map((loc) => (
             <LocationCard
               key={loc.locationId}

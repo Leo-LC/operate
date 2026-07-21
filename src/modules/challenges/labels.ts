@@ -12,6 +12,7 @@ export const CHALLENGE_LABELS = {
   visitorCounts: "Visitor counts",
   lockedTooltip: "Unlocks once sales target is reached",
   gatedBadge: "Needs sales target",
+  salesTargetTbd: "To be defined",
 } as const;
 
 export const PERIOD_LABELS = {
