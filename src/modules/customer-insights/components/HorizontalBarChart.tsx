@@ -17,6 +17,8 @@ interface HorizontalBarChartProps {
   loading: boolean;
   emptyMessage?: string;
   color?: string;
+  onItemClick?: (label: string) => void;
+  clickHint?: string;
 }
 
 export function HorizontalBarChart({
@@ -25,6 +27,8 @@ export function HorizontalBarChart({
   loading,
   emptyMessage = "No data for this period.",
   color = "var(--bronze)",
+  onItemClick,
+  clickHint,
 }: HorizontalBarChartProps) {
   if (loading) {
     return (
@@ -48,9 +52,14 @@ export function HorizontalBarChart({
   const height = Math.max(160, data.length * 36 + 40);
 
   return (
-    <ChartShell title={title}>
+    <ChartShell title={title} subtitle={onItemClick ? clickHint : undefined}>
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+        <BarChart
+          data={chartData}
+          layout="vertical"
+          margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+          style={onItemClick ? { cursor: "pointer" } : undefined}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
           <XAxis
             type="number"
@@ -78,17 +87,37 @@ export function HorizontalBarChart({
             }}
             cursor={{ fill: "var(--row-hover)" }}
           />
-          <Bar dataKey="count" fill={color} radius={[0, 3, 3, 0]} maxBarSize={24} />
+          <Bar
+            dataKey="count"
+            fill={color}
+            radius={[0, 3, 3, 0]}
+            maxBarSize={24}
+            onClick={(entry) => {
+              const label = (entry as { name?: string })?.name;
+              if (label && onItemClick) onItemClick(label);
+            }}
+          />
         </BarChart>
       </ResponsiveContainer>
     </ChartShell>
   );
 }
 
-function ChartShell({ title, children }: { title: string; children: ReactNode }) {
+function ChartShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
   return (
     <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">{title}</p>
+      <div className="mb-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">{title}</p>
+        {subtitle && <p className="mt-1 text-xs text-[var(--fg-4)]">{subtitle}</p>}
+      </div>
       {children}
     </div>
   );

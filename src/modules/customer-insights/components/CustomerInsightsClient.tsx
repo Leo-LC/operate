@@ -69,6 +69,14 @@ export function CustomerInsightsClient() {
 
   const configured = data?.meta.configured ?? false;
   const error = data?.meta.error;
+  const shopFiltered = shop !== "all";
+  const canonicalShops = data?.meta.shops ?? [];
+
+  const handleShopBarClick = (label: string) => {
+    if (canonicalShops.includes(label)) {
+      setShop(label);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -163,20 +171,26 @@ export function CustomerInsightsClient() {
           icon={<UsersIcon style={{ width: 18, height: 18 }} />}
           iconColor="var(--bronze)"
           hint={
-            data?.meta.dateRange.min && data?.meta.dateRange.max
-              ? `All-time range: ${data.meta.dateRange.min} → ${data.meta.dateRange.max}`
-              : undefined
+            shopFiltered
+              ? `Filtered to ${shop}`
+              : data?.meta.dateRange.min && data?.meta.dateRange.max
+                ? `All-time range: ${data.meta.dateRange.min} → ${data.meta.dateRange.max}`
+                : undefined
           }
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <HorizontalBarChart
-          title="Submissions by shop"
-          data={data?.byShop ?? []}
-          loading={loading}
-          color="var(--bronze)"
-        />
+        {!shopFiltered && (
+          <HorizontalBarChart
+            title="Submissions by shop"
+            data={data?.byShop ?? []}
+            loading={loading}
+            color="var(--bronze)"
+            onItemClick={handleShopBarClick}
+            clickHint="Click a bar to filter by shop"
+          />
+        )}
         <ChannelBarChart data={data?.byChannel ?? []} loading={loading} />
         <HorizontalBarChart
           title="Top visitor countries"
