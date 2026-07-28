@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
@@ -24,6 +24,8 @@ const NAV_ITEMS = [
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
   { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
+  { id: "loyverse-sandbox", label: "Loyverse (α)", href: "/loyverse-sandbox", icon: PlugIcon, module: null },
+  { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
 ] as const;
 
 interface CommandPaletteProps {
@@ -49,7 +51,11 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
 
   const items = useMemo(() => {
     const nav = NAV_ITEMS
-      .filter((n) => !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]))
+      .filter((n) => {
+        if (n.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
+        if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
+        return !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]);
+      })
       .map((n) => ({
       kind: "nav" as const,
       id: n.id,

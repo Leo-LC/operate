@@ -9,7 +9,7 @@ import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
-  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -67,6 +67,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
       { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,     module: "challenges" },
       { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,       module: "reviews" },
+      { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
     ],
   },
   {
@@ -87,6 +88,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "System",
     items: [
       { id: "admin", label: "Admin", href: "/admin", icon: ShieldIcon, module: "admin" },
+      { id: "loyverse-sandbox", label: "Loyverse (α)", href: "/loyverse-sandbox", icon: PlugIcon, module: null },
     ],
   },
 ];
@@ -290,7 +292,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             const visibleItems = group.items.filter((item) => {
               if (permissions.global_role === "reviewer") return item.id === "reviews";
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "overview" && item.id !== "treasury") return false;
+              if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
+              if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;
             });
             if (visibleItems.length === 0) return null;
