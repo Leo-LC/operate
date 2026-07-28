@@ -5,9 +5,9 @@ import { normalizeShop } from "../normalize/shop";
 import {
   DEFAULT_SHEET_ID,
   DEFAULT_SHEET_TAB,
-  SHEET_COLUMNS,
   type FormResponseRow,
 } from "../types";
+import { resolveSheetColumns } from "./resolve-columns";
 
 const CACHE_TTL_MS = 60_000;
 
@@ -51,29 +51,13 @@ function parseTimestamp(raw: string): string | null {
   return null;
 }
 
-function findColumnIndex(headers: string[], expected: string): number {
-  const normalizedExpected = expected.trim().toLowerCase();
-  return headers.findIndex((h) => h.trim().toLowerCase() === normalizedExpected);
-}
-
 function parseSheetRows(values: string[][]): FormResponseRow[] {
-  if (values.length < 2) return [];
-
-  const headers = values[0].map((h) => h.trim());
-  const tsIdx = findColumnIndex(headers, SHEET_COLUMNS.timestamp);
-  const countryIdx = findColumnIndex(headers, SHEET_COLUMNS.country);
-  const shopIdx = findColumnIndex(headers, SHEET_COLUMNS.shop);
-  const channelIdx = findColumnIndex(headers, SHEET_COLUMNS.channel);
-
-  if (tsIdx === -1 || countryIdx === -1 || shopIdx === -1 || channelIdx === -1) {
-    throw new Error(
-      `Missing required columns. Expected: ${Object.values(SHEET_COLUMNS).join(", ")}`,
-    );
-  }
+  const { headerRowIndex, timestamp: tsIdx, country: countryIdx, shop: shopIdx, channel: channelIdx } =
+    resolveSheetColumns(values);
 
   const rows: FormResponseRow[] = [];
 
-  for (let i = 1; i < values.length; i++) {
+  for (let i = headerRowIndex + 1; i < values.length; i++) {
     const row = values[i];
     const timestamp = (row[tsIdx] ?? "").trim();
     const countryRaw = (row[countryIdx] ?? "").trim();
