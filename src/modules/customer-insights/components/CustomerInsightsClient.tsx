@@ -8,17 +8,42 @@ import { Stat } from "@/components/ui/stat";
 import { Button } from "@/components/ui/button";
 import type { CustomerInsightsSummary } from "../types";
 import { HorizontalBarChart } from "./HorizontalBarChart";
-import { ChannelDonutChart } from "./ChannelDonutChart";
+import { ChannelBarChart } from "./ChannelBarChart";
 import { WeeklyLineChart } from "./WeeklyLineChart";
 import { UnmatchedReviewPanel } from "./UnmatchedReviewPanel";
+import {
+  DATE_PRESET_OPTIONS,
+  detectPreset,
+  getDateRangeForPreset,
+  type DatePreset,
+} from "../lib/date-presets";
 
 export function CustomerInsightsClient() {
+  const [datePreset, setDatePreset] = useState<DatePreset>("all_time");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [shop, setShop] = useState("all");
   const [data, setData] = useState<CustomerInsightsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const handlePresetChange = (preset: DatePreset) => {
+    setDatePreset(preset);
+    if (preset === "custom") return;
+    const range = getDateRangeForPreset(preset);
+    setFrom(range.from);
+    setTo(range.to);
+  };
+
+  const handleFromChange = (value: string) => {
+    setFrom(value);
+    setDatePreset(detectPreset(value, to));
+  };
+
+  const handleToChange = (value: string) => {
+    setTo(value);
+    setDatePreset(detectPreset(from, value));
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -93,12 +118,26 @@ export function CustomerInsightsClient() {
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
+          <span className="text-xs text-[var(--fg-4)]">Period</span>
+          <select
+            value={datePreset}
+            onChange={(e) => handlePresetChange(e.target.value as DatePreset)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+          >
+            {DATE_PRESET_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
           <span className="text-xs text-[var(--fg-4)]">From</span>
-          <DateInput value={from} onChange={(e) => setFrom(e.target.value)} />
+          <DateInput value={from} onChange={(e) => handleFromChange(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-[var(--fg-4)]">To</span>
-          <DateInput value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateInput value={to} onChange={(e) => handleToChange(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-[var(--fg-4)]">Shop</span>
@@ -138,7 +177,7 @@ export function CustomerInsightsClient() {
           loading={loading}
           color="var(--bronze)"
         />
-        <ChannelDonutChart data={data?.byChannel ?? []} loading={loading} />
+        <ChannelBarChart data={data?.byChannel ?? []} loading={loading} />
         <HorizontalBarChart
           title="Top visitor countries"
           data={data?.topCountries ?? []}
