@@ -29,8 +29,11 @@ export function normalizeCountry(raw: string): NormalizedField {
     return { canonical: fromKnown, matched: true, raw: trimmed };
   }
 
-  // Multi-value answers: "France / Paris", "UK - London"
-  const parts = trimmed.split(/[,;/|–—-]+/).map((p) => normalizeKey(p)).filter(Boolean);
+  // Multi-value: "France / Paris", "Honolulu, USA", "Austin - Texas"
+  const parts = trimmed
+    .split(/[,;/|–—-]+/)
+    .map((p) => normalizeKey(p))
+    .filter(Boolean);
   for (const part of parts) {
     const hit = lookupCountry(part) ?? matchKnownCountryName(part);
     if (hit) {
@@ -38,7 +41,7 @@ export function normalizeCountry(raw: string): NormalizedField {
     }
   }
 
-  // Looks like a plausible country name — keep the answer visible in charts
+  // Looks like a plausible country name — keep visible in charts, flag for review
   if (/^[a-z\s'-]{2,40}$/i.test(trimmed)) {
     const label = titleCase(trimmed);
     return { canonical: label, matched: false, raw: trimmed };

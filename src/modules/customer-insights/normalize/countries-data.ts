@@ -198,6 +198,10 @@ export const CITY_TO_COUNTRY: Record<string, string> = {
   phuket: "Thailand",
   chiangmai: "Thailand",
   "chiang mai": "Thailand",
+  chaingmai: "Thailand",
+  chiangrai: "Thailand",
+  "chiang rai": "Thailand",
+  chaingrai: "Thailand",
   pattaya: "Thailand",
   samui: "Thailand",
   "koh samui": "Thailand",
@@ -240,6 +244,10 @@ export const CITY_TO_COUNTRY: Record<string, string> = {
   la: "United States",
   chicago: "United States",
   miami: "United States",
+  austin: "United States",
+  honolulu: "United States",
+  california: "United States",
+  texas: "United States",
   toronto: "Canada",
   vancouver: "Canada",
   montreal: "Canada",
@@ -298,9 +306,40 @@ export const COUNTRY_KEYS_BY_LENGTH = Array.from(COUNTRY_LOOKUP.keys()).sort(
   (a, b) => b.length - a.length,
 );
 
+import {
+  isThailandPlace,
+  isUsCity,
+  isUsState,
+  TRAILING_COUNTRY_HINTS,
+} from "./regions-data";
+
 export function lookupCountry(key: string): string | null {
   const direct = COUNTRY_LOOKUP.get(key);
   if (direct) return direct;
+
+  if (isUsState(key) || isUsCity(key)) return "United States";
+  if (isThailandPlace(key)) return "Thailand";
+
+  // "Honolulu USA", "Austin, Texas" style — strip trailing country hint
+  const tokens = key.split(/\s+/);
+  if (tokens.length >= 2) {
+    const last = tokens[tokens.length - 1];
+    if (TRAILING_COUNTRY_HINTS.has(last)) {
+      const place = tokens.slice(0, -1).join(" ");
+      const hit = lookupCountry(place);
+      if (hit) return hit;
+    }
+  }
+
+  // "Austin Texas" — any token may be state/city
+  for (const token of tokens) {
+    if (isUsState(token) || isUsCity(token)) return "United States";
+    if (isThailandPlace(token)) return "Thailand";
+    const hit = COUNTRY_LOOKUP.get(token);
+    if (hit) return hit;
+  }
+
+  // "City, Country" with comma in original — handled in country.ts via parts
 
   for (const candidate of COUNTRY_KEYS_BY_LENGTH) {
     if (candidate.length < 4) continue;
