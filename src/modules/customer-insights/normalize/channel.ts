@@ -1,78 +1,85 @@
 import { OTHER_REVIEW, type NormalizedField } from "../types";
-import { normalizeKey, rawLabel, stripNotes } from "./text";
+import { normalizeKey, stripNotes } from "./text";
 
-const CANONICAL_CHANNELS = [
+/** Exact labels from the Google Form multiple-choice question. */
+export const FORM_CHANNEL_CHOICES = [
   "Instagram",
-  "Google",
-  "TikTok",
   "Facebook",
-  "Friend / Word of mouth",
-  "Hotel / Accommodation",
-  "Walk-in",
-  "TripAdvisor / Maps",
-  "YouTube",
-  "Blog / Article",
-  OTHER_REVIEW,
+  "Tiktok",
+  "Google",
+  "Website",
+  "Chat GPT (or any AI)",
+  "Walking by",
+  "Friend's recommendation",
+  "Hotel / Concierge recommendation",
 ] as const;
 
-type CanonicalChannel = (typeof CANONICAL_CHANNELS)[number];
+export type FormChannelChoice = (typeof FORM_CHANNEL_CHOICES)[number];
 
-const CHANNEL_ALIASES: Record<string, CanonicalChannel> = {
+const CHANNEL_ALIASES: Record<string, FormChannelChoice> = {
   instagram: "Instagram",
   insta: "Instagram",
   ig: "Instagram",
+  facebook: "Facebook",
+  fb: "Facebook",
+  meta: "Facebook",
+  tiktok: "Tiktok",
+  "tik tok": "Tiktok",
+  tiktokk: "Tiktok",
   google: "Google",
   "google maps": "Google",
   "google search": "Google",
   gmaps: "Google",
   maps: "Google",
-  tiktok: "TikTok",
-  "tik tok": "TikTok",
-  facebook: "Facebook",
-  fb: "Facebook",
-  meta: "Facebook",
-  friend: "Friend / Word of mouth",
-  friends: "Friend / Word of mouth",
-  "word of mouth": "Friend / Word of mouth",
-  "friend / word of mouth": "Friend / Word of mouth",
-  recommendation: "Friend / Word of mouth",
-  recommended: "Friend / Word of mouth",
-  referral: "Friend / Word of mouth",
-  hotel: "Hotel / Accommodation",
-  accommodation: "Hotel / Accommodation",
-  "hotel / accommodation": "Hotel / Accommodation",
-  hostel: "Hotel / Accommodation",
-  airbnb: "Hotel / Accommodation",
-  booking: "Hotel / Accommodation",
-  "booking.com": "Hotel / Accommodation",
-  agoda: "Hotel / Accommodation",
-  resort: "Hotel / Accommodation",
-  "walk in": "Walk-in",
-  "walk-in": "Walk-in",
-  walkin: "Walk-in",
-  passing: "Walk-in",
-  "passed by": "Walk-in",
-  tripadvisor: "TripAdvisor / Maps",
-  "trip advisor": "TripAdvisor / Maps",
-  youtube: "YouTube",
-  yt: "YouTube",
-  blog: "Blog / Article",
-  article: "Blog / Article",
-  magazine: "Blog / Article",
-  press: "Blog / Article",
+  website: "Website",
+  "web site": "Website",
+  site: "Website",
+  "capybara website": "Website",
+  "chat gpt or any ai": "Chat GPT (or any AI)",
+  "chat gpt (or any ai)": "Chat GPT (or any AI)",
+  chatgpt: "Chat GPT (or any AI)",
+  "chat gpt": "Chat GPT (or any AI)",
+  gpt: "Chat GPT (or any AI)",
+  ai: "Chat GPT (or any AI)",
+  openai: "Chat GPT (or any AI)",
+  "walking by": "Walking by",
+  "walk by": "Walking by",
+  "walking past": "Walking by",
+  "walked by": "Walking by",
+  "walk in": "Walking by",
+  "walk-in": "Walking by",
+  walkin: "Walking by",
+  passing: "Walking by",
+  "passed by": "Walking by",
+  "friends recommendation": "Friend's recommendation",
+  "friend's recommendation": "Friend's recommendation",
+  "friend recommendation": "Friend's recommendation",
+  friend: "Friend's recommendation",
+  friends: "Friend's recommendation",
+  "word of mouth": "Friend's recommendation",
+  recommendation: "Friend's recommendation",
+  recommended: "Friend's recommendation",
+  referral: "Friend's recommendation",
+  "hotel concierge recommendation": "Hotel / Concierge recommendation",
+  "hotel / concierge recommendation": "Hotel / Concierge recommendation",
+  hotel: "Hotel / Concierge recommendation",
+  concierge: "Hotel / Concierge recommendation",
+  "hotel recommendation": "Hotel / Concierge recommendation",
+  accommodation: "Hotel / Concierge recommendation",
+  hostel: "Hotel / Concierge recommendation",
+  resort: "Hotel / Concierge recommendation",
 };
 
-const CHANNEL_CONTAINS: { pattern: RegExp; canonical: CanonicalChannel }[] = [
+const CHANNEL_CONTAINS: { pattern: RegExp; canonical: FormChannelChoice }[] = [
   { pattern: /insta|instagram|\big\b/i, canonical: "Instagram" },
-  { pattern: /google|gmaps|\bmaps\b/i, canonical: "Google" },
-  { pattern: /tik\s?tok/i, canonical: "TikTok" },
   { pattern: /facebook|\bfb\b|\bmeta\b/i, canonical: "Facebook" },
-  { pattern: /friend|recommend|word of mouth|referr|family|colleague|partner/i, canonical: "Friend / Word of mouth" },
-  { pattern: /hotel|hostel|accommodation|airbnb|resort|booking\.?com|agoda/i, canonical: "Hotel / Accommodation" },
-  { pattern: /walk[- ]?in|pass(?:ed|ing) by|saw (?:the )?sign|street/i, canonical: "Walk-in" },
-  { pattern: /trip\s?advisor/i, canonical: "TripAdvisor / Maps" },
-  { pattern: /youtube|\byt\b/i, canonical: "YouTube" },
-  { pattern: /blog|article|magazine|press|review site/i, canonical: "Blog / Article" },
+  { pattern: /tik\s?tok/i, canonical: "Tiktok" },
+  { pattern: /google|gmaps|\bmaps\b/i, canonical: "Google" },
+  { pattern: /\bwebsite\b|\bweb\s*site\b|capybara\.(com|coffee)/i, canonical: "Website" },
+  { pattern: /chat\s?gpt|\bgpt\b|\bai\b|openai|claude|gemini/i, canonical: "Chat GPT (or any AI)" },
+  { pattern: /walk(?:ing|ed)?\s*(?:by|past|in)|pass(?:ed|ing)\s*by/i, canonical: "Walking by" },
+  { pattern: /friend|recommend|word of mouth|referr|family told/i, canonical: "Friend's recommendation" },
+  { pattern: /hotel|concierge|hostel|resort|reception/i, canonical: "Hotel / Concierge recommendation" },
 ];
 
 export function normalizeChannel(raw: string): NormalizedField {
@@ -82,6 +89,14 @@ export function normalizeChannel(raw: string): NormalizedField {
   }
 
   const key = normalizeKey(trimmed);
+
+  // Exact form option (case-insensitive)
+  for (const choice of FORM_CHANNEL_CHOICES) {
+    if (normalizeKey(choice) === key) {
+      return { canonical: choice, matched: true, raw: trimmed };
+    }
+  }
+
   const direct = CHANNEL_ALIASES[key];
   if (direct) {
     return { canonical: direct, matched: true, raw: trimmed };
@@ -93,9 +108,22 @@ export function normalizeChannel(raw: string): NormalizedField {
     }
   }
 
-  return { canonical: rawLabel(trimmed), matched: false, raw: trimmed };
+  return { canonical: OTHER_REVIEW, matched: false, raw: trimmed };
 }
 
-export function getCanonicalChannels(): string[] {
-  return CANONICAL_CHANNELS.filter((c) => c !== OTHER_REVIEW);
+export function getFormChannelChoices(): FormChannelChoice[] {
+  return [...FORM_CHANNEL_CHOICES];
+}
+
+/** Chart buckets: form choices only, sorted by count descending. */
+export function buildChannelChartBuckets(
+  channelMap: Map<string, number>,
+  minCount = 1,
+): { label: string; count: number }[] {
+  return FORM_CHANNEL_CHOICES.map((label) => ({
+    label,
+    count: channelMap.get(label) ?? 0,
+  }))
+    .filter((b) => b.count >= minCount)
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }

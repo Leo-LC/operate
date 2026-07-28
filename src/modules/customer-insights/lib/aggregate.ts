@@ -1,4 +1,5 @@
 import { startOfWeek, format } from "date-fns";
+import { buildChannelChartBuckets } from "../normalize/channel";
 import { getCanonicalShops } from "../normalize/shop";
 import { OTHER_REVIEW } from "../types";
 import type {
@@ -108,6 +109,9 @@ export function aggregateFormResponses(
   const countrySorted = toSortedBuckets(countryMap).filter((c) => c.label !== OTHER_REVIEW);
   const topCountries = countrySorted.slice(0, TOP_COUNTRIES);
 
+  // Form choices only — unmapped random answers stay in the admin review panel
+  const byChannel = buildChannelChartBuckets(channelMap, 1);
+
   const byWeek = Array.from(weekMap.entries())
     .map(([weekStart, count]) => ({ weekStart, count }))
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
@@ -115,12 +119,12 @@ export function aggregateFormResponses(
   return {
     totalSubmissions: filtered.length,
     byShop: sortOtherLast(toSortedBuckets(shopMap)),
-    byChannel: sortOtherLast(toSortedBuckets(channelMap)),
+    byChannel,
     topCountries,
     byWeek,
     unmatched: {
       shops: toUnmatchedBuckets(unmatchedShops),
-      channels: toUnmatchedBuckets(unmatchedChannels),
+      channels: toUnmatchedBuckets(unmatchedChannels).filter((b) => b.count > 1),
       countries: toUnmatchedBuckets(unmatchedCountries),
     },
     meta: {
