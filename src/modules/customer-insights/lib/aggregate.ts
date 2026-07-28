@@ -1,5 +1,6 @@
 import { startOfWeek, format } from "date-fns";
 import { getCanonicalShops } from "../normalize/shop";
+import { OTHER_REVIEW } from "../types";
 import type {
   CustomerInsightsSummary,
   FormResponseRow,
@@ -47,6 +48,12 @@ function weekStartKey(dateStr: string): string {
   const d = new Date(`${dateStr}T12:00:00`);
   const monday = startOfWeek(d, { weekStartsOn: 1 });
   return format(monday, "yyyy-MM-dd");
+}
+
+function sortOtherLast(buckets: { label: string; count: number }[]): { label: string; count: number }[] {
+  const rest = buckets.filter((b) => b.label !== OTHER_REVIEW);
+  const other = buckets.filter((b) => b.label === OTHER_REVIEW);
+  return [...rest, ...other];
 }
 
 export function aggregateFormResponses(
@@ -98,18 +105,8 @@ export function aggregateFormResponses(
     }
   }
 
-  const countrySorted = toSortedBuckets(countryMap);
+  const countrySorted = toSortedBuckets(countryMap).filter((c) => c.label !== OTHER_REVIEW);
   const topCountries = countrySorted.slice(0, TOP_COUNTRIES);
-  const restCountries = countrySorted.slice(TOP_COUNTRIES);
-  if (restCountries.length > 0) {
-    const otherCount = restCountries.reduce((sum, r) => sum + r.count, 0);
-    const existingOther = topCountries.find((c) => c.label === "Other / Review");
-    if (existingOther) {
-      existingOther.count += otherCount;
-    } else {
-      topCountries.push({ label: "Other / Review", count: otherCount });
-    }
-  }
 
   const byWeek = Array.from(weekMap.entries())
     .map(([weekStart, count]) => ({ weekStart, count }))
@@ -117,8 +114,8 @@ export function aggregateFormResponses(
 
   return {
     totalSubmissions: filtered.length,
-    byShop: toSortedBuckets(shopMap),
-    byChannel: toSortedBuckets(channelMap),
+    byShop: sortOtherLast(toSortedBuckets(shopMap)),
+    byChannel: sortOtherLast(toSortedBuckets(channelMap)),
     topCountries,
     byWeek,
     unmatched: {

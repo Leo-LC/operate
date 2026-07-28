@@ -9,6 +9,7 @@ export interface ResolvedColumns {
 }
 
 type ColumnKey = keyof typeof SHEET_COLUMNS;
+type QuestionKey = Exclude<ColumnKey, "timestamp">;
 
 function normalizeHeader(value: string): string {
   return value
@@ -50,6 +51,7 @@ const COLUMN_PATTERNS: Record<ColumnKey, RegExp[]> = {
     /\bstore.*visit\b/,
     /\blocation.*visit\b/,
     /\bbranch\b/,
+    /\bwhich capybara\b/,
   ],
   channel: [
     /^how did you hear about us$/,
@@ -70,24 +72,31 @@ function matchesColumn(normalizedHeader: string, key: ColumnKey): boolean {
   return COLUMN_PATTERNS[key].some((pattern) => pattern.test(normalizedHeader));
 }
 
-function resolveColumnsByName(headers: string[]): Omit<ResolvedColumns, "headerRowIndex"> | null {
+function resolveColumnsInRow(headers: string[]): Omit<ResolvedColumns, "headerRowIndex"> | null {
   const normalized = headers.map(normalizeHeader);
-  const indices: Partial<Record<ColumnKey, number>> = {};
+
+  let timestamp = normalized.findIndex((h) => matchesColumn(h, "timestamp"));
+  if (timestamp === -1 && headers.length >= 4) {
+    timestamp = 0;
+  }
+  if (timestamp === -1) return null;
+
+  const indices: Partial<Record<ColumnKey, number>> = { timestamp };
+  const questionKeys: QuestionKey[] = ["shop", "country", "channel"];
 
   for (let i = 0; i < normalized.length; i++) {
-    const header = normalized[i];
-    if (!header || isSkippedColumn(header)) continue;
+    if (i === timestamp || isSkippedColumn(normalized[i])) continue;
 
-    for (const key of Object.keys(SHEET_COLUMNS) as ColumnKey[]) {
+    for (const key of questionKeys) {
       if (indices[key] !== undefined) continue;
-      if (matchesColumn(header, key)) {
+      if (matchesColumn(normalized[i], key)) {
         indices[key] = i;
+        break;
       }
     }
   }
 
   if (
-    indices.timestamp === undefined ||
     indices.country === undefined ||
     indices.shop === undefined ||
     indices.channel === undefined
@@ -96,38 +105,11 @@ function resolveColumnsByName(headers: string[]): Omit<ResolvedColumns, "headerR
   }
 
   return {
-    timestamp: indices.timestamp,
+    timestamp: indices.timestamp!,
     country: indices.country,
     shop: indices.shop,
     channel: indices.channel,
   };
-}
-
-/** Google Forms always puts Timestamp in column A; questions follow (Email may be col B). */
-function resolveColumnsByPosition(headers: string[]): Omit<ResolvedColumns, "headerRowIndex"> | null {
-  const normalized = headers.map(normalizeHeader);
-  let timestamp = normalized.findIndex((h) => matchesColumn(h, "timestamp"));
-  if (timestamp === -1 && headers.length >= 4) {
-    timestamp = 0;
-  }
-  if (timestamp === -1) return null;
-
-  const questionCols = normalized
-    .map((header, index) => ({ header, index }))
-    .filter(({ header, index }) => index !== timestamp && !isSkippedColumn(header));
-
-  if (questionCols.length < 3) return null;
-
-  return {
-    timestamp,
-    country: questionCols[0].index,
-    shop: questionCols[1].index,
-    channel: questionCols[2].index,
-  };
-}
-
-function resolveColumnsInRow(headers: string[]): Omit<ResolvedColumns, "headerRowIndex"> | null {
-  return resolveColumnsByName(headers) ?? resolveColumnsByPosition(headers);
 }
 
 export function resolveSheetColumns(values: string[][]): ResolvedColumns {
