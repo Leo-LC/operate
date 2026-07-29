@@ -1,0 +1,301 @@
+import type { TaxArticle } from "../types";
+import { SOURCES } from "../sources";
+
+export const CALENDAR_TREASURY_ARTICLES: TaxArticle[] = [
+  {
+    id: "dbd-financial-statements",
+    slug: "dbd-financial-statements",
+    category: "calendar-treasury",
+    priority: "P1",
+    status: "active",
+    cadence: "annual",
+    audience: ["owner", "accounting"],
+    tags: ["annual", "dbd", "financial-statements", "legal"],
+    forms: ["Audited financial statements", "BOJ.5 / shareholder list", "AGM minutes"],
+    title: { fr: "États financiers / DBD / AGM", en: "Financial statements / DBD / AGM" },
+    summary: {
+      fr: "Les états financiers annuels doivent être préparés, audités/approuvés et déposés selon les règles DBD.",
+      en: "Annual financial statements must be prepared, audited/approved and filed under DBD rules.",
+    },
+    overview: {
+      fr: [
+        "Les états financiers annuels doivent être préparés, audités/approuvés et déposés selon les règles DBD.",
+        "Pour une limited company, l'AGM doit généralement approuver les comptes dans les 4 mois suivant la clôture ; le dépôt DBD intervient ensuite, en pratique dans les 5 mois après clôture pour clôture 31 décembre.",
+        "C'est lié au PND.50 mais distinct : DBD et Revenue Department sont deux obligations différentes.",
+      ],
+      en: [
+        "Annual financial statements must be prepared, audited/approved and filed under DBD rules.",
+        "For a limited company, the AGM generally approves accounts within 4 months after year-end; DBD filing then follows, practically within 5 months after year-end for a 31 December closing.",
+        "It is linked to PND.50 but separate: DBD and Revenue Department are different obligations.",
+      ],
+    },
+    details: {
+      fr: [
+        "Workflow : clôture comptable → audit/financial statements → AGM → shareholder list → DBD filing → PND.50 coordination.",
+        "À intégrer dans calendrier annuel avec tâches préparatoires bien avant mai.",
+        "Les pénalités peuvent viser la société et les directeurs en cas de retard.",
+      ],
+      en: [
+        "Workflow: accounting close → audit/financial statements → AGM → shareholder list → DBD filing → PND.50 coordination.",
+        "Include it in the annual calendar with preparation tasks well before May.",
+        "Penalties may apply to the company and directors for late filing.",
+      ],
+    },
+    example: {
+      fr: "Clôture 31 décembre : préparer audit Q1, AGM avant fin avril, shareholder list après AGM, DBD/PND.50 autour de fin mai selon calendrier exact confirmé par comptable.",
+      en: "31 December year-end: prepare audit in Q1, hold AGM before end-April, submit shareholder list after AGM, DBD/PND.50 around end-May depending on exact accountant-confirmed calendar.",
+    },
+    relatedArticles: ["pnd50", "dividends-overview", "fiscal-calendar"],
+    prerequisites: ["cit-overview"],
+    nextArticles: ["pnd50", "dividends-overview"],
+    aliases: ["DBD", "AGM", "états financiers", "financial statements"],
+    sources: [SOURCES.S9],
+  },
+  {
+    id: "fiscal-calendar",
+    slug: "fiscal-calendar",
+    category: "calendar-treasury",
+    priority: "P1",
+    status: "active",
+    cadence: "permanent",
+    audience: ["manager", "owner", "accounting"],
+    tags: ["calendar", "deadlines", "monthly", "annual"],
+    forms: ["PP.30", "PP.36", "PND.1", "PND.3", "PND.53", "PND.54", "PND.50", "PND.51", "SSO", "DBD"],
+    title: { fr: "Calendrier fiscal global", en: "Global tax calendar" },
+    summary: {
+      fr: "La vue opérationnelle unique des échéances mensuelles, mi-exercice et annuelles, liée à chaque article détail.",
+      en: "The single operational view of monthly, half-year and annual deadlines, linked to each detail article.",
+    },
+    overview: {
+      fr: [
+        "Le calendrier fiscal est la vue opérationnelle des échéances : mensuelles, trimestrielles si applicable, mi-exercice, annuelles.",
+        "Il doit être la source unique pour les rappels et pour le bloc Needs Action de l'app.",
+        "Chaque obligation doit lier vers son article détail.",
+      ],
+      en: [
+        "The fiscal calendar is the operational view of deadlines: monthly, quarterly if applicable, half-year and annual.",
+        "It should be the single source for reminders and the app's Needs Action block.",
+        "Each obligation should link to its detail article.",
+      ],
+    },
+    details: {
+      fr: [
+        "Mensuel : VAT PP.30, PP.36 si concerné, WHT PND.1/3/53/54, payroll SSF/PIT.",
+        "Mi-exercice : PND.51 dans les 2 mois après les 6 premiers mois.",
+        "Annuel : DBD/financial statements, PND.50, PND.1 Kor, PIT personnel si page perso.",
+        "Statuts à suivre : upcoming, due soon, overdue, filed, paid, not applicable.",
+      ],
+      en: [
+        "Monthly: VAT PP.30, PP.36 if applicable, WHT PND.1/3/53/54, payroll SSF/PIT.",
+        "Half-year: PND.51 within 2 months after the first 6 months.",
+        "Annual: DBD/financial statements, PND.50, PND.1 Kor, personal PIT if personal page.",
+        "Track status: upcoming, due soon, overdue, filed, paid, not applicable.",
+      ],
+    },
+    example: {
+      fr: "Pour un shop actif chaque mois : le manager doit voir un checklist mensuel simplifié ; accounting voit les formulaires précis et les échéances e-filing.",
+      en: "For an active shop each month: the manager sees a simplified monthly checklist; accounting sees exact forms and e-filing deadlines.",
+    },
+    relatedArticles: ["vat-pp30", "wht-overview", "pnd51", "pnd50", "ssf", "dbd-financial-statements"],
+    prerequisites: ["tax-flow-basics"],
+    nextArticles: [],
+    aliases: ["calendrier fiscal", "fiscal calendar", "déclarations"],
+    sources: [SOURCES.S4, SOURCES.S5, SOURCES.S9],
+  },
+  {
+    id: "treasury-tax-planning",
+    slug: "treasury-tax-planning",
+    category: "calendar-treasury",
+    priority: "P1",
+    status: "active",
+    cadence: "monthly",
+    audience: ["owner", "accounting"],
+    tags: ["treasury", "cashflow", "planning", "management"],
+    forms: [],
+    title: { fr: "Treasury — Réserves taxes & cash planning", en: "Treasury — Tax reserves and cash planning" },
+    summary: {
+      fr: "Combien de cash est réellement disponible après réserves obligatoires : VAT, WHT, payroll, rent, PND.51, PND.50, DBD.",
+      en: "How much cash is truly available after mandatory reserves: VAT, WHT, payroll, rent, PND.51, PND.50, DBD.",
+    },
+    overview: {
+      fr: [
+        "Treasury doit montrer combien de cash est réellement disponible après réserves obligatoires.",
+        "Objectif : prévoir VAT, WHT, payroll, rent, PND.51, PND.50, DBD, fournisseurs critiques.",
+        "C'est une page de gestion interne, pas une obligation fiscale officielle, mais elle évite les crises de cash.",
+      ],
+      en: [
+        "Treasury must show how much cash is truly available after mandatory reserves.",
+        "Goal: plan VAT, WHT, payroll, rent, PND.51, PND.50, DBD and critical suppliers.",
+        "This is an internal management page, not an official tax obligation, but it prevents cash crises.",
+      ],
+    },
+    details: {
+      fr: [
+        "Créer des enveloppes : VAT reserve, WHT reserve, payroll reserve, rent reserve, CIT reserve, fournisseurs critiques, emergency.",
+        "Chaque article fiscal avec impact cashflow doit alimenter treasury.",
+        "La différence entre cash bancaire visible et cash disponible doit être claire.",
+      ],
+      en: [
+        "Create envelopes: VAT reserve, WHT reserve, payroll reserve, rent reserve, CIT reserve, critical-vendor reserve, emergency.",
+        "Every tax article with cashflow impact should feed treasury.",
+        "The difference between visible bank cash and available cash must be clear.",
+      ],
+    },
+    example: {
+      fr: "Solde banque 1 000 000 THB. Réserves : VAT 120k, payroll 350k, rent 180k, PND.51 200k. Cash réellement libre : 150k, pas 1M.",
+      en: "Bank balance THB 1,000,000. Reserves: VAT 120k, payroll 350k, rent 180k, PND.51 200k. Truly free cash: 150k, not 1M.",
+    },
+    relatedArticles: ["vat-pp30", "wht-overview", "pnd51", "pnd50", "payroll-overview", "dividends-overview"],
+    prerequisites: ["tax-flow-basics"],
+    nextArticles: [],
+    aliases: ["treasury", "trésorerie", "cash planning"],
+    sources: [SOURCES.S4, SOURCES.S5, SOURCES.S9],
+  },
+  {
+    id: "accounting-records-evidence",
+    slug: "accounting-records-evidence",
+    category: "calendar-treasury",
+    priority: "P1",
+    status: "active",
+    cadence: "permanent",
+    audience: ["manager", "accounting"],
+    tags: ["evidence", "process", "audit-risk", "daily"],
+    forms: ["Invoices", "Receipts", "Tax invoices", "WHT certificates"],
+    title: { fr: "Justificatifs, factures & conservation comptable", en: "Accounting evidence, invoices and record retention" },
+    summary: {
+      fr: "Un paiement sans justificatif exploitable peut créer une perte fiscale ou un risque d'audit.",
+      en: "A payment without usable evidence may create tax leakage or audit risk.",
+    },
+    overview: {
+      fr: [
+        "Un paiement sans justificatif exploitable peut créer une perte fiscale ou un risque d'audit.",
+        "Les managers doivent comprendre quoi demander, photographier, télécharger et transmettre.",
+        "Cet article doit servir de guide très opérationnel pour les shops.",
+      ],
+      en: [
+        "A payment without usable evidence may create tax leakage or audit risk.",
+        "Managers must understand what to request, photograph, download and send.",
+        "This article should be a very operational guide for shops.",
+      ],
+    },
+    details: {
+      fr: [
+        "Classer les preuves par type : sales reports, tax invoices, receipts, WHT certificates, payroll documents, bank proof, contracts.",
+        "Chaque dépense doit avoir : qui, quoi, combien, date, fournisseur, business purpose, preuve de paiement.",
+        "Les justificatifs alimentent VAT, WHT, CIT et treasury.",
+      ],
+      en: [
+        "Classify evidence by type: sales reports, tax invoices, receipts, WHT certificates, payroll documents, bank proof, contracts.",
+        "Each expense should have: who, what, amount, date, supplier, business purpose and payment proof.",
+        "Evidence feeds VAT, WHT, CIT and treasury.",
+      ],
+    },
+    example: {
+      fr: "Un achat nourriture animaux payé en cash doit avoir reçu/facture + photo + catégorie + shop + date. Sinon la compta peut ne pas pouvoir le déduire correctement.",
+      en: "Animal food paid in cash should have receipt/invoice + photo + category + shop + date. Otherwise accounting may not be able to deduct it correctly.",
+    },
+    relatedArticles: ["vat-registration-tax-invoice", "deductible-expenses", "wht-overview", "treasury-tax-planning"],
+    prerequisites: ["tax-flow-basics"],
+    nextArticles: ["deductible-expenses"],
+    aliases: ["justificatifs", "accounting evidence", "record retention"],
+    sources: [SOURCES.S1, SOURCES.S2, SOURCES.S14],
+  },
+  {
+    id: "stamp-duty",
+    slug: "stamp-duty",
+    category: "calendar-treasury",
+    priority: "P2",
+    status: "active",
+    cadence: "occasional",
+    audience: ["owner", "accounting"],
+    tags: ["occasional", "contracts", "legal"],
+    forms: ["Stamp duty / e-stamp where applicable"],
+    title: { fr: "Droit de timbre (Stamp Duty)", en: "Stamp Duty" },
+    summary: {
+      fr: "S'applique à certains instruments/documents (contrats, baux, procurations) plutôt qu'à une activité mensuelle.",
+      en: "Applies to certain instruments/documents (contracts, leases, powers of attorney) rather than a monthly activity.",
+    },
+    overview: {
+      fr: [
+        "Le droit de timbre s'applique à certains instruments/documents plutôt qu'à une activité mensuelle générale.",
+        "Pertinent pour contrats, baux, procurations, transferts ou documents spécifiques.",
+        "À garder dans la wiki mais pas comme sujet prioritaire quotidien pour les managers.",
+      ],
+      en: [
+        "Stamp duty applies to certain instruments/documents rather than a general monthly activity.",
+        "Relevant for contracts, leases, powers of attorney, transfers or specific documents.",
+        "Keep it in the wiki but not as a daily priority for managers.",
+      ],
+    },
+    details: {
+      fr: [
+        "Le montant dépend du type d'instrument et parfois de la valeur du contrat.",
+        "Certains reçus ou documents peuvent être exemptés si déjà soumis à VAT/SBT selon cas.",
+        "Créer une règle interne : tout nouveau bail, contrat long, prêt ou document légal doit être revu pour stamp duty.",
+      ],
+      en: [
+        "The amount depends on the instrument type and sometimes contract value.",
+        "Some receipts or documents may be exempt where VAT/SBT already applies, depending on the case.",
+        "Internal rule: every new lease, long contract, loan or legal document should be reviewed for stamp duty.",
+      ],
+    },
+    example: {
+      fr: "Nouveau contrat de location pour un shop : la compta/juridique doit vérifier si stamp duty s'applique avant signature ou dépôt final.",
+      en: "New shop lease agreement: accounting/legal should check whether stamp duty applies before signature or final filing.",
+    },
+    relatedArticles: ["wht-rent-pnd3-53", "accounting-records-evidence"],
+    prerequisites: ["accounting-records-evidence"],
+    nextArticles: [],
+    aliases: ["stamp duty", "droit de timbre"],
+    sources: [SOURCES.S15],
+  },
+  {
+    id: "sbt",
+    slug: "sbt",
+    category: "calendar-treasury",
+    priority: "P3",
+    status: "active",
+    cadence: "occasional",
+    audience: ["owner", "accounting"],
+    tags: ["low-priority", "specific-business", "not-core"],
+    forms: ["PP.40 where applicable"],
+    title: { fr: "Taxe sur les affaires spécifiques (SBT)", en: "Specific Business Tax (SBT)" },
+    summary: {
+      fr: "Remplace la VAT pour certaines activités spécifiques (banking, finance, assurance, immobilier). Probablement non applicable à un café/animal café.",
+      en: "Replaces VAT for specific activities (banking, finance, insurance, real estate). Likely not applicable to a café/animal café.",
+    },
+    overview: {
+      fr: [
+        "SBT remplace la VAT pour certaines activités spécifiques comme banking, finance, insurance, pawnshop ou vente immobilière selon cas.",
+        "Pour un café/animal café standard, ce n'est généralement pas le sujet principal.",
+        "À conserver comme article de référence mais marqué « non prioritaire / probablement non applicable ».",
+      ],
+      en: [
+        "SBT replaces VAT for specific activities such as banking, finance, insurance, pawnshops or certain real estate transactions.",
+        "For a standard café/animal café, it is generally not a core topic.",
+        "Keep it as a reference article but mark it \"low priority / likely not applicable\".",
+      ],
+    },
+    details: {
+      fr: [
+        "Ne pas mélanger SBT avec TVA : certaines activités sont dans un régime spécifique.",
+        "Si la société réalise une transaction immobilière ou financière non standard, demander validation comptable/juridique.",
+        "Afficher dans la wiki mais hors parcours débutant.",
+      ],
+      en: [
+        "Do not mix SBT with VAT: some activities have a specific regime.",
+        "If the company performs a non-standard real estate or financial transaction, request accounting/legal review.",
+        "Display in the wiki but outside the beginner path.",
+      ],
+    },
+    example: {
+      fr: "La vente de boissons et l'entrée au café relèvent normalement de la logique VAT, pas SBT. En revanche, une vente immobilière par une société peut justifier une analyse SBT.",
+      en: "Drink sales and café entry usually follow VAT logic, not SBT. A real estate sale by a company may require SBT analysis.",
+    },
+    relatedArticles: ["stamp-duty"],
+    prerequisites: ["vat-pp30"],
+    nextArticles: [],
+    aliases: ["SBT", "specific business tax"],
+    sources: [SOURCES.S16],
+  },
+];

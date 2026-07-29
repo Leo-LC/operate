@@ -1,0 +1,312 @@
+import type { TaxArticle } from "../types";
+import { SOURCES } from "../sources";
+
+export const WHT_ARTICLES: TaxArticle[] = [
+  {
+    id: "wht-overview",
+    slug: "wht-overview",
+    category: "wht",
+    priority: "P1",
+    status: "active",
+    cadence: "monthly",
+    audience: ["manager", "accounting"],
+    tags: ["monthly", "cashflow", "supplier-payment", "important"],
+    forms: ["PND.1", "PND.3", "PND.53", "PND.54", "Withholding certificate"],
+    title: { fr: "Retenue à la source — Vue d'ensemble", en: "Withholding Tax — Overview" },
+    summary: {
+      fr: "La retenue effectuée au moment de payer certains fournisseurs, employés ou bénéficiaires.",
+      en: "Tax withheld when paying certain suppliers, employees or beneficiaries.",
+    },
+    overview: {
+      fr: [
+        "La WHT est une retenue effectuée au moment de payer certains fournisseurs, employés ou bénéficiaires.",
+        "L'entreprise paie le fournisseur net de retenue, puis reverse la retenue au Revenue Department.",
+        "Le fournisseur reçoit un certificat de retenue qu'il peut utiliser comme crédit fiscal.",
+      ],
+      en: [
+        "WHT is withheld when paying certain suppliers, employees or beneficiaries.",
+        "The company pays the supplier net of withholding, then remits the withholding to the Revenue Department.",
+        "The supplier receives a withholding certificate and may use it as a tax credit.",
+      ],
+    },
+    details: {
+      fr: [
+        "PND.3 s'utilise souvent pour paiements à individus ; PND.53 pour personnes morales thaïlandaises ; PND.54 pour certains paiements à non-résidents.",
+        "Deadline générale WHT : le 7 du mois suivant en papier ; e-filing avec extension de 8 jours généralement jusqu'au 15.",
+        "Le taux dépend de la nature du paiement : services, loyers, transport, dividendes, royalties, non-résident, etc.",
+        "Le piège : payer le montant brut au fournisseur sans retenir, puis devoir financer la WHT en plus.",
+      ],
+      en: [
+        "PND.3 is often used for payments to individuals; PND.53 for Thai juristic persons; PND.54 for certain payments to non-residents.",
+        "General WHT deadline: 7th of the following month on paper; e-filing with an 8-day extension usually to the 15th.",
+        "The rate depends on the payment type: services, rent, transportation, dividends, royalties, non-residents, etc.",
+        "Common trap: paying the supplier gross without withholding, then funding the WHT on top.",
+      ],
+    },
+    example: {
+      fr: "Un consultant facture 10 000 THB avec WHT 3%. L'entreprise paie 9 700 THB au consultant, reverse 300 THB au Revenue Department et remet un certificat WHT au consultant.",
+      en: "A consultant invoices THB 10,000 with 3% WHT. The company pays THB 9,700 to the consultant, remits THB 300 to the Revenue Department and issues a WHT certificate.",
+    },
+    commonMistakes: {
+      fr: ["Payer le fournisseur au montant brut sans retenir", "Oublier d'émettre le certificat WHT"],
+      en: ["Paying the supplier gross without withholding", "Forgetting to issue the WHT certificate"],
+    },
+    relatedArticles: [
+      "wht-services-pnd3-53",
+      "wht-rent-pnd3-53",
+      "wht-goods-transport",
+      "wht-dividends-resident",
+      "wht-non-residents-pnd54",
+      "fiscal-calendar",
+    ],
+    prerequisites: ["tax-flow-basics"],
+    nextArticles: ["wht-services-pnd3-53", "wht-rent-pnd3-53"],
+    aliases: ["WHT", "retenue à la source", "withholding tax"],
+    sources: [SOURCES.S2, SOURCES.S4, SOURCES.S5],
+  },
+  {
+    id: "wht-services-pnd3-53",
+    slug: "wht-services-pnd3-53",
+    category: "wht",
+    priority: "P1",
+    status: "active",
+    cadence: "monthly",
+    audience: ["manager", "accounting"],
+    tags: ["wht", "monthly", "services", "supplier-payment"],
+    forms: ["PND.3", "PND.53", "Withholding certificate"],
+    title: { fr: "WHT — Services & honoraires", en: "WHT — Services and professional fees" },
+    summary: {
+      fr: "Retenue de 3% sur les services professionnels, consultants, freelancers et honoraires.",
+      en: "3% withholding on professional services, consultants, freelancers and fees.",
+    },
+    overview: {
+      fr: [
+        "S'applique souvent aux services professionnels, consultants, freelancers, management fees et honoraires.",
+        "Taux courant : 3% pour services/professional fees payés à une société thaïlandaise ou à un individu selon cas ; vérifier le statut du bénéficiaire.",
+        "Déclaration via PND.3 ou PND.53 selon bénéficiaire.",
+      ],
+      en: [
+        "Often applies to professional services, consultants, freelancers, management fees and service fees.",
+        "Common rate: 3% for services/professional fees paid to a Thai company or individual depending on the case; verify the payee status.",
+        "Filed via PND.3 or PND.53 depending on the payee.",
+      ],
+    },
+    details: {
+      fr: [
+        "Toujours identifier : type de service, bénéficiaire individu ou société, résident ou non-résident, invoice correcte, seuils et exceptions.",
+        "Le certificat WHT doit être émis et conservé.",
+        "Pour fournisseurs récurrents, enregistrer le taux et le formulaire dans la fiche fournisseur.",
+      ],
+      en: [
+        "Always identify: service type, individual or company payee, resident or non-resident, proper invoice, thresholds and exceptions.",
+        "The WHT certificate must be issued and retained.",
+        "For recurring suppliers, store the rate and form in the supplier record.",
+      ],
+    },
+    example: {
+      fr: "Un photographe freelance facture 20 000 THB. Si WHT 3% applicable, payer 19 400 THB et déclarer 600 THB sur le formulaire approprié.",
+      en: "A freelance photographer invoices THB 20,000. If 3% WHT applies, pay THB 19,400 and declare THB 600 on the appropriate form.",
+    },
+    relatedArticles: ["accounting-records-evidence", "wht-overview", "fiscal-calendar"],
+    prerequisites: ["wht-overview"],
+    nextArticles: ["accounting-records-evidence"],
+    aliases: ["PND.3", "PND3", "PND.53", "PND53"],
+    sources: [SOURCES.S2, SOURCES.S4, SOURCES.S5],
+  },
+  {
+    id: "wht-rent-pnd3-53",
+    slug: "wht-rent-pnd3-53",
+    category: "wht",
+    priority: "P1",
+    status: "active",
+    cadence: "monthly",
+    audience: ["manager", "accounting", "owner"],
+    tags: ["wht", "rent", "monthly", "cashflow"],
+    forms: ["PND.3", "PND.53", "Withholding certificate"],
+    title: { fr: "WHT — Loyers", en: "WHT — Rent payments" },
+    summary: {
+      fr: "Retenue de 5% sur les loyers payés par la société, critique car récurrente et significative.",
+      en: "5% withholding on rent paid by the company, critical because it is recurring and material.",
+    },
+    overview: {
+      fr: [
+        "Les loyers payés par la société peuvent être soumis à retenue à la source.",
+        "Taux courant : 5% pour loyers selon les règles WHT.",
+        "Sujet critique car les loyers de shops sont récurrents et significatifs.",
+      ],
+      en: [
+        "Rent paid by the company may be subject to withholding tax.",
+        "Common rate: 5% for rent under WHT rules.",
+        "Critical topic because shop rents are recurring and material.",
+      ],
+    },
+    details: {
+      fr: [
+        "Vérifier si le propriétaire est individu ou société, si le contrat est au nom de la société, et si le montant payé correspond au brut ou au net.",
+        "Le contrat doit idéalement préciser si les montants sont avant ou après WHT.",
+        "À intégrer dans treasury car le cash réel payé au propriétaire et le cash versé au Revenue Department sont séparés.",
+      ],
+      en: [
+        "Check whether the landlord is an individual or company, whether the contract is in the company name and whether the amount is gross or net.",
+        "The contract should ideally state whether amounts are before or after WHT.",
+        "Integrate into treasury because cash paid to the landlord and cash paid to the Revenue Department are separate.",
+      ],
+    },
+    example: {
+      fr: "Loyer brut 100 000 THB, WHT 5% : payer 95 000 THB au propriétaire et 5 000 THB au Revenue Department. Si le propriétaire exige 100 000 net, le coût réel brut augmente.",
+      en: "Gross rent THB 100,000, WHT 5%: pay THB 95,000 to the landlord and THB 5,000 to the Revenue Department. If the landlord demands THB 100,000 net, the actual gross cost increases.",
+    },
+    relatedArticles: ["treasury-tax-planning", "accounting-records-evidence", "fiscal-calendar"],
+    prerequisites: ["wht-overview"],
+    nextArticles: ["treasury-tax-planning"],
+    aliases: ["WHT loyers", "rent WHT"],
+    sources: [SOURCES.S2, SOURCES.S4, SOURCES.S5],
+  },
+  {
+    id: "wht-goods-transport",
+    slug: "wht-goods-transport",
+    category: "wht",
+    priority: "P2",
+    status: "active",
+    cadence: "monthly",
+    audience: ["accounting", "manager"],
+    tags: ["wht", "transport", "supplier-payment"],
+    forms: ["PND.3", "PND.53"],
+    title: { fr: "WHT — Biens & transport", en: "WHT — Goods and transportation" },
+    summary: {
+      fr: "Aide les managers à savoir quand demander une validation comptable avant paiement pour transport et livraison.",
+      en: "Helps managers know when to ask accounting before payment for transport and delivery.",
+    },
+    overview: {
+      fr: [
+        "Certains paiements liés au transport, services logistiques ou achats avec composante service peuvent déclencher une WHT.",
+        "Cet article doit aider les managers à savoir quand demander validation comptable avant paiement.",
+        "Moins universel que services/loyers mais utile pour marchandises, animaux, livraison, transfert inter-shop.",
+      ],
+      en: [
+        "Certain payments linked to transportation, logistics or purchases with a service component may trigger WHT.",
+        "This article helps managers know when to ask accounting before payment.",
+        "Less universal than services/rent but useful for goods, animals, deliveries and inter-shop transfers.",
+      ],
+    },
+    details: {
+      fr: [
+        "Ne pas appliquer mécaniquement 1% à tous les achats : qualifier la nature du paiement.",
+        "Transport/hire of work et achats purs peuvent avoir des traitements différents.",
+        "Créer une règle interne : tout paiement fournisseur non-standard ou transport important doit être revu par accounting.",
+      ],
+      en: [
+        "Do not apply 1% mechanically to all purchases: first qualify the payment type.",
+        "Transportation/hire of work and pure purchases can be treated differently.",
+        "Internal rule: every non-standard supplier payment or significant transport payment should be reviewed by accounting.",
+      ],
+    },
+    example: {
+      fr: "Une facture de transport animalier ou livraison spéciale peut nécessiter WHT. Le manager doit envoyer facture/contrat à la compta avant paiement final.",
+      en: "An animal transport or special delivery invoice may require WHT. The manager should send the invoice/contract to accounting before final payment.",
+    },
+    relatedArticles: ["accounting-records-evidence", "wht-services-pnd3-53"],
+    prerequisites: ["wht-overview"],
+    nextArticles: [],
+    aliases: ["WHT transport"],
+    sources: [SOURCES.S2, SOURCES.S4],
+  },
+  {
+    id: "wht-dividends-resident",
+    slug: "wht-dividends-resident",
+    category: "wht",
+    priority: "P2",
+    status: "active",
+    cadence: "occasional",
+    audience: ["owner", "accounting"],
+    tags: ["dividends", "wht", "owners", "cashflow"],
+    forms: ["PP.3", "Withholding certificate"],
+    title: { fr: "WHT — Dividendes résidents", en: "WHT — Resident dividends" },
+    summary: {
+      fr: "Retenue de 10% sur les dividendes versés à des actionnaires résidents.",
+      en: "10% withholding on dividends paid to resident shareholders.",
+    },
+    overview: {
+      fr: [
+        "Les dividendes versés à des actionnaires résidents sont généralement soumis à une retenue à la source de 10%.",
+        "La déclaration doit être faite rapidement après la distribution.",
+        "Ne pas distribuer de dividendes avant d'avoir vérifié bénéfice distribuable, états financiers, retenue et trésorerie.",
+      ],
+      en: [
+        "Dividends paid to resident shareholders are generally subject to 10% withholding tax.",
+        "Filing must be made soon after the distribution.",
+        "Do not distribute dividends before checking distributable profit, financial statements, WHT and cash.",
+      ],
+    },
+    details: {
+      fr: [
+        "Les dividendes interviennent après bénéfice, CIT et approbation formelle.",
+        "Les certificats de retenue doivent être émis aux actionnaires.",
+        "À connecter avec CIT, DBD, procès-verbal, shareholder list et treasury.",
+      ],
+      en: [
+        "Dividends come after profit, CIT and formal approval.",
+        "Withholding certificates must be issued to shareholders.",
+        "Connect this article with CIT, DBD, minutes, shareholder list and treasury.",
+      ],
+    },
+    example: {
+      fr: "Dividende brut 1 000 000 THB à actionnaires résidents : WHT 10% = 100 000 THB. Cash net versé = 900 000 THB. La société doit réserver les 100 000 THB.",
+      en: "Gross dividend THB 1,000,000 to resident shareholders: WHT 10% = THB 100,000. Net cash paid = THB 900,000. The company must reserve THB 100,000.",
+    },
+    relatedArticles: ["dividends-overview", "wht-overview", "dbd-financial-statements"],
+    prerequisites: ["cit-overview", "dividends-overview"],
+    nextArticles: ["treasury-tax-planning"],
+    aliases: ["WHT dividendes"],
+    sources: [SOURCES.S2, SOURCES.S11],
+  },
+  {
+    id: "wht-non-residents-pnd54",
+    slug: "wht-non-residents-pnd54",
+    category: "wht",
+    priority: "P1",
+    status: "active",
+    cadence: "monthly",
+    audience: ["owner", "accounting"],
+    tags: ["wht", "foreign-suppliers", "non-resident", "high-risk"],
+    forms: ["PND.54"],
+    title: { fr: "WHT — Non-résidents & étrangers (PND.54)", en: "WHT — Non-residents and foreign companies (PND.54)" },
+    summary: {
+      fr: "Paiements depuis la Thaïlande vers des sociétés étrangères non établies en Thaïlande : logiciels, royalties, management fees.",
+      en: "Payments from Thailand to foreign companies not carrying on business in Thailand: software, royalties, management fees.",
+    },
+    overview: {
+      fr: [
+        "PND.54 concerne certains paiements depuis la Thaïlande vers des sociétés étrangères non établies en Thaïlande.",
+        "Taux généraux : souvent 15% pour certains revenus, 10% pour dividendes, sous réserve des conventions fiscales et du type de revenu.",
+        "Important pour logiciels, royalties, management fees, intérêts, dividendes ou services étrangers.",
+      ],
+      en: [
+        "PND.54 covers certain payments from Thailand to foreign companies not carrying on business in Thailand.",
+        "General rates are often 15% for certain income, 10% for dividends, subject to tax treaties and income type.",
+        "Important for software, royalties, management fees, interest, dividends or foreign services.",
+      ],
+    },
+    details: {
+      fr: [
+        "Toujours vérifier : nature du paiement, pays du bénéficiaire, convention fiscale applicable, certificat de résidence fiscale, facture/contrat.",
+        "Certaines conventions fiscales peuvent réduire le taux, mais uniquement avec documentation correcte.",
+        "À ne pas mélanger avec PP.36 : un même paiement étranger peut poser à la fois une question WHT et une question VAT.",
+      ],
+      en: [
+        "Always verify: payment nature, beneficiary country, applicable tax treaty, tax residence certificate, invoice/contract.",
+        "Tax treaties may reduce the rate, but only with proper documentation.",
+        "Do not confuse it with PP.36: the same foreign payment may raise both WHT and VAT questions.",
+      ],
+    },
+    example: {
+      fr: "Paiement d'une royalty à une société étrangère : vérifier si WHT 15% ou taux conventionnel réduit s'applique, puis déclarer via PND.54 dans les délais.",
+      en: "Payment of a royalty to a foreign company: check whether 15% WHT or a reduced treaty rate applies, then file PND.54 on time.",
+    },
+    relatedArticles: ["pp36-imported-services", "dividends-overview", "accounting-records-evidence"],
+    prerequisites: ["wht-overview"],
+    nextArticles: ["pp36-imported-services"],
+    aliases: ["PND.54", "PND54"],
+    sources: [SOURCES.S2, SOURCES.S4, SOURCES.S11],
+  },
+];

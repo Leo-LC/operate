@@ -17,7 +17,7 @@ export const WIKI_ARTICLES: ArticleMeta[] = [
     description:
       "Vue d'ensemble complète de la fiscalité thaïlandaise : VAT, retenues à la source, impôt sur les sociétés, charges sociales, dividendes et calendrier des déclarations.",
     category: "Comptabilité & Fiscalité",
-    updatedAt: "2026-05-21",
+    updatedAt: "2026-07-29",
     type: "rich",
   },
 ];
