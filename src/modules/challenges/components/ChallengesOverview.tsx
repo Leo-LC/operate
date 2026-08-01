@@ -13,9 +13,10 @@ import {
   LEGEND_ITEMS,
   PERIOD_LABELS,
   TEAM_CHALLENGE_LABELS,
-  TEAM_LEGEND_ITEMS,
   VIEW_MODE_LABELS,
 } from "@/modules/challenges/labels";
+import { TeamLocationDashboard } from "./TeamLocationDashboard";
+import { shortLocationName } from "@/modules/challenges/team-metrics";
 import {
   SNACKS_BONUS,
   PANIER_BONUS,
@@ -48,6 +49,46 @@ function readStoredViewMode(isOwner: boolean): ViewMode {
   const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
   if (stored === "internal" || stored === "team") return stored;
   return defaultViewMode(isOwner);
+}
+
+function TeamLocationFilter({
+  locations,
+  value,
+  onChange,
+}: {
+  locations: LocationOverview[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        onClick={() => onChange("all")}
+        className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
+          value === "all"
+            ? "border-[var(--bronze)] bg-[var(--bronze-soft)] text-[var(--fg)]"
+            : "border-[var(--line)] bg-[var(--surface)] text-[var(--fg-3)] hover:text-[var(--fg)]"
+        }`}
+      >
+        All shops
+      </button>
+      {locations.map((loc) => (
+        <button
+          key={loc.locationId}
+          type="button"
+          onClick={() => onChange(loc.locationId)}
+          className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
+            value === loc.locationId
+              ? "border-[var(--bronze)] bg-[var(--bronze-soft)] text-[var(--fg)]"
+              : "border-[var(--line)] bg-[var(--surface)] text-[var(--fg-3)] hover:text-[var(--fg)]"
+          }`}
+        >
+          {shortLocationName(loc.locationTitle)}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function ViewModeToggle({
@@ -703,6 +744,7 @@ export function ChallengesOverview({
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
+  const [teamLocationFilter, setTeamLocationFilter] = useState("all");
   const [sheetImportOpen, setSheetImportOpen] = useState(false);
 
   useEffect(() => {
@@ -765,7 +807,11 @@ export function ChallengesOverview({
     openPrintHtml(buildOverviewPrintHtml(locations, month, { summaryOnly, teamMode }));
   }
 
-  const legendItems = viewMode === "team" ? TEAM_LEGEND_ITEMS : LEGEND_ITEMS;
+  const isTeamView = viewMode === "team";
+  const filteredLocations =
+    isTeamView && teamLocationFilter !== "all"
+      ? locations.filter((l) => l.locationId === teamLocationFilter)
+      : locations;
 
   return (
     <div className="flex flex-col gap-6">
@@ -823,30 +869,55 @@ export function ChallengesOverview({
         </div>
       </div>
 
-      {/* Legend row */}
-      <div className="flex flex-wrap gap-3">
-        {legendItems.map((item) => (
-          <div
-            key={item.label}
-            className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
-          >
-            <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{item.label}</span>
-            <span className="font-mono text-sm font-semibold text-[var(--fg)]">{item.max}</span>
-            <span className="text-[10px] text-[var(--fg-4)]">{item.tiers}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Location grid */}
-      {loading && locations.length === 0 ? (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]" />
+      {/* Legend row — internal view only */}
+      {!isTeamView && (
+        <div className="flex flex-wrap gap-3">
+          {LEGEND_ITEMS.map((item) => (
+            <div
+              key={item.label}
+              className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+            >
+              <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{item.label}</span>
+              <span className="font-mono text-sm font-semibold text-[var(--fg)]">{item.max}</span>
+              <span className="text-[10px] text-[var(--fg-4)]">{item.tiers}</span>
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Team view — location filter */}
+      {isTeamView && locations.length > 1 && (
+        <TeamLocationFilter
+          locations={locations}
+          value={teamLocationFilter}
+          onChange={setTeamLocationFilter}
+        />
+      )}
+
+      {/* Location content */}
+      {loading && locations.length === 0 ? (
+        isTeamView ? (
+          <div className="flex flex-col gap-8">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <TeamLocationDashboard key={i} loading />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]" />
+            ))}
+          </div>
+        )
       ) : locations.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
           <span className="text-sm text-[var(--fg-4)]">No data yet for this month.</span>
+        </div>
+      ) : isTeamView ? (
+        <div className="flex flex-col gap-8">
+          {filteredLocations.map((loc) => (
+            <TeamLocationDashboard key={loc.locationId} loc={loc} loading={loading} />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 items-stretch">

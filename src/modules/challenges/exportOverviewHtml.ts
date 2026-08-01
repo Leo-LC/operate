@@ -14,6 +14,7 @@ import {
   REVIEWS_RATING_BONUS,
 } from "./constants";
 import type { MetricContext } from "./metric-context";
+import { buildTeamMetrics, shortLocationName } from "./team-metrics";
 import {
   buildRevenueContext,
   buildMerchContext,
@@ -352,12 +353,161 @@ const PRINT_CSS = [
   "@media print{@page{margin:8mm;size:landscape}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}",
 ].join("");
 
+const TEAM_PRINT_CSS = [
+  "*{box-sizing:border-box;margin:0;padding:0}",
+  "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10px;color:#2b231b;background:#f8f6f3}",
+  ".page{padding:16px 20px}",
+  ".dashboard{margin-bottom:24px;padding:16px;border:1px solid rgba(43,35,27,0.1);border-radius:8px;background:#fff;page-break-inside:avoid}",
+  ".dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}",
+  ".dash-title{font-size:22px;font-weight:500;font-style:italic;color:#2b231b}",
+  ".dash-subtitle{font-size:10px;color:#8a7d6a;margin-top:2px}",
+  ".dash-logo{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#6b5d4b;text-align:right}",
+  ".kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}",
+  ".kpi-card{border:1px solid rgba(43,35,27,0.1);border-radius:8px;padding:12px;background:#fff}",
+  ".kpi-card.bonus{background:#f5ede3;border-color:rgba(176,135,90,0.2)}",
+  ".kpi-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8a7d6a}",
+  ".kpi-value{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}",
+  ".kpi-bar{height:6px;border-radius:999px;background:#f2f0ec;margin-top:8px;overflow:hidden}",
+  ".kpi-bar-fill{height:100%;border-radius:999px}",
+  ".stats-row{display:flex;gap:20px;padding:8px 12px;border:1px solid rgba(43,35,27,0.1);border-radius:6px;background:#f2f0ec;margin-bottom:12px}",
+  ".section-title{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#8a7d6a;margin-bottom:8px}",
+  ".metric-table{width:100%;border-collapse:collapse;border:1px solid rgba(43,35,27,0.1);border-radius:8px;margin-bottom:14px}",
+  ".metric-table th{background:#f2f0ec;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a7d6a;padding:6px 8px;text-align:right}",
+  ".metric-table th:first-child{text-align:left}",
+  ".metric-table td{padding:8px;border-bottom:1px solid rgba(43,35,27,0.06);vertical-align:top;font-variant-numeric:tabular-nums}",
+  ".metric-table td.num{text-align:right;font-size:14px;font-weight:700}",
+  ".metric-table td.target{text-align:right;font-size:10px;color:#4a3f33}",
+  ".metric-name{font-size:10px;font-weight:600;color:#2b231b}",
+  ".metric-sub{font-size:8px;color:#8a7d6a}",
+  ".advice-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}",
+  ".advice-card{border:1px solid rgba(43,35,27,0.1);border-radius:8px;padding:8px;background:#f8f7f4}",
+  ".advice-card .title{font-size:9px;font-weight:700;margin:4px 0}",
+  ".advice-card .gap{font-size:9px;font-weight:700;margin:4px 0}",
+  ".advice-card .tip{font-size:8px;color:#6b5d4b;line-height:1.3}",
+  ".footer{text-align:center;font-size:9px;font-style:italic;color:#8a7d6a;padding-top:8px}",
+  ".pass{color:#16a34a}",
+  ".warn{color:#d97706}",
+  ".muted{color:#8a7d6a}",
+  "@media print{@page{margin:10mm;size:portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.dashboard{page-break-after:always}.dashboard:last-child{page-break-after:auto}}",
+].join("");
+
+function gapClass(passes: boolean | null): string {
+  if (passes === true) return "pass";
+  if (passes === false) return "warn";
+  return "muted";
+}
+
+function buildTeamDashboardBlock(loc: LocationOverview): string {
+  const name = escHtml(shortLocationName(loc.locationTitle));
+  const { amount, threshold, unlocked, ratio } = loc.revenue;
+  const pctOfTarget = threshold !== null && ratio !== null ? Math.round(ratio * 100) : null;
+  const barColor = unlocked === true ? "#16a34a" : "#b0875a";
+  const barWidth = pctOfTarget !== null ? Math.min(100, pctOfTarget) : 0;
+  const metrics = buildTeamMetrics(loc);
+
+  const statsHtml =
+    loc.entryCount !== null || loc.snacksSold !== null
+      ? `<div class="stats-row">
+          ${loc.entryCount !== null ? `<div><div class="kpi-label">Visitors this month</div><div class="kpi-value">${fmt(loc.entryCount, 0)}</div></div>` : ""}
+          ${loc.snacksSold !== null ? `<div><div class="kpi-label">Snacks sold</div><div class="kpi-value">${fmt(loc.snacksSold, 0)}</div></div>` : ""}
+        </div>`
+      : "";
+
+  const tableRows = metrics
+    .map(
+      (m) => `<tr>
+        <td><div class="metric-name">${m.letter}. ${escHtml(m.label)}</div><div class="metric-sub">${escHtml(m.subtitle)}</div></td>
+        <td class="num ${gapClass(m.currentPasses)}">${escHtml(m.current)}</td>
+        <td class="target">${escHtml(m.target)}</td>
+        <td class="num"><div class="${gapClass(m.gapPasses)}">${escHtml(m.gapPrimary)}</div>${m.gapSecondary ? `<div class="metric-sub">${escHtml(m.gapSecondary)}</div>` : ""}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const adviceCards = metrics
+    .map((m) => {
+      const achieved = m.gapPasses === true;
+      const tip = achieved ? m.achievedTip : m.adviceTip;
+      const gapLabel = achieved ? m.gapPrimary : `Gap: ${m.gapPrimary}`;
+      return `<div class="advice-card">
+        <div class="title">${m.letter}. ${escHtml(m.label)}</div>
+        <div class="metric-sub">Current ${escHtml(m.current)} | Target ${escHtml(m.target)}</div>
+        <div class="gap ${gapClass(m.gapPasses)}">${escHtml(gapLabel)}</div>
+        <div class="tip">${escHtml(tip)}</div>
+      </div>`;
+    })
+    .join("");
+
+  return `<div class="dashboard">
+    <div class="dash-header">
+      <div><div class="dash-title">${name}</div><div class="dash-subtitle">Monthly Challenge</div></div>
+      <div class="dash-logo">Capybara Coffee</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label ${unlocked === true ? "pass" : ""}">${unlocked === true ? "Sales target achieved!" : "Sales target progress"}</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
+        ${pctOfTarget !== null ? `<div class="kpi-value ${unlocked === true ? "pass" : ""}">${pctOfTarget}%</div>` : ""}
+      </div>
+      <div class="kpi-card">
+        <div style="display:flex;gap:16px">
+          <div><div class="kpi-label">Sales this month</div><div class="kpi-value ${unlocked === true ? "pass" : ""}">${amount !== null ? `฿${fmt(amount, 0)}` : "—"}</div></div>
+          <div><div class="kpi-label">Target</div><div class="kpi-value" style="font-size:14px">${threshold !== null ? `฿${fmt(threshold, 0)}` : "—"}</div></div>
+        </div>
+      </div>
+      <div class="kpi-card bonus">
+        <div class="kpi-label">Bonus earned</div>
+        <div class="kpi-value">฿${fmt(loc.totalBonus, 0)}</div>
+      </div>
+    </div>
+    ${statsHtml}
+    <div class="section-title">How are we doing?</div>
+    <table class="metric-table">
+      <thead><tr><th>Metric</th><th>Current</th><th>Target</th><th>Gap to reach target</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+    <div class="section-title">General advice</div>
+    <div class="advice-row">${adviceCards}</div>
+    <div class="footer">Small actions every day lead to big results. Let's keep growing together!</div>
+  </div>`;
+}
+
+function buildTeamPrintHtml(locations: LocationOverview[], month: string): string {
+  const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
+    month: "long",
+    year: "numeric",
+  });
+  const generated = new Date().toLocaleDateString("en", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const title = `Monthly Challenge — ${monthLabel}`;
+  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc)).join("");
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${TEAM_PRINT_CSS}</style></head><body>
+<div class="page">
+  <div style="display:flex;justify-content:space-between;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(43,35,27,0.1)">
+    <div><div style="font-size:14px;font-weight:700">${escHtml(title)}</div><div class="muted" style="margin-top:2px">${locations.length} shop${locations.length === 1 ? "" : "s"}</div></div>
+    <div class="dash-logo">Generated ${escHtml(generated)}</div>
+  </div>
+  ${dashboards}
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+}
+
 export function buildOverviewPrintHtml(
   locations: LocationOverview[],
   month: string,
   opts?: { summaryOnly?: boolean; teamMode?: boolean },
 ): string {
   const teamMode = opts?.teamMode ?? false;
+
+  if (teamMode && !opts?.summaryOnly) {
+    return buildTeamPrintHtml(locations, month);
+  }
+
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
     month: "long",
     year: "numeric",
