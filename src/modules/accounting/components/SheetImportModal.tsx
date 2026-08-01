@@ -58,6 +58,7 @@ interface Props {
   location: AdminLocation;
   onClose: () => void;
   onImported: () => void;
+  defaultTab?: Tab;
 }
 
 type Tab = "import" | "all" | "history";
@@ -69,8 +70,8 @@ function formatDateOnly(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleString("en", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function SheetImportModal({ location, onClose, onImported }: Props) {
-  const [tab, setTab] = useState<Tab>("import");
+export function SheetImportModal({ location, onClose, onImported, defaultTab = "import" }: Props) {
+  const [tab, setTab] = useState<Tab>(defaultTab);
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);

@@ -2,43 +2,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-
-const MERCH_TIERS = [
-  { threshold: 0.09, bonus: 5000 },
-  { threshold: 0.08, bonus: 3000 },
-  { threshold: 0.07, bonus: 1500 },
-] as const;
-
-const SNACKS_THRESHOLD = 0.45;
-const SNACKS_BONUS = 1250;
-const PANIER_THRESHOLD = 190;
-const PANIER_BONUS = 1250;
-const OPEX_THRESHOLD_DEFAULT = 0.095;
-const OPEX_BONUS = 1250;
-const REVIEWS_VOLUME_THRESHOLD = 0.04;
-const REVIEWS_VOLUME_BONUS = 625;
-const REVIEWS_RATING_BONUS = 625;
-const REVIEWS_MIN_COUNT = 10;
-
-// Monthly net revenue (incl. VAT) a shop must reach to unlock the snacks, panier
-// moyen, opex and reviews challenges. Merchandising/goodies is never gated.
-const REVENUE_THRESHOLDS: Record<string, number> = {
-  samui: 1_200_000,
-  ekkamai: 1_200_000,
-  silom: 1_200_000,
-  pattaya: 900_000,
-  "chiang mai": 900_000,
-  phangan: 700_000,
-};
-
-function normalizeLocationKey(title: string): string {
-  return title.replace(/^Capybara Coffee\s*/i, "").trim().toLowerCase();
-}
-
-function computeRatingTarget(currentRating: number): number {
-  if (currentRating <= 0) return 0;
-  return Math.min(4.5, Math.round((currentRating + 0.1) * 10) / 10);
-}
+import {
+  MERCH_TIERS,
+  SNACKS_THRESHOLD,
+  SNACKS_BONUS,
+  PANIER_THRESHOLD,
+  PANIER_BONUS,
+  OPEX_THRESHOLD_DEFAULT,
+  OPEX_BONUS,
+  REVIEWS_VOLUME_THRESHOLD,
+  REVIEWS_VOLUME_BONUS,
+  REVIEWS_RATING_BONUS,
+  REVIEWS_MIN_COUNT,
+  REVENUE_THRESHOLDS,
+  normalizeLocationKey,
+  computeRatingTarget,
+} from "@/modules/challenges/constants";
 
 export interface LocationOverview {
   locationId: string;
