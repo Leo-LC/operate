@@ -312,41 +312,32 @@ function MetricRow({
 }) {
   const isTeamMode = viewMode === "team";
   const showTeamCopy = isTeamMode && !!teamContext;
-  const displayValue = showTeamCopy ? teamContext!.headline : value;
+  const displayValue = showTeamCopy ? teamContext!.value : value;
+  const displayHint = showTeamCopy ? teamContext!.hint : isOwner ? sub : undefined;
   const barColor = passes === true ? "var(--good)" : passes === false ? "var(--warn)" : "var(--fg-4)";
   const lockedQualifying = !!locked && passes === true;
   return (
     <div className="flex flex-col border-b border-[var(--line)] last:border-b-0 py-1.5 gap-1">
-      <div className={`flex justify-between gap-2 ${showTeamCopy ? "items-start" : "items-center"}`}>
-        <div className="flex gap-2 min-w-0 flex-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <StatusDot passes={passes} />
-          <div className="flex flex-col min-w-0 gap-0.5">
-            <span className="text-xs text-[var(--fg-3)]">{label}</span>
-            {showTeamCopy && !loading && (
-              <>
-                <span className="text-[10px] leading-snug text-[var(--fg-4)]">{teamContext!.detail}</span>
-                {teamContext!.gap && (
-                  <span className="text-[10px] leading-snug text-[var(--warn)]">{teamContext!.gap}</span>
-                )}
-              </>
-            )}
-          </div>
+          <span className="text-xs text-[var(--fg-3)] truncate">{label}</span>
         </div>
-        <div className={`flex flex-col items-end shrink-0 ml-2 ${showTeamCopy ? "min-h-[1.5rem] pt-0.5" : "min-h-[2rem] justify-center"}`}>
+        <div className="flex flex-col items-end shrink-0 ml-2 min-h-[2rem] justify-center">
           {loading ? (
             <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
           ) : (
             <>
               <span className={`font-mono text-xs tabular-nums text-right ${statusColor(passes)}`}>{displayValue}</span>
-              {!showTeamCopy && isOwner && (
-                <span className={`font-mono text-[10px] tabular-nums leading-tight min-h-[0.875rem] ${sub ? "text-[var(--fg-4)]" : "text-transparent select-none"}`}>
-                  {sub ?? "\u00a0"}
+              {(showTeamCopy || isOwner) && (
+                <span className={`font-mono text-[10px] tabular-nums leading-tight min-h-[0.875rem] text-right ${displayHint ? "text-[var(--fg-4)]" : "text-transparent select-none"}`}>
+                  {displayHint ?? "\u00a0"}
                 </span>
               )}
             </>
           )}
         </div>
-        <div className={`text-right shrink-0 ml-2 ${isTeamMode ? "w-24" : "w-20"}`}>
+        <div className={`text-right shrink-0 ml-2 ${isTeamMode ? "w-16" : "w-20"}`}>
           {loading ? (
             <div className="h-3 w-12 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
           ) : lockedQualifying ? (
@@ -390,7 +381,7 @@ function RevenueGateBanner({
   const teamContext = isTeam ? buildRevenueContext(loc) : null;
 
   if (loading) {
-    return <div className={`mx-4 mt-3 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)] ${isTeam ? "h-20" : "h-[3.75rem]"}`} />;
+    return <div className="mx-4 mt-3 h-[3.75rem] animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />;
   }
 
   const hasThreshold = threshold !== null;
@@ -418,7 +409,7 @@ function RevenueGateBanner({
       : "text-[var(--fg-4)]";
 
   const amountLabel = isTeam && teamContext
-    ? teamContext.headline
+    ? teamContext.value
     : hasThreshold
       ? amount !== null
         ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿`
@@ -426,6 +417,8 @@ function RevenueGateBanner({
       : amount !== null
         ? `${fmt(amount, 0)} / ${CHALLENGE_LABELS.salesTargetTbd}`
         : CHALLENGE_LABELS.salesTargetTbd;
+
+  const hintLabel = isTeam && teamContext?.hint ? teamContext.hint : null;
 
   const gateLabel = isTeam
     ? isUnlocked
@@ -437,25 +430,20 @@ function RevenueGateBanner({
 
   return (
     <div
-      className={`mx-4 mt-3 flex flex-col justify-center gap-1.5 rounded-[var(--r-sm)] border px-3 py-2 ${bannerStyle} ${isTeam ? "min-h-[4.5rem]" : "h-[3.75rem]"}`}
+      className={`mx-4 mt-3 flex h-[3.75rem] flex-col justify-center gap-1.5 rounded-[var(--r-sm)] border px-3 py-2 ${bannerStyle}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <span className={`text-[10px] font-semibold uppercase tracking-wide ${labelStyle}`}>
-            {gateLabel}
+      <div className="flex items-center justify-between gap-2">
+        <span className={`text-[10px] font-semibold uppercase tracking-wide ${labelStyle}`}>
+          {gateLabel}
+        </span>
+        <div className="flex flex-col items-end shrink-0">
+          <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${valueStyle}`}>
+            {amountLabel}
           </span>
-          {isTeam && teamContext && (
-            <>
-              <span className="text-[10px] leading-snug text-[var(--fg-4)]">{teamContext.detail}</span>
-              {teamContext.gap && (
-                <span className="text-[10px] leading-snug text-[var(--warn)]">{teamContext.gap}</span>
-              )}
-            </>
+          {hintLabel && (
+            <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{hintLabel}</span>
           )}
         </div>
-        <span className={`font-mono text-xs tabular-nums whitespace-nowrap shrink-0 ${valueStyle}`}>
-          {amountLabel}
-        </span>
       </div>
       <div className="h-1.5 rounded-full bg-[var(--bg-2)] overflow-hidden">
         {hasThreshold && ratio !== null && (
@@ -573,10 +561,10 @@ function LocationCard({
           {isTeam ? "Challenge" : "Metric"}
         </span>
         <div className="flex items-center">
-          <span className={`text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] text-right mr-2 ${isTeam ? "w-24" : "w-16"}`}>
+          <span className={`text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] text-right mr-2 ${isTeam ? "w-20" : "w-16"}`}>
             {isTeam ? "Progress" : "Value"}
           </span>
-          <span className={`text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] text-right ${isTeam ? "w-24" : "w-20"}`}>Bonus</span>
+          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-16 text-right">Bonus</span>
         </div>
       </div>
 

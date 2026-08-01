@@ -9,44 +9,30 @@ import {
 } from "./constants";
 
 export interface MetricContext {
-  headline: string;
-  detail: string;
-  gap?: string;
+  value: string;
+  hint?: string;
 }
 
 function fmt(n: number, decimals = 0): string {
   return n.toLocaleString("en-GB", { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
 }
 
-function gatePrefix(loc: LocationOverview): string {
-  const locked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
-  return locked ? "Unlocks after sales target: " : "";
-}
-
 export function buildRevenueContext(loc: LocationOverview): MetricContext {
   const { amount, threshold } = loc.revenue;
 
   if (threshold === null) {
-    const amountStr = amount !== null ? `${fmt(amount, 0)} ฿` : "—";
     return {
-      headline: amountStr,
-      detail: "Hit monthly sales to unlock snack, spend, costs & review bonuses",
+      value: amount !== null ? `${fmt(amount, 0)} ฿` : "—",
+      hint: "Unlocks other bonuses",
     };
   }
 
   const amountStr = amount !== null ? fmt(amount, 0) : "—";
-  const headline = `${amountStr} / ${fmt(threshold, 0)} ฿`;
+  const value = `${amountStr} / ${fmt(threshold, 0)} ฿`;
+  const hint =
+    amount !== null && amount < threshold ? `${fmt(threshold - amount, 0)} ฿ to go` : "Unlocks other bonuses";
 
-  let gap: string | undefined;
-  if (amount !== null && amount < threshold) {
-    gap = `${fmt(threshold - amount, 0)} ฿ to go`;
-  }
-
-  return {
-    headline,
-    detail: "Hit monthly sales to unlock snack, spend, costs & review bonuses",
-    gap,
-  };
+  return { value, hint };
 }
 
 export function buildMerchContext(loc: LocationOverview): MetricContext {
@@ -55,103 +41,63 @@ export function buildMerchContext(loc: LocationOverview): MetricContext {
   const goodies = loc.salesGoodiesNet;
 
   if (ratio === null || sales === null || sales <= 0) {
-    return {
-      headline: "—",
-      detail: "Merch & goodies should be at least 7% of total sales",
-    };
+    return { value: "—", hint: "Target: 7% of sales" };
   }
 
   const tier1Target = Math.ceil(sales * MERCH_TIERS[2].threshold);
-  const tier2Target = Math.ceil(sales * MERCH_TIERS[1].threshold);
-  const tier3Target = Math.ceil(sales * MERCH_TIERS[0].threshold);
   const goodiesAmt = goodies ?? 0;
-
-  let headline: string;
-  if (tier >= 3) {
-    headline = `${fmt(goodiesAmt, 0)} ฿ — Tier 3 (9%+)`;
-  } else if (tier >= 2) {
-    headline = `${fmt(goodiesAmt, 0)} ฿ / ${fmt(tier3Target, 0)} ฿ for Tier 3`;
-  } else if (tier >= 1) {
-    headline = `${fmt(goodiesAmt, 0)} ฿ / ${fmt(tier2Target, 0)} ฿ for Tier 2`;
-  } else {
-    headline = `${fmt(goodiesAmt, 0)} ฿ / ${fmt(tier1Target, 0)} ฿`;
-  }
-
   const pctStr = `${(ratio * 100).toFixed(1)}%`;
-  let detail = `Merch & goodies = 7% of sales for 1,500 ฿ bonus (${pctStr} now)`;
-  if (tier < 3) {
-    const nextThreshold = tier === 0 ? 0.07 : tier === 1 ? 0.08 : 0.09;
-    const nextAmt = Math.ceil(sales * nextThreshold);
-    const nextPct = `${(nextThreshold * 100).toFixed(0)}%`;
-    detail += ` · next tier at ${nextPct} (${fmt(nextAmt, 0)} ฿)`;
-  }
 
-  let gap: string | undefined;
-  if (tier === 0 && goodiesAmt < tier1Target) {
-    gap = `${fmt(tier1Target - goodiesAmt, 0)} ฿ below Tier 1`;
-  }
+  if (tier >= 3) return { value: `${pctStr} · Tier 3`, hint: `${fmt(goodiesAmt, 0)} ฿ merch` };
+  if (tier >= 2) return { value: `${pctStr} · Tier 2`, hint: `${fmt(goodiesAmt, 0)} ฿ merch` };
+  if (tier >= 1) return { value: `${pctStr} · Tier 1`, hint: `${fmt(goodiesAmt, 0)} ฿ merch` };
 
-  return { headline, detail, gap };
+  return {
+    value: `${pctStr} · ${fmt(goodiesAmt, 0)} / ${fmt(tier1Target, 0)} ฿`,
+    hint: "Target: 7% of sales",
+  };
 }
 
 export function buildSnacksContext(loc: LocationOverview): MetricContext {
   const { entryCount, snacksSold } = loc;
 
   if (entryCount === null || snacksSold === null) {
-    return {
-      headline: "—",
-      detail: `${gatePrefix(loc)}Enter visitor & snack counts below to track this`,
-    };
+    return { value: "—", hint: "Enter counts below" };
   }
-
   if (entryCount <= 0) {
-    return {
-      headline: "—",
-      detail: `${gatePrefix(loc)}Enter visitor counts to track snack sales`,
-    };
+    return { value: "—", hint: "Enter visitors below" };
   }
 
   const targetSnacks = Math.ceil(entryCount * SNACKS_THRESHOLD);
-  const headline = `${fmt(snacksSold, 0)} / ${fmt(targetSnacks, 0)} sold`;
-  const detail = `${gatePrefix(loc)}${fmt(entryCount, 0)} visitors → aim for ~1 snack per 2 visitors (45%)`;
+  const value = `${fmt(snacksSold, 0)} / ${fmt(targetSnacks, 0)} snacks`;
+  const hint =
+    snacksSold < targetSnacks
+      ? `${fmt(targetSnacks - snacksSold, 0)} short · ${fmt(entryCount, 0)} visitors`
+      : `${fmt(entryCount, 0)} visitors · ~1 per 2`;
 
-  let gap: string | undefined;
-  if (snacksSold < targetSnacks) {
-    gap = `Short by ${fmt(targetSnacks - snacksSold, 0)} snacks`;
-  }
-
-  return { headline, detail, gap };
+  return { value, hint };
 }
 
 export function buildPanierContext(loc: LocationOverview): MetricContext {
   const { entryCount, salesNetIncVat, salesTicketNet } = loc;
-  const value = loc.panierMoyen.value;
+  const avg = loc.panierMoyen.value;
 
   if (entryCount === null || entryCount <= 0) {
-    return {
-      headline: "—",
-      detail: `${gatePrefix(loc)}Enter visitor counts to track spend per visit`,
-    };
+    return { value: avg !== null ? `${fmt(avg, 0)} ฿ / visitor` : "—", hint: "Enter visitors below" };
   }
 
-  if (salesNetIncVat === null) {
-    return {
-      headline: value !== null ? `${fmt(value, 0)} ฿ / visitor` : "—",
-      detail: `${gatePrefix(loc)}Product sales (excl. tickets) should average ${PANIER_THRESHOLD} ฿ per visitor`,
-    };
+  const value = avg !== null ? `${fmt(avg, 0)} / ${PANIER_THRESHOLD} ฿` : "—";
+  const hint = "Per visitor, excl. tickets";
+
+  if (salesNetIncVat !== null) {
+    const productRevenue = salesNetIncVat - (salesTicketNet ?? 0);
+    const targetRevenue = entryCount * PANIER_THRESHOLD;
+    if (productRevenue < targetRevenue) {
+      return { value, hint: `${fmt(targetRevenue - productRevenue, 0)} ฿ short` };
+    }
   }
 
-  const productRevenue = salesNetIncVat - (salesTicketNet ?? 0);
-  const targetRevenue = entryCount * PANIER_THRESHOLD;
-  const headline = value !== null ? `${fmt(value, 0)} ฿ / visitor` : "—";
-  const detail = `${gatePrefix(loc)}Product sales (excl. tickets) should average ${PANIER_THRESHOLD} ฿ per visitor — target ${fmt(targetRevenue, 0)} ฿ on ${fmt(entryCount, 0)} visitors`;
-
-  let gap: string | undefined;
-  if (productRevenue < targetRevenue) {
-    gap = `${fmt(targetRevenue - productRevenue, 0)} ฿ below target`;
-  }
-
-  return { headline, detail, gap };
+  return { value, hint };
 }
 
 export function buildOpexContext(loc: LocationOverview): MetricContext {
@@ -160,49 +106,37 @@ export function buildOpexContext(loc: LocationOverview): MetricContext {
 
   if (ratio === null || salesNetIncVat === null || salesNetIncVat <= 0 || opexSum === null) {
     return {
-      headline: ratio !== null ? `${(ratio * 100).toFixed(1)}%` : "—",
-      detail: `${gatePrefix(loc)}Keep drinks + animals + Makro costs below 9.5% of sales`,
+      value: ratio !== null ? `${(ratio * 100).toFixed(1)}%` : "—",
+      hint: "Max 9.5% of sales",
     };
   }
 
   const maxSpend = Math.floor(salesNetIncVat * OPEX_THRESHOLD_DEFAULT);
-  const headline = `${fmt(opexSum, 0)} ฿ / ${fmt(maxSpend, 0)} ฿ max`;
-  const detail = `${gatePrefix(loc)}Keep drinks + animals + Makro costs below 9.5% of sales (${fmt(salesNetIncVat, 0)} ฿ sales → max ${fmt(maxSpend, 0)} ฿)`;
+  const value = `${fmt(opexSum, 0)} / ${fmt(maxSpend, 0)} ฿`;
+  const hint =
+    opexSum > maxSpend
+      ? `${(ratio * 100).toFixed(1)}% · ${fmt(opexSum - maxSpend, 0)} ฿ over`
+      : `${(ratio * 100).toFixed(1)}% · max 9.5%`;
 
-  let gap: string | undefined;
-  if (opexSum > maxSpend) {
-    gap = `${fmt(opexSum - maxSpend, 0)} ฿ over cap (${(ratio * 100).toFixed(1)}%)`;
-  }
-
-  return { headline, detail, gap };
+  return { value, hint };
 }
 
 export function buildReviewVolumeContext(loc: LocationOverview): MetricContext {
   const { entryCount } = loc;
-  const { count, volumeRatio } = loc.reviews;
+  const { count } = loc.reviews;
 
   if (entryCount === null || entryCount <= 0) {
-    return {
-      headline: count > 0 ? `${fmt(count, 0)} reviews` : "—",
-      detail: `${gatePrefix(loc)}Enter visitor counts to track review rate`,
-    };
+    return { value: `${fmt(count, 0)} reviews`, hint: "Enter visitors below" };
   }
 
   const targetReviews = Math.ceil(entryCount * REVIEWS_VOLUME_THRESHOLD);
-  const headline = `${fmt(count, 0)} / ${fmt(targetReviews, 0)} reviews`;
-  const detail = `${gatePrefix(loc)}Ask at least 4 Google reviews per 100 visitors — ${fmt(entryCount, 0)} visitors → aim for ${fmt(targetReviews, 0)}`;
+  const value = `${fmt(count, 0)} / ${fmt(targetReviews, 0)} reviews`;
+  const hint =
+    count < targetReviews
+      ? `${fmt(targetReviews - count, 0)} more · 4 per 100 visitors`
+      : "4 reviews per 100 visitors";
 
-  let gap: string | undefined;
-  if (count < targetReviews) {
-    gap = `Need ${fmt(targetReviews - count, 0)} more review${targetReviews - count === 1 ? "" : "s"}`;
-  }
-
-  // Suppress gap when volumeRatio is null but we have partial data
-  if (volumeRatio === null && count === 0) {
-    return { headline: "0 / " + fmt(targetReviews, 0) + " reviews", detail, gap: `Need ${fmt(targetReviews, 0)} reviews` };
-  }
-
-  return { headline, detail, gap };
+  return { value, hint };
 }
 
 export function buildReviewRatingContext(loc: LocationOverview): MetricContext {
@@ -210,28 +144,22 @@ export function buildReviewRatingContext(loc: LocationOverview): MetricContext {
 
   if (count < REVIEWS_MIN_COUNT) {
     return {
-      headline: count > 0 ? `${avgRating.toFixed(1)} ★ avg` : "—",
-      detail: `${gatePrefix(loc)}Only ${fmt(count, 0)} review${count === 1 ? "" : "s"} so far — need ${REVIEWS_MIN_COUNT} before this counts`,
-      gap: count < REVIEWS_MIN_COUNT ? `Need ${REVIEWS_MIN_COUNT - count} more review${REVIEWS_MIN_COUNT - count === 1 ? "" : "s"}` : undefined,
+      value: count > 0 ? `${avgRating.toFixed(1)} ★` : "—",
+      hint: `${REVIEWS_MIN_COUNT - count} more reviews needed`,
     };
   }
 
   if (currentRating <= 0 || ratingTarget <= 0) {
-    return {
-      headline: `${avgRating.toFixed(1)} ★ avg`,
-      detail: `${gatePrefix(loc)}This month's average must beat Google by 0.1★`,
-    };
+    return { value: `${avgRating.toFixed(1)} ★`, hint: "Beat Google by 0.1★" };
   }
 
-  const headline = `${avgRating.toFixed(1)} ★ avg`;
-  const detail = `${gatePrefix(loc)}Beat Google (${currentRating.toFixed(1)}★) → need ${ratingTarget.toFixed(1)}★ average this month, with at least ${REVIEWS_MIN_COUNT} reviews`;
+  const value = `${avgRating.toFixed(1)} / ${ratingTarget.toFixed(1)} ★`;
+  const hint =
+    avgRating < ratingTarget
+      ? `Google: ${currentRating.toFixed(1)}★`
+      : `Google: ${currentRating.toFixed(1)}★ · on target`;
 
-  let gap: string | undefined;
-  if (avgRating < ratingTarget) {
-    gap = `${(ratingTarget - avgRating).toFixed(1)}★ below target`;
-  }
-
-  return { headline, detail, gap };
+  return { value, hint };
 }
 
 export type ViewMode = "internal" | "team";

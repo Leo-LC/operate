@@ -11,7 +11,7 @@ export const CHALLENGE_LABELS = {
   reviewRating: "Review rating",
   visitorCounts: "Visitor counts",
   lockedTooltip: "Unlocks once sales target is reached",
-  lockedUntilSalesTarget: "Locked until sales target",
+  lockedUntilSalesTarget: "Locked",
   gatedBadge: "Needs sales target",
   salesTargetTbd: "To be defined",
 } as const;
@@ -46,13 +46,13 @@ export const LEGEND_ITEMS = [
 ] as const;
 
 export const TEAM_LEGEND_ITEMS = [
-  { label: TEAM_CHALLENGE_LABELS.salesTarget, max: "must hit to unlock bonuses", tiers: "1.2M / 0.9M / 0.7M ฿ monthly sales" },
-  { label: TEAM_CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿", tiers: "7% / 8% / 9% of sales in merch" },
-  { label: TEAM_CHALLENGE_LABELS.snacks, max: "1 250 ฿", tiers: "~1 snack per 2 visitors" },
-  { label: TEAM_CHALLENGE_LABELS.spendPerVisit, max: "1 250 ฿", tiers: "190 ฿ product spend per visitor" },
-  { label: TEAM_CHALLENGE_LABELS.runningCostsPct, max: "1 250 ฿", tiers: "Stock costs under 9.5% of sales" },
-  { label: TEAM_CHALLENGE_LABELS.reviewCount, max: "625 ฿", tiers: "4 Google reviews per 100 visitors" },
-  { label: TEAM_CHALLENGE_LABELS.reviewRating, max: "625 ฿", tiers: "Beat Google by 0.1★ (min 10 reviews/month)" },
+  { label: TEAM_CHALLENGE_LABELS.salesTarget, max: "unlocks bonuses", tiers: "1.2M / 0.9M / 0.7M ฿" },
+  { label: TEAM_CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿", tiers: "7% · 8% · 9% of sales" },
+  { label: TEAM_CHALLENGE_LABELS.snacks, max: "1 250 ฿", tiers: "~1 snack / 2 visitors" },
+  { label: TEAM_CHALLENGE_LABELS.spendPerVisit, max: "1 250 ฿", tiers: "190 ฿ / visitor" },
+  { label: TEAM_CHALLENGE_LABELS.runningCostsPct, max: "1 250 ฿", tiers: "under 9.5% of sales" },
+  { label: TEAM_CHALLENGE_LABELS.reviewCount, max: "625 ฿", tiers: "4 reviews / 100 visitors" },
+  { label: TEAM_CHALLENGE_LABELS.reviewRating, max: "625 ฿", tiers: "+0.1★ vs Google · min 10/mo" },
 ] as const;
 
 export const VIEW_MODE_LABELS = {

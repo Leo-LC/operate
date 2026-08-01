@@ -75,8 +75,8 @@ function bonusCell(
 }
 
 function teamContextHtml(ctx: MetricContext): string {
-  const gap = ctx.gap ? `<br><span class="warn">${escHtml(ctx.gap)}</span>` : "";
-  return `<strong>${escHtml(ctx.headline)}</strong><br><span class="muted">${escHtml(ctx.detail)}</span>${gap}`;
+  const hint = ctx.hint ? `<br><span class="muted">${escHtml(ctx.hint)}</span>` : "";
+  return `<strong>${escHtml(ctx.value)}</strong>${hint}`;
 }
 
 function metricSummaryCell(
@@ -149,7 +149,6 @@ interface MetricDetail {
   label: string;
   value: string;
   target: string;
-  meaning?: string;
   passes: boolean | null;
   bonus: number;
   locked: boolean;
@@ -170,9 +169,8 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
   return [
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.productsPct : CHALLENGE_LABELS.productsPct,
-      value: teamMode ? merchCtx.headline : pct(loc.merchandising.ratio),
-      target: merchTarget,
-      meaning: teamMode ? [merchCtx.detail, merchCtx.gap].filter(Boolean).join(" · ") : undefined,
+      value: teamMode ? merchCtx.value : pct(loc.merchandising.ratio),
+      target: teamMode ? (merchCtx.hint ?? merchTarget) : merchTarget,
       passes: merchPasses,
       bonus: loc.merchandising.bonus,
       locked: false,
@@ -180,9 +178,8 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
     },
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.snacks : CHALLENGE_LABELS.snacks,
-      value: teamMode ? snacksCtx.headline : loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—",
-      target: teamMode ? snacksCtx.detail : "≥ 0.45",
-      meaning: teamMode ? snacksCtx.gap : undefined,
+      value: teamMode ? snacksCtx.value : loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—",
+      target: teamMode ? (snacksCtx.hint ?? "≥ 0.45") : "≥ 0.45",
       passes: loc.snacks.passes,
       bonus: loc.snacks.bonus,
       locked: revenueLocked,
@@ -190,9 +187,8 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
     },
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.spendPerVisit : CHALLENGE_LABELS.spendPerVisit,
-      value: teamMode ? panierCtx.headline : loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—",
-      target: teamMode ? panierCtx.detail : "≥ 190 ฿",
-      meaning: teamMode ? panierCtx.gap : undefined,
+      value: teamMode ? panierCtx.value : loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—",
+      target: teamMode ? (panierCtx.hint ?? "≥ 190 ฿") : "≥ 190 ฿",
       passes: loc.panierMoyen.passes,
       bonus: loc.panierMoyen.bonus,
       locked: revenueLocked,
@@ -200,9 +196,8 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
     },
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.runningCostsPct : CHALLENGE_LABELS.runningCostsPct,
-      value: teamMode ? opexCtx.headline : pct(loc.opex.ratio),
-      target: teamMode ? opexCtx.detail : "< 9.5%",
-      meaning: teamMode ? opexCtx.gap : undefined,
+      value: teamMode ? opexCtx.value : pct(loc.opex.ratio),
+      target: teamMode ? (opexCtx.hint ?? "< 9.5%") : "< 9.5%",
       passes: loc.opex.passes,
       bonus: loc.opex.bonus,
       locked: revenueLocked,
@@ -210,9 +205,8 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
     },
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.reviewCount : CHALLENGE_LABELS.reviewCount,
-      value: teamMode ? reviewVolCtx.headline : loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`,
-      target: teamMode ? reviewVolCtx.detail : "≥ 4%",
-      meaning: teamMode ? reviewVolCtx.gap : undefined,
+      value: teamMode ? reviewVolCtx.value : loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`,
+      target: teamMode ? (reviewVolCtx.hint ?? "≥ 4%") : "≥ 4%",
       passes: loc.reviews.volumePass,
       bonus: loc.reviews.volumeBonus,
       locked: revenueLocked,
@@ -220,13 +214,12 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
     },
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.reviewRating : CHALLENGE_LABELS.reviewRating,
-      value: teamMode ? reviewRatingCtx.headline : loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—",
+      value: teamMode ? reviewRatingCtx.value : loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—",
       target: teamMode
-        ? reviewRatingCtx.detail
+        ? (reviewRatingCtx.hint ?? "—")
         : loc.reviews.currentRating > 0 && loc.reviews.ratingTarget > 0
           ? `≥ ${loc.reviews.ratingTarget.toFixed(1)}`
           : "—",
-      meaning: teamMode ? reviewRatingCtx.gap : undefined,
       passes: loc.reviews.ratingPass,
       bonus: loc.reviews.ratingBonus,
       locked: revenueLocked,
@@ -264,20 +257,17 @@ function buildLocationBlock(loc: LocationOverview, teamMode?: boolean): string {
     }
   }
 
-  const targetHeader = teamMode ? "What this means" : "Target";
+  const targetHeader = teamMode ? "Hint" : "Target";
   const metricHeader = teamMode ? "Challenge" : "Metric";
   const valueHeader = teamMode ? "Progress" : "Value";
 
   const metricRows = buildMetricDetails(loc, teamMode)
     .map((m) => {
       const bonusHtml = bonusCell(m.passes, m.bonus, m.locked, m.potentialBonus, teamMode);
-      const meaningCell = teamMode
-        ? escHtml([m.target, m.meaning].filter(Boolean).join(" · "))
-        : escHtml(m.target);
       return `<tr>
         <td>${escHtml(m.label)}</td>
         <td class="num">${escHtml(m.value)}</td>
-        <td class="muted">${meaningCell}</td>
+        <td class="muted">${escHtml(m.target)}</td>
         <td>${statusSymbol(m.passes)}</td>
         <td class="num">${bonusHtml}</td>
       </tr>`;
