@@ -916,7 +916,7 @@ export function ChallengesOverview({
       ) : isTeamView ? (
         <div className="flex flex-col gap-8">
           {filteredLocations.map((loc) => (
-            <TeamLocationDashboard key={loc.locationId} loc={loc} loading={loading} />
+            <TeamLocationDashboard key={loc.locationId} loc={loc} month={month} loading={loading} />
           ))}
         </div>
       ) : (

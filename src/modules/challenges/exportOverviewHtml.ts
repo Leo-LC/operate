@@ -356,39 +356,47 @@ const PRINT_CSS = [
 const TEAM_PRINT_CSS = [
   "*{box-sizing:border-box;margin:0;padding:0}",
   "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10px;color:#2b231b;background:#f8f6f3}",
-  ".page{padding:16px 20px}",
-  ".dashboard{margin-bottom:24px;padding:16px;border:1px solid rgba(43,35,27,0.1);border-radius:8px;background:#fff;page-break-inside:avoid}",
-  ".dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}",
-  ".dash-title{font-size:22px;font-weight:500;font-style:italic;color:#2b231b}",
-  ".dash-subtitle{font-size:10px;color:#8a7d6a;margin-top:2px}",
+  ".page{padding:12px 16px}",
+  ".dashboard{margin-bottom:18px;padding:12px;border:1px solid rgba(43,35,27,0.1);border-radius:8px;background:#fff;page-break-inside:avoid}",
+  ".dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}",
+  ".dash-title{font-size:18px;font-weight:500;font-style:italic;color:#2b231b}",
+  ".dash-subtitle{font-size:9px;color:#8a7d6a;margin-top:1px}",
   ".dash-logo{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#6b5d4b;text-align:right}",
-  ".kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}",
-  ".kpi-card{border:1px solid rgba(43,35,27,0.1);border-radius:8px;padding:12px;background:#fff}",
-  ".kpi-card.bonus{background:#f5ede3;border-color:rgba(176,135,90,0.2)}",
-  ".kpi-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8a7d6a}",
-  ".kpi-value{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}",
-  ".kpi-bar{height:6px;border-radius:999px;background:#f2f0ec;margin-top:8px;overflow:hidden}",
+  ".kpi-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px}",
+  ".kpi-card{border:1px solid rgba(43,35,27,0.1);border-radius:6px;padding:10px;background:#fff}",
+  ".kpi-card.bonus{background:#e6d4ba;border-color:rgba(176,135,90,0.25);min-width:120px}",
+  ".kpi-sales .sales-top{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}",
+  ".kpi-sales .target-inline{font-size:11px;font-weight:600;color:#8a7d6a}",
+  ".kpi-sales .pct{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:#9a7448}",
+  ".kpi-label{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8a7d6a}",
+  ".kpi-value{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}",
+  ".kpi-bar{height:5px;border-radius:999px;background:#f2f0ec;margin-top:6px;overflow:hidden}",
   ".kpi-bar-fill{height:100%;border-radius:999px}",
-  ".stats-row{display:flex;gap:20px;padding:8px 12px;border:1px solid rgba(43,35,27,0.1);border-radius:6px;background:#f2f0ec;margin-bottom:12px}",
-  ".section-title{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#8a7d6a;margin-bottom:8px}",
-  ".metric-table{width:100%;border-collapse:collapse;border:1px solid rgba(43,35,27,0.1);border-radius:8px;margin-bottom:14px}",
-  ".metric-table th{background:#f2f0ec;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a7d6a;padding:6px 8px;text-align:right}",
-  ".metric-table th:first-child{text-align:left}",
-  ".metric-table td{padding:8px;border-bottom:1px solid rgba(43,35,27,0.06);vertical-align:top;font-variant-numeric:tabular-nums}",
-  ".metric-table td.num{text-align:right;font-size:14px;font-weight:700}",
-  ".metric-table td.target{text-align:right;font-size:10px;color:#4a3f33}",
-  ".metric-name{font-size:10px;font-weight:600;color:#2b231b}",
-  ".metric-sub{font-size:8px;color:#8a7d6a}",
-  ".advice-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}",
-  ".advice-card{border:1px solid rgba(43,35,27,0.1);border-radius:8px;padding:8px;background:#f8f7f4}",
-  ".advice-card .title{font-size:9px;font-weight:700;margin:4px 0}",
-  ".advice-card .gap{font-size:9px;font-weight:700;margin:4px 0}",
-  ".advice-card .tip{font-size:8px;color:#6b5d4b;line-height:1.3}",
-  ".footer{text-align:center;font-size:9px;font-style:italic;color:#8a7d6a;padding-top:8px}",
-  ".pass{color:#16a34a}",
-  ".warn{color:#d97706}",
-  ".muted{color:#8a7d6a}",
-  "@media print{@page{margin:10mm;size:portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.dashboard{page-break-after:always}.dashboard:last-child{page-break-after:auto}}",
+  ".status-row{margin-top:4px;font-size:9px;font-weight:600;display:flex;gap:8px;flex-wrap:wrap}",
+  ".section-title{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#8a7d6a;margin-bottom:6px}",
+  ".metric-table{width:100%;border-collapse:collapse;border:1px solid rgba(43,35,27,0.1);border-radius:6px;margin-bottom:10px}",
+  ".metric-table th{background:#f2f0ec;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a7d6a;padding:5px 8px;text-align:right}",
+  ".metric-table th:first-child{text-align:left;padding-left:10px}",
+  ".metric-table td{padding:6px 8px;border-bottom:1px solid rgba(43,35,27,0.06);vertical-align:top;font-variant-numeric:tabular-nums}",
+  ".metric-table td.gap-cell{padding-right:12px;text-align:right}",
+  ".metric-table td.num{text-align:right;font-size:12px;font-weight:700}",
+  ".metric-table td.target{text-align:right;font-size:9px;color:#4a3f33}",
+  ".metric-table tr.row-pass td{background:rgba(220,252,231,0.6)}",
+  ".metric-table tr.row-warn td{background:rgba(254,243,199,0.5)}",
+  ".metric-name{font-size:9px;font-weight:600;color:#2b231b}",
+  ".metric-sub{font-size:7px;color:#8a7d6a;line-height:1.3}",
+  ".advice-row{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}",
+  ".advice-card{border:1px solid rgba(43,35,27,0.1);border-radius:6px;padding:6px;background:#f8f7f4}",
+  ".advice-card .title{font-size:8px;font-weight:700;margin-bottom:4px}",
+  ".advice-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px}",
+  ".stat-label{font-size:6px;font-weight:600;text-transform:uppercase;color:#8a7d6a}",
+  ".stat-val{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}",
+  ".advice-card .gap{font-size:8px;font-weight:700;margin:4px 0;padding:3px 4px;border-radius:4px}",
+  ".gap-pass{background:#dcfce7}.gap-warn{background:#fef3c7}",
+  ".advice-card .tip{font-size:7px;color:#6b5d4b;line-height:1.35}",
+  ".footer{text-align:center;font-size:8px;font-style:italic;color:#8a7d6a;padding-top:4px}",
+  ".pass{color:#16a34a}.warn{color:#d97706}.fail{color:#dc2626}.muted{color:#8a7d6a}",
+  "@media print{@page{margin:8mm;size:portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.dashboard{page-break-after:always}.dashboard:last-child{page-break-after:auto}}",
 ].join("");
 
 function gapClass(passes: boolean | null): string {
@@ -397,29 +405,55 @@ function gapClass(passes: boolean | null): string {
   return "muted";
 }
 
-function buildTeamDashboardBlock(loc: LocationOverview): string {
+function rowBgClass(passes: boolean | null): string {
+  if (passes === true) return "row-pass";
+  if (passes === false) return "row-warn";
+  return "";
+}
+
+function isMonthPast(month: string): boolean {
+  const [y, m] = month.split("-").map(Number);
+  const now = new Date();
+  return y < now.getFullYear() || (y === now.getFullYear() && m - 1 < now.getMonth());
+}
+
+function salesTargetLabel(
+  unlocked: boolean,
+  ratio: number | null,
+  month: string,
+  amount: number | null,
+  threshold: number | null,
+): string {
+  if (unlocked) return "Sales target achieved!";
+  if (isMonthPast(month)) return "Target not reached";
+  if (ratio !== null && ratio >= 0.9) return "Almost there!";
+  if (amount !== null && threshold !== null && amount < threshold) {
+    return `${fmt(threshold - amount, 0)} ฿ to go`;
+  }
+  return "In progress";
+}
+
+function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
   const name = escHtml(shortLocationName(loc.locationTitle));
   const { amount, threshold, unlocked, ratio } = loc.revenue;
   const pctOfTarget = threshold !== null && ratio !== null ? Math.round(ratio * 100) : null;
-  const barColor = unlocked === true ? "#16a34a" : "#b0875a";
+  const barColor = unlocked === true ? "#16a34a" : ratio !== null && ratio >= 0.9 ? "#d97706" : "#b0875a";
   const barWidth = pctOfTarget !== null ? Math.min(100, pctOfTarget) : 0;
+  const statusLabel = salesTargetLabel(!!unlocked, ratio, month, amount, threshold);
   const metrics = buildTeamMetrics(loc);
 
-  const statsHtml =
+  const visitorLine =
     loc.entryCount !== null || loc.snacksSold !== null
-      ? `<div class="stats-row">
-          ${loc.entryCount !== null ? `<div><div class="kpi-label">Visitors this month</div><div class="kpi-value">${fmt(loc.entryCount, 0)}</div></div>` : ""}
-          ${loc.snacksSold !== null ? `<div><div class="kpi-label">Snacks sold</div><div class="kpi-value">${fmt(loc.snacksSold, 0)}</div></div>` : ""}
-        </div>`
+      ? `<span class="muted">${loc.entryCount !== null ? `${fmt(loc.entryCount, 0)} visitors` : ""}${loc.entryCount !== null && loc.snacksSold !== null ? " · " : ""}${loc.snacksSold !== null ? `${fmt(loc.snacksSold, 0)} snacks` : ""}</span>`
       : "";
 
   const tableRows = metrics
     .map(
-      (m) => `<tr>
+      (m) => `<tr class="${rowBgClass(m.currentPasses)}">
         <td><div class="metric-name">${m.letter}. ${escHtml(m.label)}</div><div class="metric-sub">${escHtml(m.subtitle)}</div></td>
         <td class="num ${gapClass(m.currentPasses)}">${escHtml(m.current)}</td>
         <td class="target">${escHtml(m.target)}</td>
-        <td class="num"><div class="${gapClass(m.gapPasses)}">${escHtml(m.gapPrimary)}</div>${m.gapSecondary ? `<div class="metric-sub">${escHtml(m.gapSecondary)}</div>` : ""}</td>
+        <td class="gap-cell"><div class="${gapClass(m.gapPasses)}">${escHtml(m.gapPrimary)}</div>${m.gapSecondary ? `<div class="metric-sub">${escHtml(m.gapSecondary)}</div>` : ""}</td>
       </tr>`,
     )
     .join("");
@@ -428,11 +462,11 @@ function buildTeamDashboardBlock(loc: LocationOverview): string {
     .map((m) => {
       const achieved = m.gapPasses === true;
       const tip = achieved ? m.achievedTip : m.adviceTip;
-      const gapLabel = achieved ? m.gapPrimary : `Gap: ${m.gapPrimary}`;
+      const gapBg = achieved ? "gap-pass" : m.gapPasses === false ? "gap-warn" : "";
       return `<div class="advice-card">
         <div class="title">${m.letter}. ${escHtml(m.label)}</div>
-        <div class="metric-sub">Current ${escHtml(m.current)} | Target ${escHtml(m.target)}</div>
-        <div class="gap ${gapClass(m.gapPasses)}">${escHtml(gapLabel)}</div>
+        <div class="advice-stats"><div><div class="stat-label">Current</div><div class="stat-val ${gapClass(m.currentPasses)}">${escHtml(m.current)}</div></div><div><div class="stat-label">Target</div><div class="stat-val">${escHtml(m.target)}</div></div></div>
+        <div class="gap ${gapBg} ${gapClass(m.gapPasses)}">${escHtml(m.gapPrimary)}</div>
         <div class="tip">${escHtml(tip)}</div>
       </div>`;
     })
@@ -444,23 +478,16 @@ function buildTeamDashboardBlock(loc: LocationOverview): string {
       <div class="dash-logo">Capybara Coffee</div>
     </div>
     <div class="kpi-row">
-      <div class="kpi-card">
-        <div class="kpi-label ${unlocked === true ? "pass" : ""}">${unlocked === true ? "Sales target achieved!" : "Sales target progress"}</div>
+      <div class="kpi-card kpi-sales">
+        <div class="sales-top"><div><div class="kpi-label">Sales this month</div><div class="kpi-value">${amount !== null ? `฿${fmt(amount, 0)}` : "—"}${threshold !== null ? `<span class="target-inline"> / ฿${fmt(threshold, 0)} target</span>` : ""}</div></div>${pctOfTarget !== null ? `<div class="pct">${pctOfTarget}%</div>` : ""}</div>
         <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
-        ${pctOfTarget !== null ? `<div class="kpi-value ${unlocked === true ? "pass" : ""}">${pctOfTarget}%</div>` : ""}
-      </div>
-      <div class="kpi-card">
-        <div style="display:flex;gap:16px">
-          <div><div class="kpi-label">Sales this month</div><div class="kpi-value ${unlocked === true ? "pass" : ""}">${amount !== null ? `฿${fmt(amount, 0)}` : "—"}</div></div>
-          <div><div class="kpi-label">Target</div><div class="kpi-value" style="font-size:14px">${threshold !== null ? `฿${fmt(threshold, 0)}` : "—"}</div></div>
-        </div>
+        <div class="status-row"><span class="${unlocked ? "pass" : isMonthPast(month) && !unlocked ? "fail" : "muted"}">${escHtml(statusLabel)}</span> ${visitorLine}</div>
       </div>
       <div class="kpi-card bonus">
         <div class="kpi-label">Bonus earned</div>
         <div class="kpi-value">฿${fmt(loc.totalBonus, 0)}</div>
       </div>
     </div>
-    ${statsHtml}
     <div class="section-title">How are we doing?</div>
     <table class="metric-table">
       <thead><tr><th>Metric</th><th>Current</th><th>Target</th><th>Gap to reach target</th></tr></thead>
@@ -483,7 +510,7 @@ function buildTeamPrintHtml(locations: LocationOverview[], month: string): strin
     year: "numeric",
   });
   const title = `Monthly Challenge — ${monthLabel}`;
-  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc)).join("");
+  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc, month)).join("");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${TEAM_PRINT_CSS}</style></head><body>
 <div class="page">

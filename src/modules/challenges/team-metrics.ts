@@ -110,7 +110,7 @@ function buildSnacksMetric(loc: LocationOverview): TeamMetricRow {
 
   if (entryCount !== null && entryCount > 0 && snacksSold !== null) {
     const per100 = Math.round((snacksSold / entryCount) * 100);
-    current = `${per100} per 100 visits`;
+    current = `${per100}/100`;
     if (passes === true) {
       gapPrimary = "Target achieved";
       gapPasses = true;
@@ -133,7 +133,7 @@ function buildSnacksMetric(loc: LocationOverview): TeamMetricRow {
     icon: Cookie,
     current,
     currentPasses: passes,
-    target: `${targetPer100} per 100 visits`,
+    target: `${targetPer100}/100`,
     gapPrimary,
     gapSecondary,
     gapPasses,
@@ -244,7 +244,7 @@ function buildReviewVolumeMetric(loc: LocationOverview): TeamMetricRow {
 
   if (entryCount !== null && entryCount > 0) {
     const per100 = ((count / entryCount) * 100).toFixed(1);
-    current = `${per100} per 100 visits`;
+    current = `${per100}/100`;
     if (passes === true) {
       gapPrimary = "Target achieved";
       gapPasses = true;
@@ -267,7 +267,7 @@ function buildReviewVolumeMetric(loc: LocationOverview): TeamMetricRow {
     icon: Star,
     current,
     currentPasses: passes,
-    target: `${targetPer100} per 100 visits`,
+    target: `${targetPer100}/100`,
     gapPrimary,
     gapSecondary,
     gapPasses,
