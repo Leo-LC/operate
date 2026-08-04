@@ -1,4 +1,4 @@
-import type { LocationOverview } from "@/app/api/challenges/overview/route";
+import type { LocationOverview } from "@/modules/challenges/overview-data";
 import {
   CHALLENGE_LABELS,
   LEGEND_ITEMS,

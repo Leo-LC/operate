@@ -59,3 +59,30 @@ export const VIEW_MODE_LABELS = {
   internal: "Internal",
   team: "Team",
 } as const;
+
+export const SPOTLIGHT_LABELS = {
+  intro:
+    "Each month we highlight one shop that demonstrates strong, consistent execution — and recognise standout results across key metrics. The goal is shared learning, not comparison.",
+  shopSpotlight: "Shop Spotlight",
+  shopSpotlightSubtitle: "A practical example of what strong execution can look like this month",
+  targetsMet: "targets met",
+  whatTheyAchieved: "What they achieved",
+  standoutMetrics: "Standout metrics",
+  practicesWorthNoting: "Practices worth noting",
+  whatOthersCanTry: "What other shops can try",
+  metricRecognition: "Metric recognition",
+  monthInProgress: "Month in progress — figures update as data comes in.",
+  footerNote:
+    "Each shop operates in different conditions. The actions behind these results can be understood and adapted — not copied blindly.",
+  insufficientData: "Not enough data yet for a full spotlight this month.",
+  dataPending: "Data pending",
+  noPriorMonth: "Not enough prior-month data",
+  alsoStrong: "Also strong",
+  recognitions: {
+    snacks: "Snack performance",
+    reviews: "Review performance",
+    spend: "Average spend",
+    completion: "Challenge completion",
+    improved: "Most improved",
+  },
+} as const;

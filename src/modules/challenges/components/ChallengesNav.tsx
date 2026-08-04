@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 const BASE_TABS = [
   { label: "Overview", href: "/challenges/overview" },
   { label: "Reviews", href: "/challenges/reviews" },
+  { label: "Spotlight", href: "/challenges/spotlight" },
 ] as const;
 
 const OWNER_TABS = [

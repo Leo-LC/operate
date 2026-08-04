@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getChallengesOverview, type LocationOverview } from "@/modules/challenges/overview-data";
-
-export type { LocationOverview };
+import { getChallengesOverview } from "@/modules/challenges/overview-data";
+import { addMonths, buildSpotlightResponse } from "@/modules/challenges/spotlight";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -15,10 +14,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const locations = await getChallengesOverview(month);
-    return Response.json({ locations });
+    const priorMonth = addMonths(month, -1);
+    const [current, prior] = await Promise.all([
+      getChallengesOverview(month),
+      getChallengesOverview(priorMonth),
+    ]);
+
+    const payload = buildSpotlightResponse(month, current, prior);
+    return Response.json(payload);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to load overview";
+    const message = err instanceof Error ? err.message : "Failed to load spotlight";
     return Response.json({ error: message }, { status: 500 });
   }
 }

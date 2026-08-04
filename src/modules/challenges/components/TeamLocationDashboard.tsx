@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Leaf } from "lucide-react";
-import type { LocationOverview } from "@/app/api/challenges/overview/route";
+import type { LocationOverview } from "@/modules/challenges/overview-data";
 import {
   SNACKS_BONUS,
   PANIER_BONUS,

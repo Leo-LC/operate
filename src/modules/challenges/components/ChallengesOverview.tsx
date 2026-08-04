@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MonthSelector } from "./MonthSelector";
 import type { AdminLocation } from "@/modules/admin/types";
 import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
-import type { LocationOverview } from "@/app/api/challenges/overview/route";
+import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
 import {
   CHALLENGE_LABELS,
