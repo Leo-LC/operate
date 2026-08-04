@@ -26,6 +26,14 @@ export interface MetricRecognition {
   unavailableReason?: string;
 }
 
+export interface SpotlightMetricRow {
+  id: string;
+  label: string;
+  value: string;
+  target: string;
+  passes: boolean | null;
+}
+
 export interface FeaturedShopSpotlight {
   available: boolean;
   locationId?: string;
@@ -33,9 +41,15 @@ export interface FeaturedShopSpotlight {
   executionScore?: number;
   executionTotal?: number;
   summaryStats?: { label: string; value: string }[];
+  metricBreakdown?: SpotlightMetricRow[];
+  tips?: string[];
+  /** @deprecated Use metricBreakdown in UI */
   achievements?: string[];
+  /** @deprecated Use summaryStats in UI */
   standoutMetrics?: { label: string; value: string }[];
+  /** @deprecated Use tips in UI */
   practices?: string[];
+  /** @deprecated Use tips in UI */
   learnings?: string[];
 }
 
@@ -187,10 +201,18 @@ export function pickFeaturedShop(locations: LocationOverview[]): FeaturedShopSpo
 
 export function buildSpotlightNarrative(loc: LocationOverview): Pick<
   FeaturedShopSpotlight,
-  "summaryStats" | "achievements" | "standoutMetrics" | "practices" | "learnings"
+  "summaryStats" | "metricBreakdown" | "tips" | "achievements" | "standoutMetrics" | "practices" | "learnings"
 > {
   const teamMetrics = buildTeamMetrics(loc);
   const passed = teamMetrics.filter((m) => m.currentPasses === true);
+
+  const metricBreakdown: SpotlightMetricRow[] = teamMetrics.map((m) => ({
+    id: m.id,
+    label: m.label,
+    value: m.current,
+    target: m.target,
+    passes: m.currentPasses,
+  }));
 
   const achievements = passed.map((m) => `${m.label}: ${m.current} (target ${m.target})`);
 
@@ -253,9 +275,12 @@ export function buildSpotlightNarrative(loc: LocationOverview): Pick<
 
   const practices = passed.slice(0, 4).map((m) => m.adviceTip);
   const learnings = passed.slice(0, 3).map((m) => m.adviceTip);
+  const tips = Array.from(new Set(passed.slice(0, 3).map((m) => m.adviceTip)));
 
   return {
     summaryStats,
+    metricBreakdown,
+    tips,
     achievements,
     standoutMetrics,
     practices: Array.from(new Set(practices)),
