@@ -1,5 +1,5 @@
 import { SPOTLIGHT_LABELS } from "@/modules/challenges/labels";
-import type { SpotlightResponse } from "@/modules/challenges/spotlight";
+import type { RecognitionVisual, SpotlightResponse } from "@/modules/challenges/spotlight";
 
 function escHtml(s: string): string {
   return s
@@ -33,14 +33,27 @@ const PRINT_CSS = [
   ".section{padding:12px 16px;border-top:1px solid rgba(43,35,27,0.08)}",
   ".section-title{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#8a7d6a;margin-bottom:8px}",
   ".metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}",
-  ".metric{border:1px solid rgba(43,35,27,0.1);border-radius:6px;padding:8px;background:#f8f7f4}",
-  ".metric.pass{border-color:rgba(22,163,74,0.25);background:rgba(220,252,231,0.4)}",
-  ".metric.miss{border-color:rgba(217,119,6,0.25);background:rgba(254,243,199,0.35)}",
-  ".metric-label{font-size:8px;font-weight:600;color:#4a3f33}",
-  ".metric-value{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}",
-  ".metric-target{font-size:7px;color:#8a7d6a;margin-top:2px}",
-  ".metric-badge{font-size:7px;font-weight:700;text-transform:uppercase;margin-top:4px}",
+  ".metric{display:flex;overflow:hidden;border:1px solid rgba(43,35,27,0.1);border-radius:6px;background:#fff}",
+  ".metric-bar{width:3px;flex-shrink:0}",
+  ".metric-body{display:flex;align-items:center;gap:8px;padding:6px 8px;flex:1;min-width:0}",
+  ".metric-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}",
+  ".metric-label{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8a7d6a}",
+  ".metric-value{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}",
+  ".metric-target{font-size:7px;color:#8a7d6a}",
+  ".metric-badge{font-size:7px;font-weight:700;text-transform:uppercase;margin-left:auto;text-align:right}",
   ".metric-badge.pass{color:#16a34a}.metric-badge.miss{color:#d97706}.metric-badge.pending{color:#8a7d6a}",
+  ".visual-ring{display:flex;align-items:center;gap:8px}",
+  ".visual-ring-num{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}",
+  ".visual-tiers{display:flex;gap:3px;margin-bottom:4px}",
+  ".visual-tier{height:4px;flex:1;border-radius:999px;background:#f2f0ec}",
+  ".visual-tier.on{background:#9a7448}",
+  ".visual-dual{display:grid;grid-template-columns:1fr 1fr;gap:4px}",
+  ".visual-stat{border:1px solid rgba(43,35,27,0.1);border-radius:4px;padding:4px 6px;text-align:center;background:#f8f7f4}",
+  ".visual-stat-label{font-size:6px;font-weight:700;text-transform:uppercase;color:#8a7d6a}",
+  ".visual-stat-val{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}",
+  ".visual-hero{text-align:center;padding:4px 0}",
+  ".visual-hero-val{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}",
+  ".visual-delta{font-size:16px;font-weight:700;color:#2563eb}",
   ".tips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}",
   ".tip{border:1px solid rgba(43,35,27,0.1);border-radius:6px;padding:8px;background:#fff;font-size:9px;line-height:1.4;color:#4a3f33}",
   ".shoutouts{margin-top:14px;page-break-inside:avoid}",
@@ -70,18 +83,6 @@ const ACCENT_COLORS: Record<string, string> = {
   improved: "#2563eb",
 };
 
-function metricClass(passes: boolean | null): string {
-  if (passes === true) return "pass";
-  if (passes === false) return "miss";
-  return "";
-}
-
-function metricBadge(passes: boolean | null): string {
-  if (passes === true) return `<div class="metric-badge pass">${escHtml(SPOTLIGHT_LABELS.statusPass)}</div>`;
-  if (passes === false) return `<div class="metric-badge miss">${escHtml(SPOTLIGHT_LABELS.statusMiss)}</div>`;
-  return `<div class="metric-badge pending">${escHtml(SPOTLIGHT_LABELS.statusPending)}</div>`;
-}
-
 function buildFeaturedSection(data: SpotlightResponse): string {
   const { featured } = data;
   if (!featured.available) {
@@ -99,14 +100,29 @@ function buildFeaturedSection(data: SpotlightResponse): string {
     .join("");
 
   const metricsHtml = (featured.metricBreakdown ?? [])
-    .map(
-      (m) => `<div class="metric ${metricClass(m.passes)}">
-        <div class="metric-label">${escHtml(m.label)}</div>
-        <div class="metric-value">${escHtml(m.value)}</div>
-        <div class="metric-target">Target: ${escHtml(m.target)}</div>
-        ${metricBadge(m.passes)}
-      </div>`,
-    )
+    .map((m) => {
+      const accent = metricAccent(m.passes);
+      const badge =
+        m.passes === true
+          ? SPOTLIGHT_LABELS.statusPass
+          : m.passes === false
+            ? SPOTLIGHT_LABELS.statusMiss
+            : SPOTLIGHT_LABELS.statusPending;
+      const badgeClass =
+        m.passes === true ? "pass" : m.passes === false ? "miss" : "pending";
+      return `<div class="metric">
+        <div class="metric-bar" style="background:${accent}"></div>
+        <div class="metric-body">
+          <div style="min-width:0;flex:1">
+            <div class="metric-label">${escHtml(m.label)}</div>
+            <div class="metric-value">${escHtml(m.value)}</div>
+          </div>
+          <div class="metric-badge ${badgeClass}">
+            ${escHtml(badge)}<br><span class="metric-target">${escHtml(m.target)}</span>
+          </div>
+        </div>
+      </div>`;
+    })
     .join("");
 
   const tipsHtml = (featured.tips ?? [])
@@ -135,6 +151,41 @@ function buildFeaturedSection(data: SpotlightResponse): string {
   </article>`;
 }
 
+function metricAccent(passes: boolean | null): string {
+  if (passes === true) return "#16a34a";
+  if (passes === false) return "#d97706";
+  return "#8a7d6a";
+}
+
+function renderRecognitionVisual(visual: RecognitionVisual): string {
+  switch (visual.type) {
+    case "ring":
+      return `<div class="visual-ring"><div class="visual-ring-num">${escHtml(visual.primary)}</div><div class="card-sub">${escHtml(visual.secondary)}</div></div>`;
+    case "tiers": {
+      const bars = Array.from({ length: visual.maxTier })
+        .map((_, i) => `<div class="visual-tier${i < visual.tier ? " on" : ""}"></div>`)
+        .join("");
+      return `<div class="visual-tiers">${bars}</div>
+        <div class="card-value">${escHtml(visual.pctLabel)}</div>
+        ${visual.tier > 0 ? `<div class="card-sub">Tier ${visual.tier} reached</div>` : ""}
+        ${visual.nextLabel ? `<div class="card-sub">${escHtml(visual.nextLabel)}</div>` : ""}`;
+    }
+    case "dual":
+      return `<div class="visual-dual">
+        ${[visual.left, visual.right]
+          .map(
+            (s) =>
+              `<div class="visual-stat"><div class="visual-stat-label">${escHtml(s.label)}</div><div class="visual-stat-val">${escHtml(s.value)}</div></div>`,
+          )
+          .join("")}
+      </div>`;
+    case "hero":
+      return `<div class="visual-hero"><div class="visual-hero-val">${escHtml(visual.value)}</div>${visual.unit ? `<div class="card-sub">${escHtml(visual.unit)}</div>` : ""}</div>`;
+    case "delta":
+      return `<div><span class="visual-delta">${escHtml(visual.delta)}</span> <span class="card-sub">${visual.from} → ${visual.to} of ${visual.total} targets</span></div>`;
+  }
+}
+
 function buildShoutoutsSection(data: SpotlightResponse): string {
   const cards = data.recognitions
     .map((r) => {
@@ -151,7 +202,7 @@ function buildShoutoutsSection(data: SpotlightResponse): string {
       const body = r.unavailable
         ? `<div class="card-value muted">—</div>${unavailableReason ? `<div class="card-sub">${escHtml(unavailableReason)}</div>` : ""}`
         : `<div class="card-shop" style="color:${accent}">${escHtml(r.locationTitle)}</div>
-           <div class="card-value">${escHtml(r.value)}</div>
+           ${r.visual ? renderRecognitionVisual(r.visual) : `<div class="card-value">${escHtml(r.value)}</div>`}
            ${r.sub ? `<div class="card-sub">${escHtml(r.sub)}</div>` : ""}
            ${r.alsoStrong?.length ? `<div class="card-also">${escHtml(SPOTLIGHT_LABELS.alsoStrong)}: ${escHtml(r.alsoStrong.join(", "))}</div>` : ""}`;
 

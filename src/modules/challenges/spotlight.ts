@@ -22,6 +22,39 @@ export type RecognitionKind =
   | "completion"
   | "improved";
 
+export type RecognitionVisual =
+  | {
+      type: "ring";
+      primary: string;
+      secondary: string;
+      progress: number;
+      tone?: "good" | "bronze" | "warn";
+    }
+  | {
+      type: "tiers";
+      tier: number;
+      maxTier: number;
+      pctLabel: string;
+      nextLabel?: string;
+    }
+  | {
+      type: "dual";
+      left: { label: string; value: string };
+      right: { label: string; value: string };
+    }
+  | {
+      type: "hero";
+      value: string;
+      unit?: string;
+    }
+  | {
+      type: "delta";
+      delta: string;
+      from: number;
+      to: number;
+      total: number;
+    };
+
 export interface MetricRecognition {
   kind: RecognitionKind;
   locationId: string;
@@ -29,6 +62,7 @@ export interface MetricRecognition {
   value: string;
   sub?: string;
   alsoStrong?: string[];
+  visual?: RecognitionVisual;
   unavailable?: boolean;
   unavailableReason?: string;
 }
@@ -153,11 +187,88 @@ function reviewPerformanceScore(loc: LocationOverview): number | null {
   return score + (volumeRatio ?? 0) + avgRating / 10;
 }
 
+const MERCH_TIER_THRESHOLDS = [0.07, 0.08, 0.09] as const;
+
+function buildRevenueVisual(loc: LocationOverview): RecognitionVisual {
+  const ratio = loc.revenue.ratio ?? loc.revenue.amount! / loc.revenue.threshold!;
+  const pct = Math.round(ratio * 100);
+  return {
+    type: "ring",
+    primary: `${pct}%`,
+    secondary: "of sales target",
+    progress: Math.min(pct, 100),
+    tone: ratio >= 1 ? "good" : "bronze",
+  };
+}
+
+function buildMerchVisual(loc: LocationOverview): RecognitionVisual {
+  const { tier, ratio } = loc.merchandising;
+  const pctLabel = ratio !== null ? `${(ratio * 100).toFixed(1)}% of sales` : "—";
+  let nextLabel: string | undefined;
+  if (ratio !== null && tier < 3) {
+    const nextThreshold = MERCH_TIER_THRESHOLDS[tier as 0 | 1 | 2];
+    const gap = Math.max(0, nextThreshold - ratio);
+    nextLabel =
+      gap > 0.0001
+        ? `${(gap * 100).toFixed(1)}% to Tier ${tier + 1}`
+        : `Tier ${tier + 1} unlocked`;
+  } else if (tier >= 3) {
+    nextLabel = "Max tier reached";
+  }
+  return { type: "tiers", tier, maxTier: 3, pctLabel, nextLabel };
+}
+
+function buildReviewsVisual(loc: LocationOverview): RecognitionVisual {
+  const volValue =
+    loc.reviews.volumeRatio !== null
+      ? `${(loc.reviews.volumeRatio * 100).toFixed(1)}`
+      : `${loc.reviews.count}`;
+  const volLabel =
+    loc.reviews.volumeRatio !== null ? "Reviews / 100 visitors" : "Total reviews";
+  const ratingValue = loc.reviews.count > 0 ? `${loc.reviews.avgRating.toFixed(1)}★` : "—";
+  return {
+    type: "dual",
+    left: { label: volLabel, value: volValue },
+    right: { label: "Avg rating", value: ratingValue },
+  };
+}
+
+function buildSnacksVisual(loc: LocationOverview): RecognitionVisual {
+  const pct = Math.round(loc.snacks.ratio! * 100);
+  return {
+    type: "ring",
+    primary: `${pct}`,
+    secondary: "snacks / 100 visits",
+    progress: Math.min(pct, 100),
+    tone: loc.snacks.passes ? "good" : "bronze",
+  };
+}
+
+function buildSpendVisual(loc: LocationOverview): RecognitionVisual {
+  return {
+    type: "hero",
+    value: `฿${fmt(loc.panierMoyen.value!, 0)}`,
+    unit: "per visitor",
+  };
+}
+
+function buildCompletionVisual(loc: LocationOverview): RecognitionVisual {
+  const score = computeExecutionScore(loc);
+  return {
+    type: "ring",
+    primary: `${score}`,
+    secondary: `of ${EXECUTION_METRIC_COUNT} targets hit`,
+    progress: (score / EXECUTION_METRIC_COUNT) * 100,
+    tone: score >= EXECUTION_METRIC_COUNT - 1 ? "good" : "bronze",
+  };
+}
+
 function pickLeader<T extends LocationOverview>(
   locations: T[],
   scoreFn: (loc: T) => number | null,
   valueFn: (loc: T) => string,
   subFn?: (loc: T) => string | undefined,
+  visualFn?: (loc: T) => RecognitionVisual,
 ): Omit<MetricRecognition, "kind"> | null {
   const eligible = locations
     .map((loc) => ({ loc, score: scoreFn(loc) }))
@@ -179,6 +290,7 @@ function pickLeader<T extends LocationOverview>(
     locationTitle: shortLocationName(best.loc.locationTitle),
     value: valueFn(best.loc),
     sub: subFn?.(best.loc),
+    visual: visualFn?.(best.loc),
     alsoStrong:
       tied.length > 0
         ? tied.slice(0, 2).map((t) => shortLocationName(t.loc.locationTitle))
@@ -310,9 +422,10 @@ export function pickMetricLeaders(
     },
     (loc) => {
       if (loc.revenue.unlocked === true) return "Sales target reached";
-      if (loc.revenue.ratio !== null) return `${Math.round(loc.revenue.ratio * 100)}% of target`;
-      return undefined;
+      const remaining = loc.revenue.threshold! - (loc.revenue.amount ?? 0);
+      return remaining > 0 ? `฿${fmt(remaining, 0)} to go` : undefined;
     },
+    buildRevenueVisual,
   );
 
   const merchLeader = pickLeader(
@@ -325,15 +438,10 @@ export function pickMetricLeaders(
     (loc) => loc.merchandising.ratio!,
     (loc) => `${(loc.merchandising.ratio! * 100).toFixed(1)}% of sales`,
     (loc) => {
-      const { tier } = loc.merchandising;
       const goodies = loc.salesGoodiesNet;
-      if (tier >= 1) {
-        return goodies !== null
-          ? `Tier ${tier} · ฿${fmt(goodies, 0)} merch`
-          : `Tier ${tier}`;
-      }
       return goodies !== null ? `฿${fmt(goodies, 0)} merch sales` : undefined;
     },
+    buildMerchVisual,
   );
 
   const snacksLeader = pickLeader(
@@ -341,28 +449,42 @@ export function pickMetricLeaders(
     (loc) => loc.snacks.ratio!,
     (loc) => `${Math.round(loc.snacks.ratio! * 100)}/100 visits`,
     (loc) => `${fmt(loc.snacksSold ?? 0, 0)} snacks · ${fmt(loc.entryCount ?? 0, 0)} visitors`,
+    buildSnacksVisual,
   );
 
   const reviewsLeader = pickLeader(
     current.filter((loc) => loc.reviews.count > 0 || loc.reviews.volumeRatio !== null),
     (loc) => reviewPerformanceScore(loc)!,
     (loc) => {
-      const vol = loc.reviews.volumeRatio !== null ? `${(loc.reviews.volumeRatio * 100).toFixed(1)}/100` : `${loc.reviews.count} reviews`;
-      const rating = loc.reviews.count > 0 ? `${loc.reviews.avgRating.toFixed(1)}★` : "";
+      const vol =
+        loc.reviews.volumeRatio !== null
+          ? `${(loc.reviews.volumeRatio * 100).toFixed(1)} reviews / 100 visitors`
+          : `${loc.reviews.count} reviews`;
+      const rating = loc.reviews.count > 0 ? `${loc.reviews.avgRating.toFixed(1)}★ avg` : "";
       return rating ? `${vol} · ${rating}` : vol;
     },
+    (loc) =>
+      loc.reviews.count > 0 ? `${loc.reviews.count} Google reviews this month` : undefined,
+    buildReviewsVisual,
   );
 
   const spendLeader = pickLeader(
     current.filter((loc) => loc.panierMoyen.value !== null),
     (loc) => loc.panierMoyen.value!,
     (loc) => `฿${fmt(loc.panierMoyen.value!, 0)} / visitor`,
+    (loc) =>
+      loc.panierMoyen.passes
+        ? `Above ฿${fmt(PANIER_THRESHOLD, 0)} target`
+        : `Target: ฿${fmt(PANIER_THRESHOLD, 0)} / visitor`,
+    buildSpendVisual,
   );
 
   const completionLeader = pickLeader(
     current.filter((loc) => countScorableMetrics(loc) >= MIN_SCORABLE_FOR_IMPROVED),
     (loc) => computeExecutionScore(loc),
     (loc) => `${computeExecutionScore(loc)}/${EXECUTION_METRIC_COUNT} targets met`,
+    undefined,
+    buildCompletionVisual,
   );
 
   let improvedLeader: Omit<MetricRecognition, "kind"> | null = null;
@@ -393,6 +515,13 @@ export function pickMetricLeaders(
         locationTitle: shortLocationName(best.loc.locationTitle),
         value: `+${best.delta} target${best.delta === 1 ? "" : "s"} vs last month`,
         sub: `${best.prevScore} → ${best.currScore} of ${EXECUTION_METRIC_COUNT} targets met`,
+        visual: {
+          type: "delta",
+          delta: `+${best.delta}`,
+          from: best.prevScore,
+          to: best.currScore,
+          total: EXECUTION_METRIC_COUNT,
+        },
       };
     } else {
       const hasPriorData = current.some((loc) => {
