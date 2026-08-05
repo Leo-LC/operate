@@ -7,7 +7,7 @@ import {
   REVIEWS_VOLUME_THRESHOLD,
   REVIEWS_MIN_COUNT,
 } from "@/modules/challenges/constants";
-import { buildTeamMetrics, shortLocationName } from "@/modules/challenges/team-metrics";
+import { buildTeamMetrics, shortLocationName, type TeamMetricRow } from "@/modules/challenges/team-metrics";
 
 const EXECUTION_METRIC_COUNT = 6;
 const MIN_SCORABLE_FOR_SPOTLIGHT = 3;
@@ -29,6 +29,7 @@ export type RecognitionVisual =
       secondary: string;
       progress: number;
       tone?: "good" | "bronze" | "warn";
+      detail?: string;
     }
   | {
       type: "tiers";
@@ -71,6 +72,7 @@ export interface SpotlightMetricRow {
   id: string;
   label: string;
   value: string;
+  valueHint?: string;
   target: string;
   passes: boolean | null;
 }
@@ -196,6 +198,7 @@ function buildRevenueVisual(loc: LocationOverview): RecognitionVisual {
     type: "ring",
     primary: `${pct}%`,
     secondary: "of sales target",
+    detail: `฿${fmt(loc.revenue.amount!, 0)} / ฿${fmt(loc.revenue.threshold!, 0)}`,
     progress: Math.min(pct, 100),
     tone: ratio >= 1 ? "good" : "bronze",
   };
@@ -298,6 +301,92 @@ function pickLeader<T extends LocationOverview>(
   };
 }
 
+function parsePer100Value(
+  current: string,
+  unit: string,
+): { value: string; hint?: string } {
+  const match = current.match(/^([\d.]+)\/100$/);
+  if (!match) return { value: current };
+  const num = parseFloat(match[1]);
+  const displayNum = Number.isInteger(num) ? String(Math.round(num)) : num.toFixed(1);
+  return { value: displayNum, hint: `${unit} every 100 visitors` };
+}
+
+function enrichSpotlightMetricRow(metric: TeamMetricRow): SpotlightMetricRow {
+  const snacksPer100 = Math.round(SNACKS_THRESHOLD * 100);
+  const reviewsPer100 = Math.round(REVIEWS_VOLUME_THRESHOLD * 100);
+  const opexTargetPct = (OPEX_THRESHOLD_DEFAULT * 100).toFixed(1);
+
+  switch (metric.id) {
+    case "merch":
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: metric.current,
+        valueHint: metric.current !== "—" ? "of total revenue" : undefined,
+        target: `Target: ${metric.target} of revenue`,
+        passes: metric.currentPasses,
+      };
+    case "snacks": {
+      const parsed = parsePer100Value(metric.current, "snacks");
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: parsed.value,
+        valueHint: parsed.hint,
+        target: `Target: ${snacksPer100} snacks every 100 visitors`,
+        passes: metric.currentPasses,
+      };
+    }
+    case "opex":
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: metric.current,
+        valueHint: metric.current !== "—" ? "of total sales" : undefined,
+        target: `Target: under ${opexTargetPct}% of sales`,
+        passes: metric.currentPasses,
+      };
+    case "reviews": {
+      const parsed = parsePer100Value(metric.current, "reviews");
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: parsed.value,
+        valueHint: parsed.hint,
+        target: `Target: ${reviewsPer100} reviews every 100 visitors`,
+        passes: metric.currentPasses,
+      };
+    }
+    case "spend":
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: metric.current,
+        valueHint: metric.current.startsWith("฿") ? "per visitor" : undefined,
+        target: `Target: ฿${fmt(PANIER_THRESHOLD, 0)} per visitor`,
+        passes: metric.currentPasses,
+      };
+    case "rating":
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: metric.current,
+        valueHint: metric.current !== "—" ? "avg this month" : undefined,
+        target: `Target: ${metric.target}`,
+        passes: metric.currentPasses,
+      };
+    default:
+      return {
+        id: metric.id,
+        label: metric.label,
+        value: metric.current,
+        target: `Target: ${metric.target}`,
+        passes: metric.currentPasses,
+      };
+  }
+}
+
 export function pickFeaturedShop(locations: LocationOverview[]): FeaturedShopSpotlight {
   const eligible = locations.filter((loc) => countScorableMetrics(loc) >= MIN_SCORABLE_FOR_SPOTLIGHT);
   if (eligible.length === 0) {
@@ -325,13 +414,7 @@ export function buildSpotlightNarrative(loc: LocationOverview): Pick<
   const teamMetrics = buildTeamMetrics(loc);
   const passed = teamMetrics.filter((m) => m.currentPasses === true);
 
-  const metricBreakdown: SpotlightMetricRow[] = teamMetrics.map((m) => ({
-    id: m.id,
-    label: m.label,
-    value: m.current,
-    target: m.target,
-    passes: m.currentPasses,
-  }));
+  const metricBreakdown: SpotlightMetricRow[] = teamMetrics.map(enrichSpotlightMetricRow);
 
   const achievements = passed.map((m) => `${m.label}: ${m.current} (target ${m.target})`);
 

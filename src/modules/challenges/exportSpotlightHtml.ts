@@ -39,11 +39,13 @@ const PRINT_CSS = [
   ".metric-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}",
   ".metric-label{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8a7d6a}",
   ".metric-value{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}",
-  ".metric-target{font-size:7px;color:#8a7d6a}",
+  ".metric-hint{font-size:7px;font-weight:500;color:#8a7d6a;margin-left:3px}",
+  ".metric-target-row{font-size:8px;font-weight:600;color:#4a3f33;margin-top:2px}",
   ".metric-badge{font-size:7px;font-weight:700;text-transform:uppercase;margin-left:auto;text-align:right}",
   ".metric-badge.pass{color:#16a34a}.metric-badge.miss{color:#d97706}.metric-badge.pending{color:#8a7d6a}",
   ".visual-ring{display:flex;align-items:center;gap:8px}",
   ".visual-ring-num{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}",
+  ".visual-ring-detail{font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;color:#4a3f33;margin-top:3px}",
   ".visual-tiers{display:flex;gap:3px;margin-bottom:4px}",
   ".visual-tier{height:4px;flex:1;border-radius:999px;background:#f2f0ec}",
   ".visual-tier.on{background:#9a7448}",
@@ -115,11 +117,10 @@ function buildFeaturedSection(data: SpotlightResponse): string {
         <div class="metric-body">
           <div style="min-width:0;flex:1">
             <div class="metric-label">${escHtml(m.label)}</div>
-            <div class="metric-value">${escHtml(m.value)}</div>
+            <div class="metric-value">${escHtml(m.value)}${m.valueHint ? `<span class="metric-hint">${escHtml(m.valueHint)}</span>` : ""}</div>
+            <div class="metric-target-row">${escHtml(m.target)}</div>
           </div>
-          <div class="metric-badge ${badgeClass}">
-            ${escHtml(badge)}<br><span class="metric-target">${escHtml(m.target)}</span>
-          </div>
+          <div class="metric-badge ${badgeClass}">${escHtml(badge)}</div>
         </div>
       </div>`;
     })
@@ -160,7 +161,7 @@ function metricAccent(passes: boolean | null): string {
 function renderRecognitionVisual(visual: RecognitionVisual): string {
   switch (visual.type) {
     case "ring":
-      return `<div class="visual-ring"><div class="visual-ring-num">${escHtml(visual.primary)}</div><div class="card-sub">${escHtml(visual.secondary)}</div></div>`;
+      return `<div class="visual-ring"><div class="visual-ring-num">${escHtml(visual.primary)}</div><div class="card-sub">${escHtml(visual.secondary)}</div></div>${visual.detail ? `<div class="visual-ring-detail">${escHtml(visual.detail)}</div>` : ""}`;
     case "tiers": {
       const bars = Array.from({ length: visual.maxTier })
         .map((_, i) => `<div class="visual-tier${i < visual.tier ? " on" : ""}"></div>`)

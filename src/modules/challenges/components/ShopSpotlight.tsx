@@ -118,12 +118,14 @@ function RingGauge({
   progress,
   tone = "good",
   size = "md",
+  detail,
 }: {
   primary: string;
   secondary: string;
   progress: number;
   tone?: "good" | "bronze" | "warn";
   size?: "sm" | "md";
+  detail?: string;
 }) {
   const color =
     tone === "good" ? "var(--good)" : tone === "warn" ? "var(--warn)" : "var(--bronze-2)";
@@ -132,25 +134,32 @@ function RingGauge({
   const inner = size === "sm" ? 42 : 48;
 
   return (
-    <div className="flex items-center gap-2.5">
-      <div
-        className="relative flex shrink-0 items-center justify-center rounded-full"
-        style={{
-          width: dim,
-          height: dim,
-          background: `conic-gradient(${color} ${pct}%, var(--bg-2) ${pct}%)`,
-        }}
-      >
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2.5">
         <div
-          className="flex items-center justify-center rounded-full bg-[var(--surface)]"
-          style={{ width: inner, height: inner }}
+          className="relative flex shrink-0 items-center justify-center rounded-full"
+          style={{
+            width: dim,
+            height: dim,
+            background: `conic-gradient(${color} ${pct}%, var(--bg-2) ${pct}%)`,
+          }}
         >
-          <span className="font-mono text-xs font-bold tabular-nums leading-none text-[var(--fg)]">
-            {primary}
-          </span>
+          <div
+            className="flex items-center justify-center rounded-full bg-[var(--surface)]"
+            style={{ width: inner, height: inner }}
+          >
+            <span className="font-mono text-xs font-bold tabular-nums leading-none text-[var(--fg)]">
+              {primary}
+            </span>
+          </div>
         </div>
+        <p className="min-w-0 text-[10px] leading-snug text-[var(--fg-3)]">{secondary}</p>
       </div>
-      <p className="min-w-0 text-[10px] leading-snug text-[var(--fg-3)]">{secondary}</p>
+      {detail && (
+        <p className="font-mono text-[11px] font-semibold tabular-nums text-[var(--fg-2)]">
+          {detail}
+        </p>
+      )}
     </div>
   );
 }
@@ -170,6 +179,7 @@ function RecognitionVisualDisplay({
           secondary={visual.secondary}
           progress={visual.progress}
           tone={visual.tone}
+          detail={visual.detail}
           size="sm"
         />
       );
@@ -269,6 +279,14 @@ function MetricTile({ metric }: { metric: SpotlightMetricRow }) {
           </p>
           <p className="font-mono text-base font-bold tabular-nums leading-tight text-[var(--fg)]">
             {metric.value}
+            {metric.valueHint && (
+              <span className="ml-1.5 text-[10px] font-normal text-[var(--fg-3)]">
+                {metric.valueHint}
+              </span>
+            )}
+          </p>
+          <p className="mt-0.5 text-[10px] font-semibold leading-snug text-[var(--fg-2)]">
+            {metric.target}
           </p>
         </div>
         <div className="shrink-0 text-right">
@@ -278,7 +296,6 @@ function MetricTile({ metric }: { metric: SpotlightMetricRow }) {
             <StatusIcon className="size-2.5" aria-hidden />
             {styles.badgeLabel}
           </span>
-          <p className="mt-0.5 text-[9px] text-[var(--fg-4)]">{metric.target}</p>
         </div>
       </div>
     </div>
