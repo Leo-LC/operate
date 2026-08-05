@@ -802,9 +802,17 @@ export function ChallengesOverview({
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
-  function exportOverviewPdf(summaryOnly = false, teamMode = false) {
-    if (locations.length === 0) return;
-    openPrintHtml(buildOverviewPrintHtml(locations, month, { summaryOnly, teamMode }));
+  function exportOverviewPdf(summaryOnly = false, teamMode = false, locationsOverride?: LocationOverview[]) {
+    const exportLocations = locationsOverride ?? locations;
+    if (exportLocations.length === 0) return;
+    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly, teamMode }));
+  }
+
+  function exportSelectedShopTeamPdf() {
+    if (teamLocationFilter === "all") return;
+    const shop = locations.find((l) => l.locationId === teamLocationFilter);
+    if (!shop) return;
+    exportOverviewPdf(false, true, [shop]);
   }
 
   const isTeamView = viewMode === "team";
@@ -887,11 +895,24 @@ export function ChallengesOverview({
 
       {/* Team view — location filter */}
       {isTeamView && locations.length > 1 && (
-        <TeamLocationFilter
-          locations={locations}
-          value={teamLocationFilter}
-          onChange={setTeamLocationFilter}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <TeamLocationFilter
+            locations={locations}
+            value={teamLocationFilter}
+            onChange={setTeamLocationFilter}
+          />
+          {teamLocationFilter !== "all" && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={exportSelectedShopTeamPdf}
+              disabled={loading}
+            >
+              <PrinterIcon size={13} />
+              Shop PDF
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Location content */}

@@ -440,7 +440,7 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
   const barColor = unlocked === true ? "#16a34a" : ratio !== null && ratio >= 0.9 ? "#d97706" : "#b0875a";
   const barWidth = pctOfTarget !== null ? Math.min(100, pctOfTarget) : 0;
   const statusLabel = salesTargetLabel(!!unlocked, ratio, month, amount, threshold);
-  const metrics = buildTeamMetrics(loc);
+  const metrics = buildTeamMetrics(loc, month);
 
   const visitorLine =
     loc.entryCount !== null || loc.snacksSold !== null

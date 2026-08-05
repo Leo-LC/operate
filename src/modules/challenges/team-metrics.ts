@@ -38,13 +38,52 @@ export interface TeamMetricRow {
 }
 
 const ADVICE_TIPS = {
-  merch: "Highlight merch at the counter and suggest add-ons with each order.",
-  snacks: "Suggest a snack with each drink order.",
-  spend: "Recommend larger sizes or combo deals to boost average spend.",
-  opex: "Review stock orders and reduce waste to keep costs under control.",
-  reviews: "Ask happy customers to leave a Google review before they leave.",
-  rating: "Focus on consistency — every great experience helps lift the average.",
+  merch: [
+    "Keep merch visible and eye-catching at the counter.",
+    "Point out merch to every customer — a quick mention goes a long way.",
+    "Make the merch display impossible to miss near the till.",
+  ],
+  snacks: [
+    "Suggest a snack to every customer — it's the best way to interact with the capybaras!",
+    "Remind guests that snacks are the best way to get up close and take cool pictures.",
+    "Display photos of happy customers feeding snacks to capybaras near the counter.",
+  ],
+  spend: [
+    "Average spend follows drinks, snacks, and merch — nail those three and the rest takes care of itself.",
+    "Every drink, snack, and merch sale adds up — focus on those and average spend will follow.",
+    "Push drinks, snacks, and merch with every visit — average spend will climb naturally.",
+  ],
+  opex: [
+    "Review stock orders and reduce waste to keep costs under control.",
+    "Check what's selling before reordering — less waste means lower costs.",
+    "Keep an eye on inventory so nothing goes to waste.",
+  ],
+  reviews: [
+    "Ask as many customers as you can to leave a Google review — make it quick and easy for them.",
+    "Make the review process fast and simple, and ask every happy customer before they leave.",
+    "A quick, easy review for every customer makes a big difference — don't let anyone slip through!",
+  ],
+  rating: [
+    "Focus on consistency — every great experience helps lift the average.",
+    "Small touches every shift add up to better reviews over time.",
+    "Make every visit memorable — consistency is what lifts the rating.",
+  ],
 } as const;
+
+type AdviceContext = { locationId: string; month?: string };
+
+function hashSeed(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (Math.imul(31, h) + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function pickAdviceTip(tips: readonly string[], metricId: string, ctx: AdviceContext): string {
+  const seed = hashSeed(`${ctx.locationId}:${metricId}:${ctx.month ?? ""}`);
+  return tips[seed % tips.length];
+}
 
 const ACHIEVED_TIPS = {
   merch: "Great job! Merch target achieved.",
@@ -55,7 +94,7 @@ const ACHIEVED_TIPS = {
   rating: "Great job! Rating target achieved.",
 } as const;
 
-function buildMerchMetric(loc: LocationOverview): TeamMetricRow {
+function buildMerchMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetricRow {
   const { ratio, tier } = loc.merchandising;
   const sales = loc.salesNetIncVat;
   const goodies = loc.salesGoodiesNet;
@@ -93,12 +132,12 @@ function buildMerchMetric(loc: LocationOverview): TeamMetricRow {
     gapPrimary,
     gapSecondary,
     gapPasses,
-    adviceTip: ADVICE_TIPS.merch,
+    adviceTip: pickAdviceTip(ADVICE_TIPS.merch, "merch", ctx),
     achievedTip: ACHIEVED_TIPS.merch,
   };
 }
 
-function buildSnacksMetric(loc: LocationOverview): TeamMetricRow {
+function buildSnacksMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetricRow {
   const { entryCount, snacksSold } = loc;
   const passes = loc.snacks.passes;
   const targetPer100 = Math.round(SNACKS_THRESHOLD * 100);
@@ -137,12 +176,12 @@ function buildSnacksMetric(loc: LocationOverview): TeamMetricRow {
     gapPrimary,
     gapSecondary,
     gapPasses,
-    adviceTip: ADVICE_TIPS.snacks,
+    adviceTip: pickAdviceTip(ADVICE_TIPS.snacks, "snacks", ctx),
     achievedTip: ACHIEVED_TIPS.snacks,
   };
 }
 
-function buildSpendMetric(loc: LocationOverview): TeamMetricRow {
+function buildSpendMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetricRow {
   const avg = loc.panierMoyen.value;
   const passes = loc.panierMoyen.passes;
   const { entryCount, salesNetIncVat, salesTicketNet } = loc;
@@ -183,12 +222,12 @@ function buildSpendMetric(loc: LocationOverview): TeamMetricRow {
     gapPrimary,
     gapSecondary,
     gapPasses,
-    adviceTip: ADVICE_TIPS.spend,
+    adviceTip: pickAdviceTip(ADVICE_TIPS.spend, "spend", ctx),
     achievedTip: ACHIEVED_TIPS.spend,
   };
 }
 
-function buildOpexMetric(loc: LocationOverview): TeamMetricRow {
+function buildOpexMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetricRow {
   const ratio = loc.opex.ratio;
   const passes = loc.opex.passes;
   const { opexSum, salesNetIncVat } = loc;
@@ -226,12 +265,12 @@ function buildOpexMetric(loc: LocationOverview): TeamMetricRow {
     gapPrimary,
     gapSecondary,
     gapPasses,
-    adviceTip: ADVICE_TIPS.opex,
+    adviceTip: pickAdviceTip(ADVICE_TIPS.opex, "opex", ctx),
     achievedTip: ACHIEVED_TIPS.opex,
   };
 }
 
-function buildReviewVolumeMetric(loc: LocationOverview): TeamMetricRow {
+function buildReviewVolumeMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetricRow {
   const { entryCount } = loc;
   const { count } = loc.reviews;
   const passes = loc.reviews.volumePass;
@@ -271,12 +310,12 @@ function buildReviewVolumeMetric(loc: LocationOverview): TeamMetricRow {
     gapPrimary,
     gapSecondary,
     gapPasses,
-    adviceTip: ADVICE_TIPS.reviews,
+    adviceTip: pickAdviceTip(ADVICE_TIPS.reviews, "reviews", ctx),
     achievedTip: ACHIEVED_TIPS.reviews,
   };
 }
 
-function buildReviewRatingMetric(loc: LocationOverview): TeamMetricRow {
+function buildReviewRatingMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetricRow {
   const { count, avgRating, currentRating, ratingTarget } = loc.reviews;
   const passes = loc.reviews.ratingPass;
 
@@ -322,19 +361,20 @@ function buildReviewRatingMetric(loc: LocationOverview): TeamMetricRow {
     gapPrimary,
     gapSecondary,
     gapPasses,
-    adviceTip: ADVICE_TIPS.rating,
+    adviceTip: pickAdviceTip(ADVICE_TIPS.rating, "rating", ctx),
     achievedTip: ACHIEVED_TIPS.rating,
   };
 }
 
-export function buildTeamMetrics(loc: LocationOverview): TeamMetricRow[] {
+export function buildTeamMetrics(loc: LocationOverview, month?: string): TeamMetricRow[] {
+  const ctx: AdviceContext = { locationId: loc.locationId, month };
   return [
-    buildMerchMetric(loc),
-    buildSnacksMetric(loc),
-    buildSpendMetric(loc),
-    buildOpexMetric(loc),
-    buildReviewVolumeMetric(loc),
-    buildReviewRatingMetric(loc),
+    buildMerchMetric(loc, ctx),
+    buildSnacksMetric(loc, ctx),
+    buildSpendMetric(loc, ctx),
+    buildOpexMetric(loc, ctx),
+    buildReviewVolumeMetric(loc, ctx),
+    buildReviewRatingMetric(loc, ctx),
   ];
 }
 

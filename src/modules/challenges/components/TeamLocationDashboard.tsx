@@ -180,7 +180,7 @@ export function TeamLocationDashboard({
 
   const pctOfTarget = threshold !== null && ratio !== null ? Math.round(ratio * 100) : null;
   const targetStatus = salesTargetStatus(!!unlocked, ratio, monthKey, amount, threshold);
-  const metrics = buildTeamMetrics(loc);
+  const metrics = buildTeamMetrics(loc, month);
   const barColor = unlocked ? "var(--good)" : targetStatus.tone === "warn" ? "var(--warn)" : "var(--bronze)";
 
   return (
