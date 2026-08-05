@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
+  Banknote,
   Check,
   CheckCircle2,
   Coffee,
@@ -9,6 +11,7 @@ import {
   Leaf,
   Lightbulb,
   Minus,
+  PrinterIcon,
   Shirt,
   Star,
   StarHalf,
@@ -16,7 +19,9 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { MonthSelector } from "./MonthSelector";
+import { buildSpotlightPrintHtml } from "@/modules/challenges/exportSpotlightHtml";
 import { SPOTLIGHT_LABELS } from "@/modules/challenges/labels";
 import type {
   SpotlightResponse,
@@ -44,6 +49,8 @@ const RECOGNITION_THEME: Record<
   ThemeKey,
   { accent: string; soft: string; icon: LucideIcon }
 > = {
+  revenue: { accent: "var(--bronze-2)", soft: "var(--bronze-soft)", icon: Banknote },
+  merch: { accent: "var(--bronze)", soft: "var(--bronze-soft)", icon: Shirt },
   snacks: { accent: "var(--warn)", soft: "var(--warn-soft)", icon: Cookie },
   reviews: { accent: "var(--bronze)", soft: "var(--bronze-soft)", icon: Star },
   spend: { accent: "var(--bronze-2)", soft: "var(--bronze-soft)", icon: Coffee },
@@ -359,11 +366,38 @@ export function ShopSpotlight() {
     fetchData(month);
   }, [month, fetchData]);
 
+  function openPrintHtml(html: string) {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (!win) {
+      URL.revokeObjectURL(url);
+      toast.error("Pop-up blocked — please allow pop-ups");
+      return;
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  function exportSpotlightPdf() {
+    if (!data) return;
+    openPrintHtml(buildSpotlightPrintHtml(data));
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-md text-sm text-[var(--fg-3)]">{SPOTLIGHT_LABELS.intro}</p>
-        <MonthSelector value={month} onChange={setMonth} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthSelector value={month} onChange={setMonth} />
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={exportSpotlightPdf}
+            disabled={loading || !data}
+          >
+            <PrinterIcon size={13} />
+            {SPOTLIGHT_LABELS.saveAsPdf}
+          </Button>
+        </div>
       </div>
 
       {data?.monthInProgress && (
@@ -390,9 +424,9 @@ export function ShopSpotlight() {
             {SPOTLIGHT_LABELS.metricRecognitionSubtitle}
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loading
-            ? Array.from({ length: 5 }).map((_, i) => (
+            ? Array.from({ length: 7 }).map((_, i) => (
                 <div
                   key={i}
                   className="h-36 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]"

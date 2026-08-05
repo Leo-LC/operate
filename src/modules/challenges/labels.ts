@@ -61,7 +61,6 @@ export const VIEW_MODE_LABELS = {
 } as const;
 
 export const SPOTLIGHT_LABELS = {
-  intro: "See which shop stood out this month — and pick up ideas you can use in your own team.",
   shopSpotlight: "Featured shop",
   shopSpotlightSubtitle: "Strong all-round execution this month",
   targetsMet: "of 6 targets hit",
@@ -79,7 +78,10 @@ export const SPOTLIGHT_LABELS = {
   statusPass: "Hit",
   statusMiss: "Missed",
   statusPending: "Pending",
+  saveAsPdf: "Save as PDF",
   recognitions: {
+    revenue: "Sales",
+    merch: "Merch",
     snacks: "Snacks",
     reviews: "Reviews",
     spend: "Avg. spend",
@@ -87,6 +89,8 @@ export const SPOTLIGHT_LABELS = {
     improved: "Most improved",
   },
   recognitionHints: {
+    revenue: "Highest sales vs target",
+    merch: "Best merch share of sales",
     snacks: "Best snack sales per visit",
     reviews: "Best review results",
     spend: "Highest spend per visitor",

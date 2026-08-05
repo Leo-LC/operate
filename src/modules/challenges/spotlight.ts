@@ -13,7 +13,14 @@ const EXECUTION_METRIC_COUNT = 6;
 const MIN_SCORABLE_FOR_SPOTLIGHT = 3;
 const MIN_SCORABLE_FOR_IMPROVED = 2;
 
-export type RecognitionKind = "snacks" | "reviews" | "spend" | "completion" | "improved";
+export type RecognitionKind =
+  | "revenue"
+  | "merch"
+  | "snacks"
+  | "reviews"
+  | "spend"
+  | "completion"
+  | "improved";
 
 export interface MetricRecognition {
   kind: RecognitionKind;
@@ -294,6 +301,41 @@ export function pickMetricLeaders(
 ): MetricRecognition[] {
   const priorById = new Map((prior ?? []).map((loc) => [loc.locationId, loc]));
 
+  const revenueLeader = pickLeader(
+    current.filter((loc) => loc.revenue.amount !== null && loc.revenue.threshold !== null),
+    (loc) => loc.revenue.ratio ?? loc.revenue.amount! / loc.revenue.threshold!,
+    (loc) => {
+      const { amount, threshold } = loc.revenue;
+      return `฿${fmt(amount!, 0)} / ฿${fmt(threshold!, 0)}`;
+    },
+    (loc) => {
+      if (loc.revenue.unlocked === true) return "Sales target reached";
+      if (loc.revenue.ratio !== null) return `${Math.round(loc.revenue.ratio * 100)}% of target`;
+      return undefined;
+    },
+  );
+
+  const merchLeader = pickLeader(
+    current.filter(
+      (loc) =>
+        loc.merchandising.ratio !== null &&
+        loc.salesNetIncVat !== null &&
+        loc.salesNetIncVat > 0,
+    ),
+    (loc) => loc.merchandising.ratio!,
+    (loc) => `${(loc.merchandising.ratio! * 100).toFixed(1)}% of sales`,
+    (loc) => {
+      const { tier } = loc.merchandising;
+      const goodies = loc.salesGoodiesNet;
+      if (tier >= 1) {
+        return goodies !== null
+          ? `Tier ${tier} · ฿${fmt(goodies, 0)} merch`
+          : `Tier ${tier}`;
+      }
+      return goodies !== null ? `฿${fmt(goodies, 0)} merch sales` : undefined;
+    },
+  );
+
   const snacksLeader = pickLeader(
     current.filter((loc) => loc.entryCount !== null && loc.entryCount > 0 && loc.snacks.ratio !== null),
     (loc) => loc.snacks.ratio!,
@@ -362,6 +404,26 @@ export function pickMetricLeaders(
   }
 
   const recognitions: MetricRecognition[] = [
+    {
+      kind: "revenue",
+      ...(revenueLeader ?? {
+        locationId: "",
+        locationTitle: "",
+        value: "—",
+        unavailable: true,
+        unavailableReason: "dataPending",
+      }),
+    },
+    {
+      kind: "merch",
+      ...(merchLeader ?? {
+        locationId: "",
+        locationTitle: "",
+        value: "—",
+        unavailable: true,
+        unavailableReason: "dataPending",
+      }),
+    },
     {
       kind: "snacks",
       ...(snacksLeader ?? {
