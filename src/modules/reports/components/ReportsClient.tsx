@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Stat } from "@/components/ui/stat";
+import { DailyProfitView } from "@/modules/reports/components/DailyProfitView";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,6 +127,11 @@ function ppChangeParts(curr: number, prev: number): { delta: string; dir: "up" |
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
 function today() { return new Date().toISOString().slice(0, 10); }
+function bangkokToday() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
 function monthStart() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
@@ -1807,17 +1813,20 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type ReportsTab = "operations" | "byshop";
+type ReportsTab = "daily-profit" | "operations" | "byshop";
 
 const TABS: { value: ReportsTab; label: string }[] = [
+  { value: "daily-profit", label: "Daily P&L" },
   { value: "operations", label: "Operations" },
   { value: "byshop", label: "By Shop" },
 ];
 
 export function ReportsClient() {
-  const [activeTab, setActiveTab] = useState<ReportsTab>("operations");
+  const [activeTab, setActiveTab] = useState<ReportsTab>("daily-profit");
   const [from, setFrom] = useState(() => monthStart());
   const [to, setTo] = useState(() => today());
+  const [dailyFrom, setDailyFrom] = useState(() => `${bangkokToday().slice(0, 7)}-01`);
+  const [dailyTo, setDailyTo] = useState(() => bangkokToday());
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
   const [data, setData] = useState<AccountingData | null>(null);
@@ -1883,32 +1892,38 @@ export function ReportsClient() {
         ))}
       </div>
 
-      {/* Controls */}
-      <Controls
-        from={from}
-        to={to}
-        onFromChange={setFrom}
-        onToChange={setTo}
-        locations={locations}
-        selectedShops={selectedShops}
-        onShopsChange={setSelectedShops}
-      />
+      {activeTab === "daily-profit" ? (
+        <DailyProfitView from={dailyFrom} to={dailyTo} onFromChange={setDailyFrom} onToChange={setDailyTo} />
+      ) : (
+        <>
+          {/* Existing Reports controls and views remain unchanged. */}
+          <Controls
+            from={from}
+            to={to}
+            onFromChange={setFrom}
+            onToChange={setTo}
+            locations={locations}
+            selectedShops={selectedShops}
+            onShopsChange={setSelectedShops}
+          />
 
-      {/* Content */}
-      {loading && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
-          Loading…
-        </div>
-      )}
-      {!loading && !data && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
-          No data
-        </div>
-      )}
-      {!loading && data && (
-        activeTab === "operations"
-          ? <OperationsView data={data} />
-          : <TreasuryView data={data} />
+          {/* Content */}
+          {loading && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
+              Loading…
+            </div>
+          )}
+          {!loading && !data && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
+              No data
+            </div>
+          )}
+          {!loading && data && (
+            activeTab === "operations"
+              ? <OperationsView data={data} />
+              : <TreasuryView data={data} />
+          )}
+        </>
       )}
 
     </div>
