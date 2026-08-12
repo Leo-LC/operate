@@ -1,4 +1,4 @@
-export type FinanceScopeType = "group" | "entity" | "location";
+export type FinanceScopeType = "group" | "location";
 export type AllocationMethod = "direct" | "equal" | "revenue" | "custom";
 export type CostCadence = "one_off" | "monthly" | "annual" | "custom";
 export type ValueStatus = "estimated" | "actual";
@@ -79,6 +79,20 @@ export interface SourceDailyEntry {
   cashIn: number;
 }
 
+export interface FinanceShopMonthlyInput {
+  id: string;
+  location_id: string;
+  period_year: number;
+  period_month: number;
+  salaries_amount: number;
+  rent_amount: number;
+  electricity_amount: number;
+  water_amount: number;
+  other_fixed_amount: number;
+  service_charge_rate_pct: number;
+  employee_count: number;
+}
+
 export interface PayrollPeriod {
   locationId: string;
   year: number;
@@ -93,6 +107,7 @@ export interface DailyProfitRow {
   directExpenses: number;
   payroll: number;
   recurringCosts: number;
+  serviceCharge: number;
   adjustments: number;
   economicProfit: number;
   margin: number;
@@ -131,6 +146,7 @@ export interface DailyProfitResponse {
     directExpenses: number;
     payroll: number;
     recurringCosts: number;
+    serviceCharge: number;
     adjustments: number;
     totalCosts: number;
     economicProfit: number;
@@ -152,6 +168,26 @@ export interface DailyProfitResponse {
     missingCostSetup: string[];
     warnings: string[];
   };
+  methodology: {
+    version: string;
+    formula: string;
+    revenueFields: readonly string[];
+    expenseFields: readonly string[];
+    excludedFields: readonly string[];
+    rules: readonly string[];
+    shopSettings: Array<{
+      locationId: string;
+      locationName: string;
+      period: string;
+      salaries: number;
+      rent: number;
+      electricity: number;
+      water: number;
+      otherFixed: number;
+      serviceChargeRatePct: number;
+      employeeCount: number;
+    }>;
+  };
 }
 
 export interface EngineInput {
@@ -160,10 +196,7 @@ export interface EngineInput {
   selectedLocationIds: string[];
   locations: FinanceLocation[];
   entries: SourceDailyEntry[];
-  payroll: PayrollPeriod[];
-  costRules: FinanceCostRule[];
-  costActuals: FinanceCostActual[];
-  adjustments: FinanceAdjustment[];
+  monthlyInputs: FinanceShopMonthlyInput[];
 }
 
 export interface EngineOutput {

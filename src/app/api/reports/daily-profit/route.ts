@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const scopeId = url.searchParams.get("scope_id");
 
   if (!DATE_RE.test(from) || !DATE_RE.test(to) || from > to) return Response.json({ error: "Invalid date range" }, { status: 400 });
-  if (!["group", "entity", "location"].includes(scopeType)) return Response.json({ error: "Invalid scope_type" }, { status: 400 });
+  if (!["group", "location"].includes(scopeType)) return Response.json({ error: "Invalid scope_type" }, { status: 400 });
   if (scopeType !== "group" && !scopeId) return Response.json({ error: "scope_id required" }, { status: 400 });
 
   try {

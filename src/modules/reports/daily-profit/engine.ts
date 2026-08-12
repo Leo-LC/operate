@@ -1,12 +1,4 @@
-import type {
-  DailyProfitRow,
-  EngineInput,
-  EngineOutput,
-  FinanceCostActual,
-  FinanceCostRule,
-  FinanceLocation,
-  ValueStatus,
-} from "./types";
+import type { DailyProfitRow, EngineInput, EngineOutput, FinanceShopMonthlyInput } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -28,86 +20,11 @@ export function inclusiveDays(from: string, to: string): number {
 }
 
 export function datesBetween(from: string, to: string): string[] {
-  const count = inclusiveDays(from, to);
-  return Array.from({ length: count }, (_, index) => addDays(from, index));
+  return Array.from({ length: inclusiveDays(from, to) }, (_, index) => addDays(from, index));
 }
 
-function monthEnd(year: number, month: number): string {
-  return formatDateOnly(new Date(Date.UTC(year, month, 0)));
-}
-
-function maxDate(a: string, b: string) { return a > b ? a : b; }
-function minDate(a: string, b: string) { return a < b ? a : b; }
-
-export interface CostPeriod {
-  from: string;
-  to: string;
-  amount: number;
-  status: ValueStatus;
-  actual: FinanceCostActual | null;
-}
-
-export function periodsForRule(rule: FinanceCostRule, actuals: FinanceCostActual[], from: string, to: string): CostPeriod[] {
-  const relevantActuals = actuals.filter((actual) => actual.cost_rule_id === rule.id);
-  const periods: Array<{ from: string; to: string }> = [];
-
-  if (rule.cadence === "monthly") {
-    const start = parseDateOnly(maxDate(from, rule.effective_from));
-    const endLimit = minDate(to, rule.effective_to ?? to);
-    let year = start.getUTCFullYear();
-    let month = start.getUTCMonth() + 1;
-    while (`${year}-${String(month).padStart(2, "0")}-01` <= endLimit) {
-      const periodFrom = maxDate(`${year}-${String(month).padStart(2, "0")}-01`, rule.effective_from);
-      const periodTo = minDate(monthEnd(year, month), rule.effective_to ?? monthEnd(year, month));
-      if (periodFrom <= periodTo && periodTo >= from && periodFrom <= to) periods.push({ from: periodFrom, to: periodTo });
-      month += 1;
-      if (month === 13) { month = 1; year += 1; }
-    }
-  } else {
-    const periodFrom = rule.effective_from;
-    const defaultEnd = rule.cadence === "annual"
-      ? addDays(`${parseDateOnly(periodFrom).getUTCFullYear() + 1}-${periodFrom.slice(5)}`, -1)
-      : periodFrom;
-    const periodTo = rule.effective_to ?? defaultEnd;
-    if (periodTo >= from && periodFrom <= to) periods.push({ from: periodFrom, to: periodTo });
-  }
-
-  return periods.map((period) => {
-    const actual = relevantActuals.find((row) => row.service_from === period.from && row.service_to === period.to)
-      ?? relevantActuals.find((row) => row.service_from <= period.to && row.service_to >= period.from)
-      ?? null;
-    return {
-      ...period,
-      amount: actual ? Number(actual.amount) : Number(rule.estimated_amount),
-      status: actual ? "actual" : "estimated",
-      actual,
-    };
-  });
-}
-
-export function allocationWeights(
-  rule: FinanceCostRule,
-  targetLocations: FinanceLocation[],
-  revenueByLocation: Map<string, number>,
-): Map<string, number> {
-  if (targetLocations.length === 0) return new Map();
-  if (rule.scope_type === "location" && rule.location_id) return new Map([[rule.location_id, 1]]);
-
-  if (rule.allocation_method === "custom") {
-    const raw = targetLocations.map((location) => [location.id, Number(rule.custom_allocations?.[location.id] ?? 0)] as const);
-    const total = raw.reduce((sum, [, weight]) => sum + weight, 0);
-    if (total > 0) return new Map(raw.map(([id, weight]) => [id, weight / total]));
-  }
-
-  if (rule.allocation_method === "revenue") {
-    const totalRevenue = targetLocations.reduce((sum, location) => sum + (revenueByLocation.get(location.id) ?? 0), 0);
-    if (totalRevenue > 0) {
-      return new Map(targetLocations.map((location) => [location.id, (revenueByLocation.get(location.id) ?? 0) / totalRevenue]));
-    }
-  }
-
-  const equal = 1 / targetLocations.length;
-  return new Map(targetLocations.map((location) => [location.id, equal]));
+export function monthDays(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
 function emptyDay(date: string): DailyProfitRow {
@@ -117,6 +34,7 @@ function emptyDay(date: string): DailyProfitRow {
     directExpenses: 0,
     payroll: 0,
     recurringCosts: 0,
+    serviceCharge: 0,
     adjustments: 0,
     economicProfit: 0,
     margin: 0,
@@ -127,17 +45,19 @@ function emptyDay(date: string): DailyProfitRow {
   };
 }
 
-function targetsForRule(rule: FinanceCostRule, locations: FinanceLocation[]): FinanceLocation[] {
-  if (rule.scope_type === "location") return locations.filter((location) => location.id === rule.location_id);
-  if (rule.scope_type === "entity") return locations.filter((location) => location.legalEntityId === rule.legal_entity_id);
-  return locations;
+function inputKey(locationId: string, year: number, month: number) {
+  return `${locationId}:${year}-${month}`;
+}
+
+function fixedMonthlyTotal(input: FinanceShopMonthlyInput) {
+  return Number(input.rent_amount) + Number(input.electricity_amount) + Number(input.water_amount) + Number(input.other_fixed_amount);
 }
 
 export function calculateDailyProfit(input: EngineInput): EngineOutput {
   const dates = datesBetween(input.from, input.to);
   const locationMap = new Map(input.locations.map((location) => [location.id, location]));
+  const monthlyInputMap = new Map(input.monthlyInputs.map((row) => [inputKey(row.location_id, row.period_year, row.period_month), row]));
   const dailyByLocation = new Map<string, Map<string, DailyProfitRow>>();
-  const categoryMap = new Map<string, { amount: number; estimated: boolean; label: string }>();
 
   for (const locationId of input.selectedLocationIds) {
     const location = locationMap.get(locationId);
@@ -154,95 +74,32 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
     day.cashOut += entry.directExpenses + entry.hrCash;
   }
 
-  for (const adjustment of input.adjustments) {
-    const targets = adjustment.scope_type === "location"
-      ? input.selectedLocationIds.filter((id) => id === adjustment.location_id)
-      : adjustment.scope_type === "entity"
-        ? input.selectedLocationIds.filter((id) => locationMap.get(id)?.legalEntityId === adjustment.legal_entity_id)
-        : input.selectedLocationIds;
-    if (targets.length === 0) continue;
-    const amountPerTarget = adjustment.amount / targets.length;
-    for (const locationId of targets) {
-      const day = dailyByLocation.get(locationId)?.get(adjustment.adjustment_date);
-      if (!day) continue;
-      if (adjustment.kind === "income") day.adjustments += amountPerTarget;
-      if (adjustment.kind === "expense") { day.adjustments -= amountPerTarget; day.cashOut += amountPerTarget; }
-      if (adjustment.kind === "reclassification") day.directExpenses = Math.max(0, day.directExpenses - amountPerTarget);
-    }
-    const signed = adjustment.kind === "income" ? -adjustment.amount : adjustment.kind === "expense" ? adjustment.amount : 0;
-    const current = categoryMap.get(adjustment.category) ?? { amount: 0, estimated: false, label: adjustment.category };
-    current.amount += signed;
-    categoryMap.set(adjustment.category, current);
-  }
-
-  for (const period of input.payroll) {
-    const monthFrom = `${period.year}-${String(period.month).padStart(2, "0")}-01`;
-    const monthTo = monthEnd(period.year, period.month);
-    const perDay = period.amount / inclusiveDays(monthFrom, monthTo);
-    for (const date of datesBetween(maxDate(input.from, monthFrom), minDate(input.to, monthTo))) {
-      const day = dailyByLocation.get(period.locationId)?.get(date);
-      if (!day) continue;
-      day.payroll += perDay;
-      if (period.status === "estimated") day.estimatedAmount += perDay;
-    }
-    const current = categoryMap.get("payroll") ?? { amount: 0, estimated: false, label: "Payroll" };
-    const overlapDays = Math.max(0, inclusiveDays(maxDate(input.from, monthFrom), minDate(input.to, monthTo)));
-    current.amount += perDay * overlapDays;
-    current.estimated ||= period.status === "estimated";
-    categoryMap.set("payroll", current);
-  }
-
-  const revenueByLocation = new Map<string, number>();
   for (const [locationId, days] of Array.from(dailyByLocation.entries())) {
-    revenueByLocation.set(locationId, Array.from(days.values()).reduce((sum, day) => sum + day.revenue, 0));
-  }
-
-  for (const rule of input.costRules.filter((row) => row.is_active)) {
-    const targetLocations = targetsForRule(rule, input.locations).filter((location) => input.selectedLocationIds.includes(location.id));
-    const weights = allocationWeights(rule, targetLocations, revenueByLocation);
-    for (const period of periodsForRule(rule, input.costActuals, input.from, input.to)) {
-      const perDay = period.amount / inclusiveDays(period.from, period.to);
-      const overlapFrom = maxDate(input.from, period.from);
-      const overlapTo = minDate(input.to, period.to);
-      if (overlapFrom > overlapTo) continue;
-      for (const [locationId, weight] of Array.from(weights.entries())) {
-        for (const date of datesBetween(overlapFrom, overlapTo)) {
-          const day = dailyByLocation.get(locationId)?.get(date);
-          if (!day) continue;
-          const allocated = perDay * weight;
-          day.recurringCosts += allocated;
-          if (period.status === "estimated") day.estimatedAmount += allocated;
-        }
-        if (period.actual?.paid_on && !input.adjustments.some((a) => a.kind === "reclassification" && a.cost_rule_id === rule.id)) {
-          const paidDay = dailyByLocation.get(locationId)?.get(period.actual.paid_on);
-          if (paidDay) paidDay.cashOut += Number(period.actual.amount) * weight;
-        }
+    for (const [date, day] of Array.from(days.entries())) {
+      const parsed = parseDateOnly(date);
+      const year = parsed.getUTCFullYear();
+      const month = parsed.getUTCMonth() + 1;
+      const settings = monthlyInputMap.get(inputKey(locationId, year, month));
+      if (settings) {
+        const divisor = monthDays(year, month);
+        day.payroll = Number(settings.salaries_amount) / divisor;
+        day.recurringCosts = fixedMonthlyTotal(settings) / divisor;
+        day.serviceCharge = day.revenue * (Number(settings.service_charge_rate_pct) / 100) * Number(settings.employee_count);
       }
-      const current = categoryMap.get(rule.category) ?? { amount: 0, estimated: false, label: rule.label };
-      current.amount += perDay * inclusiveDays(overlapFrom, overlapTo);
-      current.estimated ||= period.status === "estimated";
-      categoryMap.set(rule.category, current);
+      day.economicProfit = day.revenue - day.directExpenses - day.payroll - day.recurringCosts - day.serviceCharge;
+      day.margin = day.revenue > 0 ? day.economicProfit / day.revenue * 100 : 0;
     }
   }
 
-  for (const days of Array.from(dailyByLocation.values())) {
-    for (const day of Array.from(days.values())) {
-      day.economicProfit = day.revenue - day.directExpenses - day.payroll - day.recurringCosts + day.adjustments;
-      day.margin = day.revenue > 0 ? (day.economicProfit / day.revenue) * 100 : 0;
-      day.status = day.estimatedAmount > 0 ? "estimated" : "actual";
-    }
-  }
-
-  const direct = Array.from(dailyByLocation.values()).flatMap((days) => Array.from(days.values())).reduce((sum, day) => sum + day.directExpenses, 0);
-  categoryMap.set("direct_operating", { amount: direct, estimated: false, label: "Daily operating expenses" });
-
+  const allDays = Array.from(dailyByLocation.values()).flatMap((days) => Array.from(days.values()));
+  const total = (field: keyof Pick<DailyProfitRow, "directExpenses" | "payroll" | "recurringCosts" | "serviceCharge">) => allDays.reduce((sum, day) => sum + day[field], 0);
   return {
     dailyByLocation,
-    categories: Array.from(categoryMap.entries()).map(([key, value]) => ({
-      key,
-      label: value.label,
-      amount: value.amount,
-      status: value.estimated ? "estimated" as const : "actual" as const,
-    })).sort((a, b) => b.amount - a.amount),
+    categories: [
+      { key: "daily_operating", label: "Dépenses Sheets hors RH", amount: total("directExpenses"), status: "actual" as const },
+      { key: "salaries", label: "Salaires manuels", amount: total("payroll"), status: "actual" as const },
+      { key: "fixed_costs", label: "Frais fixes manuels", amount: total("recurringCosts"), status: "actual" as const },
+      { key: "service_charge", label: "Service charge calculé", amount: total("serviceCharge"), status: "actual" as const },
+    ].sort((a, b) => b.amount - a.amount),
   };
 }
