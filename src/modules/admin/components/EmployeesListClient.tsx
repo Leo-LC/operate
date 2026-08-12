@@ -7,7 +7,7 @@ import { Pill } from "@/components/ui/pill";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
-import { EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "./EmployeeForm";
+import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, type EmployeeFormState } from "./EmployeeForm";
 
 interface Props {
   locations: AdminLocation[];
@@ -24,7 +24,7 @@ const MODAL_BACKDROP: React.CSSProperties = {
 };
 
 const MODAL_PANEL: React.CSSProperties = {
-  width: "100%", maxWidth: 400,
+  width: "100%", maxWidth: 520,
   borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
   background: "var(--surface)", padding: 24,
   boxShadow: "var(--shadow-2)",
@@ -41,9 +41,32 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, submitting, o
   onSetPrimary: (id: string) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
 }) {
   return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
-    <label style={{ display: "flex", flexDirection: "column", gap: 5, maxWidth: 360, fontSize: 12, color: "var(--fg-3)" }}>First name
-      <input autoFocus required value={form.first_name} onChange={(event) => onChange("first_name", event.target.value)} style={SIMPLE_INPUT} placeholder="First name" />
-    </label>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>First name
+        <input autoFocus required value={form.first_name} onChange={(event) => onChange("first_name", event.target.value)} style={SIMPLE_INPUT} placeholder="First name" />
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Nationality
+        <select value={form.nationality} onChange={(event) => onChange("nationality", event.target.value)} style={{ ...SIMPLE_INPUT, cursor: "pointer" }}>
+          {NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality || "Select nationality"}</option>)}
+        </select>
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Base salary / month (฿)
+        <input type="number" min="0" step="100" value={form.base_salary_monthly} onChange={(event) => onChange("base_salary_monthly", event.target.value)} style={SIMPLE_INPUT} placeholder="e.g. 15000" />
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Service charge %
+        <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(event) => onChange("service_charge_pct", event.target.value)} style={SIMPLE_INPUT} placeholder="Shop default" />
+      </label>
+    </div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg)", cursor: "pointer" }}>
+        <input type="checkbox" checked={form.has_thai_bank_account} onChange={(event) => onChange("has_thai_bank_account", event.target.checked)} />
+        Thai bank account
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg)", cursor: "pointer" }}>
+        <input type="checkbox" checked={form.service_charge_eligible ?? true} onChange={(event) => onChange("service_charge_eligible", event.target.checked)} />
+        Eligible for service charge
+      </label>
+    </div>
     <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {locations.map((location) => {
         const selected = locIds.has(location.id);
@@ -141,6 +164,11 @@ export function EmployeesListClient({ locations }: Props) {
         body: JSON.stringify({
           first_name: form.first_name,
           last_name: "",
+          nationality: form.nationality || undefined,
+          base_salary_monthly: form.base_salary_monthly ? parseFloat(form.base_salary_monthly) : undefined,
+          has_thai_bank_account: form.has_thai_bank_account,
+          service_charge_pct: form.service_charge_pct ? parseFloat(form.service_charge_pct) : undefined,
+          service_charge_eligible: form.service_charge_eligible,
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
         }),
@@ -169,6 +197,11 @@ export function EmployeesListClient({ locations }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           first_name: editForm.first_name,
+          nationality: editForm.nationality || null,
+          base_salary_monthly: editForm.base_salary_monthly ? parseFloat(editForm.base_salary_monthly) : null,
+          has_thai_bank_account: editForm.has_thai_bank_account,
+          service_charge_pct: editForm.service_charge_pct ? parseFloat(editForm.service_charge_pct) : null,
+          service_charge_eligible: editForm.service_charge_eligible,
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,
         }),
@@ -262,7 +295,7 @@ export function EmployeesListClient({ locations }: Props) {
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-2)" }}>
               <tr>
-                {["First name", "Shop", ""].map((h) => (
+                {["First name", "Nationality", "Shop", "Salary", "Thai bank", "Service charge", ""].map((h) => (
                   <th key={h} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>{h}</th>
                 ))}
               </tr>
@@ -271,7 +304,7 @@ export function EmployeesListClient({ locations }: Props) {
               {employees.map((emp) =>
                 editingId === emp.id ? (
                   <tr key={emp.id}>
-                    <td colSpan={3} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
+                    <td colSpan={7} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
                       <SimpleEmployeeForm
                         form={editForm}
                         locIds={editLocIds}
@@ -376,6 +409,9 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
         )}
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
+        {emp.nationality || <span style={{ color: "var(--fg-4)" }}>—</span>}
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
         {(emp.employee_locations && emp.employee_locations.length > 0)
           ? emp.employee_locations.map((el) => (
               <span key={el.location_id} style={{ marginRight: 4 }}>
@@ -384,6 +420,15 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
             ))
           : (emp.location_name ?? <span style={{ color: "var(--fg-4)" }}>—</span>)
         }
+      </td>
+      <td className="mono tabular-nums" style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
+        {emp.base_salary_monthly != null ? `฿${emp.base_salary_monthly.toLocaleString()}/mo` : <span style={{ color: "var(--fg-4)" }}>—</span>}
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
+        {emp.has_thai_bank_account ? "Yes" : "No"}
+      </td>
+      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
+        {emp.service_charge_eligible === false ? "Not eligible" : emp.service_charge_pct != null ? `${emp.service_charge_pct}%` : "Shop default"}
       </td>
       <td style={{ padding: "10px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
