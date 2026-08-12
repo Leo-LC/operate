@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 const migration = read("supabase/migrations/20260812093328_finance_people_navigation.sql");
 const recurringRoutes = `${read("src/app/api/finance/recurring-costs/route.ts")}\n${read("src/app/api/finance/recurring-costs/[id]/route.ts")}`;
+const recurringClient = read("src/modules/finance/components/RecurringCostsClient.tsx");
 const settingsRoute = read("src/app/api/finance/shop-settings/route.ts");
 
 describe("Finance workspace contracts", () => {
@@ -25,5 +26,9 @@ describe("Finance workspace contracts", () => {
   it("does not mutate protected operational modules", () => {
     const source = `${recurringRoutes}\n${settingsRoute}`;
     expect(source).not.toMatch(/from\("(?:daily_entries|employee_payment_records|payment_adjustments|treasury_[^"]+|attendance_records|schedules|locations)"\)\.(?:insert|upsert|update|delete)/);
+  });
+
+  it("submits the recurring-cost form through an explicit submit button", () => {
+    expect(recurringClient).toMatch(/<Button type="submit"[^>]*>\{saving \? "Saving…" : "Save cost"\}<\/Button>/);
   });
 });
