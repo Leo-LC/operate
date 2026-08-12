@@ -10,6 +10,7 @@ import { Pill } from "@/components/ui/pill";
 import { toast } from "sonner";
 import type { DailyProfitResponse, DailyProfitRow, FinanceScopeType } from "@/modules/reports/daily-profit/types";
 import { DailyProfitManageDrawer } from "./DailyProfitManageDrawer";
+import { FINANCE_SCOPE_STORAGE_KEY, type FinanceScope } from "@/modules/finance/scope";
 
 interface Props {
   from: string;
@@ -98,6 +99,17 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [contentTab, setContentTab] = useState<"result" | "methodology">("result");
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(FINANCE_SCOPE_STORAGE_KEY) ?? "null") as FinanceScope | null;
+      if (stored?.type === "group" || stored?.type === "location") { setScopeType(stored.type); setScopeId(stored.locationId); }
+    } catch { /* Ignore invalid browser state. */ }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(FINANCE_SCOPE_STORAGE_KEY, JSON.stringify({ type: scopeType, locationId: scopeId } satisfies FinanceScope));
+  }, [scopeId, scopeType]);
 
   const load = useCallback(async () => {
     setLoading(true);

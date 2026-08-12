@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       id, organization_id, location_id, first_name, last_name, position,
       nationality, national_id, work_permit_number, work_permit_expires_at,
       email, phone, active, notes, base_salary_monthly, has_thai_bank_account,
-      credit_note, service_charge_pct,
+      credit_note, service_charge_pct, employment_start_date, employment_end_date, service_charge_eligible,
       user_id, archived_at, created_at, updated_at,
       locations ( name ),
       employee_locations ( id, location_id, is_primary, locations ( name ) )
@@ -58,6 +58,9 @@ export async function GET(request: Request) {
       has_thai_bank_account: emp.has_thai_bank_account ?? false,
       credit_note: (emp as unknown as { credit_note?: string | null }).credit_note ?? null,
       service_charge_pct: (emp as unknown as { service_charge_pct?: number | null }).service_charge_pct ?? null,
+      employment_start_date: (emp as unknown as { employment_start_date?: string | null }).employment_start_date ?? null,
+      employment_end_date: (emp as unknown as { employment_end_date?: string | null }).employment_end_date ?? null,
+      service_charge_eligible: (emp as unknown as { service_charge_eligible?: boolean }).service_charge_eligible ?? true,
       archived_at: emp.archived_at ?? null,
       user_id: emp.user_id ?? null,
       created_at: emp.created_at,
@@ -94,6 +97,9 @@ export async function POST(request: Request) {
     has_thai_bank_account?: boolean;
     credit_note?: string;
     service_charge_pct?: number;
+    employment_start_date?: string;
+    employment_end_date?: string;
+    service_charge_eligible?: boolean;
     user_id?: string;
     location_ids?: string[];
     primary_location_id?: string;
@@ -132,6 +138,9 @@ export async function POST(request: Request) {
       has_thai_bank_account: body.has_thai_bank_account ?? false,
       credit_note: body.credit_note?.trim() ?? null,
       service_charge_pct: body.service_charge_pct ?? null,
+      employment_start_date: body.employment_start_date ?? null,
+      employment_end_date: body.employment_end_date ?? null,
+      service_charge_eligible: body.service_charge_eligible ?? true,
       user_id: body.user_id ?? null,
     })
     .select()

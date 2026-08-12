@@ -23,6 +23,9 @@ export type EmployeeFormState = {
   has_thai_bank_account: boolean;
   credit_note: string;
   service_charge_pct: string;
+  employment_start_date?: string;
+  employment_end_date?: string;
+  service_charge_eligible?: boolean;
 };
 
 export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
@@ -40,6 +43,9 @@ export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
   has_thai_bank_account: false,
   credit_note: "",
   service_charge_pct: "",
+  employment_start_date: "",
+  employment_end_date: "",
+  service_charge_eligible: true,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -152,10 +158,22 @@ export function EmployeeForm({
             <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Service charge %</label>
             <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(e) => onChange("service_charge_pct", e.target.value)} style={inputStyle} placeholder="location default" />
           </div>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, cursor: "pointer", fontSize: 13 }}>
+            <input type="checkbox" checked={form.service_charge_eligible ?? true} onChange={(e) => onChange("service_charge_eligible", e.target.checked)} />
+            Eligible for service charge
+          </label>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
             <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Note</label>
             <input type="text" value={form.credit_note} onChange={(e) => onChange("credit_note", e.target.value)} style={inputStyle} placeholder="e.g. took extra day off Jan 15" />
           </div>
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow" style={{ ...sectionStyle, color: "var(--fg-4)" }}>Employment</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}><label className="eyebrow" style={{ color: "var(--fg-3)" }}>Start date</label><DateInput value={form.employment_start_date ?? ""} onChange={(e) => onChange("employment_start_date", e.target.value)} /></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}><label className="eyebrow" style={{ color: "var(--fg-3)" }}>End date</label><DateInput value={form.employment_end_date ?? ""} onChange={(e) => onChange("employment_end_date", e.target.value)} /></div>
         </div>
       </div>
 

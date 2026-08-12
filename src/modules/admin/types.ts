@@ -76,6 +76,9 @@ export interface Employee {
   has_thai_bank_account: boolean;
   credit_note: string | null;
   service_charge_pct: number | null;
+  employment_start_date?: string | null;
+  employment_end_date?: string | null;
+  service_charge_eligible?: boolean;
   archived_at: string | null;
   user_id: string | null;
   created_at: string;

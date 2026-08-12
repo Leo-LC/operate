@@ -46,6 +46,9 @@ function empToForm(emp: Employee): FormState {
     has_thai_bank_account: emp.has_thai_bank_account ?? false,
     credit_note: emp.credit_note ?? "",
     service_charge_pct: emp.service_charge_pct != null ? String(emp.service_charge_pct) : "",
+    employment_start_date: emp.employment_start_date?.slice(0, 10) ?? "",
+    employment_end_date: emp.employment_end_date?.slice(0, 10) ?? "",
+    service_charge_eligible: emp.service_charge_eligible ?? true,
   };
 }
 
@@ -140,6 +143,9 @@ export function EmployeesListClient({ locations }: Props) {
           has_thai_bank_account: form.has_thai_bank_account,
           credit_note: form.credit_note || undefined,
           service_charge_pct: form.service_charge_pct ? parseFloat(form.service_charge_pct) : undefined,
+          employment_start_date: form.employment_start_date || undefined,
+          employment_end_date: form.employment_end_date || undefined,
+          service_charge_eligible: form.service_charge_eligible,
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
         }),
@@ -181,6 +187,9 @@ export function EmployeesListClient({ locations }: Props) {
           has_thai_bank_account: editForm.has_thai_bank_account,
           credit_note: editForm.credit_note || null,
           service_charge_pct: editForm.service_charge_pct ? parseFloat(editForm.service_charge_pct) : null,
+          employment_start_date: editForm.employment_start_date || null,
+          employment_end_date: editForm.employment_end_date || null,
+          service_charge_eligible: editForm.service_charge_eligible,
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,
         }),

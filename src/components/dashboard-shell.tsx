@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon,
   SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -46,20 +46,27 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Daily Operations",
+    label: "People",
     items: [
-      { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+      { id: "employees",  label: "Employees",  href: "/employees",  icon: UsersIcon,        module: "admin" },
       { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
-      { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
+      { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+      { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
     ],
   },
   {
     label: "Finance",
     items: [
+      { id: "daily-profit", label: "Daily P&L", href: "/finance/daily-profit", icon: TrendingUpIcon, module: "reports" },
+      { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
+      { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
       { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon, module: "accounting" },
-      { id: "treasury",   label: "Treasury",   href: "/treasury",   icon: VaultIcon,      module: null },
-      { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,   module: "payments" },
+      { id: "treasury", label: "Treasury", href: "/treasury", icon: VaultIcon, module: null },
     ],
+  },
+  {
+    label: "Operations",
+    items: [{ id: "animals", label: "Animals", href: "/animals", icon: PawPrintIcon, module: "animals" }],
   },
   {
     label: "Performance",

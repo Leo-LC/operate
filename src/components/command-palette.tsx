@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
@@ -16,10 +16,14 @@ const NAV_ITEMS = [
   { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
   { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
   { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
+  { id: "employees",  label: "Employees",  href: "/employees",  icon: UsersIcon,        module: "admin" },
   { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
   { id: "documents",  label: "Documents",  href: "/documents",  icon: FileTextIcon,     module: "documents" },
   { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon,   module: "accounting" },
   { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
+  { id: "daily-profit", label: "Daily P&L", href: "/finance/daily-profit", icon: TrendingUpIcon, module: "reports" },
+  { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
+  { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
   { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
