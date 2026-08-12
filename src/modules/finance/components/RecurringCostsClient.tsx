@@ -1,16 +1,62 @@
 "use client";
+
 import { useCallback, useEffect, useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; import { Card } from "@/components/ui/card"; import { DateInput } from "@/components/ui/date-input"; import { PageHeader } from "@/components/ui/page-header";
-import { FinanceScopeSelector } from "./FinanceScopeSelector"; import { DEFAULT_FINANCE_SCOPE, type FinanceScope } from "@/modules/finance/scope";
-type Cost = { id:string; label:string; category:string; cadence:string; estimated_amount:number; effective_from:string; effective_to:string|null; is_active:boolean; finance_cost_actuals?:{amount:number}[] }; type Location={id:string;name:string};
-const empty={label:"",category:"rent",estimated_amount:"",cadence:"monthly",effective_from:new Date().toISOString().slice(0,10),effective_to:"",actual_amount:"",service_from:"",service_to:"",reason:""};
-const field:React.CSSProperties={height:34,border:"1px solid var(--line-strong)",borderRadius:"var(--r-sm)",background:"var(--bg)",color:"var(--fg)",padding:"0 10px",fontSize:13,width:"100%"};
-export function RecurringCostsClient(){
- const[scope,setScope]=useState<FinanceScope>(DEFAULT_FINANCE_SCOPE); const[locations,setLocations]=useState<Location[]>([]); const[costs,setCosts]=useState<Cost[]>([]); const[canManage,setCanManage]=useState(false); const[showForm,setShowForm]=useState(false); const[form,setForm]=useState(empty); const[saving,setSaving]=useState(false);
- const load=useCallback(async()=>{const q=scope.type==="location"&&scope.locationId?`?location_id=${scope.locationId}`:"";const r=await fetch(`/api/finance/recurring-costs${q}`,{cache:"no-store"});const j=await r.json();if(!r.ok){toast.error(j.error??"Unable to load recurring costs");return}setLocations(j.locations);setCosts(j.costs);setCanManage(j.canManage)},[scope]); useEffect(()=>{void load()},[load]);
- async function save(e:React.FormEvent){e.preventDefault();setSaving(true);try{const r=await fetch("/api/finance/recurring-costs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,location_id:scope.type==="location"?scope.locationId:null,estimated_amount:Number(form.estimated_amount),actual_amount:form.actual_amount===""?undefined:Number(form.actual_amount)})});const j=await r.json();if(!r.ok)throw new Error(j.error??"Unable to save cost");setForm(empty);setShowForm(false);toast.success("Recurring cost saved");await load()}catch(error){toast.error(error instanceof Error?error.message:"Unable to save cost")}finally{setSaving(false)}}
- return <div style={{display:"flex",flexDirection:"column",gap:16}}><PageHeader eyebrow="Finance" title="Recurring costs" subtitle="The contract register for rent, utilities and other fixed commitments." actions={canManage?<Button size="sm" onClick={()=>setShowForm(v=>!v)}><PlusIcon size={14}/>Add cost</Button>:null}/><Card style={{flexDirection:"row",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}><FinanceScopeSelector value={scope} locations={locations} onChange={setScope}/><span style={{color:"var(--fg-4)",fontSize:12}}>{canManage?"Owner editing":"Read only"}</span></Card>
- {showForm?<Card><form onSubmit={save} style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}><label>Label<input required value={form.label} onChange={e=>setForm({...form,label:e.target.value})} style={field}/></label><label>Category<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={field}>{["rent","water","electricity","marketing","accounting","insurance","subscriptions","other"].map(v=><option key={v}>{v}</option>)}</select></label><label>Estimated amount<input required type="number" min="0" step=".01" value={form.estimated_amount} onChange={e=>setForm({...form,estimated_amount:e.target.value})} style={field}/></label><label>Frequency<select value={form.cadence} onChange={e=>setForm({...form,cadence:e.target.value})} style={field}><option value="monthly">Monthly</option><option value="annual">Annual</option><option value="one_off">One-off</option></select></label><label>Starts<DateInput required value={form.effective_from} onChange={e=>setForm({...form,effective_from:e.target.value})}/></label><label>Ends<DateInput value={form.effective_to} onChange={e=>setForm({...form,effective_to:e.target.value})}/></label><label>Actual amount<input type="number" min="0" step=".01" value={form.actual_amount} onChange={e=>setForm({...form,actual_amount:e.target.value})} style={field}/></label><label>Service from<DateInput value={form.service_from} onChange={e=>setForm({...form,service_from:e.target.value})}/></label><label>Service to<DateInput value={form.service_to} onChange={e=>setForm({...form,service_to:e.target.value})}/></label><label style={{gridColumn:"1 / -1"}}>Reason<input required value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} style={field} placeholder="Why this cost is being registered"/></label><div style={{gridColumn:"1 / -1",display:"flex",gap:8}}><Button size="sm" disabled={saving}>{saving?"Saving…":"Save cost"}</Button><Button type="button" size="sm" variant="secondary" onClick={()=>setShowForm(false)}>Cancel</Button></div></form></Card>:null}
- <Card flush><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}><thead><tr>{["Cost","Category","Frequency","Estimated","Actual","Period","Status"].map(label=><th key={label} style={{padding:"10px 14px",textAlign:label==="Estimated"||label==="Actual"?"right":"left",color:"var(--fg-4)",background:"var(--bg-2)"}}>{label}</th>)}</tr></thead><tbody>{costs.map(c=><tr key={c.id} style={{borderTop:"1px solid var(--line)"}}><td style={{padding:"11px 14px",fontWeight:600}}>{c.label}</td><td style={{padding:"11px 14px"}}>{c.category}</td><td style={{padding:"11px 14px"}}>{c.cadence}</td><td className="mono" style={{padding:"11px 14px",textAlign:"right"}}>฿{Number(c.estimated_amount).toLocaleString()}</td><td className="mono" style={{padding:"11px 14px",textAlign:"right"}}>{c.finance_cost_actuals?.[0]?`฿${Number(c.finance_cost_actuals[0].amount).toLocaleString()}`:"—"}</td><td style={{padding:"11px 14px"}}>{c.effective_from}{c.effective_to?` → ${c.effective_to}`:""}</td><td style={{padding:"11px 14px",color:c.is_active?"var(--good)":"var(--fg-4)"}}>{c.is_active?"Active":"Inactive"}</td></tr>)}</tbody></table>{costs.length===0?<p style={{padding:28,textAlign:"center",color:"var(--fg-4)"}}>No recurring costs in this scope. Add the first contract or commitment.</p>:null}</div></Card></div>}
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+
+type Location = { id: string; name: string };
+type Cost = { id: string; label: string; category: string; estimated_amount: number; custom_allocations?: { amount_mode?: "fixed" | "variable" }; is_active: boolean };
+type Category = "rent" | "utilities" | "marketing" | "support_workers" | "other";
+
+const CATEGORY_LABELS: Record<Category, string> = { rent: "Rent", utilities: "Utilities", marketing: "Marketing", support_workers: "Support workers", other: "Other" };
+const EMPTY_FORM = { category: "rent" as Category, support_type: "social_media", amount: "", amount_mode: "fixed" as "fixed" | "variable" };
+const FIELD: React.CSSProperties = { height: 38, border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", padding: "0 11px", fontSize: 13, width: "100%" };
+
+export function RecurringCostsClient() {
+  const [locationId, setLocationId] = useState("");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [costs, setCosts] = useState<Cost[]>([]);
+  const [canManage, setCanManage] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    const query = locationId ? `?location_id=${locationId}` : "";
+    const response = await fetch(`/api/finance/recurring-costs${query}`, { cache: "no-store" });
+    const json = await response.json();
+    if (!response.ok) { toast.error(json.error ?? "Unable to load recurring costs"); return; }
+    setLocations(json.locations); setCosts(locationId ? json.costs : []); setCanManage(json.canManage);
+    if (!locationId && json.locations[0]) setLocationId(json.locations[0].id);
+  }, [locationId]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const requested = new URLSearchParams(window.location.search).get("shop"); if (requested) setLocationId(requested); }, []);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault(); if (!locationId) return; setSaving(true);
+    try {
+      const response = await fetch("/api/finance/recurring-costs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location_id: locationId, category: form.category, support_type: form.category === "support_workers" ? form.support_type : null, estimated_amount: Number(form.amount), amount_mode: form.amount_mode }) });
+      const json = await response.json(); if (!response.ok) throw new Error(json.error ?? "Unable to save cost");
+      setForm(EMPTY_FORM); setShowForm(false); toast.success("Monthly cost saved"); await load();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save cost"); } finally { setSaving(false); }
+  }
+
+  return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <PageHeader eyebrow="Finance" title="Recurring costs" subtitle="The few costs each shop expects every month." actions={canManage ? <Button size="sm" onClick={() => setShowForm((value) => !value)}><PlusIcon size={14} />Add cost</Button> : null} />
+    <Card style={{ maxWidth: 420, gap: 6 }}><label htmlFor="cost-shop" style={{ fontSize: 12, color: "var(--fg-3)" }}>Shop</label><select id="cost-shop" value={locationId} onChange={(event) => setLocationId(event.target.value)} style={FIELD}>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></Card>
+    {showForm ? <Card><form onSubmit={save} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
+      <label style={{ fontSize: 12, color: "var(--fg-3)" }}>What is it?<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value as Category })} style={FIELD}>{Object.entries(CATEGORY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      {form.category === "support_workers" ? <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Support type<select value={form.support_type} onChange={(event) => setForm({ ...form, support_type: event.target.value })} style={FIELD}><option value="social_media">Social media</option><option value="bookings">Bookings</option><option value="social_media_and_bookings">Social media + bookings</option></select></label> : null}
+      <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Monthly amount (฿)<input required type="number" min="0" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} style={FIELD} /></label>
+      <fieldset style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}><legend style={{ marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Does the amount change?</legend><div style={{ display: "flex", gap: 8 }}>
+        {(["fixed", "variable"] as const).map((mode) => <button key={mode} type="button" aria-pressed={form.amount_mode === mode} onClick={() => setForm({ ...form, amount_mode: mode })} style={{ padding: "8px 12px", borderRadius: "var(--r-sm)", border: `1px solid ${form.amount_mode === mode ? "var(--bronze)" : "var(--line)"}`, background: form.amount_mode === mode ? "var(--bronze-soft)" : "var(--bg)", color: form.amount_mode === mode ? "var(--bronze)" : "var(--fg-3)", cursor: "pointer" }}>{mode === "fixed" ? "Same each month" : "Variable each month"}</button>)}
+      </div></fieldset>
+      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}><Button size="sm" disabled={saving}>{saving ? "Saving…" : "Save cost"}</Button><Button type="button" size="sm" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button></div>
+    </form></Card> : null}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>{costs.map((cost) => <Card key={cost.id} style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-4)" }}>{CATEGORY_LABELS[cost.category as Category] ?? cost.label}</span><strong style={{ fontSize: 16 }}>{cost.label}</strong><span className="mono" style={{ fontSize: 22 }}>฿{Number(cost.estimated_amount).toLocaleString()}</span><span style={{ fontSize: 12, color: "var(--fg-4)" }}>{cost.custom_allocations?.amount_mode === "variable" ? "Variable each month" : "Same each month"}</span></Card>)}</div>
+    {costs.length === 0 ? <Card style={{ alignItems: "center", padding: 36, color: "var(--fg-4)" }}>No monthly costs for this shop yet.</Card> : null}
+  </div>;
+}

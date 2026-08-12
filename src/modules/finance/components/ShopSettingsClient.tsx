@@ -1,11 +1,57 @@
 "use client";
+
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowRightIcon, BanknoteIcon, ReceiptTextIcon, UsersIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; import { Card } from "@/components/ui/card"; import { DateInput } from "@/components/ui/date-input"; import { PageHeader } from "@/components/ui/page-header";
-import { FinanceScopeSelector } from "./FinanceScopeSelector"; import { DEFAULT_FINANCE_SCOPE, type FinanceScope } from "@/modules/finance/scope";
-type Location={id:string;name:string}; type Setting={id:string;location_id:string;service_charge_rate_pct:number;operational_start_date:string|null}; const field:React.CSSProperties={height:34,border:"1px solid var(--line-strong)",borderRadius:"var(--r-sm)",background:"var(--bg)",color:"var(--fg)",padding:"0 10px",fontSize:13,width:"100%"};
-export function ShopSettingsClient(){const[scope,setScope]=useState<FinanceScope>(DEFAULT_FINANCE_SCOPE);const[locations,setLocations]=useState<Location[]>([]);const[settings,setSettings]=useState<Setting[]>([]);const[canManage,setCanManage]=useState(false);const[rate,setRate]=useState("");const[start,setStart]=useState("");const[reason,setReason]=useState("");const[saving,setSaving]=useState(false);
- const load=useCallback(async()=>{const r=await fetch("/api/finance/shop-settings",{cache:"no-store"});const j=await r.json();if(!r.ok){toast.error(j.error??"Unable to load shop settings");return}setLocations(j.locations);setSettings(j.settings);setCanManage(j.canManage)},[]);useEffect(()=>{void load()},[load]);
- const current=useMemo(()=>settings.find(s=>s.location_id===scope.locationId),[settings,scope.locationId]);useEffect(()=>{setRate(current?String(current.service_charge_rate_pct):"");setStart(current?.operational_start_date??"");setReason("")},[current]);
- async function save(e:React.FormEvent){e.preventDefault();if(!scope.locationId)return;setSaving(true);try{const r=await fetch("/api/finance/shop-settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({location_id:scope.locationId,service_charge_rate_pct:Number(rate),operational_start_date:start||null,reason})});const j=await r.json();if(!r.ok)throw new Error(j.error??"Unable to save settings");toast.success("Shop settings saved");await load()}catch(error){toast.error(error instanceof Error?error.message:"Unable to save settings")}finally{setSaving(false)}}
- const visible=scope.type==="location"?locations.filter(l=>l.id===scope.locationId):locations;return <div style={{display:"flex",flexDirection:"column",gap:16}}><PageHeader eyebrow="Finance" title="Shop settings" subtitle="The shared financial rules applied consistently by each shop."/><Card><FinanceScopeSelector value={scope} locations={locations} onChange={setScope}/></Card>{scope.type==="group"?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:12}}>{visible.map(l=>{const s=settings.find(x=>x.location_id===l.id);return <Card key={l.id} style={{gap:8}}><strong>{l.name}</strong><span style={{fontSize:12,color:"var(--fg-4)"}}>Service charge rate</span><span className="mono" style={{fontSize:22}}>{Number(s?.service_charge_rate_pct??0)}%</span><span style={{fontSize:12,color:"var(--fg-4)"}}>Opening date · {s?.operational_start_date??"Not set"}</span></Card>})}</div>:<Card><form onSubmit={save} style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:14}}><label>Service charge rate (%)<input type="number" min="0" max="100" step=".01" required value={rate} disabled={!canManage} onChange={e=>setRate(e.target.value)} style={field}/></label><label>Opening date<DateInput value={start} disabled={!canManage} onChange={e=>setStart(e.target.value)}/></label><label style={{gridColumn:"1 / -1"}}>Reason<input required value={reason} disabled={!canManage} onChange={e=>setReason(e.target.value)} style={field} placeholder="Why these settings are changing"/></label>{canManage?<div style={{gridColumn:"1 / -1"}}><Button size="sm" disabled={saving}>{saving?"Saving…":"Save settings"}</Button></div>:<p style={{gridColumn:"1 / -1",color:"var(--fg-4)",fontSize:12}}>Reports access is read-only. An owner can update financial settings.</p>}</form></Card>}</div>}
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+
+type Location = { id: string; name: string };
+type Setting = { id: string; location_id: string; service_charge_rate_pct: number };
+type Summary = { employeeCount: number; recurringMonthly: number };
+const FIELD: React.CSSProperties = { height: 38, border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", padding: "0 11px", fontSize: 13, width: "100%" };
+
+export function ShopSettingsClient() {
+  const [selectedId, setSelectedId] = useState("");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [settings, setSettings] = useState<Setting[]>([]);
+  const [summaries, setSummaries] = useState<Record<string, Summary>>({});
+  const [canManage, setCanManage] = useState(false);
+  const [rate, setRate] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    const response = await fetch("/api/finance/shop-settings", { cache: "no-store" }); const json = await response.json();
+    if (!response.ok) { toast.error(json.error ?? "Unable to load shop settings"); return; }
+    setLocations(json.locations); setSettings(json.settings); setSummaries(json.summaries ?? {}); setCanManage(json.canManage);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  const current = useMemo(() => settings.find((setting) => setting.location_id === selectedId), [settings, selectedId]);
+  useEffect(() => { setRate(String(current?.service_charge_rate_pct ?? 0)); }, [current]);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault(); if (!selectedId) return; setSaving(true);
+    try {
+      const response = await fetch("/api/finance/shop-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ location_id: selectedId, service_charge_rate_pct: Number(rate) }) });
+      const json = await response.json(); if (!response.ok) throw new Error(json.error ?? "Unable to save settings");
+      toast.success("Service charge saved"); await load();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save settings"); } finally { setSaving(false); }
+  }
+
+  const selectedLocation = locations.find((location) => location.id === selectedId);
+  return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <PageHeader eyebrow="Finance" title="Shop settings" subtitle="One place to see how each shop is configured and jump to the right module." />
+    <Card style={{ maxWidth: 420, gap: 6 }}><label htmlFor="settings-shop" style={{ fontSize: 12, color: "var(--fg-3)" }}>View</label><select id="settings-shop" value={selectedId} onChange={(event) => setSelectedId(event.target.value)} style={FIELD}><option value="">All shops</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></Card>
+    {!selectedId ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 12 }}>{locations.map((location) => {
+      const setting = settings.find((item) => item.location_id === location.id); const summary = summaries[location.id] ?? { employeeCount: 0, recurringMonthly: 0 };
+      return <button key={location.id} type="button" onClick={() => setSelectedId(location.id)} style={{ textAlign: "left", padding: 0, border: 0, background: "transparent", cursor: "pointer" }}><Card style={{ height: "100%", gap: 10, transition: "border-color 150ms" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong>{location.name}</strong><ArrowRightIcon size={16} color="var(--fg-4)" /></div><span style={{ fontSize: 12, color: "var(--fg-4)" }}>{summary.employeeCount} employees</span><span className="mono" style={{ fontSize: 18 }}>฿{summary.recurringMonthly.toLocaleString()}<small style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--fg-4)" }}> / month</small></span><span style={{ fontSize: 12, color: "var(--fg-4)" }}>Service charge · {Number(setting?.service_charge_rate_pct ?? 0)}%</span></Card></button>;
+    })}</div> : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div><h2 style={{ margin: 0, fontSize: 20 }}>{selectedLocation?.name}</h2><p style={{ margin: "4px 0 0", color: "var(--fg-4)", fontSize: 12 }}>Choose a line to manage its source.</p></div>
+      <Link href="/employees" style={{ textDecoration: "none" }}><Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><UsersIcon size={18} color="var(--bronze)" /><div style={{ flex: 1 }}><strong>Employees</strong><p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--fg-4)" }}>{summaries[selectedId]?.employeeCount ?? 0} assigned to this shop</p></div><ArrowRightIcon size={16} color="var(--fg-4)" /></Card></Link>
+      <Link href={`/finance/recurring-costs?shop=${selectedId}`} style={{ textDecoration: "none" }}><Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><ReceiptTextIcon size={18} color="var(--bronze)" /><div style={{ flex: 1 }}><strong>Monthly costs</strong><p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--fg-4)" }}>฿{Number(summaries[selectedId]?.recurringMonthly ?? 0).toLocaleString()} currently registered</p></div><ArrowRightIcon size={16} color="var(--fg-4)" /></Card></Link>
+      <Card style={{ gap: 12 }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><BanknoteIcon size={18} color="var(--bronze)" /><strong>Service charge</strong></div><form onSubmit={save} style={{ display: "flex", alignItems: "end", gap: 10, flexWrap: "wrap" }}><label style={{ maxWidth: 220, fontSize: 12, color: "var(--fg-3)" }}>Rate (%)<input type="number" min="0" max="100" step=".01" value={rate} disabled={!canManage} onChange={(event) => setRate(event.target.value)} style={FIELD} /></label>{canManage ? <Button size="sm" disabled={saving}>{saving ? "Saving…" : "Save rate"}</Button> : <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Read only</span>}</form></Card>
+    </div>}
+  </div>;
+}

@@ -7,7 +7,7 @@ import { Pill } from "@/components/ui/pill";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
-import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "./EmployeeForm";
+import { EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "./EmployeeForm";
 
 interface Props {
   locations: AdminLocation[];
@@ -30,6 +30,30 @@ const MODAL_PANEL: React.CSSProperties = {
   boxShadow: "var(--shadow-2)",
 };
 
+const SIMPLE_INPUT: React.CSSProperties = {
+  height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)",
+  background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%",
+};
+
+function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, submitting, onChange, onToggleLoc, onSetPrimary, onSubmit, onCancel, submitLabel }: {
+  form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; submitting: boolean;
+  onChange: (key: keyof FormState, value: string | boolean) => void; onToggleLoc: (id: string) => void;
+  onSetPrimary: (id: string) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
+}) {
+  return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+    <label style={{ display: "flex", flexDirection: "column", gap: 5, maxWidth: 360, fontSize: 12, color: "var(--fg-3)" }}>First name
+      <input autoFocus required value={form.first_name} onChange={(event) => onChange("first_name", event.target.value)} style={SIMPLE_INPUT} placeholder="First name" />
+    </label>
+    <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {locations.map((location) => {
+        const selected = locIds.has(location.id);
+        return <button key={location.id} type="button" onClick={() => { onToggleLoc(location.id); if (!selected) onSetPrimary(location.id); }} aria-pressed={selected} style={{ padding: "7px 11px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}{primaryLoc === location.id && selected ? " · primary" : ""}</button>;
+      })}
+    </div></div>
+    <div style={{ display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={submitting}>{submitting ? "Saving…" : submitLabel}</Button><Button type="button" size="sm" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button></div>
+  </form>;
+}
+
 function empToForm(emp: Employee): FormState {
   return {
     first_name: emp.first_name,
@@ -50,14 +74,6 @@ function empToForm(emp: Employee): FormState {
     employment_end_date: emp.employment_end_date?.slice(0, 10) ?? "",
     service_charge_eligible: emp.service_charge_eligible ?? true,
   };
-}
-
-function WorkPermitBadge({ expiresAt }: { expiresAt: string | null }) {
-  if (!expiresAt) return null;
-  const days = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 86400000);
-  const label = days < 0 ? "Expired" : days === 0 ? "Expires today" : `${days}d left`;
-  const tone = days > 90 ? "good" as const : days > 0 ? "warn" as const : "bad" as const;
-  return <Pill tone={tone} size="sm">Permit · {label}</Pill>;
 }
 
 export function EmployeesListClient({ locations }: Props) {
@@ -109,15 +125,9 @@ export function EmployeesListClient({ locations }: Props) {
     setEditPrimaryLoc(primary);
   }
 
-  function toggleLoc(set: Set<string>, setter: (s: Set<string>) => void, primarySetter: (s: string) => void, id: string, currentPrimary: string) {
-    const next = new Set(set);
-    if (next.has(id)) {
-      next.delete(id);
-      if (currentPrimary === id) primarySetter(next.values().next().value ?? "");
-    } else {
-      next.add(id);
-      if (!currentPrimary) primarySetter(id);
-    }
+  function toggleLoc(set: Set<string>, setter: (s: Set<string>) => void, primarySetter: (s: string) => void, id: string) {
+    const next = set.has(id) ? new Set<string>() : new Set([id]);
+    primarySetter(next.has(id) ? id : "");
     setter(next);
   }
 
@@ -130,22 +140,7 @@ export function EmployeesListClient({ locations }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           first_name: form.first_name,
-          last_name: form.last_name,
-          position: form.position || undefined,
-          nationality: form.nationality || undefined,
-          national_id: form.national_id || undefined,
-          work_permit_number: form.work_permit_number || undefined,
-          work_permit_expires_at: form.work_permit_expires_at || undefined,
-          email: form.email || undefined,
-          phone: form.phone || undefined,
-          notes: form.notes || undefined,
-          base_salary_monthly: form.base_salary_monthly ? parseFloat(form.base_salary_monthly) : undefined,
-          has_thai_bank_account: form.has_thai_bank_account,
-          credit_note: form.credit_note || undefined,
-          service_charge_pct: form.service_charge_pct ? parseFloat(form.service_charge_pct) : undefined,
-          employment_start_date: form.employment_start_date || undefined,
-          employment_end_date: form.employment_end_date || undefined,
-          service_charge_eligible: form.service_charge_eligible,
+          last_name: "",
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
         }),
@@ -174,22 +169,6 @@ export function EmployeesListClient({ locations }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           first_name: editForm.first_name,
-          last_name: editForm.last_name,
-          position: editForm.position || null,
-          nationality: editForm.nationality || null,
-          national_id: editForm.national_id || null,
-          work_permit_number: editForm.work_permit_number || null,
-          work_permit_expires_at: editForm.work_permit_expires_at || null,
-          email: editForm.email || null,
-          phone: editForm.phone || null,
-          notes: editForm.notes || null,
-          base_salary_monthly: editForm.base_salary_monthly ? parseFloat(editForm.base_salary_monthly) : null,
-          has_thai_bank_account: editForm.has_thai_bank_account,
-          credit_note: editForm.credit_note || null,
-          service_charge_pct: editForm.service_charge_pct ? parseFloat(editForm.service_charge_pct) : null,
-          employment_start_date: editForm.employment_start_date || null,
-          employment_end_date: editForm.employment_end_date || null,
-          service_charge_eligible: editForm.service_charge_eligible,
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,
         }),
@@ -258,14 +237,14 @@ export function EmployeesListClient({ locations }: Props) {
       />
 
       {showAdd && (
-        <EmployeeForm
+        <SimpleEmployeeForm
           form={form}
           locIds={formLocIds}
           primaryLoc={formPrimaryLoc}
           locations={locations}
           submitting={submitting}
           onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
-          onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, setFormPrimaryLoc, id, formPrimaryLoc)}
+          onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, setFormPrimaryLoc, id)}
           onSetPrimary={setFormPrimaryLoc}
           onSubmit={(e) => void handleAdd(e)}
           onCancel={resetAddForm}
@@ -283,7 +262,7 @@ export function EmployeesListClient({ locations }: Props) {
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-2)" }}>
               <tr>
-                {["Name", "Position", "Nationality", "Work Permit", "Locations", "Contact", ""].map((h) => (
+                {["First name", "Shop", ""].map((h) => (
                   <th key={h} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>{h}</th>
                 ))}
               </tr>
@@ -292,15 +271,15 @@ export function EmployeesListClient({ locations }: Props) {
               {employees.map((emp) =>
                 editingId === emp.id ? (
                   <tr key={emp.id}>
-                    <td colSpan={7} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
-                      <EmployeeForm
+                    <td colSpan={3} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
+                      <SimpleEmployeeForm
                         form={editForm}
                         locIds={editLocIds}
                         primaryLoc={editPrimaryLoc}
                         locations={locations}
                         submitting={submitting}
                         onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
-                        onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, setEditPrimaryLoc, id, editPrimaryLoc)}
+                        onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, setEditPrimaryLoc, id)}
                         onSetPrimary={setEditPrimaryLoc}
                         onSubmit={(e) => void handleEdit(e)}
                         onCancel={() => setEditingId(null)}
@@ -313,8 +292,8 @@ export function EmployeesListClient({ locations }: Props) {
                     key={emp.id}
                     emp={emp}
                     onEdit={() => { if (!emp.archived_at) startEdit(emp); }}
-                    onArchive={() => setArchiveTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}`, isArchived: !!emp.archived_at })}
-                    onDelete={() => setDeleteTarget({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
+                    onArchive={() => setArchiveTarget({ id: emp.id, name: emp.first_name, isArchived: !!emp.archived_at })}
+                    onDelete={() => setDeleteTarget({ id: emp.id, name: emp.first_name })}
                   />
                 )
               )}
@@ -391,18 +370,10 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
       onMouseLeave={() => setHovered(false)}
     >
       <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)" }}>
-        {emp.first_name} {emp.last_name}
+        {emp.first_name}
         {isArchived && (
           <Pill tone="neutral" size="sm" style={{ marginLeft: 8 }}>Archived</Pill>
         )}
-      </td>
-      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>{emp.position ?? "—"}</td>
-      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>{emp.nationality ?? "—"}</td>
-      <td style={{ padding: "10px 16px", fontSize: 12 }}>
-        {emp.work_permit_expires_at
-          ? <WorkPermitBadge expiresAt={emp.work_permit_expires_at} />
-          : <span style={{ color: "var(--fg-4)" }}>—</span>
-        }
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
         {(emp.employee_locations && emp.employee_locations.length > 0)
@@ -413,11 +384,6 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
             ))
           : (emp.location_name ?? <span style={{ color: "var(--fg-4)" }}>—</span>)
         }
-      </td>
-      <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
-        {emp.email && <div>{emp.email}</div>}
-        {emp.phone && <div>{emp.phone}</div>}
-        {!emp.email && !emp.phone && "—"}
       </td>
       <td style={{ padding: "10px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
