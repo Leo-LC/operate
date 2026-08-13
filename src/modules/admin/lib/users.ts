@@ -29,11 +29,16 @@ export function mapAdminUser(user: DbUserRow, options?: { includeAssignedPasswor
   };
 }
 
-export const ADMIN_USER_SELECT = `
+export const ADMIN_USER_LIST_SELECT = `
   id, email, name, global_role, organization_id, created_at, updated_at,
-  password_hash, assigned_password_encrypted,
+  password_hash,
   user_module_access!user_module_access_user_id_fkey ( id, module_key, can_read, can_write, granted_at ),
   user_location_access!user_location_access_user_id_fkey ( id, location_id, granted_at, locations ( name ) )
+`;
+
+export const ADMIN_USER_SELECT = `
+  ${ADMIN_USER_LIST_SELECT},
+  assigned_password_encrypted
 `;
 
 export function sanitizeAuditUpdates(updates: Record<string, unknown>): Record<string, unknown> {

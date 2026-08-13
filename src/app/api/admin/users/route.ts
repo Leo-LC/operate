@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-import { ADMIN_USER_SELECT, mapAdminUser } from "@/modules/admin/lib/users";
+import { ADMIN_USER_LIST_SELECT, ADMIN_USER_SELECT, mapAdminUser } from "@/modules/admin/lib/users";
 import bcrypt from "bcryptjs";
 import { encryptPassword } from "@/lib/password-crypto";
 
@@ -14,7 +14,7 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data: users, error } = await supabase
     .from("users")
-    .select(ADMIN_USER_SELECT)
+    .select(ADMIN_USER_LIST_SELECT)
     .order("created_at", { ascending: true });
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
