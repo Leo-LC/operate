@@ -33,7 +33,10 @@ export async function GET(request: Request) {
   if (scopeType !== "group" && !scopeId) return Response.json({ error: "scope_id required" }, { status: 400 });
 
   try {
-    const allowedLocationIds = await getAllowedLocationIds(session.user.userId, permissions.global_role === "owner");
+    const allowedLocationIds = await getAllowedLocationIds(
+      session.user.userId,
+      permissions.global_role === "owner" || permissions.global_role === "admin",
+    );
     const data = await getDailyProfitData(getSupabaseServerClient(), { from, to, scopeType, scopeId, canManage: permissions.global_role === "owner", allowedLocationIds });
     return Response.json(data);
   } catch (error) {

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { SessionRole } from "@/core/permissions/types";
 
 interface ReviewsTabNavProps {
-  role?: "owner" | "staff";
+  role?: SessionRole;
 }
 
 export function ReviewsTabNav({ role }: ReviewsTabNavProps) {

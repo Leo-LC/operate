@@ -1,10 +1,10 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole } from "./guards";
-import type { ModuleKey, UserPermissions } from "./types";
+import type { ModuleKey, SessionRole, UserPermissions } from "./types";
 
 export async function getUserPermissionsFromDb(
   userId: string | undefined,
-  fallbackRole: "owner" | "staff" | undefined,
+  fallbackRole: SessionRole | undefined,
 ): Promise<UserPermissions> {
   if (!userId) return derivePermissionsFromRole(fallbackRole);
 
@@ -21,8 +21,8 @@ export async function getUserPermissionsFromDb(
 
     const global_role = user.global_role as "owner" | "admin" | "member" | "reviewer";
 
-    if (global_role === "owner") {
-      return { global_role: "owner", module_access: [], location_access: [], all_locations: true };
+    if (global_role === "owner" || global_role === "admin") {
+      return { global_role, module_access: [], location_access: [], all_locations: true };
     }
 
     if (global_role === "reviewer") {
@@ -44,7 +44,7 @@ export async function getUserPermissionsFromDb(
     ]);
 
     return {
-      global_role: global_role === "admin" ? "admin" : "member",
+      global_role: "member",
       module_access: (moduleRows ?? []).map((m) => ({
         module_key: m.module_key as ModuleKey,
         can_read: m.can_read as boolean,

@@ -14,6 +14,7 @@ export type ModuleKey =
   | "brand";
 
 export type GlobalRole = "owner" | "admin" | "member" | "reviewer";
+export type SessionRole = GlobalRole | "staff";
 
 export interface ModulePermission {
   module_key: ModuleKey;

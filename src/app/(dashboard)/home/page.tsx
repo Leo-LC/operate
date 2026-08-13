@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { HomeClient } from "@/modules/home/components/HomeClient";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import type { ModuleKey } from "@/core/permissions/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
@@ -19,7 +20,7 @@ export default async function HomePage() {
   const role = session?.user?.role;
   const name = session?.user?.name ?? session?.user?.email ?? "there";
 
-  const permissions = derivePermissionsFromRole(role);
+  const permissions = await getUserPermissionsFromDb(session?.user?.userId, role);
   const supabase = getSupabaseServerClient();
 
   let docsAlert = 0;

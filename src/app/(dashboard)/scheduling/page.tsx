@@ -12,7 +12,7 @@ export default async function SchedulingPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
 
-  const allowedIds = await getAllowedLocationIds(session.user.userId, session.user.role === "owner");
+  const allowedIds = await getAllowedLocationIds(session.user.userId, session.user.role === "owner" || session.user.role === "admin");
 
   if (allowedIds !== null && allowedIds.length === 0) {
     return (

@@ -298,6 +298,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
               if (permissions.global_role === "reviewer") return item.id === "reviews";
+              if (item.id === "admin" && permissions.global_role !== "owner") return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
               if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
@@ -432,7 +433,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               {displayName}
             </span>
             <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
-              {permissions.global_role === "owner" ? "Owner" : "Staff"}
+              {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : "Staff"}
             </span>
           </div>
 

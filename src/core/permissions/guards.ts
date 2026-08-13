@@ -1,4 +1,4 @@
-import type { ModuleKey, UserPermissions } from "./types";
+import type { ModuleKey, SessionRole, UserPermissions } from "./types";
 
 /** Returns true if the user has read (or write) access to the given module. */
 export function hasModuleAccess(
@@ -6,7 +6,7 @@ export function hasModuleAccess(
   moduleKey: ModuleKey,
   requireWrite = false,
 ): boolean {
-  if (permissions.global_role === "owner") return true;
+  if (permissions.global_role === "owner" || permissions.global_role === "admin") return true;
   const access = permissions.module_access.find((a) => a.module_key === moduleKey);
   if (!access) return false;
   return requireWrite ? access.can_write : access.can_read;
@@ -14,13 +14,13 @@ export function hasModuleAccess(
 
 /** Returns true if the user has access to the given location. */
 export function hasLocationAccess(permissions: UserPermissions, locationId: string): boolean {
-  if (permissions.global_role === "owner" || permissions.all_locations) return true;
+  if (permissions.global_role === "owner" || permissions.global_role === "admin" || permissions.all_locations) return true;
   return permissions.location_access.some((a) => a.location_id === locationId);
 }
 
 /** Returns true if the user can access all locations. */
 export function hasAllLocationsAccess(permissions: UserPermissions): boolean {
-  return permissions.global_role === "owner" || permissions.all_locations;
+  return permissions.global_role === "owner" || permissions.global_role === "admin" || permissions.all_locations;
 }
 
 /**
@@ -31,14 +31,23 @@ export function hasAllLocationsAccess(permissions: UserPermissions): boolean {
  * is ready, replace calls to this with a DB-backed getUserPermissions(email).
  */
 export function derivePermissionsFromRole(
-  role: "owner" | "staff" | undefined,
+  role: SessionRole | undefined,
 ): UserPermissions {
-  if (role === "owner") {
+  if (role === "owner" || role === "admin") {
     return {
-      global_role: "owner",
+      global_role: role,
       module_access: [],
       location_access: [],
       all_locations: true,
+    };
+  }
+
+  if (role === "reviewer") {
+    return {
+      global_role: "reviewer",
+      module_access: [{ module_key: "reviews", can_read: true, can_write: true }],
+      location_access: [],
+      all_locations: false,
     };
   }
 

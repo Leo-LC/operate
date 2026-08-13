@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getSupabaseServerClient } from "./supabase-server";
 import { saveGoogleTokensToOrg } from "./google-token";
+import type { GlobalRole, SessionRole } from "@/core/permissions/types";
 
 const secret = process.env.NEXTAUTH_SECRET;
 if (!secret || secret.length < 1) {
@@ -27,7 +28,7 @@ const OWNER_EMAILS = (process.env.OWNER_GOOGLE_EMAILS ?? process.env.ALLOWED_GOO
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-function getRoleForEmail(email: string | null | undefined): "owner" | "staff" {
+function getRoleForEmail(email: string | null | undefined): SessionRole {
   const lower = email?.toLowerCase() ?? "";
   if (!lower) return "staff";
   if (OWNER_EMAILS.length > 0 && OWNER_EMAILS.includes(lower)) {
@@ -47,7 +48,7 @@ function getRoleForEmail(email: string | null | undefined): "owner" | "staff" {
  */
 async function getDbRoleForEmail(
   email: string,
-): Promise<{ role: "owner" | "staff"; userId: string } | null> {
+): Promise<{ role: GlobalRole; userId: string } | null> {
   try {
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
@@ -56,7 +57,9 @@ async function getDbRoleForEmail(
       .eq("email", email.toLowerCase())
       .single();
     if (error || !data) return null;
-    const role = data.global_role === "owner" ? "owner" : "staff";
+    const validRoles: GlobalRole[] = ["owner", "admin", "member", "reviewer"];
+    if (!validRoles.includes(data.global_role as GlobalRole)) return null;
+    const role = data.global_role as GlobalRole;
     return { role, userId: data.id as string };
   } catch {
     return null;
@@ -217,6 +220,16 @@ export const authOptions: NextAuthOptions = {
         return token;
       }
 
+      // Re-read authorization on every session access so role changes made by
+      // an owner take effect without waiting for the JWT to expire.
+      if (token.email) {
+        const dbUser = await getDbRoleForEmail(token.email);
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.userId = dbUser.userId;
+        }
+      }
+
       // Return previous token if the access token has not expired yet
       if (typeof token.accessTokenExpires === "number" && Date.now() < token.accessTokenExpires) {
         return token;
@@ -251,7 +264,7 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      role?: "owner" | "staff";
+      role?: SessionRole;
       userId?: string; // platform DB user id, present once the user exists in the users table
     };
   }
@@ -262,7 +275,7 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     refreshToken?: string;
     accessTokenExpires?: number;
-    role?: "owner" | "staff";
+    role?: SessionRole;
     userId?: string;
     error?: "RefreshAccessTokenError";
   }

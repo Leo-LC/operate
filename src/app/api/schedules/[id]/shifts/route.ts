@@ -3,9 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess, derivePermissionsFromRole } from "@/core/permissions/guards";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import type { SessionRole } from "@/core/permissions/types";
 
-async function guardAndGetSchedule(scheduleId: string, role: string | undefined) {
-  const perms = derivePermissionsFromRole(role as "owner" | "staff" | undefined);
+async function guardAndGetSchedule(scheduleId: string, role: SessionRole | undefined) {
+  const perms = derivePermissionsFromRole(role);
   if (!hasModuleAccess(perms, "schedules")) return null;
   const supabase = getSupabaseServerClient();
   const { data } = await supabase

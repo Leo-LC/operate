@@ -7,11 +7,11 @@ import {
   UsersIcon, BookOpenIcon, AlertTriangleIcon,
 } from "lucide-react";
 import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-import type { ModuleKey } from "@/core/permissions/types";
+import type { ModuleKey, SessionRole } from "@/core/permissions/types";
 
 interface HomeClientProps {
   name: string;
-  role?: "owner" | "staff";
+  role?: SessionRole;
   docsAlert: number;
   animalsAlert: number;
   snippets?: Partial<Record<ModuleKey, string>>;
@@ -133,7 +133,9 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
   };
   const totalAlerts = Object.values(alerts).reduce((s, a) => s + a.count, 0);
 
-  const visibleModules = ALL_MODULES.filter((m) => hasModuleAccess(permissions, m.key));
+  const visibleModules = ALL_MODULES.filter((m) =>
+    m.key !== "admin" || permissions.global_role === "owner"
+  ).filter((m) => hasModuleAccess(permissions, m.key));
   const operationsModules = visibleModules.filter((m) => OPERATIONS_KEYS.includes(m.key));
   const toolsModules = visibleModules.filter((m) => !OPERATIONS_KEYS.includes(m.key));
 
@@ -143,7 +145,7 @@ export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} 
       const mod = ALL_MODULES.find((m) => m.key === key)!;
       return { key, label: mod.label, value: snippets[key]! };
     });
-  const showPulse = permissions.global_role === "owner" && pulseStats.length > 0;
+  const showPulse = (permissions.global_role === "owner" || permissions.global_role === "admin") && pulseStats.length > 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-7)" }}>

@@ -11,11 +11,12 @@ export const metadata = { title: "Overview — Challenges" };
 export default async function ChallengesOverviewPage() {
   const session = await getServerSession(authOptions);
   const isOwner = session?.user?.role === "owner";
+  const hasAllLocations = isOwner || session?.user?.role === "admin";
   const canManage = isOwner;
 
   let locations: AdminLocation[] = [];
   if (session?.user) {
-    const allowedIds = await getAllowedLocationIds(session.user.userId, isOwner);
+    const allowedIds = await getAllowedLocationIds(session.user.userId, hasAllLocations);
     if (allowedIds === null || allowedIds.length > 0) {
       const supabase = getSupabaseServerClient();
       let query = supabase
