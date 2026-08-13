@@ -2,7 +2,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-import { ADMIN_USER_LIST_SELECT, ADMIN_USER_SELECT, mapAdminUser } from "@/modules/admin/lib/users";
+import {
+  ADMIN_USER_LIST_SELECT,
+  ADMIN_USER_SELECT,
+  isMissingAssignedPasswordColumn,
+  mapAdminUser,
+} from "@/modules/admin/lib/users";
+import type { DbUserRow } from "@/modules/admin/lib/users";
 import bcrypt from "bcryptjs";
 import { encryptPassword } from "@/lib/password-crypto";
 
@@ -54,22 +60,41 @@ export async function POST(request: Request) {
     .limit(1)
     .single();
 
-  const { data: user, error } = await supabase
+  const insertValues = {
+    email,
+    name: body.name ?? null,
+    global_role,
+    organization_id: org?.id ?? null,
+    password_hash,
+    assigned_password_encrypted,
+  };
+
+  const initialResult = await supabase
     .from("users")
-    .insert({
-      email,
-      name: body.name ?? null,
-      global_role,
-      organization_id: org?.id ?? null,
-      password_hash,
-      assigned_password_encrypted,
-    })
+    .insert(insertValues)
     .select(ADMIN_USER_SELECT)
     .single();
+  let user: DbUserRow | null = initialResult.data;
+  let error = initialResult.error;
 
-  if (error) {
-    if (error.code === "23505") return Response.json({ error: "Email already exists" }, { status: 409 });
-    return Response.json({ error: error.message }, { status: 500 });
+  if (isMissingAssignedPasswordColumn(error)) {
+    const compatibleValues = {
+      email: insertValues.email,
+      name: insertValues.name,
+      global_role: insertValues.global_role,
+      organization_id: insertValues.organization_id,
+      password_hash: insertValues.password_hash,
+    };
+    ({ data: user, error } = await supabase
+      .from("users")
+      .insert(compatibleValues)
+      .select(ADMIN_USER_LIST_SELECT)
+      .single());
+  }
+
+  if (error || !user) {
+    if (error?.code === "23505") return Response.json({ error: "Email already exists" }, { status: 409 });
+    return Response.json({ error: error?.message ?? "User creation failed" }, { status: 500 });
   }
 
   await writeAuditLog({

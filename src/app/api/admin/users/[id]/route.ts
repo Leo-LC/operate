@@ -2,7 +2,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-import { ADMIN_USER_SELECT, mapAdminUser, sanitizeAuditUpdates } from "@/modules/admin/lib/users";
+import {
+  ADMIN_USER_LIST_SELECT,
+  ADMIN_USER_SELECT,
+  isMissingAssignedPasswordColumn,
+  mapAdminUser,
+  sanitizeAuditUpdates,
+} from "@/modules/admin/lib/users";
+import type { DbUserRow } from "@/modules/admin/lib/users";
 import bcrypt from "bcryptjs";
 import { encryptPassword } from "@/lib/password-crypto";
 
@@ -12,11 +19,21 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
-  const { data: user, error } = await supabase
+  const initialResult = await supabase
     .from("users")
     .select(ADMIN_USER_SELECT)
     .eq("id", params.id)
     .single();
+  let user: DbUserRow | null = initialResult.data;
+  let error = initialResult.error;
+
+  if (isMissingAssignedPasswordColumn(error)) {
+    ({ data: user, error } = await supabase
+      .from("users")
+      .select(ADMIN_USER_LIST_SELECT)
+      .eq("id", params.id)
+      .single());
+  }
 
   if (error || !user) return Response.json({ error: "User not found" }, { status: 404 });
 
@@ -50,12 +67,24 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const supabase = getSupabaseServerClient();
-  const { data: user, error } = await supabase
+  const initialResult = await supabase
     .from("users")
     .update(updates)
     .eq("id", params.id)
     .select(ADMIN_USER_SELECT)
     .single();
+  let user: DbUserRow | null = initialResult.data;
+  let error = initialResult.error;
+
+  if (isMissingAssignedPasswordColumn(error)) {
+    delete updates.assigned_password_encrypted;
+    ({ data: user, error } = await supabase
+      .from("users")
+      .update(updates)
+      .eq("id", params.id)
+      .select(ADMIN_USER_LIST_SELECT)
+      .single());
+  }
 
   if (error || !user) return Response.json({ error: "User not found or update failed" }, { status: 404 });
 

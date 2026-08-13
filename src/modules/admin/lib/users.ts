@@ -1,5 +1,6 @@
 import { decryptPassword } from "@/lib/password-crypto";
 import type { AdminUser, ModuleAccessRow } from "@/modules/admin/types";
+export { isMissingAssignedPasswordColumn } from "./users-compat";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DbUserRow = Record<string, any>;

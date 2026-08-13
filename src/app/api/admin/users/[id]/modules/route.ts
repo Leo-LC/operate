@@ -5,7 +5,7 @@ import { writeAuditLog } from "@/modules/admin/lib/audit";
 import type { ModuleKey } from "@/core/permissions/types";
 
 const VALID_MODULES: ModuleKey[] = [
-  "reviews", "documents", "animals", "schedules", "accounting", "reports", "admin",
+  "reviews", "documents", "animals", "schedules", "accounting", "reports", "contacts", "wiki", "brand",
 ];
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
