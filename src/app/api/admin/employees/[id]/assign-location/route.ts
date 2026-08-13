@@ -1,11 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { isOperationalAdmin } from "@/core/permissions/guards";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   let body: { location_id: string; is_primary?: boolean };
@@ -29,7 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const { searchParams } = new URL(request.url);

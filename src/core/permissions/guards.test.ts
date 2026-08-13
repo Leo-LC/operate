@@ -4,6 +4,7 @@ import {
   hasAllLocationsAccess,
   hasLocationAccess,
   hasModuleAccess,
+  isOperationalAdmin,
 } from "./guards";
 import type { ModuleKey } from "./types";
 
@@ -34,5 +35,12 @@ describe("global admin permissions", () => {
     const permissions = derivePermissionsFromRole("member");
     expect(hasModuleAccess(permissions, "reviews")).toBe(true);
     expect(hasModuleAccess(permissions, "accounting")).toBe(false);
+  });
+
+  it("allows owner and admin to manage operational modules", () => {
+    expect(isOperationalAdmin("owner")).toBe(true);
+    expect(isOperationalAdmin("admin")).toBe(true);
+    expect(isOperationalAdmin("member")).toBe(false);
+    expect(isOperationalAdmin("reviewer")).toBe(false);
   });
 });

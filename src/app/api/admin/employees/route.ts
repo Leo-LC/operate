@@ -3,11 +3,12 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { isOperationalAdmin } from "@/core/permissions/guards";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const locationId = searchParams.get("location_id");
@@ -80,7 +81,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: {
     first_name: string;

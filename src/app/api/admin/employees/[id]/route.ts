@@ -3,11 +3,12 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { isOperationalAdmin } from "@/core/permissions/guards";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
@@ -30,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: Partial<{
     first_name: string;
@@ -130,7 +131,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!isOperationalAdmin(session.user.role)) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { error } = await supabase

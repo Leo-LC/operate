@@ -1,5 +1,9 @@
 import type { ModuleKey, SessionRole, UserPermissions } from "./types";
 
+export function isOperationalAdmin(role: SessionRole | undefined): boolean {
+  return role === "owner" || role === "admin";
+}
+
 /** Returns true if the user has read (or write) access to the given module. */
 export function hasModuleAccess(
   permissions: UserPermissions,
