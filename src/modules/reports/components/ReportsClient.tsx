@@ -23,6 +23,7 @@ import { Pill } from "@/components/ui/pill";
 import { Stat } from "@/components/ui/stat";
 import { DailyProfitView } from "@/modules/reports/components/DailyProfitView";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
+import { RevenueComparisonView } from "@/modules/reports/components/RevenueComparisonView";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1753,10 +1754,11 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type ReportsTab = "daily-profit" | "operations" | "byshop";
+type ReportsTab = "daily-profit" | "operations" | "byshop" | "revenue-compare";
 
 const TABS: { value: ReportsTab; label: string }[] = [
   { value: "daily-profit", label: "Daily P&L" },
+  { value: "revenue-compare", label: "Revenue comparison" },
   { value: "operations", label: "Operations" },
   { value: "byshop", label: "By Shop" },
 ];
@@ -1834,6 +1836,8 @@ export function ReportsClient() {
 
       {activeTab === "daily-profit" ? (
         <DailyProfitView from={dailyFrom} to={dailyTo} onFromChange={setDailyFrom} onToChange={setDailyTo} />
+      ) : activeTab === "revenue-compare" ? (
+        <RevenueComparisonView />
       ) : (
         <>
           {/* Existing Reports controls and views remain unchanged. */}
