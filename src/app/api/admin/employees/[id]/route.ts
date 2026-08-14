@@ -57,6 +57,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     archived_at: string | null;
     location_ids: string[];
     primary_location_id: string | null;
+    location_salaries?: Record<string, number>;
   }>;
   try {
     body = await request.json();
@@ -102,8 +103,28 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
+  // Keep the primary location's salary in sync when only the legacy single
+  // salary field was changed.
+  if ("base_salary_monthly" in body && body.location_ids === undefined) {
+    const { data: primary } = await supabase
+      .from("employee_locations")
+      .select("id")
+      .eq("employee_id", params.id)
+      .eq("is_primary", true)
+      .limit(1)
+      .maybeSingle();
+    if (primary) {
+      await supabase
+        .from("employee_locations")
+        .update({ base_salary_monthly: body.base_salary_monthly ?? null })
+        .eq("id", primary.id);
+    }
+  }
+
   if (body.location_ids !== undefined) {
     const primaryId = body.primary_location_id ?? body.location_ids[0] ?? null;
+    const locationSalaries = body.location_salaries ?? {};
+    const primarySalary = primaryId ? locationSalaries[primaryId] : undefined;
     await supabase.from("employee_locations").delete().eq("employee_id", params.id);
     if (body.location_ids.length > 0) {
       await supabase.from("employee_locations").insert(
@@ -111,8 +132,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           employee_id: params.id,
           location_id: lid,
           is_primary: lid === primaryId,
+          base_salary_monthly: locationSalaries[lid] ?? body.base_salary_monthly ?? null,
         }))
       );
+    }
+    if ("base_salary_monthly" in body || Object.keys(locationSalaries).length > 0) {
+      await supabase
+        .from("employees")
+        .update({ base_salary_monthly: primarySalary ?? body.base_salary_monthly ?? null, updated_at: new Date().toISOString() })
+        .eq("id", params.id);
     }
   }
 

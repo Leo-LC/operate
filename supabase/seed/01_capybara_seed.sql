@@ -66,6 +66,13 @@ VALUES
     'laguna',
     NULL,
     false
+  ),
+  (
+    'a1b2c3d4-0000-0000-0000-000000000001',
+    'Resort',
+    'resort',
+    NULL,
+    true
   )
 ON CONFLICT (organization_id, slug) DO NOTHING;
 

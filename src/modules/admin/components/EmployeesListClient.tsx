@@ -35,10 +35,10 @@ const SIMPLE_INPUT: React.CSSProperties = {
   background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%",
 };
 
-function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, submitting, onChange, onToggleLoc, onSetPrimary, onSubmit, onCancel, submitLabel }: {
-  form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; submitting: boolean;
+function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onSubmit, onCancel, submitLabel }: {
+  form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; locationSalaries: Record<string, string>; submitting: boolean;
   onChange: (key: keyof FormState, value: string | boolean) => void; onToggleLoc: (id: string) => void;
-  onSetPrimary: (id: string) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
+  onSetPrimary: (id: string) => void; onSalaryChange: (id: string, value: string) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
 }) {
   return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
@@ -70,7 +70,12 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, submitting, o
     <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {locations.map((location) => {
         const selected = locIds.has(location.id);
-        return <button key={location.id} type="button" onClick={() => { onToggleLoc(location.id); if (!selected) onSetPrimary(location.id); }} aria-pressed={selected} style={{ padding: "7px 11px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}{primaryLoc === location.id && selected ? " · primary" : ""}</button>;
+        return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)" }}>
+          <button type="button" onClick={() => { onToggleLoc(location.id); if (!selected) onSetPrimary(location.id); }} aria-pressed={selected} style={{ padding: "3px 0", background: "transparent", border: "none", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}{primaryLoc === location.id && selected ? " · primary" : ""}</button>
+          {selected && (
+            <input type="number" min="0" step="100" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
+          )}
+        </div>;
       })}
     </div></div>
     <div style={{ display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={submitting}>{submitting ? "Saving…" : submitLabel}</Button><Button type="button" size="sm" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button></div>
@@ -107,10 +112,12 @@ export function EmployeesListClient({ locations }: Props) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formLocIds, setFormLocIds] = useState<Set<string>>(new Set());
   const [formPrimaryLoc, setFormPrimaryLoc] = useState("");
+  const [formSalaries, setFormSalaries] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
   const [editLocIds, setEditLocIds] = useState<Set<string>>(new Set());
   const [editPrimaryLoc, setEditPrimaryLoc] = useState("");
+  const [editSalaries, setEditSalaries] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string; isArchived: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -136,6 +143,7 @@ export function EmployeesListClient({ locations }: Props) {
     setForm(EMPTY_FORM);
     setFormLocIds(new Set());
     setFormPrimaryLoc("");
+    setFormSalaries({});
     setShowAdd(false);
   }
 
@@ -146,6 +154,11 @@ export function EmployeesListClient({ locations }: Props) {
     setEditLocIds(locIds);
     const primary = emp.employee_locations?.find((el) => el.is_primary)?.location_id ?? emp.location_id ?? "";
     setEditPrimaryLoc(primary);
+    const salaries: Record<string, string> = {};
+    for (const el of emp.employee_locations ?? []) {
+      if (el.base_salary_monthly != null) salaries[el.location_id] = String(el.base_salary_monthly);
+    }
+    setEditSalaries(salaries);
   }
 
   function toggleLoc(set: Set<string>, setter: (s: Set<string>) => void, primarySetter: (s: string) => void, id: string) {
@@ -171,6 +184,7 @@ export function EmployeesListClient({ locations }: Props) {
           service_charge_eligible: form.service_charge_eligible,
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
+          location_salaries: formSalaries,
         }),
       });
       if (!res.ok) {
@@ -204,6 +218,7 @@ export function EmployeesListClient({ locations }: Props) {
           service_charge_eligible: editForm.service_charge_eligible,
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,
+          location_salaries: editSalaries,
         }),
       });
       if (!res.ok) {
@@ -275,10 +290,12 @@ export function EmployeesListClient({ locations }: Props) {
           locIds={formLocIds}
           primaryLoc={formPrimaryLoc}
           locations={locations}
+          locationSalaries={formSalaries}
           submitting={submitting}
           onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
           onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, setFormPrimaryLoc, id)}
           onSetPrimary={setFormPrimaryLoc}
+          onSalaryChange={(id, val) => setFormSalaries((prev) => ({ ...prev, [id]: val }))}
           onSubmit={(e) => void handleAdd(e)}
           onCancel={resetAddForm}
           submitLabel="Add employee"
@@ -310,10 +327,12 @@ export function EmployeesListClient({ locations }: Props) {
                         locIds={editLocIds}
                         primaryLoc={editPrimaryLoc}
                         locations={locations}
+                        locationSalaries={editSalaries}
                         submitting={submitting}
                         onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
                         onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, setEditPrimaryLoc, id)}
                         onSetPrimary={setEditPrimaryLoc}
+                        onSalaryChange={(id, val) => setEditSalaries((prev) => ({ ...prev, [id]: val }))}
                         onSubmit={(e) => void handleEdit(e)}
                         onCancel={() => setEditingId(null)}
                         submitLabel="Save"
@@ -422,7 +441,18 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
         }
       </td>
       <td className="mono tabular-nums" style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
-        {emp.base_salary_monthly != null ? `฿${emp.base_salary_monthly.toLocaleString()}/mo` : <span style={{ color: "var(--fg-4)" }}>—</span>}
+        {(() => {
+          const perLoc = (emp.employee_locations ?? []).filter((el) => el.base_salary_monthly != null);
+          if (perLoc.length > 1) {
+            return perLoc.map((el) => (
+              <span key={el.location_id} style={{ display: "block" }}>
+                {el.location_name}: ฿{el.base_salary_monthly!.toLocaleString()}
+              </span>
+            ));
+          }
+          const s = perLoc[0]?.base_salary_monthly ?? emp.base_salary_monthly;
+          return s != null ? `฿${s.toLocaleString()}/mo` : <span style={{ color: "var(--fg-4)" }}>—</span>;
+        })()}
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
         {emp.has_thai_bank_account ? "Yes" : "No"}

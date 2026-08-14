@@ -71,10 +71,12 @@ export function EmployeeForm({
   locIds,
   primaryLoc,
   locations,
+  locationSalaries = {},
   submitting,
   onChange,
   onToggleLoc,
   onSetPrimary,
+  onSalaryChange,
   onSubmit,
   onCancel,
   submitLabel,
@@ -83,10 +85,12 @@ export function EmployeeForm({
   locIds: Set<string>;
   primaryLoc: string;
   locations: AdminLocation[];
+  locationSalaries?: Record<string, string>;
   submitting: boolean;
   onChange: (key: keyof EmployeeFormState, val: string | boolean) => void;
   onToggleLoc: (id: string) => void;
   onSetPrimary: (id: string) => void;
+  onSalaryChange?: (locationId: string, value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
   submitLabel: string;
@@ -223,19 +227,34 @@ export function EmployeeForm({
                   <input type="checkbox" className="sr-only" checked={checked} onChange={() => onToggleLoc(loc.id)} />
                   {loc.name}
                   {checked && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(loc.id); }}
-                      style={{
-                        marginLeft: 2, fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "0 4px",
-                        background: isPrimary ? "var(--bronze)" : "transparent",
-                        color: isPrimary ? "#fff" : "var(--fg-4)",
-                        border: "none", cursor: "pointer",
-                      }}
-                      title={isPrimary ? "Primary location" : "Set as primary"}
-                    >
-                      {isPrimary ? "PRIMARY" : "set primary"}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(loc.id); }}
+                        style={{
+                          marginLeft: 2, fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "0 4px",
+                          background: isPrimary ? "var(--bronze)" : "transparent",
+                          color: isPrimary ? "#fff" : "var(--fg-4)",
+                          border: "none", cursor: "pointer",
+                        }}
+                        title={isPrimary ? "Primary location" : "Set as primary"}
+                      >
+                        {isPrimary ? "PRIMARY" : "set primary"}
+                      </button>
+                      {onSalaryChange && (
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={locationSalaries[loc.id] ?? ""}
+                          onChange={(e) => onSalaryChange(loc.id, e.target.value)}
+                          placeholder="฿/mo"
+                          title={`Salary at ${loc.name}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ width: 88, height: 22, marginLeft: 4, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }}
+                        />
+                      )}
+                    </>
                   )}
                 </label>
               );

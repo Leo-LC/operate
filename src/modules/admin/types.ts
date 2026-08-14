@@ -54,6 +54,7 @@ export interface EmployeeLocationRow {
   location_id: string;
   location_name: string;
   is_primary: boolean;
+  base_salary_monthly: number | null;
 }
 
 export interface Employee {

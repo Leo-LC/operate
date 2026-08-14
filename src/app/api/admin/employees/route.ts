@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       credit_note, service_charge_pct, employment_start_date, employment_end_date, service_charge_eligible,
       user_id, archived_at, created_at, updated_at,
       locations ( name ),
-      employee_locations ( id, location_id, is_primary, locations ( name ) )
+      employee_locations ( id, location_id, is_primary, base_salary_monthly, locations ( name ) )
     `)
     .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  type ELRow = { id: string; location_id: string; is_primary: boolean; locations: { name: string } | null };
+  type ELRow = { id: string; location_id: string; is_primary: boolean; base_salary_monthly: number | null; locations: { name: string } | null };
   type EmpRow = typeof data extends (infer T)[] | null ? T : never;
 
   const mapped = (data ?? []).map((e) => {
@@ -71,6 +71,7 @@ export async function GET(request: Request) {
         location_id: el.location_id,
         location_name: el.locations?.name ?? el.location_id,
         is_primary: el.is_primary,
+        base_salary_monthly: el.base_salary_monthly ?? null,
       })),
     };
   });
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
     user_id?: string;
     location_ids?: string[];
     primary_location_id?: string;
+    location_salaries?: Record<string, number>;
   };
   try {
     body = await request.json();
@@ -118,6 +120,8 @@ export async function POST(request: Request) {
   }
 
   const primaryLocationId = body.primary_location_id ?? body.location_ids?.[0] ?? null;
+  const locationSalaries = body.location_salaries ?? {};
+  const primarySalary = primaryLocationId ? locationSalaries[primaryLocationId] : undefined;
 
   const supabase = getSupabaseServerClient();
   const { data: employee, error } = await supabase
@@ -135,7 +139,7 @@ export async function POST(request: Request) {
       email: body.email?.trim().toLowerCase() ?? null,
       phone: body.phone?.trim() ?? null,
       notes: body.notes?.trim() ?? null,
-      base_salary_monthly: body.base_salary_monthly ?? null,
+      base_salary_monthly: primarySalary ?? body.base_salary_monthly ?? null,
       has_thai_bank_account: body.has_thai_bank_account ?? false,
       credit_note: body.credit_note?.trim() ?? null,
       service_charge_pct: body.service_charge_pct ?? null,
@@ -155,6 +159,7 @@ export async function POST(request: Request) {
         employee_id: employee.id,
         location_id: lid,
         is_primary: lid === primaryLocationId,
+        base_salary_monthly: locationSalaries[lid] ?? body.base_salary_monthly ?? null,
       }))
     );
   }
