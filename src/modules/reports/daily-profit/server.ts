@@ -67,7 +67,7 @@ function sumDays(days: Iterable<DailyProfitRow>) {
 
 export async function getDailyProfitData(
   supabase: SupabaseClient,
-  params: { from: string; to: string; scopeType: FinanceScopeType; scopeId: string | null; canManage: boolean; allowedLocationIds?: string[] | null },
+  params: { from: string; to: string; scopeType: FinanceScopeType; scopeIds: string[]; canManage: boolean; allowedLocationIds?: string[] | null },
 ): Promise<DailyProfitResponse> {
   const extendedFrom = monthStart(params.from);
   const extendedTo = monthEnd(params.to);
@@ -97,7 +97,7 @@ export async function getDailyProfitData(
         operationalStartDate: assignment?.operational_start_date ? String(assignment.operational_start_date) : null,
       };
     });
-  const selectedLocationIds = locations.filter((location) => params.scopeType === "group" || location.id === params.scopeId).map((location) => location.id);
+  const selectedLocationIds = locations.filter((location) => params.scopeType === "group" || params.scopeIds.includes(location.id)).map((location) => location.id);
 
   const entryMap = new Map<string, SourceDailyEntry>();
   for (const row of sourceResult.data ?? []) {
@@ -175,12 +175,14 @@ export async function getDailyProfitData(
       serviceChargeRatePct: n(row.service_charge_rate_pct), employeeCount: n(row.employee_count),
     }))
     .sort((a, b) => a.period.localeCompare(b.period) || a.locationName.localeCompare(b.locationName));
-  const locationName = locations.find((location) => location.id === params.scopeId)?.name;
+  const scopeLabel = params.scopeType === "group"
+    ? "Global"
+    : locations.filter((location) => params.scopeIds.includes(location.id)).map((location) => location.name).join(" + ") || "Shop";
 
   return {
     period: { from: params.from, to: params.to },
     asOf: new Date().toISOString(),
-    scope: { type: params.scopeType, id: params.scopeId, label: params.scopeType === "group" ? "Global" : locationName ?? "Shop" },
+    scope: { type: params.scopeType, id: params.scopeIds[0] ?? null, label: scopeLabel },
     canManage: params.canManage,
     legalEntities: (entitiesResult.data ?? []) as FinanceLegalEntity[],
     locations,

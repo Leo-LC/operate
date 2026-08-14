@@ -8,7 +8,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { Drawer } from "@/components/ui/drawer";
 import { Pill } from "@/components/ui/pill";
 import { toast } from "sonner";
-import type { DailyProfitResponse, DailyProfitRow, FinanceScopeType } from "@/modules/reports/daily-profit/types";
+import type { DailyProfitResponse, DailyProfitRow } from "@/modules/reports/daily-profit/types";
 import { DailyProfitManageDrawer } from "./DailyProfitManageDrawer";
 import { FINANCE_SCOPE_STORAGE_KEY, type FinanceScope } from "@/modules/finance/scope";
 
@@ -90,8 +90,7 @@ function Metric({ label, value, hint, tone = "neutral" }: { label: string; value
 }
 
 export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
-  const [scopeType, setScopeType] = useState<FinanceScopeType>("group");
-  const [scopeId, setScopeId] = useState("");
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [data, setData] = useState<DailyProfitResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,21 +101,26 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem(FINANCE_SCOPE_STORAGE_KEY) ?? "null") as FinanceScope | null;
-      if (stored?.type === "group" || stored?.type === "location") { setScopeType(stored.type); setScopeId(stored.locationId); }
+      const stored = JSON.parse(localStorage.getItem(FINANCE_SCOPE_STORAGE_KEY) ?? "null") as (FinanceScope & { locationIds?: string[] }) | null;
+      if (stored?.type === "location") {
+        const ids = stored.locationIds?.length ? stored.locationIds : stored.locationId ? [stored.locationId] : [];
+        setSelectedLocationIds(ids);
+      }
     } catch { /* Ignore invalid browser state. */ }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(FINANCE_SCOPE_STORAGE_KEY, JSON.stringify({ type: scopeType, locationId: scopeId } satisfies FinanceScope));
-  }, [scopeId, scopeType]);
+    const scope: FinanceScope = selectedLocationIds.length === 0
+      ? { type: "group", locationId: "" }
+      : { type: "location", locationId: selectedLocationIds[0], locationIds: selectedLocationIds };
+    localStorage.setItem(FINANCE_SCOPE_STORAGE_KEY, JSON.stringify(scope));
+  }, [selectedLocationIds]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ from, to, scope_type: scopeType });
-    if (scopeType !== "group" && scopeId) params.set("scope_id", scopeId);
-    if (scopeType !== "group" && !scopeId) { setLoading(false); return; }
+    const params = new URLSearchParams({ from, to, scope_type: selectedLocationIds.length === 0 ? "group" : "location" });
+    if (selectedLocationIds.length > 0) params.set("scope_id", selectedLocationIds.join(","));
     try {
       const response = await fetch(`/api/reports/daily-profit?${params}`);
       const json = await response.json();
@@ -125,20 +129,22 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load Daily P&L");
     } finally { setLoading(false); }
-  }, [from, to, scopeType, scopeId]);
+  }, [from, to, selectedLocationIds]);
 
   useEffect(() => { void load(); }, [load]);
 
-  const scopeOptions = useMemo(() => {
-    if (!data) return [];
-    if (scopeType === "location") return data.locations.map((location) => ({ id: location.id, name: location.name }));
-    return [];
-  }, [data, scopeType]);
+  const scopeOptions = useMemo(() => (data?.locations ?? []).map((location) => ({ id: location.id, name: location.name })), [data]);
 
-  useEffect(() => {
-    if (scopeType === "group") { if (scopeId) setScopeId(""); return; }
-    if (!scopeId && scopeOptions[0]) setScopeId(scopeOptions[0].id);
-  }, [scopeId, scopeOptions, scopeType]);
+  function toggleLocation(id: string) {
+    setSelectedLocationIds((current) => {
+      if (current.length === 0) return [id];
+      if (current.includes(id)) {
+        const next = current.filter((value) => value !== id);
+        return next.length === 0 ? [] : next;
+      }
+      return [...current, id];
+    });
+  }
 
   async function refreshMirror() {
     setSyncing(true);
@@ -158,10 +164,13 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "var(--s-3)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", background: "var(--surface)" }}>
-        <select value={scopeType} onChange={(event) => { setScopeType(event.target.value as FinanceScopeType); setScopeId(""); }} style={controlStyle} aria-label="Scope type">
-          <option value="group">Global</option><option value="location">Par shop</option>
-        </select>
-        {scopeType !== "group" && <select value={scopeId} onChange={(event) => setScopeId(event.target.value)} style={{ ...controlStyle, minWidth: 150 }} aria-label="Scope"><option value="">Select…</option>{scopeOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Shops</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <button type="button" aria-pressed={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])} style={pillStyle(selectedLocationIds.length === 0)}>All shops</button>
+            {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <button key={option.id} type="button" aria-pressed={active} onClick={() => toggleLocation(option.id)} style={pillStyle(active)}>{option.name}</button>; })}
+          </div>
+        </div>
         <div style={{ width: 1, height: 24, background: "var(--line)" }} />
         <DateInput value={from} onChange={(event) => onFromChange(event.target.value)} aria-label="From date" />
         <span style={{ color: "var(--fg-4)", fontSize: 12 }}>to</span>
@@ -261,7 +270,7 @@ function DocList({ title, values, tone }: { title: string; values: readonly stri
   return <div><span style={{ display: "block", fontSize: 11, color: tone === "warn" ? "var(--warn)" : "var(--fg-4)", marginBottom: 6 }}>{title}</span><div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{values.map((value) => <code key={value} style={{ padding: "3px 6px", borderRadius: 4, background: "var(--bg-2)", color: "var(--fg-3)", fontSize: 10 }}>{value}</code>)}</div></div>;
 }
 
-const controlStyle: React.CSSProperties = { height: 32, padding: "0 10px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", fontSize: 12 };
+const pillStyle = (active: boolean): React.CSSProperties => ({ padding: "7px 12px", borderRadius: "var(--r-pill)", border: `1px solid ${active ? "var(--bronze)" : "var(--line-strong)"}`, background: active ? "var(--bronze-soft)" : "var(--bg)", color: active ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, fontWeight: active ? 650 : 500, cursor: "pointer" });
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 12 };
 const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)", fontWeight: 500, textAlign: "right", background: "var(--bg-2)", whiteSpace: "nowrap" };
 const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };

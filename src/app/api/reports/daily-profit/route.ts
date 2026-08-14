@@ -26,18 +26,18 @@ export async function GET(request: Request) {
   const from = url.searchParams.get("from") ?? defaultFrom;
   const to = url.searchParams.get("to") ?? defaultTo;
   const scopeType = (url.searchParams.get("scope_type") ?? "group") as FinanceScopeType;
-  const scopeId = url.searchParams.get("scope_id");
+  const scopeIds = (url.searchParams.get("scope_id") ?? "").split(",").map((id) => id.trim()).filter(Boolean);
 
   if (!DATE_RE.test(from) || !DATE_RE.test(to) || from > to) return Response.json({ error: "Invalid date range" }, { status: 400 });
   if (!["group", "location"].includes(scopeType)) return Response.json({ error: "Invalid scope_type" }, { status: 400 });
-  if (scopeType !== "group" && !scopeId) return Response.json({ error: "scope_id required" }, { status: 400 });
+  if (scopeType !== "group" && scopeIds.length === 0) return Response.json({ error: "scope_id required" }, { status: 400 });
 
   try {
     const allowedLocationIds = await getAllowedLocationIds(
       session.user.userId,
       permissions.global_role === "owner" || permissions.global_role === "admin",
     );
-    const data = await getDailyProfitData(getSupabaseServerClient(), { from, to, scopeType, scopeId, canManage: permissions.global_role === "owner", allowedLocationIds });
+    const data = await getDailyProfitData(getSupabaseServerClient(), { from, to, scopeType, scopeIds, canManage: permissions.global_role === "owner", allowedLocationIds });
     return Response.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to calculate Daily P&L";
