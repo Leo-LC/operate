@@ -389,6 +389,24 @@
 
 /* ── react-day-picker overrides (unlayered so they win over the lib's own styles) ── */
 .nexus-dp .rdp-root { font-family: inherit; }
+.nexus-dp .rdp-root {
+  --rdp-accent-color: var(--bronze);
+  --rdp-accent-background-color: var(--bronze-soft);
+  --rdp-range_middle-background-color: var(--bronze-soft);
+  --rdp-range_start-color: #fff;
+  --rdp-range_end-color: #fff;
+  --rdp-today-color: var(--bronze);
+  --rdp-day-width: 32px;
+  --rdp-day-height: 32px;
+  --rdp-day_button-width: 30px;
+  --rdp-day_button-height: 30px;
+  --rdp-nav_button-width: 28px;
+  --rdp-nav_button-height: 28px;
+  --rdp-nav-height: 2rem;
+  --rdp-months-gap: 10px;
+  --rdp-outside-opacity: 0.4;
+}
+.nexus-dp .rdp-months { flex-wrap: nowrap; max-width: none; }
 .nexus-dp .rdp-month_caption { font-size: 13px; font-weight: 600; }
 .nexus-dp .rdp-selected { font-size: inherit; }
 .nexus-dp .rdp-selected .rdp-day_button { border-width: 1.5px; }

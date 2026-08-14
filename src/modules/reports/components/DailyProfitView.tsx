@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { Pill } from "@/components/ui/pill";
+import { PillButton } from "@/components/ui/pill-button";
 import { toast } from "sonner";
 import type { DailyProfitResponse, DailyProfitRow } from "@/modules/reports/daily-profit/types";
 import { DailyProfitManageDrawer } from "./DailyProfitManageDrawer";
@@ -160,23 +161,24 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "var(--s-3)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", background: "var(--surface)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "var(--s-3)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", background: "var(--surface)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Shops</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <button type="button" aria-pressed={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])} style={pillStyle(selectedLocationIds.length === 0)}>All shops</button>
-            {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <button key={option.id} type="button" aria-pressed={active} onClick={() => toggleLocation(option.id)} style={pillStyle(active)}>{option.name}</button>; })}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <PillButton active={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])}>All shops</PillButton>
+            {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <PillButton key={option.id} active={active} onClick={() => toggleLocation(option.id)}>{option.name}</PillButton>; })}
           </div>
         </div>
-        <div style={{ width: 1, height: 24, background: "var(--line)" }} />
-        <DateRangePicker
-          value={{ from, to }}
-          onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
-          today={bangkokToday()}
-        />
-        <div style={{ flex: 1 }} />
-        {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Refresh Sheets</Button>}
-        {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Manage P&L</Button>}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <DateRangePicker
+            value={{ from, to }}
+            onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+            today={bangkokToday()}
+          />
+          <div style={{ flex: 1 }} />
+          {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Refresh Sheets</Button>}
+          {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Manage P&L</Button>}
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
@@ -268,7 +270,6 @@ function DocList({ title, values, tone }: { title: string; values: readonly stri
   return <div><span style={{ display: "block", fontSize: 11, color: tone === "warn" ? "var(--warn)" : "var(--fg-4)", marginBottom: 6 }}>{title}</span><div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{values.map((value) => <code key={value} style={{ padding: "3px 6px", borderRadius: 4, background: "var(--bg-2)", color: "var(--fg-3)", fontSize: 10 }}>{value}</code>)}</div></div>;
 }
 
-const pillStyle = (active: boolean): React.CSSProperties => ({ padding: "7px 12px", borderRadius: "var(--r-pill)", border: `1px solid ${active ? "var(--bronze)" : "var(--line-strong)"}`, background: active ? "var(--bronze-soft)" : "var(--bg)", color: active ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, fontWeight: active ? 650 : 500, cursor: "pointer" });
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 12 };
 const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)", fontWeight: 500, textAlign: "right", background: "var(--bg-2)", whiteSpace: "nowrap" };
 const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };

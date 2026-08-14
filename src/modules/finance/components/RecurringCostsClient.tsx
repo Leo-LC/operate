@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { PillButton } from "@/components/ui/pill-button";
 
 type Location = { id: string; name: string };
 type Cost = { id: string; label: string; category: string; estimated_amount: number; custom_allocations?: { amount_mode?: "fixed" | "variable"; support_type?: string | null }; is_active: boolean };
@@ -65,21 +66,21 @@ export function RecurringCostsClient() {
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader eyebrow="Finance" title="Recurring costs" subtitle="The few costs each shop expects every month." actions={canManage ? <Button size="sm" onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null} />
-    <Card style={{ maxWidth: 420, gap: 6 }}><label htmlFor="cost-shop" style={{ fontSize: 12, color: "var(--fg-3)" }}>Shop</label><select id="cost-shop" value={locationId} onChange={(event) => setLocationId(event.target.value)} style={FIELD}>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></Card>
+    <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}</div></Card>
     {showForm ? <Card><form onSubmit={save} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>What is it?<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value as Category })} style={FIELD}>{Object.entries(CATEGORY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       {form.category === "support_workers" ? <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Support type<select value={form.support_type} onChange={(event) => setForm({ ...form, support_type: event.target.value })} style={FIELD}><option value="social_media">Social media</option><option value="bookings">Bookings</option><option value="social_media_and_bookings">Social media + bookings</option></select></label> : null}
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Monthly amount (฿)<input required type="number" min="0" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} style={FIELD} /></label>
-      <fieldset style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}><legend style={{ marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Does the amount change?</legend><div style={{ display: "flex", gap: 8 }}>
-        {(["fixed", "variable"] as const).map((mode) => <button key={mode} type="button" aria-pressed={form.amount_mode === mode} onClick={() => setForm({ ...form, amount_mode: mode })} style={{ padding: "8px 12px", borderRadius: "var(--r-sm)", border: `1px solid ${form.amount_mode === mode ? "var(--bronze)" : "var(--line)"}`, background: form.amount_mode === mode ? "var(--bronze-soft)" : "var(--bg)", color: form.amount_mode === mode ? "var(--bronze)" : "var(--fg-3)", cursor: "pointer" }}>{mode === "fixed" ? "Same each month" : "Variable each month"}</button>)}
+      <fieldset style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}><legend style={{ marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Does the amount change?</legend><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(["fixed", "variable"] as const).map((mode) => <PillButton key={mode} active={form.amount_mode === mode} onClick={() => setForm({ ...form, amount_mode: mode })}>{mode === "fixed" ? "Same each month" : "Variable each month"}</PillButton>)}
       </div><p style={{ marginTop: 7, fontSize: 11, color: "var(--fg-4)" }}>{form.amount_mode === "fixed" ? "This amount is the expected cost every month." : "This amount is a planning estimate. Monthly actual entry is not available yet."}</p></fieldset>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save cost"}</Button><Button type="button" size="sm" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button></div>
     </form></Card> : null}
     {editing ? <Card><form onSubmit={saveEdit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Name<input required value={editing.label} onChange={(event) => setEditing({ ...editing, label: event.target.value })} style={FIELD} /></label>
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Monthly amount (฿)<input required type="number" min="0" step="0.01" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: event.target.value })} style={FIELD} /></label>
-      <fieldset style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}><legend style={{ marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Does the amount change?</legend><div style={{ display: "flex", gap: 8 }}>
-        {(["fixed", "variable"] as const).map((mode) => <button key={mode} type="button" aria-pressed={editing.amount_mode === mode} onClick={() => setEditing({ ...editing, amount_mode: mode })} style={{ padding: "8px 12px", borderRadius: "var(--r-sm)", border: `1px solid ${editing.amount_mode === mode ? "var(--bronze)" : "var(--line)"}`, background: editing.amount_mode === mode ? "var(--bronze-soft)" : "var(--bg)", color: editing.amount_mode === mode ? "var(--bronze)" : "var(--fg-3)", cursor: "pointer" }}>{mode === "fixed" ? "Same each month" : "Variable each month"}</button>)}
+      <fieldset style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}><legend style={{ marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Does the amount change?</legend><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(["fixed", "variable"] as const).map((mode) => <PillButton key={mode} active={editing.amount_mode === mode} onClick={() => setEditing({ ...editing, amount_mode: mode })}>{mode === "fixed" ? "Same each month" : "Variable each month"}</PillButton>)}
       </div></fieldset>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button><Button type="button" size="sm" variant="secondary" onClick={() => setEditing(null)}>Cancel</Button></div>
     </form></Card> : null}

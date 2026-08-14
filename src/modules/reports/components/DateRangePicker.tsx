@@ -5,6 +5,7 @@ import { DayPicker, type DateRange } from "react-day-picker";
 import "react-day-picker/style.css";
 import { addDays, endOfMonth, startOfMonth, subMonths } from "date-fns";
 import { CalendarDaysIcon, ChevronDownIcon } from "lucide-react";
+import { PillButton } from "@/components/ui/pill-button";
 
 export interface DateRangeValue {
   from: string;
@@ -85,6 +86,7 @@ const panelStyle: React.CSSProperties = {
   zIndex: 50,
   width: "max-content",
   maxWidth: "min(92vw, 640px)",
+  overflowX: "auto",
   borderRadius: "var(--r-lg)",
   border: "1px solid var(--line)",
   background: "var(--surface)",
@@ -94,21 +96,6 @@ const panelStyle: React.CSSProperties = {
   flexDirection: "column",
   gap: 10,
 };
-
-function presetButtonStyle(active: boolean): React.CSSProperties {
-  return {
-    height: 26,
-    padding: "0 10px",
-    borderRadius: "var(--r-pill)",
-    border: `1px solid ${active ? "var(--bronze)" : "var(--line)"}`,
-    background: active ? "var(--bronze-soft)" : "var(--surface)",
-    color: active ? "var(--bronze)" : "var(--fg-3)",
-    fontSize: 12,
-    fontWeight: 500,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  };
-}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -192,39 +179,18 @@ export function DateRangePicker({
             {/* Presets */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {PRESETS.map((preset) => (
-                <button
+                <PillButton
                   key={preset.key}
-                  type="button"
+                  active={activePresetKey === preset.key}
                   onClick={() => applyPreset(preset)}
-                  style={presetButtonStyle(activePresetKey === preset.key)}
                 >
                   {preset.label}
-                </button>
+                </PillButton>
               ))}
             </div>
 
             {/* Calendar */}
-            <div
-              className="nexus-dp"
-              style={{
-                "--rdp-accent-color": "var(--bronze)",
-                "--rdp-accent-background-color": "var(--bronze-soft)",
-                "--rdp-range_middle-background-color": "var(--bronze-soft)",
-                "--rdp-range_start-color": "#fff",
-                "--rdp-range_end-color": "#fff",
-                "--rdp-today-color": "var(--bronze)",
-                "--rdp-day-width": "32px",
-                "--rdp-day-height": "32px",
-                "--rdp-day_button-width": "30px",
-                "--rdp-day_button-height": "30px",
-                "--rdp-nav_button-width": "28px",
-                "--rdp-nav_button-height": "28px",
-                "--rdp-nav-height": "2rem",
-                "--rdp-months-gap": "10px",
-                "--rdp-outside-opacity": "0.4",
-                fontFamily: "inherit",
-              } as React.CSSProperties}
-            >
+            <div className="nexus-dp">
               <DayPicker
                 mode="range"
                 required
