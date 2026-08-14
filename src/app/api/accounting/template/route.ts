@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 
 // Full template columns in the same order as the accounting sheet.
 // Computed/display-only columns (sales_net_inc_vat, payment_delta, exp_cash_total,
@@ -45,7 +46,8 @@ const TEMPLATE_COLUMNS = [
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "accounting"))
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "accounting"))
     return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);

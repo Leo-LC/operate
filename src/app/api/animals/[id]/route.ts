@@ -2,13 +2,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import type { AnimalStatus, AnimalSex } from "@/modules/animals/types";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const [{ data: animal, error }, { data: events }] = await Promise.all([
@@ -36,7 +38,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: {
     name?: string;
@@ -90,7 +93,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { error } = await supabase

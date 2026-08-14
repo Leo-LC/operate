@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
@@ -12,7 +13,7 @@ const REASON_REQUIRED_FIELDS = new Set(["base_salary", "service_charge"]);
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "payments")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
@@ -61,7 +62,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "payments")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;

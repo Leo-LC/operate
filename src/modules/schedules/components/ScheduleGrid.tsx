@@ -114,13 +114,14 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
     const shifts = employeesRef.current.flatMap((emp) =>
       weekDaysRef.current
         .map((day) => {
-          const cell = currentGrid[cellKey(emp.id, day.iso)] ?? EMPTY_CELL;
+          const key = cellKey(emp.id, day.iso);
+          const cell = currentGrid[key] ?? EMPTY_CELL;
           return {
             employee_id: emp.id,
             shift_date: day.iso,
             start_time: cell.start_time || null,
             end_time: cell.end_time || null,
-            break_minutes: DEFAULT_BREAK_MINUTES,
+            break_minutes: key in currentGrid ? cell.break_minutes : DEFAULT_BREAK_MINUTES,
             notes: cell.notes || null,
           };
         })
@@ -598,6 +599,8 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
                               if (dragSource && dragSource !== cellKey(emp.id, day.iso)) {
                                 const src = gridRef.current[dragSource] ?? EMPTY_CELL;
                                 patchCell(emp.id, day.iso, { ...src, shiftId: cell.shiftId, dirty: true });
+                                const [srcEmpId, srcDate] = dragSource.split("__");
+                                patchCell(srcEmpId, srcDate, { ...EMPTY_CELL, shiftId: src.shiftId, dirty: true });
                               }
                               setDragSource(null);
                             }}

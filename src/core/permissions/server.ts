@@ -2,6 +2,30 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { derivePermissionsFromRole } from "./guards";
 import type { ModuleKey, SessionRole, UserPermissions } from "./types";
 
+interface SessionLike {
+  user?: {
+    userId?: string;
+    role?: SessionRole;
+  };
+}
+
+/**
+ * Resolves the effective permissions for a request session.
+ *
+ * Uses the DB-backed grants (module + location access) whenever the user has a
+ * platform user id, falling back to the role-derived defaults for users that
+ * are not yet in the `users` table (e.g. the preview/credentials fallbacks).
+ *
+ * This is the single entry point API routes should use so the sidebar (which
+ * reads the same grants via getUserPermissionsFromDb) and the server enforcement
+ * can never disagree.
+ */
+export async function getUserPermissionsFromSession(
+  session: SessionLike | null,
+): Promise<UserPermissions> {
+  return getUserPermissionsFromDb(session?.user?.userId, session?.user?.role);
+}
+
 export async function getUserPermissionsFromDb(
   userId: string | undefined,
   fallbackRole: SessionRole | undefined,

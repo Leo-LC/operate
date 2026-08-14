@@ -2,13 +2,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess } from "@/core/permissions/guards";
-import { derivePermissionsFromRole } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "schedules")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "schedules")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: { name: string; location_id: string; week_start_date: string };

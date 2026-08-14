@@ -135,7 +135,7 @@ export default async function HomePage() {
   return (
     <HomeClient
       name={name}
-      role={role}
+      permissions={permissions}
       docsAlert={docsAlert}
       animalsAlert={animalsAlert}
       snippets={snippets}

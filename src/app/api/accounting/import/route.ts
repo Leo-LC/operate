@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { IMPORT_COLUMNS, REQUIRED_IMPORT_HEADERS } from "./columns";
 
@@ -44,7 +45,8 @@ function parseCsvLine(line: string): string[] {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "accounting"))
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "accounting"))
     return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let formData: FormData;

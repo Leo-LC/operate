@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function esc(v: string | null | undefined): string {
@@ -16,7 +17,8 @@ function esc(v: string | null | undefined): string {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "animals")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase

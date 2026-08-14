@@ -1,13 +1,14 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { hasModuleAccess, derivePermissionsFromRole } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "schedules")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
@@ -46,7 +47,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "schedules")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: Partial<{ name: string; status: string; week_start_date: string }>;
@@ -122,7 +123,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "schedules")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();

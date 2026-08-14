@@ -12,14 +12,15 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { salesNetTotal, type DailyEntry } from "@/modules/accounting/types";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const perms = derivePermissionsFromRole(session.user.role || undefined);
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "payments")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: { period_year: number; period_month: number; location_id: string };

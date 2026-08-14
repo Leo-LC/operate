@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 
 const HEADERS = [
   "location_name",
@@ -70,7 +71,8 @@ function csvRow(cells: string[]): string {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "documents")) {
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "documents")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

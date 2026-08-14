@@ -2,14 +2,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { computeStatus } from "@/modules/documents/types";
 import type { DocumentType } from "@/modules/documents/types";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "documents")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "documents")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: {
     title?: string;
@@ -101,7 +103,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasModuleAccess(derivePermissionsFromRole(session.user.role), "documents")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const perms = await getUserPermissionsFromSession(session);
+  if (!hasModuleAccess(perms, "documents")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { error } = await supabase

@@ -1,12 +1,13 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { hasModuleAccess, derivePermissionsFromRole } from "@/core/permissions/guards";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import type { SessionRole } from "@/core/permissions/types";
 
-async function guardAndGetSchedule(scheduleId: string, role: SessionRole | undefined) {
-  const perms = derivePermissionsFromRole(role);
+async function guardAndGetSchedule(scheduleId: string, session: { user?: { userId?: string; role?: SessionRole } } | null) {
+  const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "schedules")) return null;
   const supabase = getSupabaseServerClient();
   const { data } = await supabase
@@ -23,7 +24,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const schedule = await guardAndGetSchedule(params.id, session.user.role);
+  const schedule = await guardAndGetSchedule(params.id, session);
   if (!schedule) return Response.json({ error: "Forbidden or not found" }, { status: 403 });
 
   let body: {

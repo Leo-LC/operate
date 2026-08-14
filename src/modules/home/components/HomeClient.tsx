@@ -6,12 +6,12 @@ import {
   CalendarDaysIcon, BarChart2Icon, ShieldIcon, ArrowRightIcon,
   UsersIcon, BookOpenIcon, AlertTriangleIcon,
 } from "lucide-react";
-import { derivePermissionsFromRole, hasModuleAccess } from "@/core/permissions/guards";
-import type { ModuleKey, SessionRole } from "@/core/permissions/types";
+import { hasModuleAccess } from "@/core/permissions/guards";
+import type { ModuleKey, UserPermissions } from "@/core/permissions/types";
 
 interface HomeClientProps {
   name: string;
-  role?: SessionRole;
+  permissions: UserPermissions;
   docsAlert: number;
   animalsAlert: number;
   snippets?: Partial<Record<ModuleKey, string>>;
@@ -122,8 +122,7 @@ function timeGreeting(): string {
   return "Good evening";
 }
 
-export function HomeClient({ name, role, docsAlert, animalsAlert, snippets = {} }: HomeClientProps) {
-  const permissions = derivePermissionsFromRole(role);
+export function HomeClient({ name, permissions, docsAlert, animalsAlert, snippets = {} }: HomeClientProps) {
   const firstName = name.split(" ")[0];
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
