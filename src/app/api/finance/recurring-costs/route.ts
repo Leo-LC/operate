@@ -11,11 +11,24 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
   let query = supabase.from("finance_cost_rules").select("*").eq("organization_id", DEFAULT_ORG_ID).neq("category", "legacy_fixed_expenses").order("created_at", { ascending: false });
   if (locationId) query = query.eq("location_id", locationId);
-  const [{ data: locations, error: locationsError }, { data, error }] = await Promise.all([
-    supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"), query,
+  const [{ data: locations, error: locationsError }, { data, error }, { data: employees, error: employeesError }] = await Promise.all([
+    supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
+    query,
+    supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true).is("deleted_at", null),
   ]);
-  if (error ?? locationsError) return Response.json({ error: (error ?? locationsError)?.message }, { status: 500 });
-  return Response.json({ locations: locations ?? [], costs: data ?? [], canManage: auth.permissions.global_role === "owner" });
+  if (error ?? locationsError ?? employeesError) return Response.json({ error: (error ?? locationsError ?? employeesError)?.message }, { status: 500 });
+  const salaries: Record<string, number> = {};
+  for (const employee of employees ?? []) {
+    const assignments = (employee.employee_locations as { location_id: string; base_salary_monthly: number | null }[] | null) ?? [];
+    if (assignments.length > 0) {
+      for (const assignment of assignments) {
+        salaries[assignment.location_id] = (salaries[assignment.location_id] ?? 0) + Number(assignment.base_salary_monthly ?? employee.base_salary_monthly ?? 0);
+      }
+    } else if (employee.location_id) {
+      salaries[employee.location_id] = (salaries[employee.location_id] ?? 0) + Number(employee.base_salary_monthly ?? 0);
+    }
+  }
+  return Response.json({ locations: locations ?? [], costs: data ?? [], salaries, canManage: auth.permissions.global_role === "owner" });
 }
 
 export async function POST(request: Request) {

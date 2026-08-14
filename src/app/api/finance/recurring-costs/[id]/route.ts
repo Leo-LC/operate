@@ -6,7 +6,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const auth = await requireFinanceOwner(); if (auth.error) return auth.error;
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
   const reason = String(body.reason ?? "").trim(); if (!reason) return Response.json({ error: "A reason is required" }, { status: 400 });
-  const allowed = ["label", "category", "cadence", "estimated_amount", "effective_from", "effective_to", "is_active", "notes"];
+  const allowed = ["label", "category", "cadence", "estimated_amount", "effective_from", "effective_to", "is_active", "notes", "custom_allocations"];
   const updates: Record<string, unknown> = Object.fromEntries(allowed.filter((key) => key in body).map((key) => [key, body[key] === "" ? null : body[key]]));
   Object.assign(updates, { reason, updated_by: auth.session.user.userId ?? null, updated_at: new Date().toISOString() });
   const supabase = getSupabaseServerClient(); const result = await supabase.from("finance_cost_rules").update(updates).eq("id", params.id).eq("organization_id", DEFAULT_ORG_ID).select().single();
