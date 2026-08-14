@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PageHeader } from "@/components/ui/page-header";
-import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon } from "lucide-react";
+import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, type EmployeeFormState } from "./EmployeeForm";
 
@@ -34,6 +34,44 @@ const SIMPLE_INPUT: React.CSSProperties = {
   height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)",
   background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%",
 };
+
+type SortKey = "first_name" | "nationality" | "shop" | "salary" | "thai_bank" | "service_charge";
+type SortDir = "asc" | "desc";
+
+const COLUMNS: { key: SortKey | null; label: string }[] = [
+  { key: "first_name", label: "First name" },
+  { key: "nationality", label: "Nationality" },
+  { key: "shop", label: "Shop" },
+  { key: "salary", label: "Salary" },
+  { key: "thai_bank", label: "Thai bank" },
+  { key: "service_charge", label: "Service charge" },
+  { key: null, label: "" },
+];
+
+const SORT_HEADER_STYLE: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 6,
+  background: "transparent", border: "none", padding: 0, cursor: "pointer",
+  font: "inherit", letterSpacing: "inherit", textTransform: "inherit",
+};
+
+const SHOP_PILL_STYLE: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 6,
+  borderRadius: "var(--r-pill)", padding: "5px 12px", fontSize: 12, fontWeight: 500,
+  border: "1px solid var(--line)", background: "var(--bg)", color: "var(--fg-3)",
+  cursor: "pointer", transition: "all 150ms",
+};
+
+function primaryShopName(emp: Employee): string | null {
+  const primary = emp.employee_locations?.find((el) => el.is_primary);
+  if (primary) return primary.location_name;
+  if (emp.employee_locations && emp.employee_locations.length > 0) return emp.employee_locations[0].location_name;
+  return emp.location_name;
+}
+
+function primarySalary(emp: Employee): number | null {
+  const perLoc = (emp.employee_locations ?? []).filter((el) => el.base_salary_monthly != null);
+  return perLoc[0]?.base_salary_monthly ?? emp.base_salary_monthly;
+}
 
 function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onSubmit, onCancel, submitLabel }: {
   form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; locationSalaries: Record<string, string>; submitting: boolean;
@@ -122,6 +160,56 @@ export function EmployeesListClient({ locations }: Props) {
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string; isArchived: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("first_name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [shopFilter, setShopFilter] = useState<string | null>(null);
+
+  const shopFiltered = useMemo(() => {
+    if (!shopFilter) return employees;
+    return employees.filter((emp) => {
+      const locIds = (emp.employee_locations ?? []).map((el) => el.location_id);
+      return locIds.includes(shopFilter) || emp.location_id === shopFilter;
+    });
+  }, [employees, shopFilter]);
+
+  const sorted = useMemo(() => {
+    const arr = [...shopFiltered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "first_name":
+          cmp = (a.first_name ?? "").localeCompare(b.first_name ?? "");
+          break;
+        case "nationality":
+          cmp = (a.nationality ?? "").localeCompare(b.nationality ?? "");
+          break;
+        case "shop":
+          cmp = (primaryShopName(a) ?? "").localeCompare(primaryShopName(b) ?? "");
+          break;
+        case "salary":
+          cmp = (primarySalary(a) ?? 0) - (primarySalary(b) ?? 0);
+          break;
+        case "thai_bank":
+          cmp = Number(!!a.has_thai_bank_account) - Number(!!b.has_thai_bank_account);
+          break;
+        case "service_charge":
+          cmp = (a.service_charge_pct ?? -1) - (b.service_charge_pct ?? -1);
+          break;
+      }
+      return cmp * dir;
+    });
+    return arr;
+  }, [shopFiltered, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -284,6 +372,41 @@ export function EmployeesListClient({ locations }: Props) {
         }
       />
 
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <button
+          type="button"
+          onClick={() => setShopFilter(null)}
+          aria-pressed={shopFilter === null}
+          style={{
+            ...SHOP_PILL_STYLE,
+            ...(shopFilter === null
+              ? { border: "1px solid var(--bronze)", background: "var(--bronze-soft)", color: "var(--bronze)" }
+              : {}),
+          }}
+        >
+          All shops
+        </button>
+        {locations.map((loc) => {
+          const active = shopFilter === loc.id;
+          return (
+            <button
+              key={loc.id}
+              type="button"
+              onClick={() => setShopFilter(active ? null : loc.id)}
+              aria-pressed={active}
+              style={{
+                ...SHOP_PILL_STYLE,
+                ...(active
+                  ? { border: "1px solid var(--bronze)", background: "var(--bronze-soft)", color: "var(--bronze)" }
+                  : {}),
+              }}
+            >
+              {loc.name}
+            </button>
+          );
+        })}
+      </div>
+
       {showAdd && (
         <SimpleEmployeeForm
           form={form}
@@ -312,13 +435,31 @@ export function EmployeesListClient({ locations }: Props) {
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-2)" }}>
               <tr>
-                {["First name", "Nationality", "Shop", "Salary", "Thai bank", "Service charge", ""].map((h) => (
-                  <th key={h} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>{h}</th>
+                {COLUMNS.map((col) => (
+                  <th key={col.label || "__actions__"} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>
+                    {col.key ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(col.key!)}
+                        style={SORT_HEADER_STYLE}
+                        title={`Sort by ${col.label}`}
+                      >
+                        {col.label}
+                        {sortKey === col.key ? (
+                          sortDir === "asc"
+                            ? <ArrowUpIcon className="size-3" />
+                            : <ArrowDownIcon className="size-3" />
+                        ) : (
+                          <ArrowUpDownIcon className="size-3" style={{ opacity: 0.4 }} />
+                        )}
+                      </button>
+                    ) : col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) =>
+              {sorted.map((emp) =>
                 editingId === emp.id ? (
                   <tr key={emp.id}>
                     <td colSpan={7} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
@@ -353,6 +494,9 @@ export function EmployeesListClient({ locations }: Props) {
           </table>
           {employees.length === 0 && (
             <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees yet.</div>
+          )}
+          {employees.length > 0 && shopFiltered.length === 0 && (
+            <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees at this shop.</div>
           )}
         </div>
       )}
