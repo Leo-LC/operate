@@ -386,3 +386,22 @@
   }
   ::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
 }
+
+/* ── react-day-picker overrides (unlayered so they win over the lib's own styles) ── */
+.nexus-dp .rdp-root { font-family: inherit; }
+.nexus-dp .rdp-month_caption { font-size: 13px; font-weight: 600; }
+.nexus-dp .rdp-selected { font-size: inherit; }
+.nexus-dp .rdp-selected .rdp-day_button { border-width: 1.5px; }
+.nexus-dp .rdp-day_button { font-size: 12.5px; transition: background 120ms ease, color 120ms ease; }
+.nexus-dp .rdp-day_button:not(:disabled):hover {
+  background: var(--row-hover);
+}
+.nexus-dp .rdp-range_middle .rdp-day_button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--bronze-soft) 70%, var(--row-hover));
+}
+.nexus-dp .rdp-range_start .rdp-day_button:hover,
+.nexus-dp .rdp-range_end .rdp-day_button:hover {
+  background-color: color-mix(in srgb, var(--bronze) 88%, #000);
+}
+.nexus-dp .rdp-chevron { fill: var(--fg-3); }
+.nexus-dp .rdp-weekday { font-size: 10px; letter-spacing: 0.05em; }

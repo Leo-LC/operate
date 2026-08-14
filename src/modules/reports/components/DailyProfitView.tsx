@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangleIcon, BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DateInput } from "@/components/ui/date-input";
 import { Drawer } from "@/components/ui/drawer";
 import { Pill } from "@/components/ui/pill";
 import { toast } from "sonner";
 import type { DailyProfitResponse, DailyProfitRow } from "@/modules/reports/daily-profit/types";
 import { DailyProfitManageDrawer } from "./DailyProfitManageDrawer";
+import { DateRangePicker } from "./DateRangePicker";
 import { FINANCE_SCOPE_STORAGE_KEY, type FinanceScope } from "@/modules/finance/scope";
 
 interface Props {
@@ -158,9 +158,6 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
     finally { setSyncing(false); }
   }
 
-  const today = bangkokToday();
-  const setMtd = () => { onFromChange(`${today.slice(0, 7)}-01`); onToChange(today); };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "var(--s-3)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", background: "var(--surface)" }}>
@@ -172,10 +169,11 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
           </div>
         </div>
         <div style={{ width: 1, height: 24, background: "var(--line)" }} />
-        <DateInput value={from} onChange={(event) => onFromChange(event.target.value)} aria-label="From date" />
-        <span style={{ color: "var(--fg-4)", fontSize: 12 }}>to</span>
-        <DateInput value={to} onChange={(event) => onToChange(event.target.value)} aria-label="To date" />
-        <Button size="sm" variant="outline" onClick={setMtd}><CalendarDaysIcon size={13} />MTD</Button>
+        <DateRangePicker
+          value={{ from, to }}
+          onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+          today={bangkokToday()}
+        />
         <div style={{ flex: 1 }} />
         {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Refresh Sheets</Button>}
         {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Manage P&L</Button>}
