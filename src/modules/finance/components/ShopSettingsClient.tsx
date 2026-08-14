@@ -12,6 +12,7 @@ type Location = { id: string; name: string };
 type Setting = { id: string; location_id: string; service_charge_rate_pct: number };
 type Summary = { employeeCount: number; recurringMonthly: number };
 const FIELD: React.CSSProperties = { height: 38, border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", padding: "0 11px", fontSize: 13, width: "100%" };
+const pillStyle = (active: boolean): React.CSSProperties => ({ padding: "8px 12px", borderRadius: "var(--r-sm)", border: `1px solid ${active ? "var(--bronze)" : "var(--line)"}`, background: active ? "var(--bronze-soft)" : "var(--bg)", color: active ? "var(--bronze)" : "var(--fg-3)", cursor: "pointer" });
 
 export function ShopSettingsClient() {
   const [selectedId, setSelectedId] = useState("");
@@ -43,7 +44,10 @@ export function ShopSettingsClient() {
   const selectedLocation = locations.find((location) => location.id === selectedId);
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader eyebrow="Finance" title="Shop settings" subtitle="One place to see how each shop is configured and jump to the right module." />
-    <Card style={{ maxWidth: 420, gap: 6 }}><label htmlFor="settings-shop" style={{ fontSize: 12, color: "var(--fg-3)" }}>View</label><select id="settings-shop" value={selectedId} onChange={(event) => setSelectedId(event.target.value)} style={FIELD}><option value="">All shops</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></Card>
+    <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>View</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <button type="button" aria-pressed={!selectedId} onClick={() => setSelectedId("")} style={pillStyle(!selectedId)}>All shops</button>
+      {locations.map((location) => <button key={location.id} type="button" aria-pressed={selectedId === location.id} onClick={() => setSelectedId(location.id)} style={pillStyle(selectedId === location.id)}>{location.name}</button>)}
+    </div></Card>
     {!selectedId ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 12 }}>{locations.map((location) => {
       const setting = settings.find((item) => item.location_id === location.id); const summary = summaries[location.id] ?? { employeeCount: 0, recurringMonthly: 0 };
       return <button key={location.id} type="button" onClick={() => setSelectedId(location.id)} style={{ textAlign: "left", padding: 0, border: 0, background: "transparent", cursor: "pointer" }}><Card style={{ height: "100%", gap: 10, transition: "border-color 150ms" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong>{location.name}</strong><ArrowRightIcon size={16} color="var(--fg-4)" /></div><span style={{ fontSize: 12, color: "var(--fg-4)" }}>{summary.employeeCount} employees</span><span className="mono" style={{ fontSize: 18 }}>฿{summary.recurringMonthly.toLocaleString()}<small style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--fg-4)" }}> / month</small></span><span style={{ fontSize: 12, color: "var(--fg-4)" }}>Service charge · {Number(setting?.service_charge_rate_pct ?? 0)}%</span></Card></button>;
