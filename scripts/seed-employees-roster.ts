@@ -55,12 +55,14 @@ const ROSTER: RosterEntry[] = [
   { first_name: "Staff 1", last_name: "Chiang Mai", assignments: [{ shop: "Chiang Mai", salary: 15000 }] },
   { first_name: "Staff 1", last_name: "Resort", assignments: [{ shop: "Resort", salary: 18000 }] },
   { first_name: "Staff 1", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 1", last_name: "Samui", assignments: [{ shop: "Samui", salary: 15000 }] },
   // Staff 2
   { first_name: "Staff 2", last_name: "Ekkamai", assignments: [{ shop: "Ekkamai", salary: 18000 }] },
   { first_name: "Staff 2", last_name: "Silom", assignments: [{ shop: "Silom", salary: 18000 }] },
   { first_name: "Staff 2", last_name: "Chiang Mai", assignments: [{ shop: "Chiang Mai", salary: 15000 }] },
   { first_name: "Staff 2", last_name: "Resort", assignments: [{ shop: "Resort", salary: 15000 }] },
   { first_name: "Staff 2", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 2", last_name: "Samui", assignments: [{ shop: "Samui", salary: 15000 }] },
   // Staff 3
   { first_name: "Staff 3", last_name: "Ekkamai", assignments: [{ shop: "Ekkamai", salary: 15000 }] },
   { first_name: "Staff 3", last_name: "Silom", assignments: [{ shop: "Silom", salary: 15000 }] },
@@ -68,6 +70,7 @@ const ROSTER: RosterEntry[] = [
   { first_name: "Staff 3", last_name: "Chiang Mai", assignments: [{ shop: "Chiang Mai", salary: 15000 }] },
   { first_name: "Staff 3", last_name: "Resort", assignments: [{ shop: "Resort", salary: 12000 }] },
   { first_name: "Staff 3", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 3", last_name: "Samui", assignments: [{ shop: "Samui", salary: 12000 }] },
   // Staff 4
   { first_name: "Staff 4", last_name: "Ekkamai", assignments: [{ shop: "Ekkamai", salary: 15000 }] },
   { first_name: "Staff 4", last_name: "Silom", assignments: [{ shop: "Silom", salary: 15000 }] },
@@ -75,6 +78,7 @@ const ROSTER: RosterEntry[] = [
   { first_name: "Staff 4", last_name: "Chiang Mai", assignments: [{ shop: "Chiang Mai", salary: 15000 }] },
   { first_name: "Staff 4", last_name: "Resort", assignments: [{ shop: "Resort", salary: 12000 }] },
   { first_name: "Staff 4", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 4", last_name: "Samui", assignments: [{ shop: "Samui", salary: 12000 }] },
   // Staff 5
   { first_name: "Staff 5", last_name: "Ekkamai", assignments: [{ shop: "Ekkamai", salary: 15000 }] },
   { first_name: "Staff 5", last_name: "Silom", assignments: [{ shop: "Silom", salary: 15000 }] },
@@ -82,6 +86,7 @@ const ROSTER: RosterEntry[] = [
   { first_name: "Staff 5", last_name: "Chiang Mai", assignments: [{ shop: "Chiang Mai", salary: 15000 }] },
   { first_name: "Staff 5", last_name: "Resort", assignments: [{ shop: "Resort", salary: 12000 }] },
   { first_name: "Staff 5", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 5", last_name: "Samui", assignments: [{ shop: "Samui", salary: 18000 }] },
   // Staff 6
   { first_name: "Staff 6", last_name: "Ekkamai", assignments: [{ shop: "Ekkamai", salary: 15000 }] },
   { first_name: "Staff 6", last_name: "Silom", assignments: [{ shop: "Silom", salary: 15000 }] },
@@ -89,11 +94,13 @@ const ROSTER: RosterEntry[] = [
   { first_name: "Staff 6", last_name: "Chiang Mai", assignments: [{ shop: "Chiang Mai", salary: 15000 }] },
   { first_name: "Staff 6", last_name: "Resort", assignments: [{ shop: "Resort", salary: 12000 }] },
   { first_name: "Staff 6", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 6", last_name: "Samui", assignments: [{ shop: "Samui", salary: 21500 }] },
   // Staff 7
   { first_name: "Staff 7", last_name: "Silom", assignments: [{ shop: "Silom", salary: 15000 }] },
   { first_name: "Staff 7", last_name: "Pattaya", assignments: [{ shop: "Pattaya", salary: 15000 }] },
   { first_name: "Staff 7", last_name: "Resort", assignments: [{ shop: "Resort", salary: 12000 }] },
   { first_name: "Staff 7", last_name: "Phuket", assignments: [{ shop: "Phuket", salary: 15000 }] },
+  { first_name: "Staff 7", last_name: "Samui", assignments: [{ shop: "Samui", salary: 21500 }] },
   // Unnamed row in the sheet — only present in the Resort column (฿12,000)
   { first_name: "Staff", last_name: "Resort", assignments: [{ shop: "Resort", salary: 12000 }] },
   // Lada — one person at two shops
