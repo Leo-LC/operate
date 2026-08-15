@@ -93,6 +93,18 @@ export function cashSafeCalc(cashEndDay: number, prevCashSafe: number, cashToBos
   return prevCashSafe + cashEndDay - cashToBoss;
 }
 
+/**
+ * Columns of daily_entries needed to compute sales/expenses/HR summaries
+ * server-side. Narrowing the select (instead of "*") cuts rows pulled by
+ * reports — notably the TEXT notes and metadata columns that aren't summed.
+ */
+export const DAILY_ENTRY_SUMMARY_COLUMNS = [
+  "sales_drinks_net", "sales_ticket_net", "sales_snack_net", "sales_goodies_net", "sales_card_surcharge",
+  "exp_staff_food_cash", "exp_drinks_cash", "exp_goodies_cash", "exp_animals_cash", "exp_supply_cash", "exp_boss_fees_cash", "exp_other_cash",
+  "exp_makro_bank", "exp_other_bank",
+  "hr_salary_cash", "hr_salary_bank", "hr_challenge_cash", "hr_service_charge_cash", "hr_accompte_cash",
+] as const;
+
 // ── Monthly fixed expenses ────────────────────────────────────────────────────
 
 export interface MonthlyFixedExpense {

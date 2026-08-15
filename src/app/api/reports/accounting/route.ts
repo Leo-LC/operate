@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
-import { salesNetTotal, expTotal, hrTotal } from "@/modules/accounting/types";
+import { salesNetTotal, expTotal, hrTotal, DAILY_ENTRY_SUMMARY_COLUMNS } from "@/modules/accounting/types";
 import type { DailyEntry, FixedExpenseCategory, MonthlyFixedExpense } from "@/modules/accounting/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
@@ -119,24 +119,34 @@ export async function GET(request: Request) {
       .order("name"),
     supabase
       .from("daily_entries")
-      .select("*")
+      .select([
+        ...DAILY_ENTRY_SUMMARY_COLUMNS,
+        "location_id", "entry_date",
+        "payment_cash", "payment_scan", "payment_credit_card",
+        "cash_safe", "cash_to_boss", "vat_7",
+      ].join(", "))
       .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", from)
       .lte("entry_date", to),
     supabase
       .from("daily_entries")
-      .select("*")
+      .select([
+        ...DAILY_ENTRY_SUMMARY_COLUMNS,
+        "location_id", "entry_date",
+        "payment_cash", "payment_scan", "payment_credit_card",
+        "cash_safe", "cash_to_boss", "vat_7",
+      ].join(", "))
       .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", prev.from)
       .lte("entry_date", prev.to),
     supabase
       .from("monthly_fixed_expenses")
-      .select("*")
+      .select("location_id, year, month, category_values")
       .eq("organization_id", DEFAULT_ORG_ID)
       .in("year", Array.from(new Set(monthKeys.map((m) => m.year)))),
     supabase
       .from("fixed_expense_categories")
-      .select("*")
+      .select("key, label")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
       .order("sort_order"),
@@ -147,10 +157,10 @@ export async function GET(request: Request) {
     ? allLocations.map((l) => l.id)
     : locationsParam.split(",").filter(Boolean);
 
-  const allEntries = (entriesData ?? []) as DailyEntry[];
+  const allEntries = (entriesData ?? []) as unknown as DailyEntry[];
   const filtered = allEntries.filter((e) => selectedIds.includes(e.location_id));
 
-  const allPrevEntries = (prevEntriesData ?? []) as DailyEntry[];
+  const allPrevEntries = (prevEntriesData ?? []) as unknown as DailyEntry[];
   const filteredPrev = allPrevEntries.filter((e) => selectedIds.includes(e.location_id));
 
   const overview = agg(filtered);

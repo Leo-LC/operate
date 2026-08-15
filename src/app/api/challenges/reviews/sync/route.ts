@@ -112,22 +112,46 @@ export async function POST(request: Request) {
 
             if (rows.length === 0) return;
 
+            // All-time rating stats from the full fetched set (independent of
+            // whether rows are actually written to the cache).
+            let ratingSum = 0;
+            let count = 0;
+            for (const r of rows) {
+              ratingSum += r!.star_rating;
+              count++;
+            }
+            locationStats.set(shortName, { title: locationTitle, ratingSum, count });
+
+            // Only write rows that are new or whose update_time changed, to
+            // avoid rewriting every review on every daily sync (Disk IO + bloat).
+            const ids = rows.map((r) => r!.id);
+            const existingUpdateTimes = new Map<string, string>();
+            for (let offset = 0; offset < ids.length; offset += 200) {
+              const page = ids.slice(offset, offset + 200);
+              const { data: existing } = await supabase
+                .from("reviews_cache")
+                .select("id, update_time")
+                .in("id", page);
+              for (const row of existing ?? []) {
+                existingUpdateTimes.set(row.id as string, row.update_time as string);
+              }
+            }
+
+            const toWrite = rows.filter((r) => {
+              const prev = existingUpdateTimes.get(r!.id);
+              return prev === undefined || prev !== r!.update_time;
+            });
+
+            if (toWrite.length === 0) return;
+
             const { error } = await supabase
               .from("reviews_cache")
-              .upsert(rows, { onConflict: "id" });
+              .upsert(toWrite, { onConflict: "id" });
 
             if (error) {
               console.error(`[challenges/sync] upsert error for ${shortName}:`, error.message);
             } else {
-              totalSynced += rows.length;
-              // Compute all-time stats from the full fetched set
-              let ratingSum = 0;
-              let count = 0;
-              for (const r of rows) {
-                ratingSum += r!.star_rating;
-                count++;
-              }
-              locationStats.set(shortName, { title: locationTitle, ratingSum, count });
+              totalSynced += toWrite.length;
             }
           } catch (e) {
             console.error(

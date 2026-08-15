@@ -4,37 +4,17 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-import { salesNetTotal, type DailyEntry } from "@/modules/accounting/types";
 
 function key(month: number, locationId: string): string {
   return `${month}:${locationId}`;
 }
 
-/** Fetch every row of a query, paginating past PostgREST's 1000-row cap. */
-async function fetchAllRows<T>(
-  query: { range: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }> },
-  batchSize = 1000
-): Promise<T[]> {
-  const all: T[] = [];
-  let from = 0;
-  for (;;) {
-    const { data, error } = await query.range(from, from + batchSize - 1);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []) as T[];
-    all.push(...rows);
-    if (rows.length < batchSize) break;
-    from += batchSize;
-  }
-  return all;
-}
-
-/** Revenue per (month, location) from a daily_entries slice. */
-function monthRevenueByLocation(entries: DailyEntry[]): Map<string, number> {
+/** Revenue per (month, location) from the monthly_revenue_by_location view. */
+function revenueByLocation(rows: { location_id: string; month: number; amount: number }[]): Map<string, number> {
   const map = new Map<string, number>();
-  for (const e of entries) {
-    const m = new Date(e.entry_date + "T00:00:00Z").getUTCMonth() + 1;
-    const k = key(m, e.location_id);
-    map.set(k, (map.get(k) ?? 0) + salesNetTotal(e));
+  for (const r of rows) {
+    const k = key(r.month, r.location_id);
+    map.set(k, (map.get(k) ?? 0) + (Number(r.amount) || 0));
   }
   return map;
 }
@@ -60,15 +40,11 @@ export async function GET(request: Request) {
   const locationsParam = searchParams.get("locations") ?? "all";
 
   const supabase = getSupabaseServerClient();
-  const from = `${year}-01-01`;
-  const to = `${year}-12-31`;
-  const prevFrom = `${prevYear}-01-01`;
-  const prevTo = `${prevYear}-12-31`;
 
   const [
     { data: locsData },
-    currentEntries,
-    prevEntries,
+    { data: currentMonthly },
+    { data: prevMonthly },
     { data: inputRows },
   ] = await Promise.all([
     supabase
@@ -77,22 +53,16 @@ export async function GET(request: Request) {
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
       .order("name"),
-    fetchAllRows<DailyEntry>(
-      supabase
-        .from("daily_entries")
-        .select("*")
-        .eq("organization_id", DEFAULT_ORG_ID)
-        .gte("entry_date", from)
-        .lte("entry_date", to)
-    ),
-    fetchAllRows<DailyEntry>(
-      supabase
-        .from("daily_entries")
-        .select("*")
-        .eq("organization_id", DEFAULT_ORG_ID)
-        .gte("entry_date", prevFrom)
-        .lte("entry_date", prevTo)
-    ),
+    supabase
+      .from("monthly_revenue_by_location")
+      .select("location_id, month, amount")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .eq("year", year),
+    supabase
+      .from("monthly_revenue_by_location")
+      .select("location_id, month, amount")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .eq("year", prevYear),
     supabase
       .from("monthly_revenue_inputs")
       .select("location_id, month, amount")
@@ -107,8 +77,8 @@ export async function GET(request: Request) {
       : locationsParam.split(",").filter(Boolean);
   const locations = allLocations.filter((l) => selectedIds.includes(l.id));
 
-  const currentMap = monthRevenueByLocation(currentEntries ?? []);
-  const prevAccountingMap = monthRevenueByLocation(prevEntries ?? []);
+  const currentMap = revenueByLocation(currentMonthly ?? []);
+  const prevAccountingMap = revenueByLocation(prevMonthly ?? []);
 
   // Manual inputs take priority over accounting for the previous year; if a
   // shop/month has no manual input, fall back to daily_entries when available.

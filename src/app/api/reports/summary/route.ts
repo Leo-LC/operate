@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import type { DocumentStatus } from "@/modules/documents/types";
-import { salesNetTotal, expTotal, hrTotal } from "@/modules/accounting/types";
+import { salesNetTotal, expTotal, hrTotal, DAILY_ENTRY_SUMMARY_COLUMNS } from "@/modules/accounting/types";
 import type { DailyEntry } from "@/modules/accounting/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       .eq("organization_id", DEFAULT_ORG_ID),
     supabase
       .from("daily_entries")
-      .select("*")
+      .select(DAILY_ENTRY_SUMMARY_COLUMNS.join(", "))
       .eq("organization_id", DEFAULT_ORG_ID)
       .gte("entry_date", from)
       .lte("entry_date", to)
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   );
 
   // Accounting
-  const entries = (entriesData ?? []) as DailyEntry[];
+  const entries = (entriesData ?? []) as unknown as DailyEntry[];
   const salesNet = entries.reduce((s, e) => s + salesNetTotal(e), 0);
   const expenses = entries.reduce((s, e) => s + expTotal(e), 0);
   const hrCosts = entries.reduce((s, e) => s + hrTotal(e), 0);
