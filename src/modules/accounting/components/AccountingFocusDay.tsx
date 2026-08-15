@@ -1,9 +1,12 @@
 "use client";
 import { useState, useMemo } from "react";
-import { PencilIcon, HistoryIcon, XIcon } from "lucide-react";
+import { PencilIcon, HistoryIcon, XIcon, ListIcon, EyeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { DailyEntryModal } from "@/modules/accounting/components/DailyEntryModal";
+import { DaySummaryCards } from "@/modules/accounting/components/DaySummaryCards";
+import { DayFullLedger } from "@/modules/accounting/components/DayFullLedger";
+import { EntryLedgerTable } from "@/modules/accounting/components/EntryLedgerTable";
 import {
   toFormState,
   fromFormState,
@@ -92,6 +95,8 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
   const [historyOpen, setHistoryOpen]   = useState(false);
   const [historyLogs, setHistoryLogs]   = useState<AuditLog[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [mode, setMode]                 = useState<"day" | "ledger">("day");
+  const [fullDetail, setFullDetail]     = useState(false);
 
   const entryMap = useMemo(() => {
     const m = new Map<string, DailyEntry>();
@@ -239,6 +244,63 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
 
   return (
     <div>
+      {/* Day / Ledger sub-mode */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)", marginBottom: "var(--s-4)" }}>
+        <div style={{ display: "inline-flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: 3, gap: 2 }}>
+          {([
+            { id: "day" as const, label: "Day", icon: EyeIcon },
+            { id: "ledger" as const, label: "Ledger", icon: ListIcon },
+          ]).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setMode(id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
+                fontSize: 12, fontWeight: mode === id ? 500 : 400,
+                color: mode === id ? "var(--fg)" : "var(--fg-4)",
+                background: mode === id ? "var(--surface)" : "transparent",
+                border: `1px solid ${mode === id ? "var(--line)" : "transparent"}`,
+                boxShadow: mode === id ? "var(--shadow-1)" : "none",
+                cursor: "pointer", transition: "all var(--dur) var(--ease)",
+              }}
+            >
+              <Icon size={12} strokeWidth={1.5} />
+              {label}
+            </button>
+          ))}
+        </div>
+        {mode === "day" && (
+          <button
+            type="button"
+            onClick={() => setFullDetail((v) => !v)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
+              fontSize: 12, fontWeight: fullDetail ? 500 : 400,
+              color: fullDetail ? "var(--bronze)" : "var(--fg-4)",
+              background: fullDetail ? "var(--bronze-soft)" : "var(--surface)",
+              border: `1px solid ${fullDetail ? "var(--bronze)" : "var(--line)"}`,
+              cursor: "pointer", transition: "all var(--dur) var(--ease)",
+            }}
+          >
+            {fullDetail ? "Hide full detail" : "Full detail"}
+          </button>
+        )}
+      </div>
+
+      {mode === "ledger" && (
+        <EntryLedgerTable
+          year={year}
+          month={month}
+          entries={entries}
+          onOpenDay={(day) => { setSelectedDay(day); setMode("day"); }}
+        />
+      )}
+
+      {mode === "day" && (
+      <>
       {/* Day strip */}
       <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: "var(--s-5)", padding: "4px 0" }}>
         {allDays.map((day) => {
@@ -273,6 +335,14 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
             </button>
           );
         })}
+      </div>
+
+      {/* Day-focused KPI cards */}
+      <div style={{ marginBottom: "var(--s-4)" }}>
+        <DaySummaryCards
+          entry={entry}
+          cashSafe={selectedComputed?.cashSafe}
+        />
       </div>
 
       {/* Focus content */}
@@ -424,6 +494,18 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
             Add one
           </button>
         </div>
+      )}
+
+      {/* Full detail (per-day ledger) */}
+      {fullDetail && (
+        <div style={{ marginTop: "var(--s-4)" }}>
+          <DayFullLedger
+            date={isoDate(year, month, selectedDay)}
+            entry={entry}
+          />
+        </div>
+      )}
+      </>
       )}
 
       {/* Audit history drawer */}

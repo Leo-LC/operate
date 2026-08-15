@@ -1,26 +1,23 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, ListIcon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { AccountingSummaryCards } from "@/modules/accounting/components/AccountingSummaryCards";
-import { DailyEntriesTable } from "@/modules/accounting/components/DailyEntriesTable";
 import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFocusDay";
 import { MonthlyFixedExpensesTable } from "@/modules/accounting/components/MonthlyFixedExpensesTable";
-import type { DailyEntry, MonthlyFixedExpense } from "@/modules/accounting/types";
+import type { DailyEntry } from "@/modules/accounting/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
 import { toast } from "sonner";
 
-type MainView = "smart" | "focus" | "fixed";
+type MainView = "focus" | "fixed";
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
 
-const VIEWS: Array<{ id: MainView; label: string; icon: typeof ListIcon }> = [
+const VIEWS: Array<{ id: MainView; label: string; icon: LucideIcon }> = [
   { id: "focus", label: "Daily Entry",    icon: EyeIcon  },
-  { id: "smart", label: "Monthly Review", icon: ListIcon },
   { id: "fixed", label: "Fixed Costs",    icon: TableIcon },
 ];
 
@@ -61,8 +58,6 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
   );
   const [view, setView]             = useState<MainView>("focus");
   const [entries, setEntries]       = useState<DailyEntry[]>([]);
-  const [fixedCost, setFixedCost]   = useState<MonthlyFixedExpense | null>(null);
-  const [loading, setLoading]       = useState(false);
   const [importing, setImporting]       = useState(false);
   const [importConfirm, setImportConfirm] = useState<ImportConfirm | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -77,16 +72,10 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
 
   const fetchEntries = useCallback(async () => {
     if (!locationId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/accounting/entries?location_id=${locationId}&month=${monthStr}`);
-      if (!res.ok) return;
-      const json = await res.json() as { entries: DailyEntry[]; fixed_cost: MonthlyFixedExpense | null };
-      setEntries(json.entries);
-      setFixedCost(json.fixed_cost ?? null);
-    } finally {
-      setLoading(false);
-    }
+    const res = await fetch(`/api/accounting/entries?location_id=${locationId}&month=${monthStr}`);
+    if (!res.ok) return;
+    const json = await res.json() as { entries: DailyEntry[] };
+    setEntries(json.entries);
   }, [locationId, monthStr]);
 
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
@@ -424,32 +413,6 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         </div>
       </div>
 
-      {/* Summary stats band */}
-      {(view === "smart" || view === "focus") && filled > 0 && (
-        <AccountingSummaryCards
-          entries={entries}
-          fixedCost={fixedCost}
-          daysInMonth={days}
-          today={today}
-          month={month}
-          year={year}
-        />
-      )}
-
-      {/* Smart table */}
-      {view === "smart" && (
-        <DailyEntriesTable
-          year={year}
-          month={month}
-          locationId={locationId}
-          locations={locations}
-          entries={entries}
-          loading={loading}
-          onEntryUpdate={handleEntryUpdate}
-          onEntryDelete={handleEntryDelete}
-        />
-      )}
-
       {/* Focus day */}
       {view === "focus" && (
         <AccountingFocusDay
@@ -469,7 +432,6 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         <MonthlyFixedExpensesTable
           locationId={locationId}
           locations={locations}
-          canManageCategories={canManage}
         />
       )}
 
