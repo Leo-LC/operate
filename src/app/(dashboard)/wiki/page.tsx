@@ -3,16 +3,16 @@ import Link from "next/link";
 import { BookOpenIcon, ChevronRightIcon, ClockIcon } from "lucide-react";
 import { WIKI_ARTICLES, WIKI_CATEGORIES } from "@/modules/wiki/registry";
 
-const FRENCH_MONTHS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+const ENGLISH_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 function formatDate(iso: string): string {
   const parts = iso.split("-").map(Number);
   if (parts.length !== 3 || parts.some(isNaN)) return iso;
   const [year, month, day] = parts;
-  return `${day} ${FRENCH_MONTHS[month - 1] ?? iso} ${year}`;
+  return `${day} ${ENGLISH_MONTHS[month - 1] ?? iso} ${year}`;
 }
 
 export default function WikiIndexPage() {
@@ -26,14 +26,14 @@ export default function WikiIndexPage() {
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--fg)", letterSpacing: "-0.02em" }}>Wiki</h1>
-        <p style={{ marginTop: 4, fontSize: 13, color: "var(--fg-3)" }}>Base de connaissances interne</p>
+        <p style={{ marginTop: 4, fontSize: 13, color: "var(--fg-3)" }}>Internal knowledge base</p>
       </div>
 
       {/* Article groups */}
       {grouped.length === 0 ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)" }}>
           <BookOpenIcon style={{ marginBottom: 12, width: 40, height: 40, opacity: 0.4 }} />
-          <p style={{ fontSize: 13 }}>Aucun article disponible pour le moment.</p>
+          <p style={{ fontSize: 13 }}>No articles available yet.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>

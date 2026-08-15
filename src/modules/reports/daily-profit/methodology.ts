@@ -1,6 +1,6 @@
 export const DAILY_PROFIT_METHODOLOGY = {
   version: "Simplified v2 · 2026-08-12",
-  formula: "Revenue − dépenses Sheets hors RH − salaires − frais fixes − service charge",
+  formula: "Revenue − Sheet expenses excl. HR − salaries − fixed costs − service charge",
   revenueFields: [
     "sales_drinks_net",
     "sales_ticket_net",
@@ -27,10 +27,10 @@ export const DAILY_PROFIT_METHODOLOGY = {
     "hr_accompte_cash",
   ],
   rules: [
-    "Les salaires, le loyer, l’électricité, l’eau et les autres frais fixes sont saisis par shop et par mois.",
-    "Les montants mensuels sont répartis sur tous les jours calendaires du mois, en heure de Bangkok.",
-    "Le service charge de chaque jour est égal au revenue du jour × taux du shop × nombre d’employés.",
-    "Les champs RH des Google Sheets sont exclus du résultat pour éviter tout double comptage.",
-    "Un mois sans saisie manuelle utilise zéro et déclenche une alerte de couverture.",
+    "Salaries, rent, electricity, water and other fixed costs are entered per shop and per month.",
+    "Monthly amounts are spread across all calendar days of the month, in Bangkok time.",
+    "Each day's service charge equals the day's revenue × the shop's rate × number of employees.",
+    "Google Sheets HR fields are excluded from the result to avoid double counting.",
+    "A month without manual entry uses zero and triggers a coverage alert.",
   ],
 } as const;

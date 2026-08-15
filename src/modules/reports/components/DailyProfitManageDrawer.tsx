@@ -48,11 +48,11 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
     try {
       const response = await fetch("/api/reports/daily-profit/config");
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? "Impossible de charger les paramètres");
+      if (!response.ok) throw new Error(json.error ?? "Unable to load settings");
       const next = json as ConfigData;
       setConfig(next);
       setLocationId((current) => current || next.locations[0]?.id || "");
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Impossible de charger les paramètres"); }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to load settings"); }
     finally { setLoading(false); }
   }, [open]);
 
@@ -81,7 +81,7 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
   }
 
   async function save() {
-    if (!locationId || !period || !reason.trim()) { toast.error("Choisis un shop, un mois et indique un motif"); return; }
+    if (!locationId || !period || !reason.trim()) { toast.error("Select a shop, a month and add a reason"); return; }
     const [periodYear, periodMonth] = period.split("-").map(Number);
     setSaving(true);
     try {
@@ -97,53 +97,53 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
         }),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? "Enregistrement impossible");
-      toast.success("Paramètres mensuels enregistrés");
+      if (!response.ok) throw new Error(json.error ?? "Unable to save");
+      toast.success("Monthly settings saved");
       setReason("");
       await load();
       onChanged();
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Enregistrement impossible"); }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save"); }
     finally { setSaving(false); }
   }
 
   const monthlyFixed = Number(values.rent_amount || 0) + Number(values.electricity_amount || 0) + Number(values.water_amount || 0) + Number(values.other_fixed_amount || 0);
-  const shopName = config.locations.find((location) => location.id === locationId)?.name ?? "ce shop";
+  const shopName = config.locations.find((location) => location.id === locationId)?.name ?? "this shop";
 
   return (
-    <Drawer open={open} onClose={onClose} title="Paramètres mensuels du P&L" description="Un seul formulaire identique pour chaque shop. Ces valeurs ne modifient ni Accounting ni Payments.">
-      {loading ? <p style={{ color: "var(--fg-4)" }}>Chargement…</p> : (
+    <Drawer open={open} onClose={onClose} title="Monthly P&L settings" description="One identical form for every shop. These values do not affect Accounting or Payments.">
+      {loading ? <p style={{ color: "var(--fg-4)" }}>Loading…</p> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
             <Field label="Shop"><select style={inputStyle} value={locationId} onChange={(event) => setLocationId(event.target.value)}>{config.locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></Field>
-            <Field label="Mois"><input style={inputStyle} type="month" value={period} onChange={(event) => setPeriod(event.target.value)} /></Field>
+            <Field label="Month"><input style={inputStyle} type="month" value={period} onChange={(event) => setPeriod(event.target.value)} /></Field>
           </div>
 
           <section style={sectionStyle}>
-            <Heading title="Équipe" hint="Montant mensuel total et paramètres du service charge." />
+            <Heading title="Team" hint="Monthly total and service charge settings." />
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
-              <MoneyField label="Salaires du mois" value={values.salaries_amount} onChange={(value) => setField("salaries_amount", value)} />
-              <Field label="Nombre d’employés"><input style={inputStyle} inputMode="numeric" min="0" step="1" type="number" value={values.employee_count} onChange={(event) => setField("employee_count", event.target.value)} /></Field>
-              <Field label="Service charge par employé (%)"><input style={inputStyle} inputMode="decimal" min="0" step="0.1" type="number" value={values.service_charge_rate_pct} onChange={(event) => setField("service_charge_rate_pct", event.target.value)} /></Field>
+              <MoneyField label="Salaries for the month" value={values.salaries_amount} onChange={(value) => setField("salaries_amount", value)} />
+              <Field label="Number of employees"><input style={inputStyle} inputMode="numeric" min="0" step="1" type="number" value={values.employee_count} onChange={(event) => setField("employee_count", event.target.value)} /></Field>
+              <Field label="Service charge per employee (%)"><input style={inputStyle} inputMode="decimal" min="0" step="0.1" type="number" value={values.service_charge_rate_pct} onChange={(event) => setField("service_charge_rate_pct", event.target.value)} /></Field>
             </div>
           </section>
 
           <section style={sectionStyle}>
-            <Heading title="Frais fixes" hint="Montants du mois, répartis automatiquement sur chaque jour calendaire." />
+            <Heading title="Fixed costs" hint="Monthly amounts, spread automatically across each calendar day." />
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
-              <MoneyField label="Loyer" value={values.rent_amount} onChange={(value) => setField("rent_amount", value)} />
-              <MoneyField label="Électricité" value={values.electricity_amount} onChange={(value) => setField("electricity_amount", value)} />
-              <MoneyField label="Eau" value={values.water_amount} onChange={(value) => setField("water_amount", value)} />
-              <MoneyField label="Autres frais fixes" value={values.other_fixed_amount} onChange={(value) => setField("other_fixed_amount", value)} />
+              <MoneyField label="Rent" value={values.rent_amount} onChange={(value) => setField("rent_amount", value)} />
+              <MoneyField label="Electricity" value={values.electricity_amount} onChange={(value) => setField("electricity_amount", value)} />
+              <MoneyField label="Water" value={values.water_amount} onChange={(value) => setField("water_amount", value)} />
+              <MoneyField label="Other fixed costs" value={values.other_fixed_amount} onChange={(value) => setField("other_fixed_amount", value)} />
             </div>
           </section>
 
           <div style={{ padding: 12, borderRadius: "var(--r-md)", background: "var(--bg-2)", border: "1px solid var(--line)", fontSize: 12, color: "var(--fg-3)" }}>
             <CalculatorIcon size={14} style={{ verticalAlign: "-2px", marginRight: 7 }} />
-            Pour {shopName} : frais fixes mensuels <strong className="mono">฿{monthlyFixed.toLocaleString()}</strong> · service charge quotidien = revenue × {Number(values.service_charge_rate_pct || 0)}% × {Number(values.employee_count || 0)}.
+            For {shopName}: monthly fixed costs <strong className="mono">฿{monthlyFixed.toLocaleString()}</strong> · daily service charge = revenue × {Number(values.service_charge_rate_pct || 0)}% × {Number(values.employee_count || 0)}.
           </div>
 
-          <Field label="Motif du changement"><input style={inputStyle} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ex. Budget confirmé pour août" /></Field>
-          <Button onClick={() => void save()} disabled={saving || !locationId || !reason.trim()}><SaveIcon size={14} />{saving ? "Enregistrement…" : current ? "Mettre à jour" : "Enregistrer"}</Button>
+          <Field label="Reason for change"><input style={inputStyle} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="e.g. Budget confirmed for August" /></Field>
+          <Button onClick={() => void save()} disabled={saving || !locationId || !reason.trim()}><SaveIcon size={14} />{saving ? "Saving…" : current ? "Update" : "Save"}</Button>
         </div>
       )}
     </Drawer>

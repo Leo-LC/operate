@@ -155,15 +155,15 @@ export async function getDailyProfitData(
     const locationName = locations.find((row) => row.id === locationId)?.name ?? "Shop";
     for (const period of periodMonths) {
       if (!monthlyInputs.some((row) => row.location_id === locationId && Number(row.period_year) === period.year && Number(row.period_month) === period.month)) {
-        missingInputs.push(`${locationName}: ${period.year}-${String(period.month).padStart(2, "0")} non renseigné`);
+        missingInputs.push(`${locationName}: ${period.year}-${String(period.month).padStart(2, "0")} not entered`);
       }
     }
   }
   const warnings: string[] = [];
-  if ((mirrorResult.data ?? []).length === 0) warnings.push("Le miroir finance est vide : lecture directe des données Accounting.");
-  if (!syncResult.data?.enabled) warnings.push("La synchronisation automatique Daily P&L est désactivée.");
-  if (latestSheetDate && latestSheetDate < params.to) warnings.push(`Dernière donnée quotidienne disponible : ${latestSheetDate}.`);
-  if (missingInputs.length > 0) warnings.push(`${missingInputs.length} saisie(s) shop/mois manquante(s), comptée(s) à zéro.`);
+  if ((mirrorResult.data ?? []).length === 0) warnings.push("The finance mirror is empty: reading directly from Accounting data.");
+  if (!syncResult.data?.enabled) warnings.push("Automatic Daily P&L synchronisation is disabled.");
+  if (latestSheetDate && latestSheetDate < params.to) warnings.push(`Latest daily data available: ${latestSheetDate}.`);
+  if (missingInputs.length > 0) warnings.push(`${missingInputs.length} missing shop/month entry(ies), counted as zero.`);
 
   const shopSettings = monthlyInputs
     .filter((row) => selectedLocationIds.includes(row.location_id))

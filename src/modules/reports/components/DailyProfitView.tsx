@@ -182,8 +182,8 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
       </div>
 
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
-        <button type="button" onClick={() => setContentTab("result")} style={tabStyle(contentTab === "result")}><CalculatorIcon size={14} />Résultat</button>
-        <button type="button" onClick={() => setContentTab("methodology")} style={tabStyle(contentTab === "methodology")}><BookOpenIcon size={14} />Comment c’est calculé</button>
+        <button type="button" onClick={() => setContentTab("result")} style={tabStyle(contentTab === "result")}><CalculatorIcon size={14} />Result</button>
+        <button type="button" onClick={() => setContentTab("methodology")} style={tabStyle(contentTab === "methodology")}><BookOpenIcon size={14} />{"How it's calculated"}</button>
       </div>
 
       {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calculating the daily result…</Card>}
@@ -194,27 +194,27 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
       {!loading && data && contentTab === "result" && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(110px,1fr) auto minmax(110px,1fr) auto minmax(110px,1fr)", gap: 10, alignItems: "center", padding: "16px 18px", borderRadius: "var(--r-lg)", color: "white", background: "linear-gradient(110deg, #173b31, #245a48)", overflowX: "auto" }}>
-            <FormulaValue label="Revenue" value={data.summary.revenue} /><strong style={operatorStyle}>−</strong><FormulaValue label="Tous les coûts" value={data.summary.totalCosts} /><strong style={operatorStyle}>=</strong><FormulaValue label="Résultat" value={data.summary.economicProfit} accent />
+            <FormulaValue label="Revenue" value={data.summary.revenue} /><strong style={operatorStyle}>−</strong><FormulaValue label="All costs" value={data.summary.totalCosts} /><strong style={operatorStyle}>=</strong><FormulaValue label="Result" value={data.summary.economicProfit} accent />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "var(--s-3)" }}>
-            <Metric label="Résultat" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} de marge · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
-            <Metric label="Revenue" value={money(data.summary.revenue)} hint={`${data.daily.length} jours calendaires`} />
-            <Metric label="Dépenses Sheets hors RH" value={money(data.summary.directExpenses)} hint="Données quotidiennes Accounting" tone="bad" />
-            <Metric label="Coûts ajoutés" value={money(data.summary.payroll + data.summary.recurringCosts + data.summary.serviceCharge)} hint="Salaires + fixes + service charge" tone="bad" />
+            <Metric label="Result" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} margin · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
+            <Metric label="Revenue" value={money(data.summary.revenue)} hint={`${data.daily.length} calendar days`} />
+            <Metric label="Sheet expenses excl. HR" value={money(data.summary.directExpenses)} hint="Daily Accounting data" tone="bad" />
+            <Metric label="Added costs" value={money(data.summary.payroll + data.summary.recurringCosts + data.summary.serviceCharge)} hint="Salaries + fixed + service charge" tone="bad" />
           </div>
 
           <Card style={{ gap: 8 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Daily profit ribbon</h2><p style={{ fontSize: 12, color: "var(--fg-4)", margin: "4px 0 0" }}>Revenue above the axis, costs below, profit traced across the period. Select a day to inspect it.</p></div>
-              <Pill tone="info" size="sm">Formule simplifiée</Pill>
+              <Pill tone="info" size="sm">Simplified formula</Pill>
             </div>
             {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>No financial days in this scope.</p>}
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(260px,.8fr)]" style={{ gap: "var(--s-4)", alignItems: "start" }}>
             <Card flush>
-              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Détail quotidien</strong></div>
-              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Revenue", "Dépenses", "Salaires", "Frais fixes", "Service charge", "Résultat", "Marge"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={{ ...tdNumber, color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)", fontWeight: 650 }}>{money(row.economicProfit)}</td><td style={tdNumber}>{pct(row.margin)}</td></tr>)}</tbody></table></div>
+              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Daily detail</strong></div>
+              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Revenue", "Expenses", "Salaries", "Fixed costs", "Service charge", "Result", "Margin"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={{ ...tdNumber, color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)", fontWeight: 650 }}>{money(row.economicProfit)}</td><td style={tdNumber}>{pct(row.margin)}</td></tr>)}</tbody></table></div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
@@ -233,8 +233,8 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
       <Drawer open={!!selectedDay} onClose={() => setSelectedDay(null)} title={selectedDay ? `Daily result · ${shortDate(selectedDay.date)}` : "Daily result"} description="Economic result and observed cash remain separate.">
         {selectedDay && <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{[
           ["Revenue (VAT incl.)", selectedDay.revenue, TrendingUpIcon], ["Daily operating expenses", selectedDay.directExpenses, TrendingDownIcon],
-          ["Salaires pondérés", selectedDay.payroll, WalletCardsIcon], ["Frais fixes pondérés", selectedDay.recurringCosts, CalendarDaysIcon],
-          ["Service charge calculé", selectedDay.serviceCharge, CalculatorIcon], ["Résultat", selectedDay.economicProfit, selectedDay.economicProfit >= 0 ? TrendingUpIcon : TrendingDownIcon],
+          ["Weighted salaries", selectedDay.payroll, WalletCardsIcon], ["Weighted fixed costs", selectedDay.recurringCosts, CalendarDaysIcon],
+          ["Calculated service charge", selectedDay.serviceCharge, CalculatorIcon], ["Result", selectedDay.economicProfit, selectedDay.economicProfit >= 0 ? TrendingUpIcon : TrendingDownIcon],
           ["Cash received", selectedDay.cashIn, WalletCardsIcon], ["Cash paid", selectedDay.cashOut, WalletCardsIcon],
         ].map(([label, value, Icon]) => { const RowIcon = Icon as typeof TrendingUpIcon; return <div key={String(label)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingBottom: 10, borderBottom: "1px solid var(--line)" }}><span style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--fg-3)" }}><RowIcon size={14} />{String(label)}</span><strong className="mono">{money(Number(value))}</strong></div>; })}</div>}
       </Drawer>
@@ -251,17 +251,17 @@ function FormulaValue({ label, value, accent = false }: { label: string; value: 
 function MethodologyPanel({ data }: { data: DailyProfitResponse }) {
   return <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
     <Card style={{ gap: 14, borderColor: "#2d6655", background: "linear-gradient(135deg, color-mix(in srgb, var(--good) 8%, var(--surface)), var(--surface))" }}>
-      <div><span className="eyebrow" style={{ color: "var(--good)" }}>{data.methodology.version}</span><h2 style={{ margin: "5px 0 0", fontSize: 19 }}>La formule utilisée aujourd’hui</h2></div>
+      <div><span className="eyebrow" style={{ color: "var(--good)" }}>{data.methodology.version}</span><h2 style={{ margin: "5px 0 0", fontSize: 19 }}>The formula used today</h2></div>
       <code style={{ padding: 14, borderRadius: "var(--r-md)", background: "var(--fg)", color: "var(--bg)", fontSize: 13, whiteSpace: "normal" }}>{data.methodology.formula}</code>
-      <p style={{ margin: 0, color: "var(--fg-3)", fontSize: 12 }}>Cette page est alimentée par les mêmes paramètres que le calcul. Toute modification enregistrée apparaît ici dès le rechargement.</p>
+      <p style={{ margin: 0, color: "var(--fg-3)", fontSize: 12 }}>This page is fed by the same settings as the calculation. Any saved change appears here on reload.</p>
     </Card>
     <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "var(--s-4)" }}>
-      <Card style={{ gap: 12 }}><strong>Ce qui vient des Google Sheets</strong><DocList title="Revenue additionné" values={data.methodology.revenueFields} /><DocList title="Dépenses soustraites" values={data.methodology.expenseFields} /><DocList title="RH explicitement exclue" values={data.methodology.excludedFields} tone="warn" /></Card>
-      <Card style={{ gap: 12 }}><strong>Règles de pondération</strong>{data.methodology.rules.map((rule) => <div key={rule} style={{ display: "flex", gap: 9, fontSize: 12, color: "var(--fg-3)" }}><CheckCircle2Icon size={14} style={{ color: "var(--good)", flexShrink: 0 }} />{rule}</div>)}</Card>
+      <Card style={{ gap: 12 }}><strong>What comes from the Google Sheets</strong><DocList title="Added revenue" values={data.methodology.revenueFields} /><DocList title="Subtracted expenses" values={data.methodology.expenseFields} /><DocList title="HR explicitly excluded" values={data.methodology.excludedFields} tone="warn" /></Card>
+      <Card style={{ gap: 12 }}><strong>Weighting rules</strong>{data.methodology.rules.map((rule) => <div key={rule} style={{ display: "flex", gap: 9, fontSize: 12, color: "var(--fg-3)" }}><CheckCircle2Icon size={14} style={{ color: "var(--good)", flexShrink: 0 }} />{rule}</div>)}</Card>
     </div>
     <Card flush>
-      <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Paramètres réellement appliqués · {data.scope.label}</strong></div>
-      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>Aucun paramètre mensuel enregistré sur cette période : les valeurs manuelles sont comptées à zéro.</p> : <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Shop / mois", "Salaires", "Loyer", "Électricité", "Eau", "Autres fixes", "Taux SC", "Employés"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td></tr>)}</tbody></table></div>}
+      <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Settings actually applied · {data.scope.label}</strong></div>
+      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td></tr>)}</tbody></table></div>}
     </Card>
   </div>;
 }

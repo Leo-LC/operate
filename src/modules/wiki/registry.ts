@@ -13,10 +13,10 @@ export const WIKI_ARTICLES: ArticleMeta[] = [
   {
     slug: "thai-taxes",
     href: "/wiki/thai-taxes",
-    title: "Comptabilité & Taxes en Thaïlande",
+    title: "Accounting & Taxes in Thailand",
     description:
-      "Vue d'ensemble complète de la fiscalité thaïlandaise : VAT, retenues à la source, impôt sur les sociétés, charges sociales, dividendes et calendrier des déclarations.",
-    category: "Comptabilité & Fiscalité",
+      "A complete overview of Thai taxation: VAT, withholding tax, corporate income tax, social contributions, dividends and the filing calendar.",
+    category: "Accounting & Tax",
     updatedAt: "2026-07-29",
     type: "rich",
   },

@@ -48,13 +48,13 @@ export async function POST(request: Request) {
   const periodYear = Number(body.period_year);
   const periodMonth = Number(body.period_month);
   if (!reason || !locationId || !Number.isInteger(periodYear) || !Number.isInteger(periodMonth) || periodMonth < 1 || periodMonth > 12) {
-    return Response.json({ error: "Shop, mois et motif sont requis" }, { status: 400 });
+    return Response.json({ error: "Shop, month and reason are required" }, { status: 400 });
   }
 
   const numericFields = ["salaries_amount", "rent_amount", "electricity_amount", "water_amount", "other_fixed_amount", "service_charge_rate_pct", "employee_count"] as const;
   const values = Object.fromEntries(numericFields.map((field) => [field, Number(body[field] ?? 0)]));
-  if (Object.values(values).some((value) => !Number.isFinite(value) || value < 0)) return Response.json({ error: "Les montants doivent être positifs" }, { status: 400 });
-  if (values.service_charge_rate_pct > 100 || !Number.isInteger(values.employee_count)) return Response.json({ error: "Taux invalide ou nombre d’employés non entier" }, { status: 400 });
+  if (Object.values(values).some((value) => !Number.isFinite(value) || value < 0)) return Response.json({ error: "Amounts must be positive" }, { status: 400 });
+  if (values.service_charge_rate_pct > 100 || !Number.isInteger(values.employee_count)) return Response.json({ error: "Invalid rate or non-integer employee count" }, { status: 400 });
 
   const now = new Date().toISOString();
   const result = await getSupabaseServerClient().from("finance_shop_monthly_inputs").upsert({

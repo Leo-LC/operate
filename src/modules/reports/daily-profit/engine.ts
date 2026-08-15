@@ -96,10 +96,10 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
   return {
     dailyByLocation,
     categories: [
-      { key: "daily_operating", label: "Dépenses Sheets hors RH", amount: total("directExpenses"), status: "actual" as const },
-      { key: "salaries", label: "Salaires manuels", amount: total("payroll"), status: "actual" as const },
-      { key: "fixed_costs", label: "Frais fixes manuels", amount: total("recurringCosts"), status: "actual" as const },
-      { key: "service_charge", label: "Service charge calculé", amount: total("serviceCharge"), status: "actual" as const },
+      { key: "daily_operating", label: "Sheet expenses excl. HR", amount: total("directExpenses"), status: "actual" as const },
+      { key: "salaries", label: "Manual salaries", amount: total("payroll"), status: "actual" as const },
+      { key: "fixed_costs", label: "Manual fixed costs", amount: total("recurringCosts"), status: "actual" as const },
+      { key: "service_charge", label: "Calculated service charge", amount: total("serviceCharge"), status: "actual" as const },
     ].sort((a, b) => b.amount - a.amount),
   };
 }

@@ -374,9 +374,9 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             <Trash2Icon size={14} style={{ color: "var(--error, #e53e3e)", flexShrink: 0 }} />
             <span style={{ fontSize: 13 }}>
-              Supprimer les <strong>{filled}</strong> entrées de{" "}
-              <strong>{currentLocationName}</strong> pour <strong>{monthName}</strong> ?
-              Cette action est irréversible.
+              Delete the <strong>{filled}</strong> entries for{" "}
+              <strong>{currentLocationName}</strong> for <strong>{monthName}</strong>?
+              This action cannot be undone.
             </span>
           </div>
           <div style={{ display: "flex", gap: "var(--s-2)", flexShrink: 0 }}>
