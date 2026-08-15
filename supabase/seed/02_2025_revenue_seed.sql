@@ -1,4 +1,4 @@
--- Seed: 2025 revenue data for Phangan and Samui locations
+-- Seed: 2025 revenue data for Phangan, Samui, Ekkamai and Silom locations
 -- Run after 20260814130000_monthly_revenue_inputs migration.
 -- Idempotent: uses ON CONFLICT DO NOTHING for updates.
 
@@ -12,7 +12,7 @@ WITH location_ids AS (
     name
   FROM locations
   WHERE organization_id = 'a1b2c3d4-0000-0000-0000-000000000001'
-    AND name IN ('Phangan', 'Samui')
+    AND name IN ('Phangan', 'Samui', 'Ekkamai', 'Silom')
 ),
 -- Revenue data for 2025
 revenue_data AS (
@@ -42,7 +42,26 @@ revenue_data AS (
     ('Samui', 9, 1443627.00),
     ('Samui', 10, 1378268.00),
     ('Samui', 11, 1358158.00),
-    ('Samui', 12, 2112839.00)
+    ('Samui', 12, 2112839.00),
+    -- Ekkamai 2025
+    ('Ekkamai', 2, 1001402.80),
+    ('Ekkamai', 3, 1997675.30),
+    ('Ekkamai', 4, 2178227.85),
+    ('Ekkamai', 5, 1606187.60),
+    ('Ekkamai', 6, 2094168.00),
+    ('Ekkamai', 8, 1851071.00),
+    ('Ekkamai', 9, 943200.00),
+    ('Ekkamai', 10, 1202665.60),
+    ('Ekkamai', 11, 2465614.99),
+    ('Ekkamai', 12, 3138773.19),
+    -- Silom 2025
+    ('Silom', 6, 35808.00),
+    ('Silom', 7, 1167368.00),
+    ('Silom', 8, 1545214.00),
+    ('Silom', 9, 912971.35),
+    ('Silom', 10, 1225983.05),
+    ('Silom', 11, 2985200.90),
+    ('Silom', 12, 4146929.75)
   ) AS v(location_name, month, amount)
 )
 INSERT INTO monthly_revenue_inputs (
