@@ -10,6 +10,24 @@ function key(month: number, locationId: string): string {
   return `${month}:${locationId}`;
 }
 
+/** Fetch every row of a query, paginating past PostgREST's 1000-row cap. */
+async function fetchAllRows<T>(
+  query: { range: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }> },
+  batchSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await query.range(from, from + batchSize - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as T[];
+    all.push(...rows);
+    if (rows.length < batchSize) break;
+    from += batchSize;
+  }
+  return all;
+}
+
 /** Revenue per (month, location) from a daily_entries slice. */
 function monthRevenueByLocation(entries: DailyEntry[]): Map<string, number> {
   const map = new Map<string, number>();
@@ -49,8 +67,8 @@ export async function GET(request: Request) {
 
   const [
     { data: locsData },
-    { data: currentEntries },
-    { data: prevEntries },
+    currentEntries,
+    prevEntries,
     { data: inputRows },
   ] = await Promise.all([
     supabase
@@ -59,18 +77,22 @@ export async function GET(request: Request) {
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
       .order("name"),
-    supabase
-      .from("daily_entries")
-      .select("*")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .gte("entry_date", from)
-      .lte("entry_date", to),
-    supabase
-      .from("daily_entries")
-      .select("*")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .gte("entry_date", prevFrom)
-      .lte("entry_date", prevTo),
+    fetchAllRows<DailyEntry>(
+      supabase
+        .from("daily_entries")
+        .select("*")
+        .eq("organization_id", DEFAULT_ORG_ID)
+        .gte("entry_date", from)
+        .lte("entry_date", to)
+    ),
+    fetchAllRows<DailyEntry>(
+      supabase
+        .from("daily_entries")
+        .select("*")
+        .eq("organization_id", DEFAULT_ORG_ID)
+        .gte("entry_date", prevFrom)
+        .lte("entry_date", prevTo)
+    ),
     supabase
       .from("monthly_revenue_inputs")
       .select("location_id, month, amount")
@@ -85,8 +107,8 @@ export async function GET(request: Request) {
       : locationsParam.split(",").filter(Boolean);
   const locations = allLocations.filter((l) => selectedIds.includes(l.id));
 
-  const currentMap = monthRevenueByLocation((currentEntries ?? []) as DailyEntry[]);
-  const prevAccountingMap = monthRevenueByLocation((prevEntries ?? []) as DailyEntry[]);
+  const currentMap = monthRevenueByLocation(currentEntries ?? []);
+  const prevAccountingMap = monthRevenueByLocation(prevEntries ?? []);
 
   // Manual inputs take priority over accounting for the previous year; if a
   // shop/month has no manual input, fall back to daily_entries when available.
