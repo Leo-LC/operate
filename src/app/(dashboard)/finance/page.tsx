@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function FinancePage() { redirect("/finance/daily-profit"); }
+export default function FinancePage() { redirect("/finance/recurring-costs"); }

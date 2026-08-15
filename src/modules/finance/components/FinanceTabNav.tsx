@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { label: "Daily P&L", href: "/finance/daily-profit" },
   { label: "Recurring costs", href: "/finance/recurring-costs" },
   { label: "Shop settings", href: "/finance/shop-settings" },
 ];

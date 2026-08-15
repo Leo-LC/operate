@@ -21,7 +21,6 @@ const NAV_ITEMS = [
   { id: "documents",  label: "Documents",  href: "/documents",  icon: FileTextIcon,     module: "documents" },
   { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon,   module: "accounting" },
   { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
-  { id: "daily-profit", label: "Daily P&L", href: "/finance/daily-profit", icon: TrendingUpIcon, module: "reports" },
   { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
   { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
   { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },

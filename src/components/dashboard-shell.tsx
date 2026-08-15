@@ -57,7 +57,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Finance",
     items: [
-      { id: "daily-profit", label: "Daily P&L", href: "/finance/daily-profit", icon: TrendingUpIcon, module: "reports" },
       { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
       { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
       { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon, module: "accounting" },
