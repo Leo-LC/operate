@@ -1,6 +1,6 @@
 import type { ModuleKey } from "@/core/permissions/types";
 
-export type GlobalRole = "owner" | "admin" | "member" | "reviewer";
+export type GlobalRole = "owner" | "admin" | "member" | "reviewer" | "direction";
 
 export interface AdminUser {
   id: string;

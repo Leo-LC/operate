@@ -43,7 +43,7 @@ export async function getUserPermissionsFromDb(
 
     if (!user) return derivePermissionsFromRole(fallbackRole);
 
-    const global_role = user.global_role as "owner" | "admin" | "member" | "reviewer";
+    const global_role = user.global_role as "owner" | "admin" | "member" | "reviewer" | "direction";
 
     if (global_role === "owner" || global_role === "admin") {
       return { global_role, module_access: [], location_access: [], all_locations: true };
@@ -59,6 +59,15 @@ export async function getUserPermissionsFromDb(
         module_access: [{ module_key: "reviews", can_read: true, can_write: true }],
         location_access: (locationRows ?? []).map((l) => ({ location_id: l.location_id as string })),
         all_locations: false,
+      };
+    }
+
+    if (global_role === "direction") {
+      return {
+        global_role: "direction",
+        module_access: [{ module_key: "reports", can_read: true, can_write: false }],
+        location_access: [],
+        all_locations: true,
       };
     }
 

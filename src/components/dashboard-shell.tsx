@@ -186,15 +186,22 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         };
         const dest = map[e.key.toLowerCase()];
         if (dest) {
-          gKeyRef.current = false;
-          router.push(dest);
+          const role = permissions.global_role;
+          const allowed =
+            role === "reviewer" ? (dest === "/reviews" ? dest : null)
+            : role === "direction" ? (dest === "/overview" || dest === "/reports" ? dest : null)
+            : dest;
+          if (allowed) {
+            gKeyRef.current = false;
+            router.push(allowed);
+          }
         }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [theme, setTheme, router]);
+  }, [theme, setTheme, router, permissions.global_role]);
 
   function isActive(href: string): boolean {
     if (href === "/overview") return pathname === "/overview";
@@ -298,6 +305,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
               if (permissions.global_role === "reviewer") return item.id === "reviews";
+              if (permissions.global_role === "direction") return item.id === "overview" || item.id === "reports";
               if (item.id === "admin" && permissions.global_role !== "owner") return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
               if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
@@ -433,7 +441,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               {displayName}
             </span>
             <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
-              {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : "Staff"}
+              {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : permissions.global_role === "reviewer" ? "Reviewer" : permissions.global_role === "direction" ? "Direction" : "Staff"}
             </span>
           </div>
 

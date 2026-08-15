@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { hasModuleAccess } from "./guards";
+import { hasAllLocationsAccess, hasModuleAccess } from "./guards";
 import { getUserPermissionsFromSession } from "./server";
 
 const fromTable = vi.fn();
@@ -72,5 +72,20 @@ describe("getUserPermissionsFromSession", () => {
     const perms = await getUserPermissionsFromSession({ user: { userId: "u-1", role: "admin" } });
     expect(perms.global_role).toBe("admin");
     expect(hasModuleAccess(perms, "documents")).toBe(true);
+  });
+
+  it("grants direction read-only Reports access with all shops", async () => {
+    fromTable.mockImplementation((table: string) => {
+      if (table === "users") return chainSingle({ global_role: "direction" });
+      return chainRows([]);
+    });
+
+    const perms = await getUserPermissionsFromSession({ user: { userId: "u-1", role: "direction" } });
+    expect(perms.global_role).toBe("direction");
+    expect(hasModuleAccess(perms, "reports")).toBe(true);
+    expect(hasModuleAccess(perms, "reports", true)).toBe(false);
+    expect(hasModuleAccess(perms, "accounting")).toBe(false);
+    expect(hasAllLocationsAccess(perms)).toBe(true);
+    expect(fromTable.mock.calls.map((c) => c[0])).toEqual(["users"]);
   });
 });

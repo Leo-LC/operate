@@ -86,7 +86,7 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const perms = await getUserPermissionsFromSession(session);
-  if (!hasModuleAccess(perms, "accounting")) {
+  if (!hasModuleAccess(perms, "accounting") && !hasModuleAccess(perms, "reports")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

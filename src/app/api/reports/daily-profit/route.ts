@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       session.user.userId,
       permissions.global_role === "owner" || permissions.global_role === "admin",
     );
-    const data = await getDailyProfitData(getSupabaseServerClient(), { from, to, scopeType, scopeIds, canManage: permissions.global_role === "owner", allowedLocationIds });
+    const data = await getDailyProfitData(getSupabaseServerClient(), { from, to, scopeType, scopeIds, canManage: hasModuleAccess(permissions, "reports", true), allowedLocationIds });
     return Response.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to calculate Daily P&L";

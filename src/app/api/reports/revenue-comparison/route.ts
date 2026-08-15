@@ -179,7 +179,7 @@ export async function GET(request: Request) {
     inputStatus: {
       monthsWithPrevData: Array.from(monthsWithPrevData).sort((a, b) => a - b),
     },
-    canEdit: permissions.global_role === "owner" || permissions.global_role === "admin",
+    canEdit: hasModuleAccess(permissions, "reports", true),
   });
 }
 

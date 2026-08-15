@@ -56,6 +56,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const items = useMemo(() => {
     const nav = NAV_ITEMS
       .filter((n) => {
+        if (permissions.global_role === "direction") return n.id === "overview" || n.id === "reports";
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
         if (n.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
@@ -67,7 +68,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
       label: n.label,
       hint: "Go to module",
       icon: n.icon,
-      href: n.href,
+      href: permissions.global_role === "direction" && n.id === "overview" ? "/overview" : n.href,
     }));
     if (!query) return nav;
     const lc = query.toLowerCase();

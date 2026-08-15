@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { HomeClient } from "@/modules/home/components/HomeClient";
@@ -21,6 +22,7 @@ export default async function HomePage() {
   const name = session?.user?.name ?? session?.user?.email ?? "there";
 
   const permissions = await getUserPermissionsFromDb(session?.user?.userId, role);
+  if (permissions.global_role === "direction") redirect("/overview");
   const supabase = getSupabaseServerClient();
 
   let docsAlert = 0;

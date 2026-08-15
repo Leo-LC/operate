@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { ShopSummaryCard } from "@/modules/overview/components/ShopSummaryCard";
+import { ViewerDashboard } from "@/modules/overview/components/ViewerDashboard";
 import type { ShopCard } from "@/app/api/overview/cards/route";
 
 async function fetchCards(baseUrl: string, cookie: string): Promise<ShopCard[]> {
@@ -17,7 +18,12 @@ async function fetchCards(baseUrl: string, cookie: string): Promise<ShopCard[]> 
 export default async function OverviewPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
-  if (session.user.role !== "owner") redirect("/home");
+
+  const role = session.user.role;
+  if (role === "direction") {
+    return <ViewerDashboard name={session.user.name ?? session.user.email ?? ""} />;
+  }
+  if (role !== "owner") redirect("/home");
 
   const { headers } = await import("next/headers");
   const headersList = await headers();

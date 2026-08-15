@@ -16,6 +16,7 @@ const ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
   { value: "owner", label: "Owner" },
   { value: "reviewer", label: "Reviewer (Reviews only)" },
+  { value: "direction", label: "Direction (Reports read-only)" },
 ];
 
 interface UserDetailClientProps {
@@ -193,6 +194,7 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
   const grantedLocationIds = new Set(user.location_access.map((la) => la.location_id));
   const hasFullAccess = user.global_role === "owner" || user.global_role === "admin";
   const isReviewerLocked = user.global_role === "reviewer";
+  const isDirectionLocked = user.global_role === "direction";
 
   const selectSm: React.CSSProperties = {
     height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)",
@@ -324,16 +326,28 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
         </div>
       )}
 
+      {isDirectionLocked && (
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line-strong)", background: "var(--bg-2)", padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <span style={{ marginTop: 2, display: "inline-flex", width: 20, height: 20, flexShrink: 0, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--line-strong)", color: "var(--surface)", fontSize: 10, fontWeight: 700 }}>i</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Read-only Reports</p>
+            <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2 }}>
+              Direction role grants read-only access to Reports across all shops — no edits, no other modules.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Module access */}
       <section style={sectionStyle}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Module Access</h2>
-          {(hasFullAccess || isReviewerLocked) && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
+          {(hasFullAccess || isReviewerLocked || isDirectionLocked) && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {ALL_MODULES.map((mod) => {
-            const granted = hasFullAccess || (isReviewerLocked ? mod === "reviews" : grantedModuleKeys.has(mod));
-            const locked = hasFullAccess || isReviewerLocked;
+            const granted = hasFullAccess || (isReviewerLocked ? mod === "reviews" : isDirectionLocked ? mod === "reports" : grantedModuleKeys.has(mod));
+            const locked = hasFullAccess || isReviewerLocked || isDirectionLocked;
             return (
               <label
                 key={mod}
@@ -362,13 +376,14 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Location Access</h2>
           {hasFullAccess && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>Overridden by role</span>}
+          {isDirectionLocked && <span style={{ fontSize: 10, color: "var(--fg-4)", fontStyle: "italic" }}>All shops</span>}
         </div>
         {allLocations.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--fg-4)" }}>No locations available.</p>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {allLocations.map((loc) => {
-              const granted = hasFullAccess || grantedLocationIds.has(loc.id);
+              const granted = hasFullAccess || isDirectionLocked || grantedLocationIds.has(loc.id);
               return (
                 <label
                   key={loc.id}
@@ -376,15 +391,15 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
                     display: "flex", alignItems: "center", gap: 8,
                     borderRadius: "var(--r-sm)",
                     border: `1px solid ${granted ? "var(--bronze)" : "var(--line)"}`,
-                    padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: hasFullAccess ? "default" : "pointer",
+                    padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: (hasFullAccess || isDirectionLocked) ? "default" : "pointer",
                     background: granted ? "var(--bronze-soft)" : "var(--bg)",
                     color: granted ? "var(--bronze)" : "var(--fg-4)",
-                    opacity: hasFullAccess ? 0.6 : 1,
+                    opacity: (hasFullAccess || isDirectionLocked) ? 0.6 : 1,
                     transition: "all 150ms",
                   }}
                 >
-                  <input type="checkbox" className="sr-only" checked={granted} disabled={hasFullAccess}
-                    onChange={() => !hasFullAccess && (granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id))} />
+                  <input type="checkbox" className="sr-only" checked={granted} disabled={hasFullAccess || isDirectionLocked}
+                    onChange={() => !hasFullAccess && !isDirectionLocked && (granted ? void handleRevokeLocation(loc.id) : void handleGrantLocation(loc.id))} />
                   {loc.name}
                 </label>
               );

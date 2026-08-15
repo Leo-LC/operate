@@ -57,7 +57,7 @@ async function getDbRoleForEmail(
       .eq("email", email.toLowerCase())
       .single();
     if (error || !data) return null;
-    const validRoles: GlobalRole[] = ["owner", "admin", "member", "reviewer"];
+    const validRoles: GlobalRole[] = ["owner", "admin", "member", "reviewer", "direction"];
     if (!validRoles.includes(data.global_role as GlobalRole)) return null;
     const role = data.global_role as GlobalRole;
     return { role, userId: data.id as string };

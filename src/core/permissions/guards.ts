@@ -55,6 +55,15 @@ export function derivePermissionsFromRole(
     };
   }
 
+  if (role === "direction") {
+    return {
+      global_role: "direction",
+      module_access: [{ module_key: "reports", can_read: true, can_write: false }],
+      location_access: [],
+      all_locations: true,
+    };
+  }
+
   // staff: reviews read+write, wiki read-only, all locations visible
   return {
     global_role: "member",

@@ -42,5 +42,17 @@ describe("global admin permissions", () => {
     expect(isOperationalAdmin("admin")).toBe(true);
     expect(isOperationalAdmin("member")).toBe(false);
     expect(isOperationalAdmin("reviewer")).toBe(false);
+    expect(isOperationalAdmin("direction")).toBe(false);
+  });
+
+  it("grants direction read-only Reports access across all shops", () => {
+    const permissions = derivePermissionsFromRole("direction");
+    expect(permissions.global_role).toBe("direction");
+    expect(hasModuleAccess(permissions, "reports")).toBe(true);
+    expect(hasModuleAccess(permissions, "reports", true)).toBe(false);
+    expect(hasModuleAccess(permissions, "accounting")).toBe(false);
+    expect(hasModuleAccess(permissions, "reviews")).toBe(false);
+    expect(hasAllLocationsAccess(permissions)).toBe(true);
+    expect(hasLocationAccess(permissions, "any-shop-id")).toBe(true);
   });
 });

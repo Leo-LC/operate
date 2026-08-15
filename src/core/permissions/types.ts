@@ -13,7 +13,7 @@ export type ModuleKey =
   | "wiki"
   | "brand";
 
-export type GlobalRole = "owner" | "admin" | "member" | "reviewer";
+export type GlobalRole = "owner" | "admin" | "member" | "reviewer" | "direction";
 export type SessionRole = GlobalRole | "staff";
 
 export interface ModulePermission {
