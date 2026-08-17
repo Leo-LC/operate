@@ -435,6 +435,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         <MonthlyFixedExpensesTable
           locationId={locationId}
           locations={locations}
+          year={year}
         />
       )}
 

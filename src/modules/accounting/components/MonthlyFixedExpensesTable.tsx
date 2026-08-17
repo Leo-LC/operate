@@ -26,71 +26,92 @@ type RecurringCost = {
   is_active: boolean;
 };
 
+type ActualsMap = Record<string, Record<number, number>>;
+
 interface Props {
   locationId: string;
   locations: AdminLocation[];
+  year?: number;
 }
 
 function fmt(n: number) {
   return n === 0 ? "" : n.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
+export function MonthlyFixedExpensesTable({ locationId, locations, year: yearProp }: Props) {
+  const year = yearProp ?? new Date().getFullYear();
   const [costs, setCosts] = useState<RecurringCost[]>([]);
+  const [actuals, setActuals] = useState<ActualsMap>({});
   const [canManage, setCanManage] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; month: number; value: string } | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const fetchCosts = useCallback(async () => {
     if (!locationId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/accounting/fixed-expenses?location_id=${locationId}`);
+      const res = await fetch(`/api/accounting/fixed-expenses?location_id=${locationId}&year=${year}`);
       if (!res.ok) return;
-      const json = await res.json() as { costs: RecurringCost[]; canManage: boolean };
+      const json = await res.json() as { costs: RecurringCost[]; actuals?: ActualsMap; canManage: boolean };
       setCosts(json.costs);
+      setActuals(json.actuals ?? {});
       setCanManage(json.canManage);
     } finally {
       setLoading(false);
     }
-  }, [locationId]);
+  }, [locationId, year]);
 
   useEffect(() => { void fetchCosts(); }, [fetchCosts]);
 
-  async function commitEdit(cost: RecurringCost) {
+  const valueFor = (cost: RecurringCost, month: number) => actuals[cost.id]?.[month] ?? Number(cost.estimated_amount || 0);
+
+  async function commitEdit(cost: RecurringCost, month: number) {
     if (!editing) return;
     const { value } = editing;
     setEditing(null);
     const numVal = parseFloat(value) || 0;
+    const base = Number(cost.estimated_amount || 0);
+    const existing = actuals[cost.id]?.[month];
+
     setSavingId(cost.id);
     try {
-      const res = await fetch(`/api/finance/recurring-costs/${cost.id}`, {
+      // No override yet and the value matches the base — nothing to do.
+      if (existing === undefined && numVal === base) return;
+      // Value equals the base — clear the override instead of storing a redundant one.
+      if (numVal === base && existing !== undefined) {
+        const res = await fetch(`/api/finance/recurring-costs/${cost.id}/month?year=${year}&month=${month}&reason=${encodeURIComponent("Override cleared from accounting Fixed Costs")}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Save failed");
+        toast.success(`"${cost.label}" reset to default`);
+        await fetchCosts();
+        return;
+      }
+      const res = await fetch(`/api/finance/recurring-costs/${cost.id}/month`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          estimated_amount: numVal,
-          reason: "Edited from accounting Fixed Costs",
-        }),
+        body: JSON.stringify({ year, month, amount: numVal, reason: "Edited from accounting Fixed Costs" }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };
-        toast.error(err.error ?? "Save failed");
-        return;
+        throw new Error(err.error ?? "Save failed");
       }
-      toast.success(`"${cost.label}" updated`);
+      toast.success(`"${cost.label}" updated for ${MONTH_NAMES[month - 1]}`);
       await fetchCosts();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Save failed");
     } finally {
       setSavingId(null);
     }
   }
 
   const locationName = locations.find((l) => l.id === locationId)?.name ?? "";
-  const perMonthTotals = MONTH_NAMES.map(() => costs.reduce((s, c) => s + Number(c.estimated_amount || 0), 0));
+  const perMonthTotals = MONTH_NAMES.map((_, i) => costs.reduce((s, c) => s + valueFor(c, i + 1), 0));
   const annualTotal = perMonthTotals.reduce((s, v) => s + v, 0);
 
-  const cell = (cost: RecurringCost, value: number, key: string): React.ReactNode => {
-    const isEditing = editing?.id === cost.id;
+  const cell = (cost: RecurringCost, month: number, key: string): React.ReactNode => {
+    const value = valueFor(cost, month);
+    const isOverridden = actuals[cost.id]?.[month] !== undefined;
+    const isEditing = editing?.id === cost.id && editing.month === month;
     const isSaving = savingId === cost.id;
 
     if (isEditing && canManage) {
@@ -102,10 +123,10 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
             step="0.01"
             autoFocus
             value={editing.value}
-            onChange={(e) => setEditing({ id: cost.id, value: e.target.value })}
-            onBlur={() => void commitEdit(cost)}
+            onChange={(e) => setEditing({ id: cost.id, month, value: e.target.value })}
+            onBlur={() => void commitEdit(cost, month)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); void commitEdit(cost); }
+              if (e.key === "Enter") { e.preventDefault(); void commitEdit(cost, month); }
               if (e.key === "Escape") setEditing(null);
             }}
             style={{
@@ -132,17 +153,23 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
           cursor: canManage ? "pointer" : "default",
           borderRight: "1px solid var(--line)",
           minWidth: "4.5rem",
-          color: "var(--fg)",
+          color: isOverridden ? "var(--bronze-2, var(--bronze))" : "var(--fg)",
+          fontWeight: isOverridden ? 600 : 400,
+          background: isOverridden ? "var(--bronze-soft)" : undefined,
           userSelect: "none",
           transition: "background var(--dur) var(--ease)",
+          position: "relative",
         }}
         onClick={() => {
           if (!canManage || isSaving) return;
-          setEditing({ id: cost.id, value: value === 0 ? "" : String(value) });
+          setEditing({ id: cost.id, month, value: value === 0 ? "" : String(value) });
         }}
-        title={canManage ? "Edit recurring cost — updates Finance → Recurring costs too" : undefined}
+        title={canManage ? (isOverridden ? `${MONTH_NAMES[month - 1]} ${year} override — edit to change, or set it back to the default to reset` : `Edit ${MONTH_NAMES[month - 1]} ${year} only — switches this cost to variable`) : undefined}
       >
         {isSaving ? <Loader2Icon style={{ width: 11, height: 11, verticalAlign: "middle" }} className="animate-spin" /> : fmt(value)}
+        {isOverridden && !isSaving && (
+          <span style={{ position: "absolute", top: 3, right: 4, width: 5, height: 5, borderRadius: "50%", background: "var(--bronze)" }} />
+        )}
       </td>
     );
   };
@@ -157,9 +184,9 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
             Finance → Recurring costs
             <ExternalLinkIcon style={{ width: 11, height: 11, marginLeft: 4, verticalAlign: "-1px" }} />
           </a>
-          {" "}for <strong>{locationName}</strong>. The same amount is applied to every month.{" "}
+          {" "}for <strong>{locationName}</strong> · {year}. &quot;Same each month&quot; costs repeat the default into every cell.{" "}
           {canManage
-            ? "Edit a value here — it updates the recurring costs module too."
+            ? "Edit any cell to override that specific month — the cost automatically switches to variable. Overrides are marked with a dot."
             : "Owner access is required to edit values."}
         </span>
       </div>
@@ -184,8 +211,8 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
           </thead>
           <tbody>
             {costs.map((cost) => {
-              const value = Number(cost.estimated_amount || 0);
               const catLabel = CATEGORY_LABELS[cost.category] ?? cost.category;
+              const rowTotal = MONTH_NAMES.reduce((sum, _, i) => sum + valueFor(cost, i + 1), 0);
               return (
                 <tr key={cost.id} style={{ borderBottom: "1px solid var(--line)", transition: "background var(--dur) var(--ease)" }}>
                   <td className="sticky left-0 z-10 whitespace-nowrap" style={{ padding: "8px 12px", borderRight: "1px solid var(--line)", width: "14rem", minWidth: "14rem", background: "var(--surface)" }}>
@@ -196,9 +223,9 @@ export function MonthlyFixedExpensesTable({ locationId, locations }: Props) {
                       </span>
                     </div>
                   </td>
-                  {MONTH_NAMES.map((m) => cell(cost, value, m))}
+                  {MONTH_NAMES.map((m, i) => cell(cost, i + 1, m))}
                   <td className="mono tabular-nums" style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", fontStyle: "italic", borderRight: "1px solid var(--line)", background: "var(--bronze-soft)" }}>
-                    {fmt(value * 12)}
+                    {fmt(rowTotal)}
                   </td>
                 </tr>
               );

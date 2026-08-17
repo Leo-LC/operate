@@ -14,12 +14,17 @@ export async function GET(request: Request) {
   const [{ data: locations, error: locationsError }, { data, error }, { data: employees, error: employeesError }] = await Promise.all([
     supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     query,
-    supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true).is("deleted_at", null),
+    supabase.from("employees").select("id, first_name, last_name, position, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true).is("deleted_at", null),
   ]);
   if (error ?? locationsError ?? employeesError) return Response.json({ error: (error ?? locationsError ?? employeesError)?.message }, { status: 500 });
   const salaries: Record<string, number> = {};
+  const employeeList = locationId ? [] as Array<{ id: string; name: string; position: string | null; base_salary_monthly: number }> : null;
   for (const employee of employees ?? []) {
     const assignments = (employee.employee_locations as { location_id: string; base_salary_monthly: number | null }[] | null) ?? [];
+    const locationSalary = (locId: string) => {
+      const assignment = assignments.find((a) => a.location_id === locId);
+      return assignment ? Number(assignment.base_salary_monthly ?? employee.base_salary_monthly ?? 0) : Number(employee.base_salary_monthly ?? 0);
+    };
     if (assignments.length > 0) {
       for (const assignment of assignments) {
         salaries[assignment.location_id] = (salaries[assignment.location_id] ?? 0) + Number(assignment.base_salary_monthly ?? employee.base_salary_monthly ?? 0);
@@ -27,8 +32,20 @@ export async function GET(request: Request) {
     } else if (employee.location_id) {
       salaries[employee.location_id] = (salaries[employee.location_id] ?? 0) + Number(employee.base_salary_monthly ?? 0);
     }
+    if (employeeList !== null && locationId) {
+      const isAssignedHere = assignments.some((a) => a.location_id === locationId) || employee.location_id === locationId;
+      if (isAssignedHere) {
+        employeeList.push({
+          id: employee.id,
+          name: [employee.first_name, employee.last_name].filter(Boolean).join(" ").trim() || "Unnamed employee",
+          position: employee.position ?? null,
+          base_salary_monthly: locationSalary(locationId),
+        });
+      }
+    }
   }
-  return Response.json({ locations: locations ?? [], costs: data ?? [], salaries, canManage: auth.permissions.global_role === "owner" });
+  employeeList?.sort((a, b) => a.name.localeCompare(b.name));
+  return Response.json({ locations: locations ?? [], costs: data ?? [], salaries, employees: employeeList ?? [], canManage: auth.permissions.global_role === "owner" });
 }
 
 export async function POST(request: Request) {

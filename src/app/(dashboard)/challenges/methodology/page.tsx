@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 
 import { CHALLENGE_LABELS } from "@/modules/challenges/labels";
-import { SalesTargetSettings } from "@/modules/challenges/components/SalesTargetSettings";
 
 export const metadata = { title: "Methodology — Challenges" };
 
@@ -90,9 +89,7 @@ export default async function MethodologyPage() {
               Phangan: 700,000 ฿
             </span>
           </Field>
-          <Field label="Edit">
-            <SalesTargetSettings />
-          </Field>
+          <Field label="Edit">Owner only — use the pencil button next to the target on the Challenges Overview page.</Field>
           <Field label="Effect">
             Snacks, Spend per visit, Running costs, and both Review metrics are only awarded if the shop clears
             its sales target. Product sales % is always active regardless.

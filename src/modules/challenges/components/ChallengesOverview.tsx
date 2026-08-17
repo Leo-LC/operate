@@ -1,11 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CloudDownloadIcon, Lock, PrinterIcon } from "lucide-react";
+import { CloudDownloadIcon, Lock, PencilIcon, PrinterIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Drawer } from "@/components/ui/drawer";
 import { MonthSelector } from "./MonthSelector";
 import type { AdminLocation } from "@/modules/admin/types";
 import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
+import { SalesTargetSettings } from "./SalesTargetSettings";
 import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
 import {
@@ -411,11 +413,15 @@ function MetricRow({
 function RevenueGateBanner({
   loc,
   loading,
+  isOwner,
   viewMode = "internal",
+  onEditSalesTarget,
 }: {
   loc: LocationOverview;
   loading: boolean;
+  isOwner?: boolean;
   viewMode?: ViewMode;
+  onEditSalesTarget?: () => void;
 }) {
   const { amount, threshold, unlocked, ratio } = loc.revenue;
   const isTeam = viewMode === "team";
@@ -478,8 +484,18 @@ function RevenueGateBanner({
           {gateLabel}
         </span>
         <div className="flex flex-col items-end shrink-0">
-          <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${valueStyle}`}>
-            {amountLabel}
+          <span className={`flex items-center gap-1.5 font-mono text-xs tabular-nums whitespace-nowrap ${valueStyle}`}>
+            <span>{amountLabel}</span>
+            {isOwner && !isTeam && onEditSalesTarget && (
+              <button
+                type="button"
+                onClick={onEditSalesTarget}
+                title="Edit sales target"
+                className="rounded p-0.5 text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
+              >
+                <PencilIcon className="size-3" aria-hidden />
+              </button>
+            )}
           </span>
           {hintLabel && (
             <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{hintLabel}</span>
@@ -543,6 +559,7 @@ function LocationCard({
   viewMode,
   onEntryUpdated,
   onSnacksUpdated,
+  onEditSalesTarget,
 }: {
   loc: LocationOverview;
   month: string;
@@ -551,6 +568,7 @@ function LocationCard({
   viewMode: ViewMode;
   onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
   onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
+  onEditSalesTarget?: () => void;
 }) {
   const isTeam = viewMode === "team";
   const totalBonus = loc.totalBonus;
@@ -594,7 +612,7 @@ function LocationCard({
       </div>
 
       {/* Revenue gate — not a challenge metric */}
-      <RevenueGateBanner loc={loc} loading={loading} viewMode={viewMode} />
+      <RevenueGateBanner loc={loc} loading={loading} isOwner={isOwner} viewMode={viewMode} onEditSalesTarget={onEditSalesTarget} />
 
       {/* Metric column headers */}
       <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
@@ -746,6 +764,7 @@ export function ChallengesOverview({
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
   const [sheetImportOpen, setSheetImportOpen] = useState(false);
+  const [salesTargetOpen, setSalesTargetOpen] = useState(false);
 
   useEffect(() => {
     setViewMode(readStoredViewMode(!!isOwner));
@@ -952,6 +971,7 @@ export function ChallengesOverview({
               viewMode={viewMode}
               onEntryUpdated={(id, p, val) => handleEntryUpdated(id, p, val)}
               onSnacksUpdated={(id, p, val) => handleSnacksUpdated(id, p, val)}
+              onEditSalesTarget={isOwner ? () => setSalesTargetOpen(true) : undefined}
             />
           ))}
         </div>
@@ -964,6 +984,22 @@ export function ChallengesOverview({
           onClose={() => setSheetImportOpen(false)}
           onImported={() => void fetchData(month, { silent: true })}
         />
+      )}
+
+      {salesTargetOpen && (
+        <Drawer
+          open={salesTargetOpen}
+          onClose={() => setSalesTargetOpen(false)}
+          title="Sales targets"
+          description="Monthly net revenue each shop must reach to unlock its gated challenges. Leave empty to use the default."
+          footer={
+            <div className="flex justify-end">
+              <Button size="sm" variant="secondary" onClick={() => setSalesTargetOpen(false)}>Done</Button>
+            </div>
+          }
+        >
+          <SalesTargetSettings />
+        </Drawer>
       )}
     </div>
   );
