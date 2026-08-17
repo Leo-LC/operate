@@ -37,3 +37,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .superpowers/
+
+# claude worktrees
+.claude/worktrees/
+
+# supabase cli temp files
+supabase/.temp/
+
+# personal reference notes (keep local, never commit)
+features_guides/
