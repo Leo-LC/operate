@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { loadRevenueThresholdOverrides } from "@/modules/challenges/settings";
 import {
   MERCH_TIERS,
   SNACKS_THRESHOLD,
@@ -85,7 +86,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
 
   const supabase = getSupabaseServerClient();
 
-  const [accountingResult, entriesResult, ratingsResult, reviewsResult, locationsResult] = await Promise.all([
+  const [accountingResult, entriesResult, ratingsResult, reviewsResult, locationsResult, thresholdOverrides] = await Promise.all([
     supabase
       .from("daily_entries")
       .select(
@@ -114,6 +115,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
       .select("id, name, external_id")
       .eq("organization_id", DEFAULT_ORG_ID)
       .not("external_id", "is", null),
+    loadRevenueThresholdOverrides(),
   ]);
 
   if (accountingResult.error) throw new Error(accountingResult.error.message);
@@ -259,7 +261,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
       else if (merchRatio >= MERCH_TIERS[2].threshold) merchTier = 1;
     }
 
-    const revenueThreshold = REVENUE_THRESHOLDS[normalizeLocationKey(title)] ?? null;
+    const revenueThreshold = thresholdOverrides.get(normalizeLocationKey(title)) ?? REVENUE_THRESHOLDS[normalizeLocationKey(title)] ?? null;
     const revenueUnlocked =
       revenueThreshold === null ? true : salesNetIncVat !== null && salesNetIncVat >= revenueThreshold;
     const revenueLocked = revenueThreshold !== null && !revenueUnlocked;

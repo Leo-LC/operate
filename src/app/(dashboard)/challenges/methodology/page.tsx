@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 
 import { CHALLENGE_LABELS } from "@/modules/challenges/labels";
+import { SalesTargetSettings } from "@/modules/challenges/components/SalesTargetSettings";
 
 export const metadata = { title: "Methodology — Challenges" };
 
@@ -88,6 +89,9 @@ export default async function MethodologyPage() {
               Pattaya / Chiang Mai: 900,000 ฿ &nbsp;|&nbsp;
               Phangan: 700,000 ฿
             </span>
+          </Field>
+          <Field label="Edit">
+            <SalesTargetSettings />
           </Field>
           <Field label="Effect">
             Snacks, Spend per visit, Running costs, and both Review metrics are only awarded if the shop clears
