@@ -78,9 +78,9 @@ export function hrTotal(e: DailyEntry): number {
   return e.hr_salary_cash + e.hr_salary_bank + e.hr_challenge_cash + e.hr_service_charge_cash + e.hr_accompte_cash;
 }
 
-/** Sales amounts are VAT-inclusive, so delta = payments − salesNetTotal */
+/** Sales amounts are VAT-inclusive, so delta = sales − payments (matches the sheet's payment_delta) */
 export function paymentDelta(e: DailyEntry): number {
-  return e.payment_cash + e.payment_scan + e.payment_credit_card - salesNetTotal(e);
+  return salesNetTotal(e) - (e.payment_cash + e.payment_scan + e.payment_credit_card);
 }
 
 /** cash received - cash expenses = cash remaining at end of day */
@@ -88,9 +88,17 @@ export function cashEndDayCalc(e: DailyEntry): number {
   return e.payment_cash - expCashTotal(e);
 }
 
-/** prev day's safe + today's end-of-day cash - cash sent to boss */
-export function cashSafeCalc(cashEndDay: number, prevCashSafe: number, cashToBoss: number): number {
-  return prevCashSafe + cashEndDay - cashToBoss;
+/** HR paid out of cash — bank salaries never touch the cash safe (sheet column Z is excluded) */
+export function hrCashPaid(e: DailyEntry): number {
+  return hrTotal(e) - e.hr_salary_bank;
+}
+
+/**
+ * prev day's safe + today's end-of-day cash - cash sent to boss - cash HR paid.
+ * Matches the sheet's cash_safe formula: prev + cash_end_day - cash_to_boss - (hr_total - hr_salary_bank)
+ */
+export function cashSafeCalc(cashEndDay: number, prevCashSafe: number, cashToBoss: number, hrCash: number): number {
+  return prevCashSafe + cashEndDay - cashToBoss - hrCash;
 }
 
 /**

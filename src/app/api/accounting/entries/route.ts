@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const monthStart = `${month}-01`;
   const monthEnd   = `${nextMonth}-01`;
 
-  const [{ data: entries }, { data: fixedCost }] = await Promise.all([
+  const [{ data: entries }, { data: fixedCost }, { data: prevEntry }] = await Promise.all([
     supabase
       .from("daily_entries")
       .select("*")
@@ -42,9 +42,19 @@ export async function GET(request: Request) {
       .eq("location_id", locationId)
       .eq("month", month)
       .maybeSingle(),
+    // Last day of the previous month — used to carry the cash-safe chain across months
+    supabase
+      .from("daily_entries")
+      .select("cash_safe")
+      .eq("location_id", locationId)
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .lt("entry_date", monthStart)
+      .order("entry_date", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
-  return Response.json({ entries: entries ?? [], fixed_cost: fixedCost ?? null });
+  return Response.json({ entries: entries ?? [], fixed_cost: fixedCost ?? null, prev_month_safe: prevEntry?.cash_safe ?? null });
 }
 
 export async function POST(request: Request) {

@@ -287,7 +287,7 @@ export function SheetImportModal({ location, onClose, onImported, defaultTab = "
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <p style={{ fontSize: 13, color: "var(--fg-3)", lineHeight: 1.5 }}>
-                    Pulls data from the <strong>DAILY_ENTRIES</strong> tab. Only rows with sales data not already in the database will be imported.
+                    Pulls data from the <strong>DAILY_ENTRIES</strong> tab. Every row with data is imported — existing entries for those dates are overwritten with the latest sheet values (including zero-sales days).
                   </p>
 
                   {!preview ? (

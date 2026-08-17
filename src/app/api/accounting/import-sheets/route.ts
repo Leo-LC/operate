@@ -3,8 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-import { parseDate, parseNumeric, SALES_COLUMNS, importLocationFromSheet } from "./lib";
-import { REQUIRED_IMPORT_HEADERS } from "@/app/api/accounting/import/columns";
+import { parseDate, parseNumeric, importLocationFromSheet } from "./lib";
+import { REQUIRED_IMPORT_HEADERS, IMPORT_COLUMNS } from "@/app/api/accounting/import/columns";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -78,20 +78,18 @@ export async function POST(request: Request) {
       if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
       const dateVal = parseDate(rawDate);
       if (!dateVal) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
-      if (!SALES_COLUMNS.some((col) => parseNumeric(get(col)) !== 0)) { skippedEmpty++; continue; }
+      const meaningful = IMPORT_COLUMNS.some((col) => col.db !== "date" && parseNumeric(get(col.csv)) !== 0);
+      if (!meaningful) { skippedEmpty++; continue; }
       validDates.push(dateVal);
     }
 
     if (validDates.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
 
-    const { data: existing } = await supabase.from("daily_entries").select("entry_date").eq("location_id", locationId).in("entry_date", validDates).or("sales_drinks_net.gt.0,sales_ticket_net.gt.0,sales_snack_net.gt.0,sales_goodies_net.gt.0,sales_card_surcharge.gt.0");
-    const filledDates = new Set((existing ?? []).map((e) => e.entry_date as string));
-    const toImport = validDates.filter((d) => !filledDates.has(d)).sort();
-    const skippedExisting = validDates.length - toImport.length;
+    const toImport = validDates.sort();
 
-    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
 
-    return Response.json({ preview: true, would_insert: toImport.length, date_from: toImport[0], date_to: toImport[toImport.length - 1], skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors });
+    return Response.json({ preview: true, would_insert: toImport.length, date_from: toImport[0], date_to: toImport[toImport.length - 1], skipped_existing: 0, skipped_empty: skippedEmpty, errors });
   }
 
   // Real import — delegate to shared lib

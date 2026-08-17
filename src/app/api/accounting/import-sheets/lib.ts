@@ -41,11 +41,6 @@ export function parseDate(raw: string): string | null {
   return null;
 }
 
-export const SALES_COLUMNS = [
-  "sales_drinks_net", "sales_ticket_net", "sales_snack_net",
-  "sales_goodies_net", "sales_card_surcharge",
-];
-
 export type ImportLocationResult = {
   location_id: string;
   location_name: string;
@@ -117,8 +112,6 @@ export async function importLocationFromSheet(
     if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
     const dateVal = parseDate(rawDate);
     if (!dateVal) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
-    const hasSales = SALES_COLUMNS.some((col) => parseNumeric(get(col)) !== 0);
-    if (!hasSales) { skippedEmpty++; continue; }
 
     const row: Record<string, unknown> = {
       organization_id: DEFAULT_ORG_ID,
@@ -134,22 +127,17 @@ export async function importLocationFromSheet(
     }
     const notesIdx = idx("notes");
     row["notes"] = notesIdx >= 0 ? (cells[notesIdx] ?? "").toString().trim() || null : null;
+    const meaningful = IMPORT_COLUMNS.some((col) => col.db !== "date" && Number(row[col.db] ?? 0) !== 0);
+    if (!meaningful) { skippedEmpty++; continue; }
     parsed.push({ dateVal, row });
   }
 
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null };
 
-  const allDates = parsed.map((p) => p.dateVal);
-  const { data: existing } = await supabase
-    .from("daily_entries")
-    .select("entry_date")
-    .eq("location_id", locationId)
-    .in("entry_date", allDates)
-    .or("sales_drinks_net.gt.0,sales_ticket_net.gt.0,sales_snack_net.gt.0,sales_goodies_net.gt.0,sales_card_surcharge.gt.0");
-
-  const filledDates = new Set((existing ?? []).map((e) => e.entry_date as string));
-  const toUpsert = parsed.filter((p) => !filledDates.has(p.dateVal));
-  const skippedExisting = parsed.length - toUpsert.length;
+  // The sheet is the source of truth — upsert every meaningful row so existing
+  // entries are overwritten with the latest sheet values (incl. zero-sales days).
+  const toUpsert = parsed;
+  const skippedExisting = 0;
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null };
 

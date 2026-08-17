@@ -58,6 +58,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
   );
   const [view, setView]             = useState<MainView>("focus");
   const [entries, setEntries]       = useState<DailyEntry[]>([]);
+  const [prevMonthSafe, setPrevMonthSafe] = useState<number | null>(null);
   const [importing, setImporting]       = useState(false);
   const [importConfirm, setImportConfirm] = useState<ImportConfirm | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -74,8 +75,9 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
     if (!locationId) return;
     const res = await fetch(`/api/accounting/entries?location_id=${locationId}&month=${monthStr}`);
     if (!res.ok) return;
-    const json = await res.json() as { entries: DailyEntry[] };
+    const json = await res.json() as { entries: DailyEntry[]; prev_month_safe?: number | null };
     setEntries(json.entries);
+    setPrevMonthSafe(json.prev_month_safe ?? null);
   }, [locationId, monthStr]);
 
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
@@ -422,6 +424,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           locationId={locationId}
           locations={locations}
           canManage={canManage}
+          prevMonthCashSafe={prevMonthSafe ?? undefined}
           onEntryUpdate={handleEntryUpdate}
           onEntryDelete={handleEntryDelete}
         />

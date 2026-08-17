@@ -15,6 +15,7 @@ import {
   hrTotal,
   cashEndDayCalc,
   cashSafeCalc,
+  hrCashPaid,
   type DailyEntry,
   type EntryFormState,
 } from "@/modules/accounting/types";
@@ -75,11 +76,12 @@ interface Props {
   locationId: string;
   locations: AdminLocation[];
   canManage?: boolean;
+  prevMonthCashSafe?: number;
   onEntryUpdate: (entry: DailyEntry) => void;
   onEntryDelete: (id: string) => void;
 }
 
-export function AccountingFocusDay({ year, month, entries, locationId, locations, canManage, onEntryUpdate, onEntryDelete }: Props) {
+export function AccountingFocusDay({ year, month, entries, locationId, locations, canManage, prevMonthCashSafe, onEntryUpdate, onEntryDelete }: Props) {
   const days = daysInMonth(year, month);
   const today = new Date();
   const defaultDay = year === today.getFullYear() && month === today.getMonth() + 1
@@ -104,10 +106,11 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
     return m;
   }, [entries]);
 
-  // Compute cash safe values for all days so the modal can show accurate calcs
+  // Compute cash safe values for all days so the modal can show accurate calcs.
+  // The chain carries the previous month's closing safe (sheets keep a continuous balance).
   const computedValues = useMemo(() => {
     const map = new Map<string, { cashEndDay: number; cashSafe: number }>();
-    let prevSafe = 0;
+    let prevSafe = prevMonthCashSafe ?? 0;
     for (let day = 1; day <= days; day++) {
       const date = isoDate(year, month, day);
       const entry = entryMap.get(date);
@@ -115,7 +118,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
         const cashEnd = cashEndDayCalc(entry);
         const safe = entry.cash_safe_is_override
           ? entry.cash_safe
-          : cashSafeCalc(cashEnd, prevSafe, entry.cash_to_boss);
+          : cashSafeCalc(cashEnd, prevSafe, entry.cash_to_boss, hrCashPaid(entry));
         map.set(date, { cashEndDay: cashEnd, cashSafe: safe });
         prevSafe = safe;
       } else {
@@ -123,7 +126,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
       }
     }
     return map;
-  }, [days, year, month, entryMap]);
+  }, [days, year, month, entryMap, prevMonthCashSafe]);
 
   const entry = entryMap.get(isoDate(year, month, selectedDay));
 
@@ -168,8 +171,8 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
       const fakeEntry = { ...fieldVals } as unknown as DailyEntry;
       const cashEnd = cashEndDayCalc(fakeEntry);
       const prevDateKey = selectedDay > 1 ? isoDate(year, month, selectedDay - 1) : null;
-      const prevSafe = prevDateKey ? (computedValues.get(prevDateKey)?.cashSafe ?? 0) : 0;
-      const safeCash = cashSafeCalc(cashEnd, prevSafe, fakeEntry.cash_to_boss);
+      const prevSafe = prevDateKey ? (computedValues.get(prevDateKey)?.cashSafe ?? 0) : (prevMonthCashSafe ?? 0);
+      const safeCash = cashSafeCalc(cashEnd, prevSafe, fakeEntry.cash_to_boss, hrCashPaid(fakeEntry));
 
       const res = await fetch("/api/accounting/entries", {
         method: "POST",

@@ -11,6 +11,7 @@ import {
   hrTotal,
   cashEndDayCalc,
   cashSafeCalc,
+  hrCashPaid,
   type DailyEntry,
   type EntryFormState,
 } from "@/modules/accounting/types";
@@ -180,12 +181,13 @@ interface Props {
   locations: AdminLocation[];
   entries: DailyEntry[];
   loading: boolean;
+  prevMonthCashSafe?: number;
   onEntryUpdate: (entry: DailyEntry) => void;
   onEntryDelete: (id: string) => void;
 }
 
 export function DailyEntriesTable({
-  year, month, locationId, locations, entries, loading, onEntryUpdate, onEntryDelete,
+  year, month, locationId, locations, entries, loading, prevMonthCashSafe, onEntryUpdate, onEntryDelete,
 }: Props) {
   const days = daysInMonth(year, month);
   const monthName = new Date(year, month - 1, 1).toLocaleString("en", { month: "long", year: "numeric" });
@@ -203,7 +205,7 @@ export function DailyEntriesTable({
 
   const computedValues = useMemo(() => {
     const map = new Map<string, { cashEndDay: number; cashSafe: number }>();
-    let prevSafe = 0;
+    let prevSafe = prevMonthCashSafe ?? 0;
     for (let day = 1; day <= days; day++) {
       const date = isoDate(year, month, day);
       const entry = entryMap.get(date);
@@ -211,7 +213,7 @@ export function DailyEntriesTable({
         const cashEnd = cashEndDayCalc(entry);
         const safe = entry.cash_safe_is_override
           ? entry.cash_safe
-          : cashSafeCalc(cashEnd, prevSafe, entry.cash_to_boss);
+          : cashSafeCalc(cashEnd, prevSafe, entry.cash_to_boss, hrCashPaid(entry));
         map.set(date, { cashEndDay: cashEnd, cashSafe: safe });
         prevSafe = safe;
       } else {
@@ -219,7 +221,7 @@ export function DailyEntriesTable({
       }
     }
     return map;
-  }, [days, year, month, entryMap]);
+  }, [days, year, month, entryMap, prevMonthCashSafe]);
 
   // Build smart rows
   const allRows = useMemo<SmartRow[]>(
@@ -260,8 +262,8 @@ export function DailyEntriesTable({
       const fakeEntry = { ...fieldVals } as unknown as DailyEntry;
       const cashEnd = cashEndDayCalc(fakeEntry);
       const prevDateKey = openDay > 1 ? isoDate(year, month, openDay - 1) : null;
-      const prevSafe = prevDateKey ? (computedValues.get(prevDateKey)?.cashSafe ?? 0) : 0;
-      const safeCash = cashSafeCalc(cashEnd, prevSafe, fakeEntry.cash_to_boss);
+      const prevSafe = prevDateKey ? (computedValues.get(prevDateKey)?.cashSafe ?? 0) : (prevMonthCashSafe ?? 0);
+      const safeCash = cashSafeCalc(cashEnd, prevSafe, fakeEntry.cash_to_boss, hrCashPaid(fakeEntry));
 
       const res = await fetch("/api/accounting/entries", {
         method: "POST",
