@@ -42,10 +42,11 @@ export default async function AnimalsPage() {
     locationsQuery = locationsQuery.in("id", allowedIds);
   }
 
-  const [{ data: animalsData }, { data: locationsData }] = await Promise.all([animalsQuery, locationsQuery]);
+  const [{ data: animalsData }, { data: locationsData }] =
+    await Promise.all([animalsQuery, locationsQuery]);
 
-  type Row = { id: string; organization_id: string; location_id: string | null; name: string; species: string; sex: string | null; status: string; estimated_birth_date: string | null; arrival_date: string | null; microchip_id: string | null; notes: string | null; last_vaccination_date: string | null; next_vaccination_date: string | null; vaccination_passport: boolean; created_at: string; updated_at: string; locations: { name: string } | null };
-  const animals: Animal[] = (animalsData as unknown as Row[] ?? []).map((a) => ({
+  type AnimalRow = { id: string; organization_id: string; location_id: string | null; name: string; species: string; sex: string | null; status: string; estimated_birth_date: string | null; arrival_date: string | null; microchip_id: string | null; notes: string | null; last_vaccination_date: string | null; next_vaccination_date: string | null; vaccination_passport: boolean; created_at: string; updated_at: string; locations: { name: string } | null };
+  const animals: Animal[] = (animalsData as unknown as AnimalRow[] ?? []).map((a) => ({
     ...a,
     sex: a.sex as Animal["sex"],
     status: a.status as Animal["status"],
