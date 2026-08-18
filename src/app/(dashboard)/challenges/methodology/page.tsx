@@ -78,9 +78,9 @@ export default async function MethodologyPage() {
           <Field label="DB table"><Code>daily_entries</Code></Field>
           <Field label="Formula">
             <Code>
-              sales_drinks_net + sales_ticket_net + sales_snack_net + sales_goodies_net + sales_card_surcharge + vat_7
+              sales_drinks_net + sales_ticket_net + sales_snack_net + sales_goodies_net + sales_card_surcharge
             </Code>
-            {" "}<span className="text-[var(--fg-3)]">summed over all days in the month for the shop</span>
+            {" "}<span className="text-[var(--fg-3)]">summed over all days in the month for the shop (the sales_*_net fields are already VAT-inclusive — do not add vat_7)</span>
           </Field>
           <Field label="Thresholds">
             <span className="font-mono text-xs text-[var(--fg-2)]">
