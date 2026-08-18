@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     last_vaccination_date?: string | null;
     next_vaccination_date?: string | null;
     vaccination_passport?: boolean;
+    vaccination_dates?: string[];
   };
   try {
     body = await request.json();
@@ -68,6 +69,14 @@ export async function POST(request: Request) {
   }
 
   if (!body.name?.trim()) return Response.json({ error: "name is required" }, { status: 400 });
+
+  const vaccinationDates = (body.vaccination_dates ?? [])
+    .map((d) => d?.trim())
+    .filter(Boolean)
+    .sort();
+  const lastVaccination = vaccinationDates.length
+    ? vaccinationDates[vaccinationDates.length - 1]
+    : null;
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
@@ -83,7 +92,7 @@ export async function POST(request: Request) {
       arrival_date: body.arrival_date ?? null,
       microchip_id: body.microchip_id ?? null,
       notes: body.notes ?? null,
-      last_vaccination_date: body.last_vaccination_date ?? null,
+      last_vaccination_date: lastVaccination,
       next_vaccination_date: body.next_vaccination_date ?? null,
       vaccination_passport: body.vaccination_passport ?? false,
       created_by: session.user.userId ?? null,
@@ -92,6 +101,21 @@ export async function POST(request: Request) {
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  if (vaccinationDates.length > 0) {
+    const { error: eventError } = await supabase
+      .from("animal_events")
+      .insert(
+        vaccinationDates.map((d) => ({
+          animal_id: data.id,
+          event_type: "vaccine",
+          event_date: d,
+          title: "Vaccine",
+          created_by: session.user.userId ?? null,
+        })),
+      );
+    if (eventError) return Response.json({ error: eventError.message }, { status: 500 });
+  }
 
   await writeAuditLog({
     userId: session.user.userId ?? null,

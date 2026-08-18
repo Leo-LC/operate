@@ -32,7 +32,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   type AnimalRow = { locations: { name: string } | null } & Record<string, unknown>;
   const mapped = { ...(animal as unknown as AnimalRow), location_name: (animal as unknown as AnimalRow).locations?.name ?? null, locations: undefined };
 
-  return Response.json({ animal: mapped, events: events ?? [] });
+  const vaccinationDates = (events ?? [])
+    .filter((e) => e.event_type === "vaccine")
+    .map((e) => e.event_date)
+    .filter(Boolean)
+    .sort();
+
+  return Response.json({ animal: mapped, vaccination_dates: vaccinationDates });
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -54,6 +60,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     last_vaccination_date?: string | null;
     next_vaccination_date?: string | null;
     vaccination_passport?: boolean;
+    vaccination_dates?: string[];
   };
   try {
     body = await request.json();
@@ -67,6 +74,19 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     if (key in body) updates[key] = body[key];
   }
 
+  let replaceVaccinationDates: string[] | null = null;
+  if (Array.isArray(body.vaccination_dates)) {
+    replaceVaccinationDates = body.vaccination_dates
+      .map((d) => d?.trim())
+      .filter(Boolean)
+      .sort();
+    const lastVaccination = replaceVaccinationDates.length
+      ? replaceVaccinationDates[replaceVaccinationDates.length - 1]
+      : null;
+    updates.last_vaccination_date = lastVaccination;
+    updates.next_vaccination_date = body.next_vaccination_date ?? null;
+  }
+
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("animals")
@@ -77,6 +97,30 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     .single();
 
   if (error || !data) return Response.json({ error: "Animal not found or update failed" }, { status: 404 });
+
+  if (replaceVaccinationDates !== null) {
+    const { error: deleteError } = await supabase
+      .from("animal_events")
+      .delete()
+      .eq("animal_id", params.id)
+      .eq("event_type", "vaccine");
+    if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 });
+
+    if (replaceVaccinationDates.length > 0) {
+      const { error: insertError } = await supabase
+        .from("animal_events")
+        .insert(
+          replaceVaccinationDates.map((d) => ({
+            animal_id: params.id,
+            event_type: "vaccine",
+            event_date: d,
+            title: "Vaccine",
+            created_by: session.user.userId ?? null,
+          })),
+        );
+      if (insertError) return Response.json({ error: insertError.message }, { status: 500 });
+    }
+  }
 
   await writeAuditLog({
     userId: session.user.userId ?? null,

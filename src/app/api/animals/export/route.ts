@@ -23,7 +23,7 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("animals")
-    .select("id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, notes, created_at, locations ( name )")
+    .select("id, name, species, sex, status, estimated_birth_date, arrival_date, microchip_id, created_at, locations ( name )")
     .is("deleted_at", null)
     .eq("organization_id", DEFAULT_ORG_ID)
     .order("name");
@@ -33,15 +33,15 @@ export async function GET() {
   type Row = {
     id: string; name: string; species: string; sex: string | null; status: string;
     estimated_birth_date: string | null; arrival_date: string | null; microchip_id: string | null;
-    notes: string | null; created_at: string; locations: { name: string } | null;
+    created_at: string; locations: { name: string } | null;
   };
 
   const rows = data as unknown as Row[];
-  const header = ["ID", "Name", "Species", "Sex", "Status", "Location", "Birth Date", "Arrival Date", "Microchip", "Notes", "Created"].join(",");
+  const header = ["ID", "Name", "Species", "Sex", "Status", "Location", "Birth Date", "Arrival Date", "Microchip", "Created"].join(",");
   const lines = rows.map((r) => [
     esc(r.id), esc(r.name), esc(r.species), esc(r.sex), esc(r.status),
     esc(r.locations?.name), esc(r.estimated_birth_date), esc(r.arrival_date),
-    esc(r.microchip_id), esc(r.notes), esc(r.created_at),
+    esc(r.microchip_id), esc(r.created_at),
   ].join(","));
 
   const csv = [header, ...lines].join("\n");

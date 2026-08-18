@@ -10,16 +10,6 @@ export type AnimalStatus =
 
 export type AnimalSex = "male" | "female" | "unknown";
 
-export type EventType =
-  | "health_check"
-  | "vet_visit"
-  | "vaccine"
-  | "transfer"
-  | "feeding_note"
-  | "incident"
-  | "note"
-  | "other";
-
 export interface Animal {
   id: string;
   organization_id: string;
@@ -39,16 +29,6 @@ export interface Animal {
   created_at: string;
   updated_at: string;
   event_count?: number;
-}
-
-export interface AnimalEvent {
-  id: string;
-  animal_id: string;
-  event_type: EventType;
-  event_date: string;
-  title: string;
-  notes: string | null;
-  created_at: string;
 }
 
 export const STATUS_LABELS: Record<AnimalStatus, string> = {
@@ -83,25 +63,3 @@ export const STATUS_CLASSES: Record<AnimalStatus, string> = {
 
 export const ANIMAL_SPECIES = ["Capybara", "Meerkat"] as const;
 export type AnimalSpecies = typeof ANIMAL_SPECIES[number];
-
-export const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  health_check: "Health check",
-  vet_visit: "Vet visit",
-  vaccine: "Vaccine",
-  transfer: "Transfer",
-  feeding_note: "Feeding note",
-  incident: "Incident",
-  note: "Note",
-  other: "Other",
-};
-
-export const EVENT_TYPE_CLASSES: Record<EventType, string> = {
-  health_check: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  vet_visit: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  vaccine: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-  transfer: "bg-muted text-muted-foreground",
-  feeding_note: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  incident: "bg-[color-mix(in_oklch,var(--destructive)_16%,transparent)] text-[var(--destructive)]",
-  note: "bg-muted text-muted-foreground",
-  other: "bg-muted text-muted-foreground",
-};

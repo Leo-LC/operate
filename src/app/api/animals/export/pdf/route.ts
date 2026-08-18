@@ -14,7 +14,7 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("animals")
-    .select("name, species, sex, next_vaccination_date, notes, locations ( name )")
+    .select("name, species, sex, next_vaccination_date, locations ( name )")
     .is("deleted_at", null)
     .eq("organization_id", DEFAULT_ORG_ID)
     .order("name");
@@ -23,7 +23,7 @@ export async function GET() {
 
   type Row = {
     name: string; species: string; sex: string | null;
-    next_vaccination_date: string | null; notes: string | null;
+    next_vaccination_date: string | null;
     locations: { name: string } | null;
   };
 
@@ -37,7 +37,6 @@ export async function GET() {
       <td class="cap">${r.sex ?? "Unknown"}</td>
       <td>${r.locations?.name ?? "—"}</td>
       <td>${r.next_vaccination_date ?? "—"}</td>
-      <td class="notes">${r.notes ? r.notes.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "—"}</td>
     </tr>`).join("");
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -51,13 +50,12 @@ export async function GET() {
   th,td{border:1px solid #ddd;padding:5px 7px;text-align:left;vertical-align:top}
   th{background:#f5f5f5;font-weight:600;font-size:10px;white-space:nowrap}
   .cap{text-transform:capitalize}
-  .notes{max-width:200px;word-break:break-word;color:#555}
   @media print{@page{margin:12mm}body{padding:0}}
 </style></head><body>
 <h2>Animals</h2>
 <p class="sub">Exported ${date} · ${rows.length} animal${rows.length !== 1 ? "s" : ""}</p>
 <table>
-  <thead><tr><th>Name</th><th>Species</th><th>Sex</th><th>Location</th><th>Next vaccine</th><th>Notes</th></tr></thead>
+  <thead><tr><th>Name</th><th>Species</th><th>Sex</th><th>Location</th><th>Next vaccine</th></tr></thead>
   <tbody>${tableRows}</tbody>
 </table>
 <script>window.onload=function(){window.print();}<\/script>
