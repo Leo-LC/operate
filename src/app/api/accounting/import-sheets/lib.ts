@@ -65,13 +65,15 @@ export async function importLocationFromSheet(
 ): Promise<ImportLocationResult> {
   const { data: loc, error: locErr } = await supabase
     .from("locations")
-    .select("id, name, google_sheet_id")
+    .select("id, name, google_sheet_id, last_imported_at")
     .eq("id", locationId)
     .eq("organization_id", DEFAULT_ORG_ID)
     .single();
 
   if (locErr || !loc) return { location_id: locationId, location_name: "", inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: "Location not found" };
   if (!loc.google_sheet_id) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: "No Sheet ID configured" };
+
+  const lastImportedAt = loc.last_imported_at;
 
   const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(loc.google_sheet_id as string)}/values/DAILY_ENTRIES`;
   const sheetRes = await fetch(sheetUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -134,9 +136,15 @@ export async function importLocationFromSheet(
 
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null };
 
+  // Filter out rows already imported (keep only new or modified days)
+  let toUpsert = parsed;
+  if (lastImportedAt) {
+    const lastImportedDate = new Date(lastImportedAt).toISOString().split("T")[0];
+    toUpsert = parsed.filter((p) => p.dateVal > lastImportedDate);
+  }
+
   // The sheet is the source of truth — upsert every meaningful row so existing
   // entries are overwritten with the latest sheet values (incl. zero-sales days).
-  const toUpsert = parsed;
   const skippedExisting = 0;
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null };
@@ -161,6 +169,11 @@ export async function importLocationFromSheet(
     .insert({ organization_id: DEFAULT_ORG_ID, location_id: locationId, imported_by: userId, row_count: entryIds.length, entry_ids: entryIds })
     .select("id")
     .single();
+
+  await supabase
+    .from("locations")
+    .update({ last_imported_at: new Date().toISOString() })
+    .eq("id", locationId);
 
   await writeAuditLog({
     userId,
