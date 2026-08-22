@@ -137,7 +137,7 @@ export async function importLocationFromSheet(
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null };
 
   // Get all unique dates from parsed rows
-  const parsedDates = [...new Set(parsed.map((p) => p.dateVal))];
+  const parsedDates = Array.from(new Set(parsed.map((p) => p.dateVal)));
 
   // Fetch existing entries for these dates to compare values
   const { data: existingEntries } = await supabase
