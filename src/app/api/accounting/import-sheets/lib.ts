@@ -136,8 +136,13 @@ export async function importLocationFromSheet(
 
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null };
 
+  // Skip future dates
+  const today = new Date().toISOString().split("T")[0];
+  const pastOrToday = parsed.filter((p) => p.dateVal <= today);
+  const skippedFuture = parsed.length - pastOrToday.length;
+
   // Get all unique dates from parsed rows
-  const parsedDates = Array.from(new Set(parsed.map((p) => p.dateVal)));
+  const parsedDates = Array.from(new Set(pastOrToday.map((p) => p.dateVal)));
 
   // Fetch existing entries for these dates to compare values
   const dbColumns = IMPORT_COLUMNS.map((c) => c.db).join(", ");
@@ -158,7 +163,7 @@ export async function importLocationFromSheet(
   );
 
   // Filter: keep only new rows or rows where values differ from existing
-  let toUpsert = parsed.filter((p) => {
+  let toUpsert = pastOrToday.filter((p) => {
     const existing = existingMap.get(p.dateVal);
     if (!existing) return true; // new date
 
@@ -183,14 +188,14 @@ export async function importLocationFromSheet(
     toUpsert = toUpsert.filter((p) => p.dateVal > lastImportedDate);
   }
 
-  const skippedExisting = parsed.length - toUpsert.length;
+  const skippedExisting = pastOrToday.length - toUpsert.length;
 
-  if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null };
+  if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null };
 
   // Preview mode — return what would be imported without writing
   if (preview) {
     const dates = toUpsert.map((p) => p.dateVal).sort();
-    return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, would_insert: toUpsert.length, date_from: dates[0], date_to: dates[dates.length - 1] };
+    return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null, would_insert: toUpsert.length, date_from: dates[0], date_to: dates[dates.length - 1] };
   }
 
   const { data: inserted, error: insertErr } = await supabase
@@ -222,5 +227,5 @@ export async function importLocationFromSheet(
     payload: { location_id: locationId, location_name: loc.name, row_count: entryIds.length, batch_id: batch?.id ?? null },
   });
 
-  return { location_id: locationId, location_name: loc.name as string, inserted: entryIds.length, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: batch?.id ?? null };
+  return { location_id: locationId, location_name: loc.name as string, inserted: entryIds.length, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: batch?.id ?? null };
 }

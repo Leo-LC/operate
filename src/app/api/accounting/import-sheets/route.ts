@@ -98,8 +98,13 @@ export async function POST(request: Request) {
 
     if (parsed.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
 
-    // Fetch existing entries for comparison
-    const parsedDates = Array.from(new Set(parsed.map((p) => p.dateVal)));
+    // Skip future dates (don't import data for days that haven't happened yet)
+    const today = new Date().toISOString().split("T")[0];
+    const pastOrToday = parsed.filter((p) => p.dateVal <= today);
+    const skippedFuture = parsed.length - pastOrToday.length;
+
+    // Fetch existing entries for comparison (only past/today dates)
+    const parsedDates = Array.from(new Set(pastOrToday.map((p) => p.dateVal)));
     const { data: existingEntries } = await supabase
       .from("daily_entries")
       .select("entry_date, " + IMPORT_COLUMNS.map((c) => c.db).join(", ") + ", notes")
@@ -117,7 +122,7 @@ export async function POST(request: Request) {
     );
 
     // Filter: keep only new rows or rows where values differ
-    const toImport = parsed.filter((p) => {
+    const toImport = pastOrToday.filter((p) => {
       const existing = existingMap.get(p.dateVal);
       if (!existing) return true;
       for (const col of IMPORT_COLUMNS) {
@@ -132,12 +137,12 @@ export async function POST(request: Request) {
       return false;
     });
 
-    const skippedExisting = parsed.length - toImport.length;
+    const skippedExisting = pastOrToday.length - toImport.length;
 
-    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null, preview: false });
 
     const dates = toImport.map((p) => p.dateVal).sort();
-    return Response.json({ preview: true, would_insert: toImport.length, date_from: dates[0], date_to: dates[dates.length - 1], skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors });
+    return Response.json({ preview: true, would_insert: toImport.length, date_from: dates[0], date_to: dates[dates.length - 1], skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors });
   }
 
   // Real import — delegate to shared lib
