@@ -106,7 +106,12 @@ export async function POST(request: Request) {
       .eq("location_id", locationId)
       .in("entry_date", parsedDates);
 
-    const entries = (existingEntries ?? []) as unknown as { entry_date: string }[];
+    type ExistingEntry = {
+      entry_date: string;
+      notes: string | null;
+    } & Record<string, number | null>;
+
+    const entries = (existingEntries ?? []) as ExistingEntry[];
     const existingMap = new Map(
       entries.map((e) => [e.entry_date, e])
     );

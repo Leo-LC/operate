@@ -140,13 +140,19 @@ export async function importLocationFromSheet(
   const parsedDates = Array.from(new Set(parsed.map((p) => p.dateVal)));
 
   // Fetch existing entries for these dates to compare values
+  const dbColumns = IMPORT_COLUMNS.map((c) => c.db).join(", ");
   const { data: existingEntries } = await supabase
     .from("daily_entries")
-    .select("entry_date, " + IMPORT_COLUMNS.map((c) => c.db).join(", ") + ", notes")
+    .select("entry_date, " + dbColumns + ", notes")
     .eq("location_id", locationId)
     .in("entry_date", parsedDates);
 
-  const entries = (existingEntries ?? []) as unknown as { entry_date: string }[];
+  type ExistingEntry = {
+    entry_date: string;
+    notes: string | null;
+  } & Record<string, number | null>;
+
+  const entries = (existingEntries ?? []) as ExistingEntry[];
   const existingMap = new Map(
     entries.map((e) => [e.entry_date, e])
   );
