@@ -146,8 +146,9 @@ export async function importLocationFromSheet(
     .eq("location_id", locationId)
     .in("entry_date", parsedDates);
 
+  const entries = (existingEntries ?? []) as { entry_date: string }[];
   const existingMap = new Map(
-    (existingEntries ?? []).map((e) => [e.entry_date, e])
+    entries.map((e) => [e.entry_date, e])
   );
 
   // Filter: keep only new rows or rows where values differ from existing

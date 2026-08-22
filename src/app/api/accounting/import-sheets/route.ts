@@ -99,15 +99,16 @@ export async function POST(request: Request) {
     if (parsed.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
 
     // Fetch existing entries for comparison
-    const parsedDates = [...new Set(parsed.map((p) => p.dateVal))];
+    const parsedDates = Array.from(new Set(parsed.map((p) => p.dateVal)));
     const { data: existingEntries } = await supabase
       .from("daily_entries")
       .select("entry_date, " + IMPORT_COLUMNS.map((c) => c.db).join(", ") + ", notes")
       .eq("location_id", locationId)
       .in("entry_date", parsedDates);
 
+    const entries = (existingEntries ?? []) as { entry_date: string }[];
     const existingMap = new Map(
-      (existingEntries ?? []).map((e) => [e.entry_date, e])
+      entries.map((e) => [e.entry_date, e])
     );
 
     // Filter: keep only new rows or rows where values differ
