@@ -162,7 +162,7 @@ export async function importLocationFromSheet(
   );
 
   // Filter: keep only new rows or rows where values differ from existing
-  let toUpsert = pastOrToday.filter((p) => {
+  const toUpsert = pastOrToday.filter((p) => {
     const existing = existingMap.get(p.dateVal);
     if (!existing) return true; // new date
 
