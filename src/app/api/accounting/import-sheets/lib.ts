@@ -66,15 +66,13 @@ export async function importLocationFromSheet(
 ): Promise<ImportLocationResult> {
   const { data: loc, error: locErr } = await supabase
     .from("locations")
-    .select("id, name, google_sheet_id, last_imported_at")
+    .select("id, name, google_sheet_id")
     .eq("id", locationId)
     .eq("organization_id", DEFAULT_ORG_ID)
     .single();
 
   if (locErr || !loc) return { location_id: locationId, location_name: "", inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "Location not found" };
   if (!loc.google_sheet_id) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "No Sheet ID configured" };
-
-  const lastImportedAt = loc.last_imported_at;
 
   const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(loc.google_sheet_id as string)}/values/DAILY_ENTRIES`;
   const sheetRes = await fetch(sheetUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -183,12 +181,6 @@ export async function importLocationFromSheet(
     return false; // unchanged — skip
   });
 
-  // Also respect last_imported_at as a fallback optimization
-  if (lastImportedAt) {
-    const lastImportedDate = new Date(lastImportedAt).toISOString().split("T")[0];
-    toUpsert = toUpsert.filter((p) => p.dateVal > lastImportedDate);
-  }
-
   const skippedExisting = pastOrToday.length - toUpsert.length;
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null };
@@ -213,11 +205,6 @@ export async function importLocationFromSheet(
     .insert({ organization_id: DEFAULT_ORG_ID, location_id: locationId, imported_by: userId, row_count: entryIds.length, entry_ids: entryIds })
     .select("id")
     .single();
-
-  await supabase
-    .from("locations")
-    .update({ last_imported_at: new Date().toISOString() })
-    .eq("id", locationId);
 
   await writeAuditLog({
     userId,
