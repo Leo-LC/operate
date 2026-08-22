@@ -157,6 +157,7 @@ export async function importLocationFromSheet(
   } & Record<string, number | null>;
 
   const entries = (existingEntries ?? []) as unknown as ExistingEntry[];
+  console.log(`[import-sheets] location=${locationId} parsedDates=${parsedDates.length} existingEntries=${entries.length}`);
   const existingMap = new Map(
     entries.map((e) => [e.entry_date, e])
   );
@@ -182,6 +183,7 @@ export async function importLocationFromSheet(
   });
 
   const skippedExisting = pastOrToday.length - toUpsert.length;
+  console.log(`[import-sheets] location=${locationId} pastOrToday=${pastOrToday.length} toUpsert=${toUpsert.length} skippedExisting=${skippedExisting}`);
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null };
 
