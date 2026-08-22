@@ -47,6 +47,7 @@ export type ImportLocationResult = {
   inserted: number;
   skipped_existing: number;
   skipped_empty: number;
+  skipped_future: number;
   errors: string[];
   batch_id: string | null;
   error?: string;
