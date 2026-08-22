@@ -71,8 +71,8 @@ export async function importLocationFromSheet(
     .eq("organization_id", DEFAULT_ORG_ID)
     .single();
 
-  if (locErr || !loc) return { location_id: locationId, location_name: "", inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: "Location not found" };
-  if (!loc.google_sheet_id) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: "No Sheet ID configured" };
+  if (locErr || !loc) return { location_id: locationId, location_name: "", inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "Location not found" };
+  if (!loc.google_sheet_id) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "No Sheet ID configured" };
 
   const lastImportedAt = loc.last_imported_at;
 
@@ -85,22 +85,22 @@ export async function importLocationFromSheet(
       : sheetRes.status === 404
         ? "Tab 'DAILY_ENTRIES' not found"
         : `Sheets API error ${sheetRes.status}`;
-    return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: msg };
+    return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: msg };
   }
 
   const sheetData = (await sheetRes.json()) as { values?: string[][] };
   const rows = sheetData.values ?? [];
 
-  if (rows.length < 2) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: "Sheet has no data rows" };
+  if (rows.length < 2) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "Sheet has no data rows" };
 
   const headerRowIndex = rows.slice(0, 5).findIndex(
     (row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date")
   );
-  if (headerRowIndex === -1) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: "Header row with 'date' not found in first 5 rows" };
+  if (headerRowIndex === -1) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "Header row with 'date' not found in first 5 rows" };
 
   const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
   const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !headers.includes(h));
-  if (missing.length > 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, errors: [], batch_id: null, error: `Missing columns: ${missing.join(", ")}` };
+  if (missing.length > 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: `Missing columns: ${missing.join(", ")}` };
 
   const idx = (name: string) => headers.indexOf(name);
   const errors: string[] = [];
@@ -135,7 +135,7 @@ export async function importLocationFromSheet(
     parsed.push({ dateVal, row });
   }
 
-  if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null };
+  if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, skipped_future: 0, errors, batch_id: null };
 
   // Skip future dates
   const today = new Date().toISOString().split("T")[0];
@@ -204,7 +204,7 @@ export async function importLocationFromSheet(
     .upsert(toUpsert.map((p) => p.row), { onConflict: "location_id,entry_date" })
     .select("id");
 
-  if (insertErr) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, error: insertErr.message };
+  if (insertErr) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null, error: insertErr.message };
 
   const entryIds = (inserted ?? []).map((r) => r.id as string);
 
