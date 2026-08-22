@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const accessToken = await getOrganizationAccessToken();
   if (!accessToken) return Response.json({ error: "Google account not connected or token expired. Please sign out and back in." }, { status: 400 });
 
-  // Preview mode — parse sheet without writing
+  // Preview mode — parse sheet without writing, compare with existing DB entries
   if (preview) {
     const supabase = getSupabaseServerClient();
     const { data: loc } = await supabase.from("locations").select("id, name, google_sheet_id").eq("id", locationId).eq("organization_id", DEFAULT_ORG_ID).single();
@@ -68,7 +68,8 @@ export async function POST(request: Request) {
 
     const idx = (name: string) => headers.indexOf(name);
     const errors: string[] = [];
-    const validDates: string[] = [];
+    type ParsedRow = { dateVal: string; row: Record<string, unknown> };
+    const parsed: ParsedRow[] = [];
     let skippedEmpty = 0;
 
     for (let i = headerRowIndex + 1; i < rows.length; i++) {
@@ -78,18 +79,59 @@ export async function POST(request: Request) {
       if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
       const dateVal = parseDate(rawDate);
       if (!dateVal) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
-      const meaningful = IMPORT_COLUMNS.some((col) => col.db !== "date" && parseNumeric(get(col.csv)) !== 0);
+
+      const row: Record<string, unknown> = {
+        organization_id: DEFAULT_ORG_ID,
+        location_id: locationId,
+        entry_date: dateVal,
+      };
+      for (const col of IMPORT_COLUMNS) {
+        if (col.db === "date") continue;
+        row[col.db] = parseNumeric(get(col.csv));
+      }
+      const notesIdx = idx("notes");
+      row["notes"] = notesIdx >= 0 ? (cells[notesIdx] ?? "").toString().trim() || null : null;
+      const meaningful = IMPORT_COLUMNS.some((col) => col.db !== "date" && Number(row[col.db] ?? 0) !== 0);
       if (!meaningful) { skippedEmpty++; continue; }
-      validDates.push(dateVal);
+      parsed.push({ dateVal, row });
     }
 
-    if (validDates.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+    if (parsed.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
 
-    const toImport = validDates.sort();
+    // Fetch existing entries for comparison
+    const parsedDates = [...new Set(parsed.map((p) => p.dateVal))];
+    const { data: existingEntries } = await supabase
+      .from("daily_entries")
+      .select("entry_date, " + IMPORT_COLUMNS.map((c) => c.db).join(", ") + ", notes")
+      .eq("location_id", locationId)
+      .in("entry_date", parsedDates);
 
-    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+    const existingMap = new Map(
+      (existingEntries ?? []).map((e) => [e.entry_date, e])
+    );
 
-    return Response.json({ preview: true, would_insert: toImport.length, date_from: toImport[0], date_to: toImport[toImport.length - 1], skipped_existing: 0, skipped_empty: skippedEmpty, errors });
+    // Filter: keep only new rows or rows where values differ
+    const toImport = parsed.filter((p) => {
+      const existing = existingMap.get(p.dateVal);
+      if (!existing) return true;
+      for (const col of IMPORT_COLUMNS) {
+        if (col.db === "date") continue;
+        const sheetVal = Number(p.row[col.db] ?? 0);
+        const dbVal = Number(existing[col.db] ?? 0);
+        if (sheetVal !== dbVal) return true;
+      }
+      const sheetNotes = p.row.notes as string | null;
+      const dbNotes = existing.notes as string | null;
+      if (sheetNotes !== dbNotes) return true;
+      return false;
+    });
+
+    const skippedExisting = parsed.length - toImport.length;
+
+    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
+
+    const dates = toImport.map((p) => p.dateVal).sort();
+    return Response.json({ preview: true, would_insert: toImport.length, date_from: dates[0], date_to: dates[dates.length - 1], skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors });
   }
 
   // Real import — delegate to shared lib

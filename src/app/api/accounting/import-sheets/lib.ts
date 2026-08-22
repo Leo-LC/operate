@@ -136,16 +136,47 @@ export async function importLocationFromSheet(
 
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null };
 
-  // Filter out rows already imported (keep only new or modified days)
-  let toUpsert = parsed;
+  // Get all unique dates from parsed rows
+  const parsedDates = [...new Set(parsed.map((p) => p.dateVal))];
+
+  // Fetch existing entries for these dates to compare values
+  const { data: existingEntries } = await supabase
+    .from("daily_entries")
+    .select("entry_date, " + IMPORT_COLUMNS.map((c) => c.db).join(", ") + ", notes")
+    .eq("location_id", locationId)
+    .in("entry_date", parsedDates);
+
+  const existingMap = new Map(
+    (existingEntries ?? []).map((e) => [e.entry_date, e])
+  );
+
+  // Filter: keep only new rows or rows where values differ from existing
+  let toUpsert = parsed.filter((p) => {
+    const existing = existingMap.get(p.dateVal);
+    if (!existing) return true; // new date
+
+    // Compare all importable columns
+    for (const col of IMPORT_COLUMNS) {
+      if (col.db === "date") continue;
+      const sheetVal = Number(p.row[col.db] ?? 0);
+      const dbVal = Number(existing[col.db] ?? 0);
+      if (sheetVal !== dbVal) return true; // value changed
+    }
+    // Compare notes
+    const sheetNotes = p.row.notes as string | null;
+    const dbNotes = existing.notes as string | null;
+    if (sheetNotes !== dbNotes) return true;
+
+    return false; // unchanged — skip
+  });
+
+  // Also respect last_imported_at as a fallback optimization
   if (lastImportedAt) {
     const lastImportedDate = new Date(lastImportedAt).toISOString().split("T")[0];
-    toUpsert = parsed.filter((p) => p.dateVal > lastImportedDate);
+    toUpsert = toUpsert.filter((p) => p.dateVal > lastImportedDate);
   }
 
-  // The sheet is the source of truth — upsert every meaningful row so existing
-  // entries are overwritten with the latest sheet values (incl. zero-sales days).
-  const skippedExisting = 0;
+  const skippedExisting = parsed.length - toUpsert.length;
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, errors, batch_id: null };
 
