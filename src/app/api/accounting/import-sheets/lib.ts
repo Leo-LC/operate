@@ -152,7 +152,7 @@ export async function importLocationFromSheet(
     notes: string | null;
   } & Record<string, number | null>;
 
-  const entries = (existingEntries ?? []) as ExistingEntry[];
+  const entries = (existingEntries ?? []) as unknown as ExistingEntry[];
   const existingMap = new Map(
     entries.map((e) => [e.entry_date, e])
   );
