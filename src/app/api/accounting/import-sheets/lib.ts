@@ -146,7 +146,7 @@ export async function importLocationFromSheet(
     .eq("location_id", locationId)
     .in("entry_date", parsedDates);
 
-  const entries = (existingEntries ?? []) as { entry_date: string }[];
+  const entries = (existingEntries ?? []) as unknown as { entry_date: string }[];
   const existingMap = new Map(
     entries.map((e) => [e.entry_date, e])
   );
