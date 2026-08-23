@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     const parsedDates = Array.from(new Set(pastOrToday.map((p) => p.dateVal)));
     const { data: existingEntries } = await supabase
       .from("daily_entries")
-      .select("entry_date, " + IMPORT_COLUMNS.map((c) => c.db).join(", ") + ", notes")
+      .select("entry_date, " + IMPORT_COLUMNS.filter((c) => c.db !== "date").map((c) => c.db).join(", ") + ", notes")
       .eq("location_id", locationId)
       .in("entry_date", parsedDates);
 
