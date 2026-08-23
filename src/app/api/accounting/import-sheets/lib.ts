@@ -145,11 +145,13 @@ export async function importLocationFromSheet(
 
   // Fetch existing entries for these dates to compare values
   const dbColumns = IMPORT_COLUMNS.map((c) => c.db).join(", ");
-  const { data: existingEntries } = await supabase
+  console.log(`[import-sheets] DEBUG columns query: ${dbColumns}`);
+  const { data: existingEntries, error: existingErr } = await supabase
     .from("daily_entries")
     .select("entry_date, " + dbColumns + ", notes")
     .eq("location_id", locationId)
     .in("entry_date", parsedDates);
+  if (existingErr) console.error(`[import-sheets] QUERY ERROR location=${locationId}`, existingErr.message);
 
   type ExistingEntry = {
     entry_date: string;
