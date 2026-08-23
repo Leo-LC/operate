@@ -157,10 +157,22 @@ export async function importLocationFromSheet(
   } & Record<string, number | null>;
 
   const entries = (existingEntries ?? []) as unknown as ExistingEntry[];
-  console.log(`[import-sheets] location=${locationId} parsedDates=${parsedDates.length} existingEntries=${entries.length}`);
   const existingMap = new Map(
     entries.map((e) => [e.entry_date, e])
   );
+
+  // DEBUG: check what's actually in the DB for this location
+  const { count: dbCount } = await supabase
+    .from("daily_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("location_id", locationId);
+  const sampleDates = parsedDates.slice(0, 3);
+  const { data: sampleEntries } = await supabase
+    .from("daily_entries")
+    .select("entry_date, location_id")
+    .eq("location_id", locationId)
+    .in("entry_date", sampleDates);
+  console.log(`[import-sheets] DEBUG location=${locationId} dbTotalEntries=${dbCount ?? "?"} sampleQueryDates=${JSON.stringify(sampleDates)} sampleResults=${JSON.stringify(sampleEntries)}`);
 
   // Filter: keep only new rows or rows where values differ from existing
   const toUpsert = pastOrToday.filter((p) => {
