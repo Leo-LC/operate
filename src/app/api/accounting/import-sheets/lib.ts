@@ -144,14 +144,12 @@ export async function importLocationFromSheet(
   const parsedDates = Array.from(new Set(pastOrToday.map((p) => p.dateVal)));
 
   // Fetch existing entries for these dates to compare values
-  const dbColumns = IMPORT_COLUMNS.map((c) => c.db).join(", ");
-  console.log(`[import-sheets] DEBUG columns query: ${dbColumns}`);
-  const { data: existingEntries, error: existingErr } = await supabase
+  const dbColumns = IMPORT_COLUMNS.filter((c) => c.db !== "date").map((c) => c.db).join(", ");
+  const { data: existingEntries } = await supabase
     .from("daily_entries")
     .select("entry_date, " + dbColumns + ", notes")
     .eq("location_id", locationId)
     .in("entry_date", parsedDates);
-  if (existingErr) console.error(`[import-sheets] QUERY ERROR location=${locationId}`, existingErr.message);
 
   type ExistingEntry = {
     entry_date: string;
@@ -162,19 +160,6 @@ export async function importLocationFromSheet(
   const existingMap = new Map(
     entries.map((e) => [e.entry_date, e])
   );
-
-  // DEBUG: check what's actually in the DB for this location
-  const { count: dbCount } = await supabase
-    .from("daily_entries")
-    .select("id", { count: "exact", head: true })
-    .eq("location_id", locationId);
-  const sampleDates = parsedDates.slice(0, 3);
-  const { data: sampleEntries } = await supabase
-    .from("daily_entries")
-    .select("entry_date, location_id")
-    .eq("location_id", locationId)
-    .in("entry_date", sampleDates);
-  console.log(`[import-sheets] DEBUG location=${locationId} dbTotalEntries=${dbCount ?? "?"} sampleQueryDates=${JSON.stringify(sampleDates)} sampleResults=${JSON.stringify(sampleEntries)}`);
 
   // Filter: keep only new rows or rows where values differ from existing
   const toUpsert = pastOrToday.filter((p) => {
@@ -197,7 +182,6 @@ export async function importLocationFromSheet(
   });
 
   const skippedExisting = pastOrToday.length - toUpsert.length;
-  console.log(`[import-sheets] location=${locationId} pastOrToday=${pastOrToday.length} toUpsert=${toUpsert.length} skippedExisting=${skippedExisting}`);
 
   if (toUpsert.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null };
 
