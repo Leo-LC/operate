@@ -237,11 +237,43 @@ async function syncAccount(
 
     const per_store: SyncPerStoreResult[] = [];
     let snapshots_upserted = 0;
+    const bangkokToday = getBangkokDates(1)[0];
 
-    // Sequential per store+date to stay under rate limits; account-level concurrency is capped at top level
     for (const store of stores) {
       const location_id = await getLocationIdForStoreAsync(store.id);
-      for (const date of dates) {
+
+      // Per-shop incremental: check which dates already have snapshots (closed shifts)
+      // If store has never been synced, expand to 30 days
+      let datesForStore = dates;
+      try {
+        const { data: existing } = await supabase
+          .from("loyverse_daily_snapshots")
+          .select("date")
+          .eq("account_key", account.key)
+          .eq("store_id", store.id)
+          .in("date", dates);
+        const existingSet = new Set((existing ?? []).map((r) => r.date as string));
+
+        // If no existing at all for this store (never synced), expand to 30 days backfill
+        if (existingSet.size === 0 && dates.length <= 2) {
+          const backfill = getBangkokDates(30);
+          // Only keep those not already in dates
+          const extra = backfill.filter((d) => !dates.includes(d));
+          datesForStore = [...dates, ...extra];
+        } else {
+          // For closed shifts (date < today), skip if already synced
+          datesForStore = dates.filter((d) => {
+            if (d === bangkokToday) return true; // today is open, always refresh
+            return !existingSet.has(d);
+          });
+          // If all filtered out (already synced and no today), keep at least today to refresh open shift
+          if (datesForStore.length === 0) datesForStore = [bangkokToday];
+        }
+      } catch {
+        datesForStore = dates;
+      }
+
+      for (const date of datesForStore) {
         const res = await syncStoreDate(account, store.id, date, catalog, supabase, location_id);
         per_store.push(res);
         if (res.snapshot) snapshots_upserted++;
