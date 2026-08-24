@@ -335,13 +335,6 @@ export function LoyverseDashboard() {
       : kpis;
   }, [selectedStore, perStore, kpis, data]);
 
-  const storeOptions = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of allStores) map.set(s.store_id, `${s.account_key} — ${s.store_id.slice(0, 8)}`);
-    for (const a of status?.accounts ?? []) if (!Array.from(map.values()).some((v) => v.startsWith(a.key))) map.set(a.key, a.label);
-    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
-  }, [allStores, status]);
-
   // For DateRangePicker (Airbnb style) — also keep quick Jour/7j/30j
   const dateRangeValue = React.useMemo(() => {
     const from = selectedDate;
