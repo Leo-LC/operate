@@ -58,7 +58,6 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
         if (permissions.global_role === "direction") return n.id === "overview" || n.id === "reports";
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
         if (n.id === "loyverse" && permissions.global_role !== "owner") return false;
-        if (n.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
         return !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]);
       })
