@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, StoreIcon, ReceiptIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, CalendarRangeIcon } from "lucide-react";
+import { RefreshCwIcon, StoreIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, CalendarRangeIcon } from "lucide-react";
 import { Sparkline } from "@/components/ui/sparkline";
 
 function fmtTHB(n: number) {
@@ -201,6 +201,36 @@ export function LoyverseDashboard() {
     }
   };
 
+  const kpis = data?.kpis;
+  const allStores = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
+  const perStore = React.useMemo(
+    () => (selectedStore === "all" ? allStores : allStores.filter((s) => s.store_id === selectedStore || s.account_key === selectedStore)),
+    [selectedStore, allStores],
+  );
+  // Recompute KPIs for filtered store (if filtered)
+  const filteredKpis = React.useMemo(() => {
+    if (selectedStore === "all" || !data) return kpis;
+    const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
+    return kpis
+      ? {
+          ...kpis,
+          revenue_total: rev,
+          store_count: perStore.length,
+          ticket_count: perStore.reduce((s, r) => s + r.ticket_count, 0),
+          receipt_count: perStore.reduce((s, r) => s + r.receipt_count, 0),
+          snacks_sold: perStore.reduce((s, r) => s + r.snacks_sold, 0),
+          avg_ticket: perStore.length ? rev / Math.max(1, perStore.reduce((s, r) => s + r.ticket_count, 0)) : 0,
+        }
+      : kpis;
+  }, [selectedStore, perStore, kpis, data]);
+
+  const storeOptions = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of allStores) map.set(s.store_id, `${s.account_key} — ${s.store_id.slice(0, 8)}`);
+    for (const a of status?.accounts ?? []) if (!Array.from(map.values()).some((v) => v.startsWith(a.key))) map.set(a.key, a.label);
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [allStores, status]);
+
   if (status && !status.configured) {
     return (
       <div className="flex flex-col gap-6">
@@ -214,17 +244,6 @@ export function LoyverseDashboard() {
       </div>
     );
   }
-
-  const kpis = data?.kpis;
-  const allStores = data?.per_store ?? [];
-  const perStore = selectedStore === "all" ? allStores : allStores.filter((s) => s.store_id === selectedStore || s.account_key === selectedStore);
-  // Recompute KPIs for filtered store (if filtered)
-  const filteredKpis = React.useMemo(() => {
-    if (selectedStore === "all" || !data) return kpis;
-    const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
-    const vat = perStore.reduce((s, r) => s + 0, 0); // vat not in perStore, keep original
-    return kpis ? { ...kpis, revenue_total: rev, store_count: perStore.length, ticket_count: perStore.reduce((s, r) => s + r.ticket_count, 0), receipt_count: perStore.reduce((s, r) => s + r.receipt_count, 0), snacks_sold: perStore.reduce((s, r) => s + r.snacks_sold, 0), avg_ticket: perStore.length ? rev / Math.max(1, perStore.reduce((s, r) => s + r.ticket_count, 0)) : 0 } : kpis;
-  }, [selectedStore, perStore, kpis, data]);
 
   const lastRun = status?.last_run;
   const totalBuckets = perStore.reduce(
@@ -248,12 +267,6 @@ export function LoyverseDashboard() {
   );
   const paymentsTotal = totalPayments.cash + totalPayments.scan + totalPayments.credit_card;
   const hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
-  const storeOptions = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of allStores) map.set(s.store_id, `${s.account_key} — ${s.store_id.slice(0, 8)}`);
-    for (const a of status?.accounts ?? []) if (!Array.from(map.values()).some((v) => v.startsWith(a.key))) map.set(a.key, a.label);
-    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
-  }, [allStores, status]);
 
   return (
     <div className="flex flex-col gap-6">
