@@ -65,38 +65,38 @@ export function LoyverseModuleClient() {
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="accounting">
-        <TabsList className="h-auto w-full justify-start gap-1 rounded-[var(--r-md)] bg-[var(--bg-2)] p-1">
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="accounting" className="flex flex-col">
+        <TabsList className="inline-flex h-auto w-fit justify-start gap-1 rounded-[var(--r-md)] bg-[var(--bg-2)] p-1">
           <TabsTrigger
             value="accounting"
-            className="flex items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
+            className="inline-flex flex-none items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
           >
             <CalculatorIcon className="size-3.5" />
             Accounting
           </TabsTrigger>
           <TabsTrigger
             value="challenges"
-            className="flex items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
+            className="inline-flex flex-none items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
           >
             <TrophyIcon className="size-3.5" />
             Challenges
           </TabsTrigger>
           <TabsTrigger
             value="unmapped"
-            className="flex items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
+            className="inline-flex flex-none items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
           >
             <AlertTriangleIcon className="size-3.5" />
             Unmapped
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="accounting" className="pt-4">
+        <TabsContent value="accounting" className="w-full pt-4">
           <AccountingPreview key={`acc-${date}-${refreshKey}`} date={date} />
         </TabsContent>
-        <TabsContent value="challenges" className="pt-4">
+        <TabsContent value="challenges" className="w-full pt-4">
           <ChallengesPreview key={`chal-${date}-${refreshKey}`} date={date} />
         </TabsContent>
-        <TabsContent value="unmapped" className="pt-4">
+        <TabsContent value="unmapped" className="w-full pt-4">
           <UnmappedPanel key={`unm-${date}-${refreshKey}`} date={date} />
         </TabsContent>
       </Tabs>
