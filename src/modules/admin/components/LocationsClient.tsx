@@ -357,6 +357,8 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
     }
   }
 
+  const sortedLocations = React.useMemo(() => [...locations].sort((a, b) => a.name.localeCompare(b.name)), [locations]);
+
   const formPanel = (
     <form
       onSubmit={isAdding ? handleAdd : handleSaveEdit}
@@ -465,6 +467,15 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           placeholder="Any additional information…"
           multiline
         />
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+        <Button type="button" variant="ghost" size="sm" onClick={() => { setIsAdding(false); setIsEditing(false); }}>
+          Cancel
+        </Button>
+        <Button type="submit" size="sm" disabled={submitting}>
+          <CheckIcon className="mr-1.5 size-3.5" />
+          {submitting ? "Saving…" : "Save"}
+        </Button>
       </div>
     </form>
   );
@@ -593,11 +604,11 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
         {/* Left: location list */}
         <div style={{ width: 192, flexShrink: 0, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {locations.length === 0 ? (
+          {sortedLocations.length === 0 ? (
             <p style={{ padding: 16, fontSize: 13, color: "var(--fg-4)", textAlign: "center" }}>No locations yet.</p>
           ) : (
             <ul style={{ overflowY: "auto", flex: 1, listStyle: "none", margin: 0, padding: 0 }}>
-              {locations.map((loc) => (
+              {sortedLocations.map((loc) => (
                 <LocationListItem
                   key={loc.id}
                   loc={loc}
