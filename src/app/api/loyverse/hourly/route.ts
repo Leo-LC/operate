@@ -1,8 +1,6 @@
 import { getAccounts } from "@/lib/loyverse/accounts";
 import { isLoyverseConfigured } from "@/lib/loyverse/client";
-import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
-import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetchAll } from "@/lib/loyverse/client";
 import { dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
 import type { LoyverseReceipt } from "@/modules/loyverse-sandbox/types";
@@ -23,10 +21,6 @@ export async function GET(request: Request) {
   const account = accountKey ? accounts.find((a) => a.key === accountKey) : accounts[0];
   if (!account) return Response.json({ error: "Account not found" }, { status: 404 });
 
-  const supabase = getSupabaseServerClient();
-
-  // Try to get hourly from live Loyverse if date is today (open shift), otherwise from snapshots not available hourly
-  // For now, always fetch live receipts and bucket by hour
   try {
     const range = dateRangeForDay(date);
     const receipts = await loyverseFetchAll<LoyverseReceipt>(account, "/receipts", "receipts", {
