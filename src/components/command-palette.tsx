@@ -28,7 +28,6 @@ const NAV_ITEMS = [
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
   { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
   { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
-  { id: "loyverse-sandbox", label: "Loyverse (α)", href: "/loyverse-sandbox", icon: PlugIcon, module: null },
   { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
 ] as const;
 

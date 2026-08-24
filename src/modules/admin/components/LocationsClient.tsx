@@ -53,6 +53,7 @@ const EMPTY_FORM = {
   vat_number: "",
   google_maps_url: "",
   google_sheet_id: "",
+  loyverse_store_id: "",
   notes: "",
   default_service_charge_pct: "1",
 };
@@ -213,6 +214,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       vat_number: loc.vat_number ?? "",
       google_maps_url: loc.google_maps_url ?? "",
       google_sheet_id: loc.google_sheet_id ?? "",
+      loyverse_store_id: (loc as unknown as { loyverse_store_id?: string | null }).loyverse_store_id ?? "",
       notes: loc.notes ?? "",
       default_service_charge_pct: loc.default_service_charge_pct != null ? String(loc.default_service_charge_pct) : "1",
     });
@@ -238,6 +240,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           vat_number: form.vat_number.trim() || null,
           google_maps_url: form.google_maps_url.trim() || null,
           google_sheet_id: form.google_sheet_id.trim() || null,
+          loyverse_store_id: form.loyverse_store_id.trim() || null,
           notes: form.notes.trim() || null,
           default_service_charge_pct: form.default_service_charge_pct ? parseFloat(form.default_service_charge_pct) : 1,
         }),
@@ -278,6 +281,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           vat_number: form.vat_number.trim() || null,
           google_maps_url: form.google_maps_url.trim() || null,
           google_sheet_id: form.google_sheet_id.trim() || null,
+          loyverse_store_id: form.loyverse_store_id.trim() || null,
           notes: form.notes.trim() || null,
           default_service_charge_pct: form.default_service_charge_pct ? parseFloat(form.default_service_charge_pct) : 1,
         }),
@@ -447,6 +451,13 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
         />
         <FormField
+          label="Loyverse Store ID"
+          name="loyverse_store_id"
+          value={form.loyverse_store_id}
+          onChange={(v) => setField("loyverse_store_id", v)}
+          placeholder="17b18698-229b-4436-9c04-... (from Loyverse /stores)"
+        />
+        <FormField
           label="Notes"
           name="notes"
           value={form.notes}
@@ -535,6 +546,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           </div>
         )}
         <InfoRow icon={FileTextIcon} label="Accounting Sheet ID" value={selected.google_sheet_id} />
+        <InfoRow icon={LinkIcon} label="Loyverse Store ID" value={(selected as unknown as { loyverse_store_id?: string | null }).loyverse_store_id ?? null} />
         <InfoRow icon={FileTextIcon} label="Notes" value={selected.notes} multiline />
 
         <div style={{ paddingTop: 8 }}>

@@ -7,7 +7,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, StoreIcon, ReceiptIcon, TrendingUpIcon, ShoppingBagIcon } from "lucide-react";
+import { RefreshCwIcon, StoreIcon, ReceiptIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, CalendarRangeIcon } from "lucide-react";
+import { Sparkline } from "@/components/ui/sparkline";
 
 function fmtTHB(n: number) {
   return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", maximumFractionDigits: 0 }).format(n);
@@ -52,7 +53,7 @@ type DashboardData = {
   date_range: { start: string; end: string; days: number };
   kpis: DashboardKpis;
   per_store: PerStore[];
-  snapshots: unknown[];
+  snapshots: Array<{ date: string; revenue_total: number; account_key: string; store_id: string } & Record<string, unknown>>;
 };
 type StatusData = {
   configured: boolean;
@@ -89,23 +90,71 @@ function BreakdownBar({ label, value, total, tone }: { label: string; value: num
   );
 }
 
+function Donut({ data, colors }: { data: { label: string; value: number }[]; colors: string[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">Pas de données</div>;
+  let acc = 0;
+  const segments = data.map((d, i) => {
+    const start = (acc / total) * 360;
+    acc += d.value;
+    const end = (acc / total) * 360;
+    const large = end - start > 180 ? 1 : 0;
+    const r = 36;
+    const cx = 40, cy = 40;
+    const rad = (deg: number) => (deg - 90) * (Math.PI / 180);
+    const x1 = cx + r * Math.cos(rad(start));
+    const y1 = cy + r * Math.sin(rad(start));
+    const x2 = cx + r * Math.cos(rad(end));
+    const y2 = cy + r * Math.sin(rad(end));
+    const dAttr = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+    return <path key={d.label} d={dAttr} fill={colors[i % colors.length]} />;
+  });
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={80} height={80} viewBox="0 0 80 80" className="shrink-0">
+        <circle cx={40} cy={40} r={36} fill="var(--line-2)" />
+        {segments}
+        <circle cx={40} cy={40} r={18} fill="var(--surface)" />
+      </svg>
+      <div className="flex flex-col gap-1.5 text-xs">
+        {data.map((d, i) => (
+          <div key={d.label} className="flex items-center gap-2">
+            <span className="size-2.5 shrink-0 rounded-sm" style={{ background: colors[i % colors.length] }} />
+            <span className="text-[var(--fg-3)]">{d.label}</span>
+            <span className="ml-auto font-mono tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function LoyverseDashboard() {
   const [selectedDate, setSelectedDate] = React.useState<string>(() => bangkokToday());
+  const [rangeDays, setRangeDays] = React.useState<number>(1);
+  const [selectedStore, setSelectedStore] = React.useState<string>("all");
   const [data, setData] = React.useState<DashboardData | null>(null);
   const [status, setStatus] = React.useState<StatusData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [syncError, setSyncError] = React.useState<string | null>(null);
+  const [curveData, setCurveData] = React.useState<number[] | null>(null);
 
-  const fetchDashboard = React.useCallback(async (dateStr: string) => {
+  const fetchDashboard = React.useCallback(async (dateStr: string, days: number) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/loyverse/dashboard?date=${dateStr}&days=1`, { cache: "no-store" });
+      const res = await fetch(`/api/loyverse/dashboard?date=${dateStr}&days=${days}`, { cache: "no-store" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Dashboard fetch failed");
       setData(json as DashboardData);
+      // Build 7-day curve from snapshots if available (group by date)
+      const snaps = (json.snapshots ?? []) as Array<{ date: string; revenue_total: number }>;
+      const byDate = new Map<string, number>();
+      for (const s of snaps) byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
+      const sortedDates = Array.from(byDate.keys()).sort();
+      setCurveData(sortedDates.map((d) => byDate.get(d) ?? 0));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -119,27 +168,32 @@ export function LoyverseDashboard() {
       const json = await res.json();
       if (res.ok) setStatus(json as StatusData);
     } catch {
-      // ignore status fetch errors
+      // ignore
     }
   }, []);
 
   React.useEffect(() => {
-    fetchDashboard(selectedDate);
+    fetchDashboard(selectedDate, rangeDays);
     fetchStatus();
-  }, [selectedDate, fetchDashboard, fetchStatus]);
+  }, [selectedDate, rangeDays, fetchDashboard, fetchStatus]);
 
   const handleSync = async () => {
     setSyncing(true);
     setSyncError(null);
     try {
+      // Clarification: sync charge (load) les données, l'affichage est piloté par date/shop ci-dessus
+      const body: Record<string, unknown> = {};
+      if (rangeDays > 1) body.days = rangeDays;
+      // If custom date not today, sync that specific date range
+      if (selectedDate !== bangkokToday() && rangeDays === 1) body.dates = [selectedDate];
       const res = await fetch("/api/loyverse/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Sync failed");
-      await Promise.all([fetchDashboard(selectedDate), fetchStatus()]);
+      await Promise.all([fetchDashboard(selectedDate, rangeDays), fetchStatus()]);
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -150,15 +204,11 @@ export function LoyverseDashboard() {
   if (status && !status.configured) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader
-          title="Loyverse"
-          subtitle="Daily sales from POS — read-only"
-          eyebrow="Operations"
-        />
+        <PageHeader title="Loyverse" subtitle="Daily sales from POS — read-only" eyebrow="Operations" />
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-sm text-[var(--fg-3)]">Loyverse n&apos;est pas configuré.</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Ajoutez LOYVERSE_ACCOUNTS ou LOYVERSE_ACCESS_TOKEN dans Vercel.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">Ajoutez LOYVERSE_ACCOUNTS dans Vercel.</p>
           </CardContent>
         </Card>
       </div>
@@ -166,7 +216,16 @@ export function LoyverseDashboard() {
   }
 
   const kpis = data?.kpis;
-  const perStore = data?.per_store ?? [];
+  const allStores = data?.per_store ?? [];
+  const perStore = selectedStore === "all" ? allStores : allStores.filter((s) => s.store_id === selectedStore || s.account_key === selectedStore);
+  // Recompute KPIs for filtered store (if filtered)
+  const filteredKpis = React.useMemo(() => {
+    if (selectedStore === "all" || !data) return kpis;
+    const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
+    const vat = perStore.reduce((s, r) => s + 0, 0); // vat not in perStore, keep original
+    return kpis ? { ...kpis, revenue_total: rev, store_count: perStore.length, ticket_count: perStore.reduce((s, r) => s + r.ticket_count, 0), receipt_count: perStore.reduce((s, r) => s + r.receipt_count, 0), snacks_sold: perStore.reduce((s, r) => s + r.snacks_sold, 0), avg_ticket: perStore.length ? rev / Math.max(1, perStore.reduce((s, r) => s + r.ticket_count, 0)) : 0 } : kpis;
+  }, [selectedStore, perStore, kpis, data]);
+
   const lastRun = status?.last_run;
   const totalBuckets = perStore.reduce(
     (acc, s) => ({
@@ -189,24 +248,50 @@ export function LoyverseDashboard() {
   );
   const paymentsTotal = totalPayments.cash + totalPayments.scan + totalPayments.credit_card;
   const hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
+  const storeOptions = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of allStores) map.set(s.store_id, `${s.account_key} — ${s.store_id.slice(0, 8)}`);
+    for (const a of status?.accounts ?? []) if (!Array.from(map.values()).some((v) => v.startsWith(a.key))) map.set(a.key, a.label);
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [allStores, status]);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Loyverse"
-        subtitle="Daily sales from POS — read-only. Aucune écriture dans daily_entries."
+        subtitle="Synchroniser charge les ventes ; le sélecteur date/boutique affiche la période choisie. Aucune écriture dans daily_entries."
         eyebrow="Operations"
         actions={
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="h-[34px] rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-2 text-[13px] text-[var(--fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-            />
-            <Button onClick={handleSync} disabled={syncing} size="default">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-1">
+              <button onClick={() => setRangeDays(1)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 1 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>Jour</button>
+              <button onClick={() => setRangeDays(7)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 7 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>7j</button>
+              <button onClick={() => setRangeDays(30)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 30 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>30j</button>
+            </div>
+            <label className="flex items-center gap-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--fg-3)]">
+              <CalendarRangeIcon className="size-3.5" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-[13px] font-medium text-[var(--fg)] outline-none"
+              />
+            </label>
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="h-[34px] rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-2 text-xs font-medium text-[var(--fg)]"
+            >
+              <option value="all">Toutes boutiques ({allStores.length})</option>
+              {storeOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <Button onClick={handleSync} disabled={syncing} size="default" title="Charge les ventes depuis Loyverse (J/J-1 ou période affichée)">
               <RefreshCwIcon className={cn("size-3.5", syncing && "animate-spin")} />
-              {syncing ? "Sync…" : "Synchroniser"}
+              {syncing ? "Sync…" : rangeDays > 1 ? `Synchroniser ${rangeDays}j` : "Synchroniser"}
             </Button>
           </div>
         }
@@ -219,7 +304,7 @@ export function LoyverseDashboard() {
             {lastRun.status} · {lastRun.triggered_by} · {lastRun.finished_at ? new Date(lastRun.finished_at).toLocaleString("fr-FR") : "en cours"}
           </Pill>
           <span className="text-[var(--fg-4)]">
-            {status?.snapshot_count ?? 0} snapshots · {status?.account_count ?? 0} comptes
+            {status?.snapshot_count ?? 0} snapshots · {status?.account_count ?? 0} comptes · affiché {selectedStore === "all" ? "tout" : "filtré"} · {rangeDays}j
           </span>
           {hasSyncErrors && <span className="text-[var(--warn)]">Certains comptes ont échoué — voir détails par shop</span>}
         </div>
@@ -227,7 +312,7 @@ export function LoyverseDashboard() {
       {syncError && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{syncError}</div>}
       {error && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
 
-      {/* KPIs */}
+      {/* KPIs — CA + Clients (tickets) + Snacks + Boutiques (panier en hint) */}
       {loading ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -239,28 +324,29 @@ export function LoyverseDashboard() {
             </Card>
           ))}
         </div>
-      ) : kpis ? (
+      ) : filteredKpis ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card>
             <CardContent>
               <Stat
                 label="CA du jour"
-                value={fmtTHB(kpis.revenue_total)}
-                delta={fmtDelta(kpis.delta_vs_week_ago_pct) ?? undefined}
-                deltaDir={kpis.delta_vs_week_ago_pct !== null && kpis.delta_vs_week_ago_pct >= 0 ? "up" : kpis.delta_vs_week_ago_pct !== null ? "down" : "neutral"}
-                hint={`${fmtInt(kpis.receipt_count)} tickets · HT ${fmtTHB(Math.max(0, kpis.revenue_total - kpis.vat_7))}`}
+                value={fmtTHB(filteredKpis.revenue_total)}
+                delta={fmtDelta(filteredKpis.delta_vs_week_ago_pct) ?? undefined}
+                deltaDir={filteredKpis.delta_vs_week_ago_pct !== null && filteredKpis.delta_vs_week_ago_pct >= 0 ? "up" : filteredKpis.delta_vs_week_ago_pct !== null ? "down" : "neutral"}
+                hint={`${fmtInt(filteredKpis.receipt_count)} tickets · HT ${fmtTHB(Math.max(0, filteredKpis.revenue_total - filteredKpis.vat_7))}`}
                 icon={<TrendingUpIcon className="size-4" />}
                 iconColor="var(--bronze)"
+                sparkline={curveData ? <Sparkline data={curveData} color="var(--bronze)" width={64} height={20} /> : undefined}
               />
             </CardContent>
           </Card>
           <Card>
             <CardContent>
               <Stat
-                label="Tickets"
-                value={fmtInt(kpis.ticket_count)}
-                hint={`Reçus ${fmtInt(kpis.receipt_count)} · ${fmtInt(kpis.snacks_sold)} snacks`}
-                icon={<ReceiptIcon className="size-4" />}
+                label="Clients"
+                value={fmtInt(filteredKpis.ticket_count)}
+                hint={`${fmtInt(filteredKpis.receipt_count)} reçus · ${fmtInt(filteredKpis.snacks_sold)} snacks`}
+                icon={<UsersIcon className="size-4" />}
                 iconColor="var(--info)"
               />
             </CardContent>
@@ -268,9 +354,9 @@ export function LoyverseDashboard() {
           <Card>
             <CardContent>
               <Stat
-                label="Panier moyen"
-                value={fmtTHB(kpis.avg_ticket)}
-                hint={`TVA 7% ${fmtTHB(kpis.vat_7)}`}
+                label="Snacks"
+                value={fmtInt(filteredKpis.snacks_sold)}
+                hint={`Panier ${fmtTHB(filteredKpis.avg_ticket)} · TVA ${fmtTHB(filteredKpis.vat_7)}`}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--good)"
               />
@@ -281,7 +367,7 @@ export function LoyverseDashboard() {
               <Stat
                 label="Boutiques"
                 value={`${perStore.length}`}
-                hint={`${status?.account_count ?? 0} comptes · ${fmtInt(kpis.snacks_sold)} snacks`}
+                hint={`${status?.account_count ?? 0} comptes · ${rangeDays}j`}
                 icon={<StoreIcon className="size-4" />}
                 iconColor="var(--warn)"
               />
@@ -290,12 +376,31 @@ export function LoyverseDashboard() {
         </div>
       ) : null}
 
+      {/* Courbe 7/30j */}
+      {!loading && curveData && curveData.length > 1 && rangeDays > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Évolution CA — {rangeDays} jours</CardTitle>
+            <p className="text-xs text-[var(--fg-4)]">Chaque point = 1 jour (Bangkok)</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2">
+              <Sparkline data={curveData} color="var(--bronze)" width={600} height={48} />
+              <span className="text-xs text-[var(--fg-4)]">{fmtTHB(Math.max(...curveData))} max</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Per-shop grid */}
       {!loading && perStore.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm text-[var(--fg-3)]">Pas de données pour {selectedDate}.</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Lance une synchronisation ou choisis une autre date.</p>
+            <p className="text-sm text-[var(--fg-3)]">Pas de données pour {selectedDate} ({rangeDays}j) {selectedStore !== "all" ? "— ce shop a 0 snapshot" : ""}.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">Clique <strong>Synchroniser</strong> pour charger cette période, puis le sélecteur date/shop n’affiche que ce qui est déjà chargé.</p>
+            <Button size="sm" variant="secondary" className="mt-3" onClick={handleSync} disabled={syncing}>
+              Synchroniser {rangeDays > 1 ? `${rangeDays}j` : selectedDate}
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -311,10 +416,10 @@ export function LoyverseDashboard() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <CardTitle className="truncate text-[14px]">{store.store_id}</CardTitle>
+                      <CardTitle className="truncate text-[14px]">{store.store_id.slice(0, 8)} · {store.account_key}</CardTitle>
                       <p className="mt-0.5 text-xs text-[var(--fg-4)]">
-                        {store.account_key}
-                        {store.location_id ? ` · ${store.location_id.slice(0, 8)}` : " · non mappé"}
+                        {store.location_id ? `mappé · ${store.location_id.slice(0, 8)}` : "non mappé"}
+                        {rangeDays > 1 ? ` · ${store.date}` : ""}
                       </p>
                     </div>
                     <Pill tone={isDegraded ? "warn" : "good"} size="sm" dot>
@@ -329,7 +434,7 @@ export function LoyverseDashboard() {
                       <p className="font-mono text-sm font-semibold tabular-nums text-[var(--fg)]">{fmtTHB(store.revenue_total)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Tickets</p>
+                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Clients</p>
                       <p className="font-mono text-sm font-semibold tabular-nums text-[var(--fg)]">{fmtInt(store.ticket_count)}</p>
                     </div>
                     <div>
@@ -357,31 +462,53 @@ export function LoyverseDashboard() {
         </div>
       )}
 
-      {/* Breakdowns */}
+      {/* Breakdowns + Donuts */}
       {!loading && perStore.length > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Buckets vente</CardTitle>
-              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(bucketsTotal)}</p>
+              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(bucketsTotal)} {selectedStore !== "all" ? "(filtré)" : ""}</p>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <BreakdownBar label="Drinks" value={totalBuckets.drinks} total={bucketsTotal} tone="var(--bronze)" />
-              <BreakdownBar label="Ticket" value={totalBuckets.ticket} total={bucketsTotal} tone="var(--info)" />
-              <BreakdownBar label="Snacks" value={totalBuckets.snack} total={bucketsTotal} tone="var(--good)" />
-              <BreakdownBar label="Goodies" value={totalBuckets.goodies} total={bucketsTotal} tone="var(--warn)" />
-              <BreakdownBar label="Surcharge" value={totalBuckets.surcharge} total={bucketsTotal} tone="var(--fg-4)" />
+            <CardContent className="space-y-3">
+              <Donut
+                data={[
+                  { label: "Drinks", value: totalBuckets.drinks },
+                  { label: "Ticket", value: totalBuckets.ticket },
+                  { label: "Snacks", value: totalBuckets.snack },
+                  { label: "Goodies", value: totalBuckets.goodies },
+                  { label: "Surcharge", value: totalBuckets.surcharge },
+                ].filter((d) => d.value > 0)}
+                colors={["var(--bronze)", "var(--info)", "var(--good)", "var(--warn)", "var(--fg-4)"]}
+              />
+              <div className="space-y-2 pt-2">
+                <BreakdownBar label="Drinks" value={totalBuckets.drinks} total={bucketsTotal} tone="var(--bronze)" />
+                <BreakdownBar label="Ticket" value={totalBuckets.ticket} total={bucketsTotal} tone="var(--info)" />
+                <BreakdownBar label="Snacks" value={totalBuckets.snack} total={bucketsTotal} tone="var(--good)" />
+                <BreakdownBar label="Goodies" value={totalBuckets.goodies} total={bucketsTotal} tone="var(--warn)" />
+                <BreakdownBar label="Surcharge" value={totalBuckets.surcharge} total={bucketsTotal} tone="var(--fg-4)" />
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
               <CardTitle>Mix paiements</CardTitle>
-              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(paymentsTotal)}</p>
+              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(paymentsTotal)} {selectedStore !== "all" ? "(filtré)" : ""}</p>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <BreakdownBar label="Cash" value={totalPayments.cash} total={paymentsTotal} tone="var(--good)" />
-              <BreakdownBar label="Scan/QR" value={totalPayments.scan} total={paymentsTotal} tone="var(--info)" />
-              <BreakdownBar label="Card" value={totalPayments.credit_card} total={paymentsTotal} tone="var(--bronze)" />
+            <CardContent className="space-y-3">
+              <Donut
+                data={[
+                  { label: "Cash", value: totalPayments.cash },
+                  { label: "Scan/QR", value: totalPayments.scan },
+                  { label: "Card", value: totalPayments.credit_card },
+                ].filter((d) => d.value > 0)}
+                colors={["var(--good)", "var(--info)", "var(--bronze)"]}
+              />
+              <div className="space-y-2 pt-2">
+                <BreakdownBar label="Cash" value={totalPayments.cash} total={paymentsTotal} tone="var(--good)" />
+                <BreakdownBar label="Scan/QR" value={totalPayments.scan} total={paymentsTotal} tone="var(--info)" />
+                <BreakdownBar label="Card" value={totalPayments.credit_card} total={paymentsTotal} tone="var(--bronze)" />
+              </div>
             </CardContent>
           </Card>
         </div>

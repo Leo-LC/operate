@@ -3,7 +3,7 @@ import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetch, loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { aggregateReceipts, dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
-import { getLocationIdForStore } from "@/modules/loyverse-sandbox/store-mapping";
+import { getLocationIdForStoreAsync } from "./store-mapping";
 import type { LoyverseReceipt, LoyverseStore } from "@/modules/loyverse-sandbox/types";
 import { LOYVERSE_SYNC_CONCURRENCY } from "../config";
 import type { SyncAllResult, SyncPerAccountResult, SyncPerStoreResult } from "../types";
@@ -20,6 +20,23 @@ function getBangkokDates(count: number): string[] {
     dates.push(`${y}-${m}-${day}`);
   }
   return dates;
+}
+
+async function getMissingDatesForBackfill(): Promise<string[]> {
+  const supabase = getSupabaseServerClient();
+  const last30 = getBangkokDates(30);
+  try {
+    const { data } = await supabase.from("loyverse_daily_snapshots").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]);
+    const existing = new Set((data ?? []).map((r) => r.date as string));
+    const missing = last30.filter((d) => !existing.has(d));
+    // Always include today + yesterday even if already present (to refresh)
+    const mustInclude = getBangkokDates(2);
+    for (const d of mustInclude) if (!missing.includes(d)) missing.push(d);
+    // Unique + sort desc (newest first)
+    return Array.from(new Set(missing)).sort().reverse().slice(0, 30);
+  } catch {
+    return getBangkokDates(2);
+  }
 }
 
 function pLimit<T>(concurrency: number) {
@@ -88,8 +105,8 @@ async function syncStoreDate(
   date: string,
   catalog: Awaited<ReturnType<typeof fetchCatalogWithCache>>,
   supabase: ReturnType<typeof getSupabaseServerClient>,
+  location_id: string | null,
 ): Promise<SyncPerStoreResult> {
-  const location_id = getLocationIdForStore(storeId);
   const range = dateRangeForDay(date);
 
   try {
@@ -223,8 +240,9 @@ async function syncAccount(
 
     // Sequential per store+date to stay under rate limits; account-level concurrency is capped at top level
     for (const store of stores) {
+      const location_id = await getLocationIdForStoreAsync(store.id);
       for (const date of dates) {
-        const res = await syncStoreDate(account, store.id, date, catalog, supabase);
+        const res = await syncStoreDate(account, store.id, date, catalog, supabase, location_id);
         per_store.push(res);
         if (res.snapshot) snapshots_upserted++;
       }
@@ -253,9 +271,19 @@ async function syncAccount(
 export async function syncAllLoyverse(opts?: {
   triggeredBy?: "manual" | "cron";
   dates?: string[];
+  days?: number;
+  backfill?: boolean;
 }): Promise<SyncAllResult> {
   const triggeredBy = opts?.triggeredBy ?? "manual";
-  const dates = opts?.dates ?? getBangkokDates(2);
+  let dates = opts?.dates;
+  if (!dates && opts?.days) {
+    dates = getBangkokDates(Math.min(30, Math.max(1, opts.days)));
+  }
+  if (!dates && opts?.backfill) {
+    // Backfill: find missing dates in last 30d (J..J-29) per DB, else sync those missing
+    dates = await getMissingDatesForBackfill();
+  }
+  if (!dates) dates = getBangkokDates(2);
   const started_at = new Date().toISOString();
   const startMs = Date.now();
   const supabase = getSupabaseServerClient();
@@ -284,7 +312,8 @@ export async function syncAllLoyverse(opts?: {
   const run_id = runRow.id as string;
 
   const limit = pLimit<SyncPerAccountResult>(LOYVERSE_SYNC_CONCURRENCY);
-  const per_account = await Promise.all(accounts.map((acc) => limit(() => syncAccount(acc, dates, supabase))));
+  const finalDates = dates ?? getBangkokDates(2);
+  const per_account = await Promise.all(accounts.map((acc) => limit(() => syncAccount(acc, finalDates, supabase))));
 
   const total_snapshots = per_account.reduce((s, a) => s + a.snapshots_upserted, 0);
   const total_stores = per_account.reduce((s, a) => s + a.stores_attempted, 0);

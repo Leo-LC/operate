@@ -95,7 +95,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "admin", label: "Admin", href: "/admin", icon: ShieldIcon, module: "admin" },
       { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
-      { id: "loyverse-sandbox", label: "Loyverse (α)", href: "/loyverse-sandbox", icon: PlugIcon, module: null },
     ],
   },
 ];

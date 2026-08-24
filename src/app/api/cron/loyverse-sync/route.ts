@@ -22,8 +22,8 @@ async function handleCron(request: Request) {
   }
 
   try {
-    // Cron finalises J-1 and backfills if gap; sync last 2 Bangkok days (J, J-1) is idempotent
-    const result = await syncAllLoyverse({ triggeredBy: "cron" });
+    // Cron backfills missing in last 30d + refresh J/J-1 (idempotent)
+    const result = await syncAllLoyverse({ triggeredBy: "cron", backfill: true });
     return Response.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

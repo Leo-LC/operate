@@ -5,10 +5,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalculatorIcon, TrophyIcon, AlertTriangleIcon, RefreshCwIcon, CalendarIcon } from "lucide-react";
+import { CalculatorIcon, TrophyIcon, AlertTriangleIcon, RefreshCwIcon, CalendarIcon, BeakerIcon } from "lucide-react";
 import { AccountingPreview } from "./AccountingPreview";
 import { ChallengesPreview } from "./ChallengesPreview";
 import { UnmappedPanel } from "./UnmappedPanel";
+import { LoyverseSandboxClient } from "@/modules/loyverse-sandbox/components/LoyverseSandboxClient";
 
 function bangkokToday(): string {
   return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -18,6 +19,7 @@ export function LoyverseModuleClient() {
   const [date, setDate] = React.useState<string>(() => bangkokToday());
   const [activeTab, setActiveTab] = React.useState("accounting");
   const [refreshKey, setRefreshKey] = React.useState(0);
+  const [syncing, setSyncing] = React.useState(false);
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,6 +41,26 @@ export function LoyverseModuleClient() {
             <Button variant="secondary" size="sm" onClick={() => setRefreshKey((k) => k + 1)}>
               <RefreshCwIcon className="size-3.5" />
               Actualiser
+            </Button>
+            <Button
+              size="sm"
+              onClick={async () => {
+                setSyncing(true);
+                try {
+                  await fetch("/api/loyverse/sync", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dates: [date] }),
+                  });
+                  setRefreshKey((k) => k + 1);
+                } finally {
+                  setSyncing(false);
+                }
+              }}
+              disabled={syncing}
+            >
+              <RefreshCwIcon className={`size-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Sync…" : "Synchroniser"}
             </Button>
           </div>
         }
@@ -88,6 +110,13 @@ export function LoyverseModuleClient() {
             <AlertTriangleIcon className="size-3.5" />
             Unmapped
           </TabsTrigger>
+          <TabsTrigger
+            value="debug"
+            className="inline-flex flex-none items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
+          >
+            <BeakerIcon className="size-3.5" />
+            Debug
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounting" className="w-full pt-4">
@@ -98,6 +127,14 @@ export function LoyverseModuleClient() {
         </TabsContent>
         <TabsContent value="unmapped" className="w-full pt-4">
           <UnmappedPanel key={`unm-${date}-${refreshKey}`} date={date} />
+        </TabsContent>
+        <TabsContent value="debug" className="w-full pt-4">
+          <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+            <p className="mb-4 text-xs text-[var(--fg-4)]">
+              Ancien sandbox fusionné — API Explorer, Mapping Preview, Store Mapping, Demo Report. Conservé pour debug.
+            </p>
+            <LoyverseSandboxClient />
+          </div>
         </TabsContent>
       </Tabs>
 

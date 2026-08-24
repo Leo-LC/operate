@@ -47,6 +47,7 @@ export interface AdminLocation {
   google_sheet_id?: string | null;
   notes?: string | null;
   default_service_charge_pct?: number;
+  loyverse_store_id?: string | null;
 }
 
 export interface EmployeeLocationRow {
