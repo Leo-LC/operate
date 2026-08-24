@@ -94,6 +94,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "System",
     items: [
       { id: "admin", label: "Admin", href: "/admin", icon: ShieldIcon, module: "admin" },
+      { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
       { id: "loyverse-sandbox", label: "Loyverse (α)", href: "/loyverse-sandbox", icon: PlugIcon, module: null },
     ],
   },
@@ -307,7 +308,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               if (permissions.global_role === "direction") return item.id === "overview" || item.id === "reports";
               if (item.id === "admin" && permissions.global_role !== "owner") return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (item.id === "loyverse" && permissions.global_role !== "owner") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;

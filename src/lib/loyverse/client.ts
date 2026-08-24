@@ -1,3 +1,5 @@
+import { getAccounts, type Account } from "./accounts";
+
 const DEFAULT_BASE = "https://api.loyverse.com/v1.0";
 
 export class LoyverseApiError extends Error {
@@ -11,14 +13,12 @@ export class LoyverseApiError extends Error {
   }
 }
 
-function getConfig() {
-  const token = process.env.LOYVERSE_ACCESS_TOKEN?.trim();
-  const base = (process.env.LOYVERSE_API_BASE ?? DEFAULT_BASE).replace(/\/$/, "");
-  return { token, base };
+function getBase(): string {
+  return (process.env.LOYVERSE_API_BASE ?? DEFAULT_BASE).replace(/\/$/, "");
 }
 
 export function isLoyverseConfigured(): boolean {
-  return Boolean(getConfig().token);
+  return getAccounts().length > 0;
 }
 
 async function sleep(ms: number) {
@@ -26,15 +26,16 @@ async function sleep(ms: number) {
 }
 
 export async function loyverseFetch<T = unknown>(
+  account: Account,
   path: string,
   params?: Record<string, string | number | undefined>,
   options?: { maxRetries?: number },
 ): Promise<T> {
-  const { token, base } = getConfig();
-  if (!token) {
-    throw new LoyverseApiError("LOYVERSE_ACCESS_TOKEN is not configured", 503);
+  if (!account?.token) {
+    throw new LoyverseApiError("Loyverse account token is not configured", 503);
   }
 
+  const base = getBase();
   const url = new URL(`${base}${path.startsWith("/") ? path : `/${path}`}`);
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -51,7 +52,7 @@ export async function loyverseFetch<T = unknown>(
     const res = await fetch(url.toString(), {
       headers: {
         Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${account.token}`,
       },
       cache: "no-store",
     });
@@ -91,6 +92,7 @@ export interface LoyversePage<T> {
 }
 
 export async function loyverseFetchAll<TItem>(
+  account: Account,
   path: string,
   listKey: string,
   params?: Record<string, string | number | undefined>,
@@ -103,7 +105,7 @@ export async function loyverseFetchAll<TItem>(
   let pages = 0;
 
   while (pages < maxPages) {
-    const page = await loyverseFetch<LoyversePage<TItem>>(path, {
+    const page = await loyverseFetch<LoyversePage<TItem>>(account, path, {
       ...params,
       limit: pageLimit,
       cursor,
@@ -121,3 +123,5 @@ export async function loyverseFetchAll<TItem>(
 
   return items;
 }
+
+export type { Account };

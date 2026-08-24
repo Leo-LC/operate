@@ -1,3 +1,4 @@
+import { getDefaultAccount } from "@/lib/loyverse/accounts";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { loyverseFetch } from "@/lib/loyverse/client";
@@ -19,11 +20,14 @@ export async function GET() {
     .order("name");
 
   let loyverseStores: { id: string; name: string }[] = [];
-  try {
-    const data = await loyverseFetch<{ stores: LoyverseStore[] }>("/stores", { limit: 50 });
-    loyverseStores = (data.stores ?? []).map((s) => ({ id: s.id, name: s.name }));
-  } catch {
-    // stores unavailable — still return nexus locations + static mapping
+  const account = getDefaultAccount();
+  if (account) {
+    try {
+      const data = await loyverseFetch<{ stores: LoyverseStore[] }>(account, "/stores", { limit: 50 });
+      loyverseStores = (data.stores ?? []).map((s) => ({ id: s.id, name: s.name }));
+    } catch {
+      // stores unavailable — still return nexus locations + static mapping
+    }
   }
 
   const mappings = Object.entries(LOYVERSE_STORE_TO_LOCATION).map(([storeId, locationId]) => {

@@ -225,8 +225,8 @@ export function buildFieldDiffs(
 
 export function dateRangeForDay(date: string): { created_at_min: string; created_at_max: string } {
   return {
-    created_at_min: `${date}T00:00:00.000Z`,
-    created_at_max: `${date}T23:59:59.999Z`,
+    created_at_min: `${date}T00:00:00+07:00`,
+    created_at_max: `${date}T23:59:59.999+07:00`,
   };
 }
 

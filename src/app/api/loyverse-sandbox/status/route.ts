@@ -1,3 +1,4 @@
+import { getDefaultAccount } from "@/lib/loyverse/accounts";
 import { isLoyverseConfigured, loyverseFetch, LoyverseApiError } from "@/lib/loyverse/client";
 import { requireLoyverseSandboxOwner } from "@/modules/loyverse-sandbox/lib/guard";
 import type { LoyverseStore } from "@/modules/loyverse-sandbox/types";
@@ -14,8 +15,16 @@ export async function GET() {
     });
   }
 
+  const account = getDefaultAccount();
+  if (!account) {
+    return Response.json(
+      { configured: true, connected: false, message: "No Loyverse account resolved" },
+      { status: 502 },
+    );
+  }
+
   try {
-    const data = await loyverseFetch<{ stores: LoyverseStore[] }>("/stores", { limit: 50 });
+    const data = await loyverseFetch<{ stores: LoyverseStore[] }>(account, "/stores", { limit: 50 });
     const stores = data.stores ?? [];
     return Response.json({
       configured: true,

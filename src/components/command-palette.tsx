@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
   { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
+  { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
   { id: "loyverse-sandbox", label: "Loyverse (α)", href: "/loyverse-sandbox", icon: PlugIcon, module: null },
   { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
 ] as const;
@@ -57,6 +58,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
       .filter((n) => {
         if (permissions.global_role === "direction") return n.id === "overview" || n.id === "reports";
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
+        if (n.id === "loyverse" && permissions.global_role !== "owner") return false;
         if (n.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
         return !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]);

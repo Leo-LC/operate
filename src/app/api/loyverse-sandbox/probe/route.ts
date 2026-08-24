@@ -1,3 +1,4 @@
+import { getDefaultAccount } from "@/lib/loyverse/accounts";
 import { loyverseFetch, loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
 import { getCatalogEndpoint } from "@/modules/loyverse-sandbox/catalog";
 import { requireLoyverseSandboxOwner } from "@/modules/loyverse-sandbox/lib/guard";
@@ -31,9 +32,15 @@ export async function GET(request: Request) {
   if (createdAtMin) params.created_at_min = createdAtMin;
   if (createdAtMax) params.created_at_max = createdAtMax;
 
+  const account = getDefaultAccount();
+  if (!account) {
+    return Response.json({ error: "Loyverse account not configured" }, { status: 503 });
+  }
+
   try {
     if (fetchAll && endpoint.listKey) {
       const items = await loyverseFetchAll(
+        account,
         endpoint.path,
         endpoint.listKey,
         params,
@@ -47,7 +54,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const data = await loyverseFetch(endpoint.path, params);
+    const data = await loyverseFetch(account, endpoint.path, params);
     return Response.json({ resource, path: endpoint.path, data });
   } catch (err) {
     const message = err instanceof LoyverseApiError ? err.message : "Probe failed";

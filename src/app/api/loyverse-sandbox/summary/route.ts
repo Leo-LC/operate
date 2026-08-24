@@ -1,19 +1,16 @@
+import { getDefaultAccount } from "@/lib/loyverse/accounts";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
 import { requireLoyverseSandboxOwner } from "@/modules/loyverse-sandbox/lib/guard";
 import {
   aggregateReceipts,
   buildFieldDiffs,
-  buildItemCategoryMap,
   computeCoverage,
   dateRangeForDay,
 } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
 import { getLocationIdForStore } from "@/modules/loyverse-sandbox/store-mapping";
-import type {
-  LoyverseCategory,
-  LoyverseItem,
-  LoyverseReceipt,
-} from "@/modules/loyverse-sandbox/types";
+import type { LoyverseReceipt } from "@/modules/loyverse-sandbox/types";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseSandboxOwner();
@@ -27,20 +24,23 @@ export async function GET(request: Request) {
     return Response.json({ error: "date and store_id are required" }, { status: 400 });
   }
 
+  const account = getDefaultAccount();
+  if (!account) {
+    return Response.json({ error: "Loyverse account not configured" }, { status: 503 });
+  }
+
   try {
     const range = dateRangeForDay(date);
-    const [receipts, items, categories] = await Promise.all([
-      loyverseFetchAll<LoyverseReceipt>("/receipts", "receipts", {
+    const [receipts, catalog] = await Promise.all([
+      loyverseFetchAll<LoyverseReceipt>(account, "/receipts", "receipts", {
         store_id: storeId,
         created_at_min: range.created_at_min,
         created_at_max: range.created_at_max,
       }),
-      loyverseFetchAll<LoyverseItem>("/items", "items", {}, { maxPages: 10 }),
-      loyverseFetchAll<LoyverseCategory>("/categories", "categories", {}),
+      fetchCatalogWithCache(account),
     ]);
 
-    const itemCategoryMap = buildItemCategoryMap(items);
-    const categoryNames = new Map(categories.map((c) => [c.id, c.name]));
+    const { itemCategoryMap, categoryNames } = catalog;
     const { proposed, challenges, meta } = aggregateReceipts(
       receipts,
       date,
