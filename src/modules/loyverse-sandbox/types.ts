@@ -62,7 +62,7 @@ export interface LoyverseReceipt {
   payments?: LoyversePayment[];
 }
 
-export type SalesBucket = "drinks" | "ticket" | "snack" | "goodies" | "other";
+export type SalesBucket = "drinks" | "ticket" | "snack" | "goodies" | "surcharge" | "other";
 
 export type PaymentBucket = "cash" | "scan" | "credit_card" | "other";
 

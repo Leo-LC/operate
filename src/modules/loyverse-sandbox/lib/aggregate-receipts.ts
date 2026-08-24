@@ -152,6 +152,9 @@ export function aggregateReceipts(
         case "goodies":
           proposed.sales_goodies_net += amount;
           break;
+        case "surcharge":
+          proposed.sales_card_surcharge += amount;
+          break;
         default:
           meta.unmapped_line_items++;
           break;

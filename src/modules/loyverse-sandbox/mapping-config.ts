@@ -47,6 +47,10 @@ export function resolveSalesBucket(
   }
 
   const haystack = `${categoryName ?? ""} ${itemName ?? ""}`.toLowerCase();
+  // Card surcharge must be checked first — e.g. "Card Fee 3%" should not be bucketed as ticket/drinks
+  if (haystack.includes("surcharge") || haystack.includes("card fee") || haystack.includes("cardfee") || haystack.includes("fee 3%")) {
+    return "surcharge";
+  }
   for (const [keyword, bucket] of Object.entries(CATEGORY_NAME_TO_BUCKET)) {
     if (haystack.includes(keyword)) return bucket;
   }
