@@ -141,7 +141,7 @@ function ShopSelector({
 }) {
   const [open, setOpen] = React.useState(false);
   const allSelected = selected.length === locations.length && locations.length > 0;
-  const label = allSelected ? "Toutes boutiques" : selected.length === 0 ? "Aucune" : selected.length === 1 ? locations.find((l) => l.id === selected[0])?.name ?? "1 boutique" : `${selected.length} boutiques`;
+  const label = allSelected ? "Toutes boutiques" : selected.length === 0 ? "Toutes boutiques" : selected.length === 1 ? locations.find((l) => l.id === selected[0])?.name ?? "1 boutique" : `${selected.length} boutiques`;
   function toggle(id: string) {
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
   }
@@ -163,12 +163,12 @@ function ShopSelector({
           <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
           <div style={{ position: "absolute", left: 0, top: 36, zIndex: 20, minWidth: 180, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow-2)", padding: "var(--s-1)", display: "flex", flexDirection: "column", gap: 2 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px var(--s-3)", borderRadius: "var(--r-sm)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} /> Toutes boutiques
+              <input type="checkbox" checked={allSelected || selected.length === 0} onChange={toggleAll} /> Toutes boutiques
             </label>
             <div style={{ height: 1, background: "var(--line)", margin: "2px 0" }} />
             {locations.map((loc) => (
               <label key={loc.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px var(--s-3)", borderRadius: "var(--r-sm)", fontSize: 13, cursor: "pointer" }}>
-                <input type="checkbox" checked={selected.includes(loc.id)} onChange={() => toggle(loc.id)} />
+                <input type="checkbox" checked={selected.includes(loc.id) || selected.length === 0} onChange={() => toggle(loc.id)} />
                 {loc.name}
               </label>
             ))}
@@ -220,7 +220,7 @@ function BarChartCA({ data }: { data: { date: string; revenue: number }[] }) {
 export function LoyverseDashboard() {
   const [selectedDate, setSelectedDate] = React.useState<string>(() => bangkokToday());
   const [rangeDays, setRangeDays] = React.useState<number>(1);
-  const [selectedStore, setSelectedStore] = React.useState<string>("all");
+  const [selectedStores, setSelectedStores] = React.useState<string[]>([]);
   const [data, setData] = React.useState<DashboardData | null>(null);
   const [status, setStatus] = React.useState<StatusData | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -239,7 +239,6 @@ export function LoyverseDashboard() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Dashboard fetch failed");
       setData(json as DashboardData);
-      // Build 7-day curve from snapshots if available (group by date)
       const snaps = (json.snapshots ?? []) as Array<{ date: string; revenue_total: number }>;
       const byDate = new Map<string, number>();
       for (const s of snaps) byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
@@ -267,13 +266,13 @@ export function LoyverseDashboard() {
     fetchStatus();
   }, [selectedDate, rangeDays, fetchDashboard, fetchStatus]);
 
-  // Hourly: when single day + single shop, fetch per-hour breakdown
   React.useEffect(() => {
-    if (rangeDays !== 1 || selectedStore === "all" || !data?.per_store.length) {
+    if (rangeDays !== 1 || selectedStores.length !== 1 || !data?.per_store.length) {
       setHourlyData(null);
       return;
     }
-    const store = data.per_store.find((s) => s.store_id === selectedStore || s.account_key === selectedStore);
+    const selId = selectedStores[0]!;
+    const store = data.per_store.find((s) => s.store_id === selId || s.account_key === selId);
     if (!store) {
       setHourlyData(null);
       return;
@@ -286,16 +285,14 @@ export function LoyverseDashboard() {
       })
       .catch(() => setHourlyData(null))
       .finally(() => setHourlyLoading(false));
-  }, [selectedDate, rangeDays, selectedStore, data]);
+  }, [selectedDate, rangeDays, selectedStores, data]);
 
   const handleSync = async () => {
     setSyncing(true);
     setSyncError(null);
     try {
-      // Clarification: sync charge (load) les données, l'affichage est piloté par date/shop ci-dessus
       const body: Record<string, unknown> = {};
       if (rangeDays > 1) body.days = rangeDays;
-      // If custom date not today, sync that specific date range
       if (selectedDate !== bangkokToday() && rangeDays === 1) body.dates = [selectedDate];
       const res = await fetch("/api/loyverse/sync", {
         method: "POST",
@@ -312,38 +309,7 @@ export function LoyverseDashboard() {
     }
   };
 
-  const kpis = data?.kpis;
   const allStores = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
-  const perStore = React.useMemo(
-    () => (selectedStore === "all" ? allStores : allStores.filter((s) => s.store_id === selectedStore || s.account_key === selectedStore)),
-    [selectedStore, allStores],
-  );
-  // Recompute KPIs for filtered store (if filtered)
-  const filteredKpis = React.useMemo(() => {
-    if (selectedStore === "all" || !data) return kpis;
-    const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
-    return kpis
-      ? {
-          ...kpis,
-          revenue_total: rev,
-          store_count: perStore.length,
-          ticket_count: perStore.reduce((s, r) => s + r.ticket_count, 0),
-          receipt_count: perStore.reduce((s, r) => s + r.receipt_count, 0),
-          snacks_sold: perStore.reduce((s, r) => s + r.snacks_sold, 0),
-          avg_ticket: perStore.length ? rev / Math.max(1, perStore.reduce((s, r) => s + r.ticket_count, 0)) : 0,
-        }
-      : kpis;
-  }, [selectedStore, perStore, kpis, data]);
-
-  // For DateRangePicker (Airbnb style) — also keep quick Jour/7j/30j
-  const dateRangeValue = React.useMemo(() => {
-    const from = selectedDate;
-    const toDate = new Date(selectedDate);
-    toDate.setDate(toDate.getDate() + rangeDays - 1);
-    const to = toDate.toISOString().slice(0, 10);
-    return { from, to };
-  }, [selectedDate, rangeDays]);
-
   const shopLocations = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const s of allStores) {
@@ -356,6 +322,36 @@ export function LoyverseDashboard() {
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [allStores, status]);
+
+  const perStore = React.useMemo(() => {
+    if (selectedStores.length === 0) return allStores;
+    return allStores.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
+  }, [selectedStores, allStores]);
+
+  const filteredKpis = React.useMemo(() => {
+    const kpis = data?.kpis ?? null;
+    if (selectedStores.length === 0 || !data) return kpis;
+    const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
+    return kpis
+      ? {
+          ...kpis,
+          revenue_total: rev,
+          store_count: perStore.length,
+          ticket_count: perStore.reduce((s, r) => s + r.ticket_count, 0),
+          receipt_count: perStore.reduce((s, r) => s + r.receipt_count, 0),
+          snacks_sold: perStore.reduce((s, r) => s + r.snacks_sold, 0),
+          avg_ticket: perStore.length ? rev / Math.max(1, perStore.reduce((s, r) => s + r.ticket_count, 0)) : 0,
+        }
+      : kpis;
+  }, [selectedStores, perStore, data]);
+
+  const dateRangeValue = React.useMemo(() => {
+    const from = selectedDate;
+    const toDate = new Date(selectedDate);
+    toDate.setDate(toDate.getDate() + rangeDays - 1);
+    const to = toDate.toISOString().slice(0, 10);
+    return { from, to };
+  }, [selectedDate, rangeDays]);
 
   if (status && !status.configured) {
     return (
@@ -420,8 +416,8 @@ export function LoyverseDashboard() {
             />
             <ShopSelector
               locations={shopLocations}
-              selected={selectedStore === "all" ? shopLocations.map((l) => l.id) : [selectedStore]}
-              onChange={(ids) => setSelectedStore(ids.length === 1 ? ids[0]! : ids.length === shopLocations.length || ids.length === 0 ? "all" : ids[0]!)}
+              selected={selectedStores}
+              onChange={setSelectedStores}
             />
             <Button onClick={handleSync} disabled={syncing} size="default" title="Charge les ventes depuis Loyverse (incrémental, 30j au premier sync)">
               <RefreshCwIcon className={cn("size-3.5", syncing && "animate-spin")} />
@@ -431,14 +427,13 @@ export function LoyverseDashboard() {
         }
       />
 
-      {/* Status bar */}
       {lastRun && (
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <Pill tone={hasSyncErrors ? "warn" : lastRun.status === "completed" ? "good" : "neutral"} dot size="sm">
             {lastRun.status} · {lastRun.triggered_by} · {lastRun.finished_at ? new Date(lastRun.finished_at).toLocaleString("fr-FR") : "en cours"}
           </Pill>
           <span className="text-[var(--fg-4)]">
-            {status?.snapshot_count ?? 0} snapshots · {status?.account_count ?? 0} comptes · affiché {selectedStore === "all" ? "tout" : "filtré"} · {rangeDays}j
+            {status?.snapshot_count ?? 0} snapshots · {status?.account_count ?? 0} comptes · affiché {selectedStores.length === 0 ? "tout" : `${selectedStores.length} filtrés`} · {rangeDays}j
           </span>
           {hasSyncErrors && <span className="text-[var(--warn)]">Certains comptes ont échoué — voir détails par shop</span>}
         </div>
@@ -446,7 +441,6 @@ export function LoyverseDashboard() {
       {syncError && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{syncError}</div>}
       {error && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
 
-      {/* KPIs — CA + Clients (tickets qty) + VAT + CB avec surcharge */}
       {loading ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -510,8 +504,7 @@ export function LoyverseDashboard() {
         </div>
       ) : null}
 
-      {/* Hourly (single day + single shop) */}
-      {!loading && rangeDays === 1 && selectedStore !== "all" && hourlyData && hourlyData.some((h) => h.revenue > 0) && (
+      {!loading && rangeDays === 1 && selectedStores.length === 1 && hourlyData && hourlyData.some((h) => h.revenue > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -530,7 +523,6 @@ export function LoyverseDashboard() {
         </Card>
       )}
 
-      {/* Bar chart CA/jour (multi-jours) */}
       {!loading && rangeDays > 1 && curveData && curveData.length > 1 && (
         <Card>
           <CardHeader>
@@ -542,7 +534,7 @@ export function LoyverseDashboard() {
               const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string }>;
               const byDate = new Map<string, number>();
               for (const s of snaps) {
-                if (selectedStore !== "all" && s.store_id !== selectedStore && s.account_key !== selectedStore) continue;
+                if (selectedStores.length > 0 && !selectedStores.includes(s.store_id) && !selectedStores.includes(s.account_key)) continue;
                 byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
               }
               return Array.from(byDate.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([date,revenue])=>({date,revenue}));
@@ -551,28 +543,11 @@ export function LoyverseDashboard() {
         </Card>
       )}
 
-      {/* Sparkline fallback for single shop 1j without hourly yet */}
-      {!loading && curveData && curveData.length > 1 && rangeDays === 1 && selectedStore === "all" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Évolution CA — {rangeDays} jours</CardTitle>
-            <p className="text-xs text-[var(--fg-4)]">Chaque point = 1 jour (Bangkok)</p>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <Sparkline data={curveData} color="var(--bronze)" width={600} height={48} />
-              <span className="text-xs text-[var(--fg-4)]">{fmtTHB(Math.max(...curveData))} max</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Per-shop grid — fortement amélioré */}
       {!loading && perStore.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm text-[var(--fg-3)]">Pas de données pour {selectedDate} ({rangeDays}j) {selectedStore !== "all" ? "— ce shop a 0 snapshot" : ""}.</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Clique <strong>Synchroniser</strong> pour charger cette période, puis le sélecteur date/shop n’affiche que ce qui est déjà chargé.</p>
+            <p className="text-sm text-[var(--fg-3)]">Pas de données pour {selectedDate} ({rangeDays}j) {selectedStores.length > 0 ? "— shop filtré a 0 snapshot" : ""}.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">Clique <strong>Synchroniser</strong> pour charger cette période.</p>
             <Button size="sm" variant="secondary" className="mt-3" onClick={handleSync} disabled={syncing}>
               Synchroniser {rangeDays > 1 ? `${rangeDays}j` : selectedDate}
             </Button>
@@ -589,7 +564,6 @@ export function LoyverseDashboard() {
                 key={`${store.account_key}-${store.store_id}-${store.date}`}
                 className={cn("overflow-hidden", isDegraded && "border-[var(--warn)]/40")}
               >
-                {/* Header with store name + status */}
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--bg-2)] px-4 py-2.5">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex size-7 items-center justify-center rounded-full bg-[var(--bronze-soft)] text-[10px] font-bold text-[var(--bronze)]">
@@ -606,7 +580,6 @@ export function LoyverseDashboard() {
                 </div>
 
                 <CardContent className="space-y-3 pt-3">
-                  {/* Primary KPIs */}
                   <div className="grid grid-cols-3 gap-2 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-2">
                     <div className="text-center">
                       <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">CA</p>
@@ -625,7 +598,6 @@ export function LoyverseDashboard() {
                     </div>
                   </div>
 
-                  {/* Buckets mini bars */}
                   <div className="space-y-1">
                     <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Répartition ventes</p>
                     {[
@@ -646,7 +618,6 @@ export function LoyverseDashboard() {
                       ))}
                   </div>
 
-                  {/* Payments */}
                   <div className="flex flex-wrap gap-1.5">
                     <span className="inline-flex items-center gap-1 rounded-full bg-[var(--good-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--good)]">
                       Cash {fmtTHB(store.payments.cash)}
@@ -677,53 +648,40 @@ export function LoyverseDashboard() {
         </div>
       )}
 
-      {/* Breakdowns + Donuts */}
       {!loading && perStore.length > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Buckets vente</CardTitle>
-              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(bucketsTotal)} {selectedStore !== "all" ? "(filtré)" : ""}</p>
+              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(perStore.reduce((s, r) => s + r.buckets.drinks + r.buckets.ticket + r.buckets.snack + r.buckets.goodies + r.buckets.surcharge, 0))} {selectedStores.length > 0 ? "(filtré)" : ""}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               <Donut
                 data={[
-                  { label: "Drinks", value: totalBuckets.drinks },
-                  { label: "Ticket", value: totalBuckets.ticket },
-                  { label: "Snacks", value: totalBuckets.snack },
-                  { label: "Goodies", value: totalBuckets.goodies },
-                  { label: "Surcharge", value: totalBuckets.surcharge },
+                  { label: "Drinks", value: perStore.reduce((s, r) => s + r.buckets.drinks, 0) },
+                  { label: "Ticket", value: perStore.reduce((s, r) => s + r.buckets.ticket, 0) },
+                  { label: "Snacks", value: perStore.reduce((s, r) => s + r.buckets.snack, 0) },
+                  { label: "Goodies", value: perStore.reduce((s, r) => s + r.buckets.goodies, 0) },
+                  { label: "Surcharge", value: perStore.reduce((s, r) => s + r.buckets.surcharge, 0) },
                 ].filter((d) => d.value > 0)}
                 colors={["var(--bronze)", "var(--info)", "var(--good)", "var(--warn)", "var(--fg-4)"]}
               />
-              <div className="space-y-2 pt-2">
-                <BreakdownBar label="Drinks" value={totalBuckets.drinks} total={bucketsTotal} tone="var(--bronze)" />
-                <BreakdownBar label="Ticket" value={totalBuckets.ticket} total={bucketsTotal} tone="var(--info)" />
-                <BreakdownBar label="Snacks" value={totalBuckets.snack} total={bucketsTotal} tone="var(--good)" />
-                <BreakdownBar label="Goodies" value={totalBuckets.goodies} total={bucketsTotal} tone="var(--warn)" />
-                <BreakdownBar label="Surcharge" value={totalBuckets.surcharge} total={bucketsTotal} tone="var(--fg-4)" />
-              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
               <CardTitle>Mix paiements</CardTitle>
-              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(paymentsTotal)} {selectedStore !== "all" ? "(filtré)" : ""}</p>
+              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(perStore.reduce((s, r) => s + r.payments.cash + r.payments.scan + r.payments.credit_card, 0))} {selectedStores.length > 0 ? "(filtré)" : ""}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               <Donut
                 data={[
-                  { label: "Cash", value: totalPayments.cash },
-                  { label: "Scan/QR", value: totalPayments.scan },
-                  { label: "Card", value: totalPayments.credit_card },
+                  { label: "Cash", value: perStore.reduce((s, r) => s + r.payments.cash, 0) },
+                  { label: "Scan/QR", value: perStore.reduce((s, r) => s + r.payments.scan, 0) },
+                  { label: "Card", value: perStore.reduce((s, r) => s + r.payments.credit_card, 0) },
                 ].filter((d) => d.value > 0)}
                 colors={["var(--good)", "var(--info)", "var(--bronze)"]}
               />
-              <div className="space-y-2 pt-2">
-                <BreakdownBar label="Cash" value={totalPayments.cash} total={paymentsTotal} tone="var(--good)" />
-                <BreakdownBar label="Scan/QR" value={totalPayments.scan} total={paymentsTotal} tone="var(--info)" />
-                <BreakdownBar label="Card" value={totalPayments.credit_card} total={paymentsTotal} tone="var(--bronze)" />
-              </div>
             </CardContent>
           </Card>
         </div>
