@@ -224,9 +224,12 @@ export function buildFieldDiffs(
 }
 
 export function dateRangeForDay(date: string): { created_at_min: string; created_at_max: string } {
+  // Bangkok day -> UTC range (Loyverse expects ISO Z, not +07:00 which 400s)
+  const bangkokMin = new Date(`${date}T00:00:00+07:00`);
+  const bangkokMax = new Date(`${date}T23:59:59.999+07:00`);
   return {
-    created_at_min: `${date}T00:00:00+07:00`,
-    created_at_max: `${date}T23:59:59.999+07:00`,
+    created_at_min: bangkokMin.toISOString(),
+    created_at_max: bangkokMax.toISOString(),
   };
 }
 

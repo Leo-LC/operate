@@ -162,10 +162,11 @@ describe("aggregateReceipts", () => {
 });
 
 describe("dateRangeForDay", () => {
-  it("returns Bangkok-offset bounds for a given date", () => {
+  it("returns Bangkok day as UTC range (Z)", () => {
     const range = dateRangeForDay("2026-08-23");
-    expect(range.created_at_min).toBe("2026-08-23T00:00:00+07:00");
-    expect(range.created_at_max).toBe("2026-08-23T23:59:59.999+07:00");
+    // Bangkok 00:00+07 = UTC previous day 17:00Z
+    expect(range.created_at_min).toBe("2026-08-22T17:00:00.000Z");
+    expect(range.created_at_max).toBe("2026-08-23T16:59:59.999Z");
   });
 });
 

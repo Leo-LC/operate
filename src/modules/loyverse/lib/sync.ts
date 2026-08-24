@@ -177,7 +177,8 @@ async function syncStoreDate(
       },
     };
   } catch (err) {
-    const message = err instanceof LoyverseApiError ? err.message : err instanceof Error ? err.message : String(err);
+    const body = err instanceof LoyverseApiError ? (err.body ? ` ${JSON.stringify(err.body).slice(0, 500)}` : "") : "";
+    const message = err instanceof LoyverseApiError ? `${err.message}${body} (${err.status})` : err instanceof Error ? err.message : String(err);
     return { store_id: storeId, location_id, date, snapshot: null, error: message };
   }
 }
