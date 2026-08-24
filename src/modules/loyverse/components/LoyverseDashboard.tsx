@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, StoreIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, CalendarRangeIcon, ClockIcon, ReceiptIcon } from "lucide-react";
+import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, ReceiptIcon } from "lucide-react";
 import { Sparkline } from "@/components/ui/sparkline";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
 
@@ -342,6 +342,28 @@ export function LoyverseDashboard() {
     return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
   }, [allStores, status]);
 
+  // For DateRangePicker (Airbnb style) — also keep quick Jour/7j/30j
+  const dateRangeValue = React.useMemo(() => {
+    const from = selectedDate;
+    const toDate = new Date(selectedDate);
+    toDate.setDate(toDate.getDate() + rangeDays - 1);
+    const to = toDate.toISOString().slice(0, 10);
+    return { from, to };
+  }, [selectedDate, rangeDays]);
+
+  const shopLocations = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of allStores) {
+      const label = s.location_id ? `${s.account_key}` : `${s.account_key} (${s.store_id.slice(0, 6)})`;
+      map.set(s.store_id, label);
+    }
+    for (const a of status?.accounts ?? []) {
+      const hasStore = Array.from(map.keys()).some((k) => k === a.key || map.get(k)?.startsWith(a.key));
+      if (!hasStore) map.set(a.key, a.label);
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [allStores, status]);
+
   if (status && !status.configured) {
     return (
       <div className="flex flex-col gap-6">
@@ -378,29 +400,6 @@ export function LoyverseDashboard() {
   );
   const paymentsTotal = totalPayments.cash + totalPayments.scan + totalPayments.credit_card;
   const hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
-
-  // For DateRangePicker (Airbnb style) — also keep quick Jour/7j/30j
-  const dateRangeValue = React.useMemo(() => {
-    const from = selectedDate;
-    const toDate = new Date(selectedDate);
-    toDate.setDate(toDate.getDate() + rangeDays - 1);
-    const to = toDate.toISOString().slice(0, 10);
-    return { from, to };
-  }, [selectedDate, rangeDays]);
-
-  const shopLocations = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of allStores) {
-      const label = s.location_id ? `${s.account_key}` : `${s.account_key} (${s.store_id.slice(0, 6)})`;
-      map.set(s.store_id, label);
-    }
-    for (const a of status?.accounts ?? []) {
-      // Ensure all accounts appear even if no snapshot yet
-      const hasStore = Array.from(map.keys()).some((k) => k === a.key || map.get(k)?.startsWith(a.key));
-      if (!hasStore) map.set(a.key, a.label);
-    }
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [allStores, status]);
 
   return (
     <div className="flex flex-col gap-6">
