@@ -18,8 +18,6 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
 
   // Compute date range ending at `date` or today (Bangkok)
-  const endDateStr = date ?? new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  // Actually use Bangkok date; simpler: derive from Date with +7 offset
   const bangkokEnd = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const effectiveEnd = date ?? bangkokEnd;
   const end = new Date(effectiveEnd + "T00:00:00Z");

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
   // Fetch existing daily_entries for mapped locations
   const locationIds = rows.map((r) => r.location_id).filter(Boolean) as string[];
-  let existingByLocation = new Map<string, Record<string, unknown>>();
+  const existingByLocation = new Map<string, Record<string, unknown>>();
   if (locationIds.length > 0) {
     const { data: entries } = await supabase
       .from("daily_entries")

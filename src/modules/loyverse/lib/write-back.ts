@@ -13,8 +13,6 @@ const AUTO_FILLABLE_FIELDS = [
   "payment_credit_card",
 ] as const;
 
-type AutoField = (typeof AUTO_FILLABLE_FIELDS)[number];
-
 export function isWriteBackEnabled(): boolean {
   return process.env.LOYVERSE_WRITE_ENABLED === "true";
 }

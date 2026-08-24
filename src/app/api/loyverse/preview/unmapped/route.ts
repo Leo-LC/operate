@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       .map((s) => ({ account_key: s.account_key as string, store_id: s.store_id as string, location_id: s.location_id as string | null }));
 
   // If no snapshots, fallback to default account stores (still show frequencies live)
-  let fallbackAccounts: typeof storeEntries = [];
+  const fallbackAccounts: typeof storeEntries = [];
   if (storeEntries.length === 0 && !storeFilter) {
     const accounts = getAccounts();
     for (const acc of accounts.slice(0, 1)) {
