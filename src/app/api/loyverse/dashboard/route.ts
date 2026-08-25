@@ -1,9 +1,9 @@
 import { isLoyverseConfigured } from "@/lib/loyverse/client";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
+import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 
 export async function GET(request: Request) {
-  const guard = await requireLoyverseOwner();
+  const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
 
   if (!isLoyverseConfigured()) {
@@ -26,7 +26,17 @@ export async function GET(request: Request) {
   const startStr = start.toISOString().slice(0, 10);
 
   try {
-    const { data: snapshots, error } = await supabase
+    // Restricted users with no location access see nothing
+    if (guard.allowedLocationIds !== null && guard.allowedLocationIds.length === 0) {
+      return Response.json({
+        date_range: { start: startStr, end: effectiveEnd, days },
+        kpis: { revenue_total: 0, vat_7: 0, ticket_count: 0, receipt_count: 0, snacks_sold: 0, store_count: 0, avg_ticket: 0, delta_vs_week_ago_pct: null },
+        per_store: [],
+        snapshots: [],
+      });
+    }
+
+    let query = supabase
       .from("loyverse_daily_snapshots")
       .select("*")
       .gte("date", startStr)
@@ -34,6 +44,12 @@ export async function GET(request: Request) {
       .order("date", { ascending: false })
       .order("store_id", { ascending: true })
       .limit(1000);
+
+    if (guard.allowedLocationIds !== null) {
+      query = query.in("location_id", guard.allowedLocationIds);
+    }
+
+    const { data: snapshots, error } = await query;
 
     if (error) throw error;
 
@@ -80,14 +96,18 @@ export async function GET(request: Request) {
       },
     }));
 
-    // J-7 comparison for delta
+    // J-7 comparison for delta (filtered by same location scope)
     const weekAgo = new Date(end);
     weekAgo.setUTCDate(end.getUTCDate() - 7);
     const weekAgoStr = weekAgo.toISOString().slice(0, 10);
-    const { data: weekAgoRows } = await supabase
+    let weekAgoQuery = supabase
       .from("loyverse_daily_snapshots")
       .select("revenue_total")
       .eq("date", weekAgoStr);
+    if (guard.allowedLocationIds !== null) {
+      weekAgoQuery = weekAgoQuery.in("location_id", guard.allowedLocationIds);
+    }
+    const { data: weekAgoRows } = await weekAgoQuery;
 
     const weekAgoRevenue = (weekAgoRows ?? []).reduce((s, r) => s + Number(r.revenue_total ?? 0), 0);
     const deltaVsWeekAgo = weekAgoRevenue > 0 ? ((kpis.revenue_total - weekAgoRevenue) / weekAgoRevenue) * 100 : null;

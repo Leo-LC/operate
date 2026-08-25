@@ -202,7 +202,7 @@ function BarChartCA({ data }: { data: { date: string; revenue: number }[] }) {
   );
 }
 
-export function LoyverseDashboard() {
+export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const [selectedDate, setSelectedDate] = React.useState<string>(() => bangkokToday());
   const [rangeDays, setRangeDays] = React.useState<number>(1);
   const [selectedStores, setSelectedStores] = React.useState<string[]>([]);
@@ -412,10 +412,12 @@ export function LoyverseDashboard() {
         eyebrow="Operations"
         actions={
           <div className="flex items-center gap-2">
-            <Button onClick={handleSync} disabled={syncing} size="default">
-              <RefreshCwIcon className={cn("size-3.5", syncing && "animate-spin")} />
-              {syncing ? "Sync…" : "Synchroniser"}
-            </Button>
+            {canSync && (
+              <Button onClick={handleSync} disabled={syncing} size="default">
+                <RefreshCwIcon className={cn("size-3.5", syncing && "animate-spin")} />
+                {syncing ? "Sync…" : "Synchroniser"}
+              </Button>
+            )}
             {lastRun?.finished_at && (
               <span className="hidden text-xs text-[var(--fg-4)] sm:inline">
                 {lastRun.status === "completed" ? "✓" : "●"} {new Date(lastRun.finished_at).toLocaleDateString("fr-FR")} {new Date(lastRun.finished_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
@@ -618,9 +620,11 @@ export function LoyverseDashboard() {
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-sm text-[var(--fg-3)]">Pas de données pour cette période.</p>
-            <Button size="sm" variant="secondary" className="mt-3" onClick={handleSync} disabled={syncing}>
-              Synchroniser {rangeDays > 1 ? `${rangeDays}j` : selectedDate}
-            </Button>
+            {canSync && (
+              <Button size="sm" variant="secondary" className="mt-3" onClick={handleSync} disabled={syncing}>
+                Synchroniser {rangeDays > 1 ? `${rangeDays}j` : selectedDate}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

@@ -1,10 +1,10 @@
 import { getAccounts } from "@/lib/loyverse/accounts";
 import { isLoyverseConfigured } from "@/lib/loyverse/client";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
+import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 
 export async function GET() {
-  const guard = await requireLoyverseOwner();
+  const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
 
   const configured = isLoyverseConfigured();
@@ -25,10 +25,18 @@ export async function GET() {
         .maybeSingle();
       lastRun = run ?? null;
 
-      const { count } = await supabase
-        .from("loyverse_daily_snapshots")
-        .select("id", { count: "exact", head: true });
-      snapshotCount = count ?? 0;
+      if (guard.allowedLocationIds !== null && guard.allowedLocationIds.length === 0) {
+        snapshotCount = 0;
+      } else {
+        let countQuery = supabase
+          .from("loyverse_daily_snapshots")
+          .select("id", { count: "exact", head: true });
+        if (guard.allowedLocationIds !== null) {
+          countQuery = countQuery.in("location_id", guard.allowedLocationIds);
+        }
+        const { count } = await countQuery;
+        snapshotCount = count ?? 0;
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     }

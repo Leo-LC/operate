@@ -187,7 +187,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         if (dest) {
           const role = permissions.global_role;
           const allowed =
-            role === "reviewer" ? (dest === "/reviews" ? dest : null)
+            role === "reviewer" ? (dest === "/overview" || dest === "/reviews" ? dest : null)
             : role === "direction" ? (dest === "/overview" || dest === "/reports" ? dest : null)
             : dest;
           if (allowed) {
@@ -303,7 +303,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
-              if (permissions.global_role === "reviewer") return item.id === "reviews";
+              if (permissions.global_role === "reviewer") return item.id === "overview" || item.id === "reviews";
               if (permissions.global_role === "direction") return item.id === "overview" || item.id === "reports";
               if (item.id === "admin" && permissions.global_role !== "owner") return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;

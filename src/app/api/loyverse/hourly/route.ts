@@ -1,12 +1,13 @@
 import { getAccounts } from "@/lib/loyverse/accounts";
 import { isLoyverseConfigured } from "@/lib/loyverse/client";
-import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
+import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 import { loyverseFetchAll } from "@/lib/loyverse/client";
 import { dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
 import type { LoyverseReceipt } from "@/modules/loyverse-sandbox/types";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function GET(request: Request) {
-  const guard = await requireLoyverseOwner();
+  const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
   if (!isLoyverseConfigured()) return Response.json({ error: "Not configured" }, { status: 503 });
 
@@ -16,6 +17,25 @@ export async function GET(request: Request) {
   const accountKey = url.searchParams.get("account_key");
 
   if (!date || !storeId) return Response.json({ error: "date and store_id required" }, { status: 400 });
+
+  // Enforce location scope: restricted users can only query their assigned shops
+  if (guard.allowedLocationIds !== null) {
+    if (guard.allowedLocationIds.length === 0) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+    // Resolve location_id for the requested store_id and check access
+    const supabase = getSupabaseServerClient();
+    const { data: locRow } = await supabase
+      .from("locations")
+      .select("id")
+      .eq("loyverse_store_id", storeId)
+      .maybeSingle();
+    const locationId = (locRow?.id as string | undefined) ?? null;
+    // If no mapping exists, only owners/all-access should see it
+    if (!locationId || !guard.allowedLocationIds.includes(locationId)) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const accounts = getAccounts();
   const account = accountKey ? accounts.find((a) => a.key === accountKey) : accounts[0];
