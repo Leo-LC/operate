@@ -90,6 +90,8 @@ function BreakdownBar({ label, value, total, tone }: { label: string; value: num
     </div>
   );
 }
+// Keep for potential future use — suppress unused warning by referencing
+void BreakdownBar;
 
 function Donut({ data, colors }: { data: { label: string; value: number }[]; colors: string[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
