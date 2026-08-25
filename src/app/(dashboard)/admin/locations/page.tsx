@@ -8,7 +8,7 @@ import type { AdminLocation } from "@/modules/admin/types";
 export default async function AdminLocationsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
-  if (session.user.role !== "owner") redirect("/home");
+  if (!["owner", "admin"].includes(session.user.role ?? "")) redirect("/home");
 
   const supabase = getSupabaseServerClient();
   const [{ data: locations }, { data: employees }] = await Promise.all([

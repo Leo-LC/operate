@@ -305,7 +305,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             const visibleItems = group.items.filter((item) => {
               if (permissions.global_role === "reviewer") return item.id === "overview" || item.id === "reviews";
               if (permissions.global_role === "direction") return item.id === "overview" || item.id === "reports";
-              if (item.id === "admin" && permissions.global_role !== "owner") return false;
+              if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
               if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse" && permissions.global_role !== "owner") return false;

@@ -16,7 +16,7 @@ import { encryptPassword } from "@/lib/password-crypto";
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const initialResult = await supabase
@@ -43,7 +43,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: { global_role?: string; name?: string; password?: string };
   try {
@@ -103,7 +103,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   if (session.user.userId === params.id) {
     return Response.json({ error: "Cannot delete your own account" }, { status: 400 });

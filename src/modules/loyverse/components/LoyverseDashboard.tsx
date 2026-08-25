@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
+import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
 import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon } from "lucide-react";
@@ -115,7 +116,7 @@ function Donut({ data, colors }: { data: { label: string; value: number }[]; col
   );
 }
 
-function ShopSelector({
+function ShopPills({
   locations,
   selected,
   onChange,
@@ -124,42 +125,31 @@ function ShopSelector({
   selected: string[];
   onChange: (ids: string[]) => void;
 }) {
-  const [open, setOpen] = React.useState(false);
-  const label = selected.length === 0 ? "Toutes boutiques" : selected.length === 1 ? locations.find((l) => l.id === selected[0])?.name ?? "1 boutique" : `${selected.length} boutiques`;
   function toggle(id: string) {
-    onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
+    if (selected.length === 0) {
+      onChange([id]);
+      return;
+    }
+    if (selected.includes(id)) {
+      const next = selected.filter((s) => s !== id);
+      onChange(next.length === 0 ? [] : next);
+    } else {
+      onChange([...selected, id]);
+    }
   }
-  function toggleAll() {
-    onChange(selected.length === locations.length && locations.length > 0 && selected.length > 0 ? [] : locations.map((l) => l.id));
-  }
-  const allChecked = selected.length === 0 || selected.length === locations.length;
   return (
-    <div style={{ position: "relative" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 32, minWidth: 140, padding: "0 var(--s-3)", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", cursor: "pointer" }}
-      >
-        <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
-        <span style={{ fontSize: 10, color: "var(--fg-4)" }}>▼</span>
-      </button>
-      {open && (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
-          <div style={{ position: "absolute", left: 0, top: 36, zIndex: 20, minWidth: 180, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow-2)", padding: "var(--s-1)", display: "flex", flexDirection: "column", gap: 2 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px var(--s-3)", borderRadius: "var(--r-sm)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-              <input type="checkbox" checked={allChecked} onChange={toggleAll} /> Toutes boutiques
-            </label>
-            <div style={{ height: 1, background: "var(--line)", margin: "2px 0" }} />
-            {locations.map((loc) => (
-              <label key={loc.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px var(--s-3)", borderRadius: "var(--r-sm)", fontSize: 13, cursor: "pointer" }}>
-                <input type="checkbox" checked={selected.length === 0 || selected.includes(loc.id)} onChange={() => toggle(loc.id)} />
-                {loc.name}
-              </label>
-            ))}
-          </div>
-        </>
-      )}
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <PillButton active={selected.length === 0} onClick={() => onChange([])}>
+        All shops
+      </PillButton>
+      {locations.map((loc) => {
+        const active = selected.includes(loc.id);
+        return (
+          <PillButton key={loc.id} active={active} onClick={() => toggle(loc.id)}>
+            {loc.name}
+          </PillButton>
+        );
+      })}
     </div>
   );
 }
@@ -448,10 +438,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             today={bangkokToday()}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-[var(--fg-3)]">Boutiques :</span>
-          <ShopSelector locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
-          <span className="text-xs text-[var(--fg-4)]">{selectedStores.length === 0 ? "Toutes" : `${selectedStores.length} sélectionnées`} · {perStore.length} affichées</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Shops</span>
+          <ShopPills locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
         </div>
       </div>
 

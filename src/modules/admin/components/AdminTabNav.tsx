@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
-  { label: "Users", href: "/admin/users" },
-  { label: "Locations", href: "/admin/locations" },
-  { label: "Audit Logs", href: "/admin/audit-logs" },
-  { label: "Appearance", href: "/admin/appearance" },
-  { label: "Automations", href: "/admin/automations" },
-];
+const ALL_TABS = [
+  { label: "Users", href: "/admin/users", ownerOnly: false },
+  { label: "Locations", href: "/admin/locations", ownerOnly: false },
+  { label: "Audit Logs", href: "/admin/audit-logs", ownerOnly: false },
+  { label: "Appearance", href: "/admin/appearance", ownerOnly: true },
+  { label: "Automations", href: "/admin/automations", ownerOnly: true },
+] as const;
 
-export function AdminTabNav() {
+export function AdminTabNav({ isOwner = true }: { isOwner?: boolean }) {
   const pathname = usePathname();
+  const TABS = ALL_TABS.filter((t) => isOwner || !t.ownerOnly);
 
   return (
     <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--line)", marginBottom: 24 }}>

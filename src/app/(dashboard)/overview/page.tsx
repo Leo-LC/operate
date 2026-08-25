@@ -9,7 +9,8 @@ export default async function OverviewPage() {
 
   // Loyverse is now the dashboard for every authenticated user.
   // Location filtering is enforced in /api/loyverse/* via the user's location_access.
-  // Only owners can trigger a manual sync (guard still owner-only).
-  const canSync = session!.user!.role === "owner";
+  // Sync allowed for owner, admin and direction (homepage button).
+  const role = session!.user!.role ?? "";
+  const canSync = ["owner", "admin", "direction"].includes(role);
   return <LoyverseDashboard canSync={canSync} />;
 }

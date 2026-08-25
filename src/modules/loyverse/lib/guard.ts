@@ -17,6 +17,21 @@ export async function requireLoyverseOwner(): Promise<
   return { ok: true, email: session.user.email ?? "unknown" };
 }
 
+/** Sync can be triggered by owner, admin and direction (homepage button). */
+export async function requireLoyverseSync(): Promise<
+  | { ok: true; email: string }
+  | { ok: false; response: Response }
+> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  if (!["owner", "admin", "direction"].includes(session.user.role ?? "")) {
+    return { ok: false, response: Response.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+  return { ok: true, email: session.user.email ?? "unknown" };
+}
+
 /** Any authenticated user can read Loyverse; location filtering is applied at the API layer. */
 export async function requireLoyverseAccess(): Promise<
   | { ok: true; email: string; allowedLocationIds: string[] | null; isAllAccess: boolean }

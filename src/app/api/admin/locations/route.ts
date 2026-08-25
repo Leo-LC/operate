@@ -7,7 +7,7 @@ import { DEFAULT_ORG_ID } from "@/lib/constants";
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const { name, slug, external_id, is_active = true, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id } = body;

@@ -15,7 +15,7 @@ import { encryptPassword } from "@/lib/password-crypto";
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const supabase = getSupabaseServerClient();
   const { data: users, error } = await supabase
@@ -31,7 +31,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "owner") return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   let body: { email: string; name?: string; global_role?: string; password?: string };
   try {

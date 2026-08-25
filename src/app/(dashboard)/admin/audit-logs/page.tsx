@@ -8,7 +8,7 @@ import type { AuditLogEntry } from "@/modules/admin/types";
 export default async function AdminAuditLogsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
-  if (session.user.role !== "owner") redirect("/home");
+  if (!["owner", "admin"].includes(session.user.role ?? "")) redirect("/home");
 
   const supabase = getSupabaseServerClient();
   const { data } = await supabase

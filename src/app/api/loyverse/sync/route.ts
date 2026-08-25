@@ -1,10 +1,10 @@
 import { getAccounts } from "@/lib/loyverse/accounts";
 import { isLoyverseConfigured, LoyverseApiError } from "@/lib/loyverse/client";
-import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
+import { requireLoyverseSync } from "@/modules/loyverse/lib/guard";
 import { syncAllLoyverse } from "@/modules/loyverse/lib/sync";
 
 export async function POST(request: Request) {
-  const guard = await requireLoyverseOwner();
+  const guard = await requireLoyverseSync();
   if (!guard.ok) return guard.response;
 
   if (!isLoyverseConfigured()) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const guard = await requireLoyverseOwner();
+  const guard = await requireLoyverseSync();
   if (!guard.ok) return guard.response;
 
   const url = new URL(request.url);
