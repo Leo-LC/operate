@@ -711,3 +711,4 @@ export function LoyverseDashboard() {
     </div>
   );
 }
+// 9 fixes: sync 30j incremental, selectors left, KPIs merch/snacks, CA cumulé, hourly, donuts
