@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, ReceiptIcon } from "lucide-react";
+import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon } from "lucide-react";
 import { Sparkline } from "@/components/ui/sparkline";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
 
@@ -54,7 +54,7 @@ type DashboardData = {
   date_range: { start: string; end: string; days: number };
   kpis: DashboardKpis;
   per_store: PerStore[];
-  snapshots: Array<{ date: string; revenue_total: number; account_key: string; store_id: string } & Record<string, unknown>>;
+  snapshots: Array<{ date: string; revenue_total: number; account_key: string; store_id: string; vat_7?: number; ticket_count?: number; receipt_count?: number; snacks_sold?: number; location_id?: string | null; sales_drinks_net?: number; sales_ticket_net?: number; sales_snack_net?: number; sales_goodies_net?: number; sales_card_surcharge?: number; payment_cash?: number; payment_scan?: number; payment_credit_card?: number } & Record<string, unknown>>;
 };
 type StatusData = {
   configured: boolean;
@@ -74,8 +74,6 @@ type StatusData = {
   snapshot_count: number;
   error: string | null;
 };
-
-
 
 function Donut({ data, colors }: { data: { label: string; value: number }[]; colors: string[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -126,14 +124,14 @@ function ShopSelector({
   onChange: (ids: string[]) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const allSelected = selected.length === locations.length && locations.length > 0;
-  const label = allSelected ? "Toutes boutiques" : selected.length === 0 ? "Toutes boutiques" : selected.length === 1 ? locations.find((l) => l.id === selected[0])?.name ?? "1 boutique" : `${selected.length} boutiques`;
+  const label = selected.length === 0 ? "Toutes boutiques" : selected.length === 1 ? locations.find((l) => l.id === selected[0])?.name ?? "1 boutique" : `${selected.length} boutiques`;
   function toggle(id: string) {
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
   }
   function toggleAll() {
-    onChange(allSelected ? [] : locations.map((l) => l.id));
+    onChange(selected.length === locations.length && locations.length > 0 && selected.length > 0 ? [] : locations.map((l) => l.id));
   }
+  const allChecked = selected.length === 0 || selected.length === locations.length;
   return (
     <div style={{ position: "relative" }}>
       <button
@@ -149,12 +147,12 @@ function ShopSelector({
           <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
           <div style={{ position: "absolute", left: 0, top: 36, zIndex: 20, minWidth: 180, borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow-2)", padding: "var(--s-1)", display: "flex", flexDirection: "column", gap: 2 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px var(--s-3)", borderRadius: "var(--r-sm)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-              <input type="checkbox" checked={allSelected || selected.length === 0} onChange={toggleAll} /> Toutes boutiques
+              <input type="checkbox" checked={allChecked} onChange={toggleAll} /> Toutes boutiques
             </label>
             <div style={{ height: 1, background: "var(--line)", margin: "2px 0" }} />
             {locations.map((loc) => (
               <label key={loc.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px var(--s-3)", borderRadius: "var(--r-sm)", fontSize: 13, cursor: "pointer" }}>
-                <input type="checkbox" checked={selected.includes(loc.id) || selected.length === 0} onChange={() => toggle(loc.id)} />
+                <input type="checkbox" checked={selected.length === 0 || selected.includes(loc.id)} onChange={() => toggle(loc.id)} />
                 {loc.name}
               </label>
             ))}
@@ -295,11 +293,11 @@ export function LoyverseDashboard() {
     }
   };
 
-  const allStores = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
+  const allStoresRaw = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
   const shopLocations = React.useMemo(() => {
     const map = new Map<string, string>();
-    for (const s of allStores) {
-      const label = s.location_id ? `${s.account_key}` : `${s.account_key} (${s.store_id.slice(0, 6)})`;
+    for (const s of allStoresRaw) {
+      const label = s.account_key;
       map.set(s.store_id, label);
     }
     for (const a of status?.accounts ?? []) {
@@ -307,16 +305,64 @@ export function LoyverseDashboard() {
       if (!hasStore) map.set(a.key, a.label);
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [allStores, status]);
+  }, [allStoresRaw, status]);
+
+  // Aggregation correcte pour multi-jours : group snapshots par store
+  const aggregatedStores = React.useMemo(() => {
+    if (rangeDays === 1) return allStoresRaw;
+    const snaps = (data?.snapshots ?? []) as Array<PerStore & { date: string }>;
+    const byStore = new Map<string, PerStore>();
+    for (const s of snaps as unknown as PerStore[]) {
+      const key = s.store_id;
+      const existing = byStore.get(key);
+      if (!existing) {
+        byStore.set(key, { ...s, buckets: { ...s.buckets }, payments: { ...s.payments }, unmapped: { ...s.unmapped } });
+      } else {
+        existing.revenue_total += s.revenue_total;
+        existing.ticket_count += s.ticket_count;
+        existing.receipt_count += s.receipt_count;
+        existing.snacks_sold += s.snacks_sold;
+        existing.buckets.drinks += s.buckets.drinks;
+        existing.buckets.ticket += s.buckets.ticket;
+        existing.buckets.snack += s.buckets.snack;
+        existing.buckets.goodies += s.buckets.goodies;
+        existing.buckets.surcharge += s.buckets.surcharge;
+        existing.payments.cash += s.payments.cash;
+        existing.payments.scan += s.payments.scan;
+        existing.payments.credit_card += s.payments.credit_card;
+        existing.unmapped.line_items += s.unmapped.line_items;
+        existing.unmapped.payments += s.unmapped.payments;
+      }
+    }
+    // Recalc avg_ticket
+    for (const v of Array.from(byStore.values())) v.avg_ticket = v.ticket_count > 0 ? v.revenue_total / v.ticket_count : 0;
+    return Array.from(byStore.values());
+  }, [allStoresRaw, data, rangeDays]);
 
   const perStore = React.useMemo(() => {
-    if (selectedStores.length === 0) return allStores;
-    return allStores.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
-  }, [selectedStores, allStores]);
+    if (selectedStores.length === 0) return aggregatedStores;
+    return aggregatedStores.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
+  }, [selectedStores, aggregatedStores]);
 
   const filteredKpis = React.useMemo(() => {
     const kpis = data?.kpis ?? null;
     if (selectedStores.length === 0 || !data) return kpis;
+    if (rangeDays > 1) {
+      const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
+      const vat = (data.snapshots ?? [])
+        .filter((x) => selectedStores.length === 0 || selectedStores.includes((x as unknown as PerStore).store_id) || selectedStores.includes((x as unknown as PerStore).account_key))
+        .reduce((a, b) => a + Number((b as unknown as { vat_7?: number }).vat_7 ?? 0), 0);
+      return {
+        revenue_total: rev,
+        vat_7: vat || kpis!.vat_7,
+        ticket_count: perStore.reduce((s, r) => s + r.ticket_count, 0),
+        receipt_count: perStore.reduce((s, r) => s + r.receipt_count, 0),
+        snacks_sold: perStore.reduce((s, r) => s + r.snacks_sold, 0),
+        store_count: perStore.length,
+        avg_ticket: perStore.length ? rev / Math.max(1, perStore.reduce((s, r) => s + r.ticket_count, 0)) : 0,
+        delta_vs_week_ago_pct: kpis?.delta_vs_week_ago_pct ?? null,
+      } as DashboardKpis;
+    }
     const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
     return kpis
       ? {
@@ -360,50 +406,51 @@ export function LoyverseDashboard() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Loyverse"
-        subtitle="Synchroniser charge les ventes (30j initial puis incrémental) ; date/boutique affichent la période déjà chargée."
+        subtitle="Daily sales — synchronisation et affichage séparés"
         eyebrow="Operations"
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-1">
-              <button onClick={() => setRangeDays(1)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 1 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>Jour</button>
-              <button onClick={() => setRangeDays(7)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 7 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>7j</button>
-              <button onClick={() => setRangeDays(30)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 30 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>30j</button>
-            </div>
-            <DateRangePicker
-              value={dateRangeValue}
-              onChange={(range) => {
-                setSelectedDate(range.from);
-                const d1 = new Date(range.from);
-                const d2 = new Date(range.to);
-                const diff = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
-                setRangeDays(diff);
-              }}
-              today={bangkokToday()}
-            />
-            <ShopSelector
-              locations={shopLocations}
-              selected={selectedStores}
-              onChange={setSelectedStores}
-            />
-            <Button onClick={handleSync} disabled={syncing} size="default" title="Charge les ventes depuis Loyverse (incrémental, 30j au premier sync)">
+          <div className="flex items-center gap-2">
+            <Button onClick={handleSync} disabled={syncing} size="default">
               <RefreshCwIcon className={cn("size-3.5", syncing && "animate-spin")} />
               {syncing ? "Sync…" : "Synchroniser"}
             </Button>
+            {lastRun?.finished_at && (
+              <span className="hidden text-xs text-[var(--fg-4)] sm:inline">
+                {lastRun.status === "completed" ? "✓" : "●"} {new Date(lastRun.finished_at).toLocaleDateString("fr-FR")} {new Date(lastRun.finished_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
           </div>
         }
       />
 
-      {lastRun && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <Pill tone={hasSyncErrors ? "warn" : lastRun.status === "completed" ? "good" : "neutral"} dot size="sm">
-            {lastRun.status} · {lastRun.triggered_by} · {lastRun.finished_at ? new Date(lastRun.finished_at).toLocaleString("fr-FR") : "en cours"}
-          </Pill>
-          <span className="text-[var(--fg-4)]">
-            {status?.snapshot_count ?? 0} snapshots · {status?.account_count ?? 0} comptes · affiché {selectedStores.length === 0 ? "tout" : `${selectedStores.length} filtrés`} · {rangeDays}j
-          </span>
-          {hasSyncErrors && <span className="text-[var(--warn)]">Certains comptes ont échoué — voir détails par shop</span>}
+      {/* Sélecteurs à gauche sous Operations/Loyverse */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-[var(--fg-3)]">Période :</span>
+          <div className="flex items-center gap-1 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-1">
+            <button onClick={() => setRangeDays(1)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 1 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>Jour</button>
+            <button onClick={() => setRangeDays(7)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 7 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>7j</button>
+            <button onClick={() => setRangeDays(30)} className={cn("rounded px-2 py-1 text-xs font-medium", rangeDays === 30 ? "bg-[var(--fg)] text-white" : "text-[var(--fg-3)]")}>30j</button>
+          </div>
+          <DateRangePicker
+            value={dateRangeValue}
+            onChange={(range) => {
+              setSelectedDate(range.from);
+              const d1 = new Date(range.from);
+              const d2 = new Date(range.to);
+              const diff = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
+              setRangeDays(diff);
+            }}
+            today={bangkokToday()}
+          />
         </div>
-      )}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-[var(--fg-3)]">Boutiques :</span>
+          <ShopSelector locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
+          <span className="text-xs text-[var(--fg-4)]">{selectedStores.length === 0 ? "Toutes" : `${selectedStores.length} sélectionnées`} · {perStore.length} affichées</span>
+        </div>
+      </div>
+
       {syncError && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{syncError}</div>}
       {error && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
 
@@ -425,9 +472,9 @@ export function LoyverseDashboard() {
               <Stat
                 label="CA"
                 value={fmtTHB(filteredKpis.revenue_total)}
-                delta={fmtDelta(filteredKpis.delta_vs_week_ago_pct) ?? undefined}
+                delta={rangeDays === 1 ? fmtDelta(filteredKpis.delta_vs_week_ago_pct) ?? undefined : undefined}
                 deltaDir={filteredKpis.delta_vs_week_ago_pct !== null && filteredKpis.delta_vs_week_ago_pct >= 0 ? "up" : filteredKpis.delta_vs_week_ago_pct !== null ? "down" : "neutral"}
-                hint={`${rangeDays > 1 ? `${rangeDays}j cumulé` : fmtInt(filteredKpis.receipt_count) + " tickets"} · HT ${fmtTHB(Math.max(0, filteredKpis.revenue_total - filteredKpis.vat_7))}`}
+                hint={rangeDays > 1 ? `${rangeDays}j` : `${fmtInt(filteredKpis.receipt_count)} tickets`}
                 icon={<TrendingUpIcon className="size-4" />}
                 iconColor="var(--bronze)"
                 sparkline={curveData ? <Sparkline data={curveData} color="var(--bronze)" width={64} height={20} /> : undefined}
@@ -439,7 +486,7 @@ export function LoyverseDashboard() {
               <Stat
                 label="Clients"
                 value={fmtInt(filteredKpis.ticket_count)}
-                hint={`Billets vendus (cat. Tickets) · ${fmtInt(filteredKpis.receipt_count)} reçus`}
+                hint={`${fmtInt(filteredKpis.receipt_count)} reçus`}
                 icon={<UsersIcon className="size-4" />}
                 iconColor="var(--info)"
               />
@@ -448,10 +495,10 @@ export function LoyverseDashboard() {
           <Card>
             <CardContent>
               <Stat
-                label="TVA 7%"
-                value={fmtTHB(filteredKpis.vat_7)}
-                hint={`${((filteredKpis.vat_7 / Math.max(1, filteredKpis.revenue_total)) * 100).toFixed(1)}% du CA`}
-                icon={<ReceiptIcon className="size-4" />}
+                label="Merch"
+                value={fmtTHB(perStore.reduce((s, r) => s + r.buckets.goodies, 0))}
+                hint={`${((perStore.reduce((s, r) => s + r.buckets.goodies, 0) / Math.max(1, filteredKpis.revenue_total)) * 100).toFixed(1)}% du CA`}
+                icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--warn)"
               />
             </CardContent>
@@ -459,9 +506,9 @@ export function LoyverseDashboard() {
           <Card>
             <CardContent>
               <Stat
-                label="CB encaissé"
-                value={fmtTHB(perStore.reduce((s, r) => s + r.payments.credit_card, 0))}
-                hint={`dont ${fmtTHB(perStore.reduce((s, r) => s + r.buckets.surcharge, 0))} frais bancaires (3%)`}
+                label="Snacks"
+                value={`${fmtInt(filteredKpis.snacks_sold)} · ${fmtTHB(perStore.reduce((s, r) => s + r.buckets.snack, 0))}`}
+                hint={`${((filteredKpis.snacks_sold / Math.max(1, filteredKpis.ticket_count)) * 100).toFixed(0)}% clients`}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--good)"
               />
@@ -477,7 +524,6 @@ export function LoyverseDashboard() {
               <ClockIcon className="size-4" />
               Ventes par heure — {selectedDate}
             </CardTitle>
-            <p className="text-xs text-[var(--fg-4)]">Comme le backoffice Loyverse (heure Bangkok)</p>
           </CardHeader>
           <CardContent>
             {hourlyLoading ? (
@@ -492,28 +538,84 @@ export function LoyverseDashboard() {
       {!loading && rangeDays > 1 && curveData && curveData.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>CA par jour — {rangeDays} jours cumulés {fmtTHB(filteredKpis?.revenue_total ?? 0)}</CardTitle>
-            <p className="text-xs text-[var(--fg-4)]">Chaque barre = 1 jour</p>
+            <CardTitle>CA par jour — {rangeDays}j</CardTitle>
           </CardHeader>
           <CardContent>
-            <BarChartCA data={(() => {
-              const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string }>;
-              const byDate = new Map<string, number>();
-              for (const s of snaps) {
-                if (selectedStores.length > 0 && !selectedStores.includes(s.store_id) && !selectedStores.includes(s.account_key)) continue;
-                byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
-              }
-              return Array.from(byDate.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([date,revenue])=>({date,revenue}));
-            })()} />
+            <BarChartCA
+              data={(() => {
+                const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string }>;
+                const byDate = new Map<string, number>();
+                for (const s of snaps) {
+                  if (selectedStores.length > 0 && !selectedStores.includes(s.store_id) && !selectedStores.includes(s.account_key)) continue;
+                  byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
+                }
+                return Array.from(byDate.entries())
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([date, revenue]) => ({ date, revenue }));
+              })()}
+            />
           </CardContent>
         </Card>
+      )}
+
+      {/* Buckets + CA par shop au-dessus des cartes */}
+      {!loading && perStore.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Buckets vente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Donut
+                data={[
+                  { label: "Drinks", value: perStore.reduce((s, r) => s + r.buckets.drinks, 0) },
+                  { label: "Ticket", value: perStore.reduce((s, r) => s + r.buckets.ticket, 0) },
+                  { label: "Snacks", value: perStore.reduce((s, r) => s + r.buckets.snack, 0) },
+                  { label: "Goodies", value: perStore.reduce((s, r) => s + r.buckets.goodies, 0) },
+                  { label: "Surcharge", value: perStore.reduce((s, r) => s + r.buckets.surcharge, 0) },
+                ].filter((d) => d.value > 0)}
+                colors={["var(--bronze)", "var(--info)", "var(--good)", "var(--warn)", "var(--fg-4)"]}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Mix paiements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Donut
+                data={[
+                  { label: "Cash", value: perStore.reduce((s, r) => s + r.payments.cash, 0) },
+                  { label: "Scan/QR", value: perStore.reduce((s, r) => s + r.payments.scan, 0) },
+                  { label: "Card", value: perStore.reduce((s, r) => s + r.payments.credit_card, 0) },
+                ].filter((d) => d.value > 0)}
+                colors={["var(--good)", "var(--info)", "var(--bronze)"]}
+              />
+              <p className="mt-2 text-center text-xs text-[var(--fg-4)]">
+                Card dont {fmtTHB(perStore.reduce((s, r) => s + r.buckets.surcharge, 0))} frais (3%)
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>CA par boutique</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Donut
+                data={perStore
+                  .map((s) => ({ label: s.account_key, value: s.revenue_total }))
+                  .sort((a, b) => b.value - a.value)}
+                colors={["var(--bronze)", "var(--info)", "var(--good)", "var(--warn)", "var(--purple)", "var(--bad)", "var(--fg-4)", "var(--fg-3)"]}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {!loading && perStore.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm text-[var(--fg-3)]">Pas de données pour {selectedDate} ({rangeDays}j) {selectedStores.length > 0 ? "— shop filtré a 0 snapshot" : ""}.</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Clique <strong>Synchroniser</strong> pour charger cette période.</p>
+            <p className="text-sm text-[var(--fg-3)]">Pas de données pour cette période.</p>
             <Button size="sm" variant="secondary" className="mt-3" onClick={handleSync} disabled={syncing}>
               Synchroniser {rangeDays > 1 ? `${rangeDays}j` : selectedDate}
             </Button>
@@ -526,10 +628,7 @@ export function LoyverseDashboard() {
             const isDegraded = Boolean(failingAccount || store.unmapped.line_items > 0 || store.unmapped.payments > 0);
             const bucketMax = Math.max(store.buckets.drinks, store.buckets.ticket, store.buckets.snack, store.buckets.goodies, store.buckets.surcharge, 1);
             return (
-              <Card
-                key={`${store.account_key}-${store.store_id}-${store.date}`}
-                className={cn("overflow-hidden", isDegraded && "border-[var(--warn)]/40")}
-              >
+              <Card key={`${store.account_key}-${store.store_id}-${store.date}`} className={cn("overflow-hidden", isDegraded && "border-[var(--warn)]/40")}>
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--bg-2)] px-4 py-2.5">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex size-7 items-center justify-center rounded-full bg-[var(--bronze-soft)] text-[10px] font-bold text-[var(--bronze)]">
@@ -537,12 +636,14 @@ export function LoyverseDashboard() {
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold text-[var(--fg)]">{store.account_key}</p>
-                      <p className="truncate text-[11px] text-[var(--fg-4)]">{store.store_id.slice(0, 8)} · {store.location_id ? "mappé" : "non mappé"}</p>
+                      <p className="truncate text-[11px] text-[var(--fg-4)]">{rangeDays > 1 ? `${rangeDays}j cumulés` : store.date}</p>
                     </div>
                   </div>
-                  <Pill tone={isDegraded ? "warn" : "good"} size="sm" dot>
-                    {isDegraded ? "À vérifier" : "OK"}
-                  </Pill>
+                  {isDegraded && (
+                    <Pill tone="warn" size="sm" dot>
+                      À vérifier
+                    </Pill>
+                  )}
                 </div>
 
                 <CardContent className="space-y-3 pt-3">
@@ -560,7 +661,6 @@ export function LoyverseDashboard() {
                     <div className="text-center">
                       <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Panier</p>
                       <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtTHB(store.avg_ticket)}</p>
-                      <p className="text-[10px] text-[var(--fg-4)]">TVA {fmtTHB(store.buckets.surcharge > 0 ? store.revenue_total * 0.07 : 0)}</p>
                     </div>
                   </div>
 
@@ -594,16 +694,11 @@ export function LoyverseDashboard() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bronze-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--bronze)]">
                       Card {fmtTHB(store.payments.credit_card)}
                       {store.buckets.surcharge > 0 && (
-                        <span className="ml-1 rounded-full bg-white/70 px-1 py-0 text-[10px] leading-none">+{fmtTHB(store.buckets.surcharge)} frais</span>
+                        <span className="ml-1 rounded-full bg-white/70 px-1 py-0 text-[10px] leading-none">dont {fmtTHB(store.buckets.surcharge)} frais</span>
                       )}
                     </span>
                   </div>
 
-                  {(store.unmapped.line_items > 0 || store.unmapped.payments > 0) && (
-                    <p className="rounded bg-[var(--warn-soft)] px-2 py-1 text-xs text-[var(--warn)]">
-                      Non mappé: {store.unmapped.line_items} lignes · {store.unmapped.payments} paiements → onglet Unmapped
-                    </p>
-                  )}
                   {failingAccount?.error && (
                     <p className="rounded bg-[var(--bad-soft)] px-2 py-1 text-xs text-[var(--bad)]">{failingAccount.error.slice(0, 120)}</p>
                   )}
@@ -611,45 +706,6 @@ export function LoyverseDashboard() {
               </Card>
             );
           })}
-        </div>
-      )}
-
-      {!loading && perStore.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Buckets vente</CardTitle>
-              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(perStore.reduce((s, r) => s + r.buckets.drinks + r.buckets.ticket + r.buckets.snack + r.buckets.goodies + r.buckets.surcharge, 0))} {selectedStores.length > 0 ? "(filtré)" : ""}</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Donut
-                data={[
-                  { label: "Drinks", value: perStore.reduce((s, r) => s + r.buckets.drinks, 0) },
-                  { label: "Ticket", value: perStore.reduce((s, r) => s + r.buckets.ticket, 0) },
-                  { label: "Snacks", value: perStore.reduce((s, r) => s + r.buckets.snack, 0) },
-                  { label: "Goodies", value: perStore.reduce((s, r) => s + r.buckets.goodies, 0) },
-                  { label: "Surcharge", value: perStore.reduce((s, r) => s + r.buckets.surcharge, 0) },
-                ].filter((d) => d.value > 0)}
-                colors={["var(--bronze)", "var(--info)", "var(--good)", "var(--warn)", "var(--fg-4)"]}
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Mix paiements</CardTitle>
-              <p className="text-xs text-[var(--fg-4)]">{selectedDate} · total {fmtTHB(perStore.reduce((s, r) => s + r.payments.cash + r.payments.scan + r.payments.credit_card, 0))} {selectedStores.length > 0 ? "(filtré)" : ""}</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Donut
-                data={[
-                  { label: "Cash", value: perStore.reduce((s, r) => s + r.payments.cash, 0) },
-                  { label: "Scan/QR", value: perStore.reduce((s, r) => s + r.payments.scan, 0) },
-                  { label: "Card", value: perStore.reduce((s, r) => s + r.payments.credit_card, 0) },
-                ].filter((d) => d.value > 0)}
-                colors={["var(--good)", "var(--info)", "var(--bronze)"]}
-              />
-            </CardContent>
-          </Card>
         </div>
       )}
     </div>
