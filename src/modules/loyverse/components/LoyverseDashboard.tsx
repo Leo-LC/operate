@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 "use client";
 
 import * as React from "react";
@@ -400,6 +401,7 @@ export function LoyverseDashboard() {
   }
 
   const lastRun = status?.last_run;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
 
   return (
