@@ -64,10 +64,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Operations",
-    items: [{ id: "animals", label: "Animals", href: "/animals", icon: PawPrintIcon, module: "animals" }],
-  },
-  {
     label: "Performance",
     items: [
       { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
@@ -80,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Compliance",
     items: [
       { id: "documents", label: "Documents", href: "/documents", icon: FileTextIcon, module: "documents" },
+      { id: "animals", label: "Animals", href: "/animals", icon: PawPrintIcon, module: "animals" },
     ],
   },
   {
