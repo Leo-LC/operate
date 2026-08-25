@@ -75,23 +75,7 @@ type StatusData = {
   error: string | null;
 };
 
-function BreakdownBar({ label, value, total, tone }: { label: string; value: number; total: number; tone: string }) {
-  const pct = total > 0 ? (value / total) * 100 : 0;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-16 shrink-0 text-[11px] font-medium text-[var(--fg-3)]">{label}</span>
-      <div className="flex-1">
-        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--line-2)]">
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: tone }} />
-        </div>
-      </div>
-      <span className="w-20 shrink-0 text-right font-mono text-[11px] tabular-nums text-[var(--fg-2)]">{fmtTHB(value)}</span>
-      <span className="w-10 shrink-0 text-right font-mono text-[11px] tabular-nums text-[var(--fg-4)]">{pct.toFixed(0)}%</span>
-    </div>
-  );
-}
-// Keep for potential future use — suppress unused warning by referencing
-void BreakdownBar;
+
 
 function Donut({ data, colors }: { data: { label: string; value: number }[]; colors: string[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -370,26 +354,6 @@ export function LoyverseDashboard() {
   }
 
   const lastRun = status?.last_run;
-  const totalBuckets = perStore.reduce(
-    (acc, s) => ({
-      drinks: acc.drinks + s.buckets.drinks,
-      ticket: acc.ticket + s.buckets.ticket,
-      snack: acc.snack + s.buckets.snack,
-      goodies: acc.goodies + s.buckets.goodies,
-      surcharge: acc.surcharge + s.buckets.surcharge,
-    }),
-    { drinks: 0, ticket: 0, snack: 0, goodies: 0, surcharge: 0 },
-  );
-  const bucketsTotal = totalBuckets.drinks + totalBuckets.ticket + totalBuckets.snack + totalBuckets.goodies + totalBuckets.surcharge;
-  const totalPayments = perStore.reduce(
-    (acc, s) => ({
-      cash: acc.cash + s.payments.cash,
-      scan: acc.scan + s.payments.scan,
-      credit_card: acc.credit_card + s.payments.credit_card,
-    }),
-    { cash: 0, scan: 0, credit_card: 0 },
-  );
-  const paymentsTotal = totalPayments.cash + totalPayments.scan + totalPayments.credit_card;
   const hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
 
   return (
