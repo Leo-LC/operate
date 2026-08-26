@@ -212,7 +212,7 @@ function RecognitionVisualDisplay({
       );
     case "dual":
       return (
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {[visual.left, visual.right].map((stat) => (
             <div
               key={stat.label}
@@ -384,7 +384,7 @@ function SpotlightHero({
         <div className="space-y-4 p-5">
           <div className="h-8 w-48 animate-pulse rounded bg-[var(--bg-2)]" />
           <div className="h-3 w-full animate-pulse rounded bg-[var(--bg-2)]" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="h-24 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
             ))}

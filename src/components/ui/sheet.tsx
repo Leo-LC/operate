@@ -32,7 +32,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
         "data-ending-style:opacity-0 data-starting-style:opacity-0",
         className
       )}
-      style={{ background: "rgba(43,35,27,0.28)", backdropFilter: "blur(1px)", transitionDuration: "var(--dur-2)" }}
+      style={{ background: "var(--overlay-soft)", backdropFilter: "blur(1px)", transitionDuration: "var(--dur-2)" }}
       {...props}
     />
   )

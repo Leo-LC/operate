@@ -74,6 +74,9 @@
     --line-2:      rgba(43, 35, 27, 0.06);
     --line-strong: rgba(43, 35, 27, 0.18);
     --focus-ring:  rgba(176, 135, 90, 0.42);
+    --overlay:     rgba(43, 35, 27, 0.45);
+    --overlay-soft: rgba(43, 35, 27, 0.28);
+    --overlay-strong: rgba(43, 35, 27, 0.55);
 
     /* ── Design tokens: semantic surfaces ── */
     --bg:          var(--sand);
@@ -220,6 +223,9 @@
     --line-2:      rgba(240, 231, 213, 0.04);
     --line-strong: rgba(240, 231, 213, 0.14);
     --focus-ring:  rgba(212, 169, 115, 0.45);
+    --overlay:     rgba(0, 0, 0, 0.45);
+    --overlay-soft: rgba(0, 0, 0, 0.32);
+    --overlay-strong: rgba(0, 0, 0, 0.55);
 
     /* ── Design tokens: semantic dark ── */
     --row-hover:  rgba(212, 169, 115, 0.08);

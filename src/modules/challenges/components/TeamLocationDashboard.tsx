@@ -87,7 +87,7 @@ function AdviceCard({ metric }: { metric: TeamMetricRow }) {
         </p>
       </div>
 
-      <div className="mb-2 grid grid-cols-2 gap-2">
+      <div className="mb-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Current</p>
           <p className={`mt-0.5 font-mono text-sm font-bold tabular-nums leading-none ${statusTextColor(metric.currentPasses)}`}>
@@ -156,7 +156,7 @@ export function TeamLocationDashboard({
     return (
       <div className="animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-5">
         <div className="mb-4 h-7 w-40 rounded bg-[var(--bg-2)]" />
-        <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="h-20 rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
           <div className="h-20 rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
         </div>
@@ -294,7 +294,7 @@ export function TeamLocationDashboard({
         <h3 className="mb-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-4)]">
           General advice
         </h3>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {metrics.map((m) => (
             <AdviceCard key={m.id} metric={m} />
           ))}

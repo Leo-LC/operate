@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import localFont from "next/font/local";
 import { JetBrains_Mono } from "next/font/google";
@@ -45,6 +45,12 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Operate",
   description: "Internal operations platform",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({

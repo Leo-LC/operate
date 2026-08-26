@@ -426,7 +426,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           style={{
             position: "fixed", inset: 0, zIndex: 50,
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
             padding: "0 var(--s-4)",
           }}
           onKeyDown={(e) => { if (e.key === "Escape") setDupTarget(null); }}
@@ -474,7 +474,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           style={{
             position: "fixed", inset: 0, zIndex: 50,
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
             padding: "0 var(--s-4)",
           }}
           onKeyDown={(e) => { if (e.key === "Escape") setDeleteTarget(null); }}

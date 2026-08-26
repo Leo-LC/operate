@@ -23,32 +23,21 @@ export function Modal({
   footer,
   width = 560,
 }: ModalProps) {
-  /* Esc key — base-ui handles it via the Dialog primitive,
-     but we wire it here too for nested usage. */
-  React.useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [open, onClose])
-
   return (
     <ModalPrimitive.Root open={open} onOpenChange={(v) => { if (!v) onClose() }}>
       <ModalPrimitive.Portal>
         <ModalPrimitive.Backdrop
           className="fixed inset-0 z-50 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0"
           style={{
-            background: "rgba(43,35,27,0.45)",
+            background: "var(--overlay)",
             backdropFilter: "blur(2px)",
             transitionDuration: "var(--dur-2)",
           }}
         />
         <ModalPrimitive.Popup
-          className="fixed inset-0 z-50 m-auto flex max-h-[90vh] w-full flex-col data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95"
+          className="fixed inset-0 z-50 m-auto flex max-h-[90vh] w-full max-w-[92vw] flex-col data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95"
           style={{
-            maxWidth: width,
+            maxWidth: `min(${width}px, 92vw)`,
             background: "var(--surface)",
             border: "1px solid var(--line)",
             borderRadius: "var(--r-lg)",

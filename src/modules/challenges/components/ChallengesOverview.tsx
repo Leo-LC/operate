@@ -720,7 +720,7 @@ function LocationCard({
           const entryInit   = p === 1 ? loc.entryCountP1 : p === 2 ? loc.entryCountP2 : loc.entryCountP3;
           const snacksInit  = p === 1 ? loc.snacksSoldP1 : p === 2 ? loc.snacksSoldP2 : loc.snacksSoldP3;
           return (
-            <div key={p} className="grid grid-cols-2 gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0">
+            <div key={p} className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0">
               <InlineNumberInput
                 label={entryLabel}
                 locationId={loc.locationId}
@@ -943,7 +943,7 @@ export function ChallengesOverview({
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]" />
             ))}
@@ -960,7 +960,7 @@ export function ChallengesOverview({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3 items-stretch">
           {locations.map((loc) => (
             <LocationCard
               key={loc.locationId}

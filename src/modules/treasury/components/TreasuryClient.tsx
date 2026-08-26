@@ -363,7 +363,7 @@ export function TreasuryClient() {
       />
 
       {/* Top summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Cash in shops",        value: totalCash,             color: "var(--fg)" },
           { label: "Bank balance declared", value: totalBank,             color: "var(--fg)" },

@@ -697,7 +697,7 @@ function OperationsView({ data }: { data: AccountingData }) {
       </div>
 
       {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard
           label="Total Sales Net"
           value={`฿${fmtN(o.revenue)}`}
@@ -751,7 +751,7 @@ function OperationsView({ data }: { data: AccountingData }) {
       </div>
 
       {/* Revenue Mix + Cost Drivers */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
           <SectionHeader label="Revenue Mix" bg="var(--good-soft)" color="var(--good)" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
@@ -782,7 +782,7 @@ function OperationsView({ data }: { data: AccountingData }) {
       </div>
 
       {/* HR Breakdown + Needs Action */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
           <SectionHeader label="HR Breakdown" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
@@ -834,10 +834,10 @@ function OperationsView({ data }: { data: AccountingData }) {
       </div>
 
       {/* Daily Rhythm + Management Notes */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
           <SectionHeader label="Daily Rhythm" bg="var(--bg-2)" color="var(--fg-3)" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
-          <div style={{ padding: "var(--s-4) var(--s-5)", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--s-4)" }}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ padding: "var(--s-4) var(--s-5)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Avg / Day</span>
               <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>฿{fmtN(avgPerDay)}</span>
@@ -903,7 +903,7 @@ function OperationsView({ data }: { data: AccountingData }) {
       </Card>
 
       {/* Monthly Expenses + HR Ratios & Pending */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
           <SectionHeader label="Monthly Expenses" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ overflowX: "auto" }}>
@@ -1568,7 +1568,7 @@ function TreasuryView({ data }: { data: AccountingData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       {/* 3 large KPI tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-4)" }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           style={{
             borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
@@ -1717,7 +1717,7 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
       {/* Top / bottom callouts */}
       {sortedShops.length >= 2 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-4)" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {top && (
             <div
               style={{

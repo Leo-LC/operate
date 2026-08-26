@@ -19,18 +19,18 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-4 pb-6",
+        "flex flex-wrap items-start justify-between gap-4 pb-6",
         className,
       )}
       {...props}
     >
-      <div className="flex flex-col gap-0.5 min-w-0">
+      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
         {eyebrow && (
           <span className="eyebrow mb-1">{eyebrow}</span>
         )}
         <h1
           style={{
-            fontSize: "var(--t-28)",
+            fontSize: "clamp(22px, 4vw, 28px)",
             fontWeight: 500,
             color: "var(--fg)",
             lineHeight: 1.2,
@@ -52,7 +52,7 @@ export function PageHeader({
         )}
       </div>
       {actions && (
-        <div className="flex items-center gap-2 shrink-0 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-0.5 w-full md:w-auto">
           {actions}
         </div>
       )}

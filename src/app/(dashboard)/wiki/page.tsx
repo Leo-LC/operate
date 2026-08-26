@@ -46,7 +46,7 @@ export default function WikiIndexPage() {
               </div>
 
               {/* Article grid */}
-              <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(2, 1fr)" }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2" style={{ gap: 8 }}>
                 {articles.map((article) => (
                   <WikiArticleCard key={article.slug} article={article} formatDate={formatDate} />
                 ))}
@@ -75,8 +75,8 @@ function WikiArticleCard({ article, formatDate }: { article: (typeof WIKI_ARTICL
         textDecoration: "none",
         transition: "border-color 150ms, box-shadow 150ms",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--bronze)"; e.currentTarget.style.boxShadow = "var(--shadow-1)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.boxShadow = "none"; }}
+      onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = "var(--bronze)"; e.currentTarget.style.boxShadow = "var(--shadow-1)"; }}
+      onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       <div style={{ minWidth: 0, flex: 1 }}>
         <p style={{ fontWeight: 500, color: "var(--fg)", lineHeight: 1.3, margin: 0 }}>

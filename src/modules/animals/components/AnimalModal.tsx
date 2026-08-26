@@ -504,7 +504,7 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
           style={{
             position: "fixed", inset: 0, zIndex: 60,
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)",
+            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
             padding: "0 16px",
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}

@@ -61,7 +61,7 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
   return (
     <div
       className="fixed inset-0 z-[300] flex items-center justify-center p-6"
-      style={{ background: "rgba(43,35,27,0.32)", backdropFilter: "blur(2px)" }}
+      style={{ background: "var(--overlay-soft)", backdropFilter: "blur(2px)" }}
       onClick={onClose}
     >
       <div

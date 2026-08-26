@@ -7,6 +7,8 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/modules/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  // Breakpoints: Tailwind defaults (keep — matches dashboard.css 768/1024 drawer).
+  // sm:640 md:768 lg:1024 xl:1280 2xl:1536 — do not add ad-hoc values; use these.
   theme: {
     extend: {
       colors: {

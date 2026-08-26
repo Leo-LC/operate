@@ -30,21 +30,11 @@ export function Drawer({
   side = "right",
   children,
   footer,
+  width,
 }: DrawerProps) {
-  /* Esc key — sheet/base-ui handles it via the Dialog primitive,
-     but we wire it here too for nested usage. */
-  React.useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [open, onClose])
-
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <SheetContent side={side} showCloseButton={false}>
+      <SheetContent side={side} showCloseButton={false} style={width ? { maxWidth: `min(${width}px, 92vw)`, width: "100%" } : undefined}>
         {/* Header */}
         {(title || description) && (
           <SheetHeader

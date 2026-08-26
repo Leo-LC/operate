@@ -544,8 +544,8 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
       {/* ── Schedule table ──────────────────────────────────────── */}
       {employees.length > 0 && (
-        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead style={{ background: "var(--bg-2)", borderBottom: "2px solid var(--line)" }}>
               <tr>
                 <th style={{ width: 160, padding: "10px 12px", textAlign: "left", borderRight: "1px solid var(--line)" }} />
@@ -637,7 +637,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
           !(e.location_id === schedule.location_id && !e.employee_locations?.length)
         );
         return (
-          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)", padding: "32px 16px", overflowY: "auto" }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", background: "var(--overlay-strong)", backdropFilter: "blur(2px)", padding: "32px 16px", overflowY: "auto" }}>
             <div style={{ width: "100%", maxWidth: 640, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow-drawer)", display: "flex", flexDirection: "column", margin: "auto" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
                 <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", margin: 0 }}>Manage employees — {schedule.location_name}</h2>

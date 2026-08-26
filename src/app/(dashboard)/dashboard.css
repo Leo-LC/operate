@@ -80,6 +80,12 @@
   }
 }
 
+@media (max-width: 640px) {
+  .app-main {
+    padding: var(--s-3) var(--s-3) var(--s-5) !important;
+  }
+}
+
 /* Tabs: allow horizontal scroll instead of wrapping/overflowing on narrow screens */
 .reviews-tab-nav {
   display: flex;
@@ -156,16 +162,21 @@
   gap: 1rem;
 }
 
-/* Sidebar: sticky under navbar when scrolling */
-.dashboard-sidebar {
-  position: sticky;
-  top: 3.5rem; /* h-14 */
-  align-self: start;
-  max-height: calc(100vh - 3.5rem);
-  overflow-y: auto;
-  width: 14rem;
-  flex-shrink: 0;
+/* Momentum scroll on iOS for any inline overflow wrapper */
+div[style*="overflow"] {
+  -webkit-overflow-scrolling: touch;
 }
+
+/* Touch targets: enlarge attendance/calendar day cells on coarse pointers */
+@media (pointer: coarse) {
+  .nexus-dp .rdp-day_button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* (removed .dashboard-sidebar — dead class, no consumers)
+   Sticky sidebars should use inline style or a module-scoped class. */
 
 /* Stats as tabs: clickable, active state */
 .dashboard-stat-tab {

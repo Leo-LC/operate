@@ -190,7 +190,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
       <PageHeader
         title="Accounting"
         actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
             {/* Days filled badge */}
             {view !== "fixed" && (
               <span style={{
@@ -278,8 +278,8 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
       />
 
       {/* Selectors row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-3)" }}>
           {/* Location selector */}
           {locations.length > 1 && (
             <select
@@ -330,7 +330,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
       {/* Import confirmation banner */}
       {importConfirm && (
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
           gap: "var(--s-3)", padding: "var(--s-3) var(--s-4)",
           borderRadius: "var(--r-md)", border: "1px solid var(--warn)",
           background: "var(--warn-soft)", color: "var(--fg)",
@@ -357,7 +357,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
       {/* Delete month confirmation banner */}
       {deleteConfirm && (
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
           gap: "var(--s-3)", padding: "var(--s-3) var(--s-4)",
           borderRadius: "var(--r-md)", border: "1px solid var(--error, #e53e3e)",
           background: "var(--error-soft, #fff5f5)", color: "var(--fg)",

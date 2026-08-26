@@ -113,7 +113,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
     <div
       className="fixed inset-0 z-[300] flex items-start justify-center"
       style={{
-        background: "rgba(43,35,27,0.32)",
+        background: "var(--overlay-soft)",
         backdropFilter: "blur(2px)",
         paddingTop: "16vh",
       }}

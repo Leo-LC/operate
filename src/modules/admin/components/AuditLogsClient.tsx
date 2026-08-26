@@ -164,7 +164,7 @@ export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }
       {/* Clear logs modal */}
       {showClearModal && (
         <div
-          style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)", padding: "0 16px" }}
+          style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--overlay-strong)", backdropFilter: "blur(2px)", padding: "0 16px" }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowClearModal(false); }}
         >
           <div style={{ width: "100%", maxWidth: 400, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, boxShadow: "var(--shadow-2)" }}>

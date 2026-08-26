@@ -409,7 +409,7 @@ export function UserDetailClient({ user: initialUser, allLocations }: UserDetail
       </section>
 
       {showDeleteConfirm && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(43,35,27,0.55)", backdropFilter: "blur(2px)", padding: "0 16px" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--overlay-strong)", backdropFilter: "blur(2px)", padding: "0 16px" }}>
           <div style={{ width: "100%", maxWidth: 400, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, boxShadow: "var(--shadow-2)" }}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete user</h2>
             <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>

@@ -91,7 +91,7 @@ function LocationCardTile({
     <div className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-5">
       <p className="text-sm font-medium text-[var(--fg)]">{shortName(card.locationTitle)}</p>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Stat
           label="Reviews"
           value={loading ? "—" : String(card.count)}
@@ -182,7 +182,7 @@ export function ReviewsAnalytics() {
       </div>
 
       {loading && cards.length === 0 ? (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
@@ -195,7 +195,7 @@ export function ReviewsAnalytics() {
           <span className="text-sm text-[var(--fg-4)]">No data yet — run a sync first.</span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3">
           {cards.map((card) => (
             <LocationCardTile
               key={card.locationId}
