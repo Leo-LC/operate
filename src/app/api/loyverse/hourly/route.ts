@@ -49,9 +49,11 @@ export async function GET(request: Request) {
       created_at_max: range.created_at_max,
     });
 
-    // Bucket by hour (Bangkok hour)
+    // Bucket by hour (Bangkok hour) — shops open 9am–9pm
+    const OPEN_FROM = 9;
+    const OPEN_TO = 21;
     const byHour = new Map<number, { revenue: number; count: number }>();
-    for (let h = 0; h < 24; h++) byHour.set(h, { revenue: 0, count: 0 });
+    for (let h = OPEN_FROM; h <= OPEN_TO; h++) byHour.set(h, { revenue: 0, count: 0 });
 
     for (const r of receipts) {
       if (r.cancelled_at) continue;
@@ -62,9 +64,10 @@ export async function GET(request: Request) {
       if (isNaN(d.getTime())) continue;
       // Convert to Bangkok hour: UTC +7
       const bangkokHour = (d.getUTCHours() + 7) % 24;
+      if (bangkokHour < OPEN_FROM || bangkokHour > OPEN_TO) continue;
       const total = (r as unknown as { total_money?: number }).total_money ?? 0;
-      // Use line_items sum if total_money not reliable? Use total_money
-      const entry = byHour.get(bangkokHour)!;
+      const entry = byHour.get(bangkokHour);
+      if (!entry) continue;
       entry.revenue += total;
       entry.count += 1;
     }

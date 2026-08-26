@@ -155,10 +155,13 @@ function ShopPills({
 }
 
 function HourlyChart({ data }: { data: { hour: number; revenue: number; count: number }[] }) {
-  const max = Math.max(...data.map((d) => d.revenue), 1);
+  // Shops open 9–21 — filter just in case API returns wider range
+  const filtered = data.filter((d) => d.hour >= 9 && d.hour <= 21);
+  const display = filtered.length ? filtered : data;
+  const max = Math.max(...display.map((d) => d.revenue), 1);
   return (
     <div className="flex items-end gap-1 overflow-x-auto py-2">
-      {data.map((d) => (
+      {display.map((d) => (
         <div key={d.hour} className="flex flex-col items-center gap-1" style={{ minWidth: 32 }}>
           <div className="flex w-full justify-center" style={{ height: 80, alignItems: "flex-end" }}>
             <div
