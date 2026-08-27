@@ -26,7 +26,7 @@ export default async function Home() {
   const session = await getServerSession(authOptions);
   if (session) {
     const permissions = await getUserPermissionsFromDb(session.user?.userId, session.user?.role);
-    redirect(permissions.global_role === "reviewer" ? "/reviews" : "/overview");
+    redirect(permissions.global_role === "reviewer" ? "/reviews" : "/loyverse");
   }
 
   return (

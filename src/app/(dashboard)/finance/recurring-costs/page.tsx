@@ -8,6 +8,6 @@ import { RecurringCostsClient } from "@/modules/finance/components/RecurringCost
 export default async function RecurringCostsPage() {
   const session = await getServerSession(authOptions);
   const permissions = await getUserPermissionsFromDb(session?.user?.userId, session?.user?.role);
-  if (!hasModuleAccess(permissions, "reports", true)) redirect("/overview");
+  if (!hasModuleAccess(permissions, "reports", true)) redirect("/loyverse");
   return <RecurringCostsClient />;
 }

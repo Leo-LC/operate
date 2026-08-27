@@ -28,7 +28,7 @@ export default function ErrorBoundary({
           Try again
         </Button>
         <a
-          href="/home"
+          href="/loyverse"
           className="inline-flex h-8 items-center rounded-md bg-foreground px-3 text-sm text-background"
         >
           Go to dashboard

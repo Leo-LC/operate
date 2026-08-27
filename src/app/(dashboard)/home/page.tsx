@@ -22,7 +22,7 @@ export default async function HomePage() {
   const name = session?.user?.name ?? session?.user?.email ?? "there";
 
   const permissions = await getUserPermissionsFromDb(session?.user?.userId, role);
-  if (permissions.global_role === "direction") redirect("/overview");
+  if (permissions.global_role === "direction") redirect("/loyverse");
   const supabase = getSupabaseServerClient();
 
   let docsAlert = 0;

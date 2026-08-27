@@ -139,7 +139,7 @@ export function LoyverseModuleClient() {
       </Tabs>
 
       <p className="text-center text-xs text-[var(--fg-4)]">
-        Besoin de données fraîches ? Va sur <a href="/overview" className="underline decoration-[var(--line-strong)] underline-offset-2 hover:text-[var(--fg-3)]">Overview → Synchroniser</a> puis reviens ici et clique Actualiser.
+        Besoin de données fraîches ? Va sur <a href="/loyverse" className="underline decoration-[var(--line-strong)] underline-offset-2 hover:text-[var(--fg-3)]">Loyverse → Synchroniser</a> puis reviens ici et clique Actualiser.
       </p>
     </div>
   );

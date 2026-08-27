@@ -40,9 +40,13 @@ type NavGroup = {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Home",
+    label: "Performance",
     items: [
-      { id: "overview", label: "Overview", href: "/overview", icon: HomeIcon, module: null },
+      { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
+      { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
+      { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,     module: "challenges" },
+      { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,       module: "reviews" },
+      { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
     ],
   },
   {
@@ -64,15 +68,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Performance",
-    items: [
-      { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
-      { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,     module: "challenges" },
-      { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,       module: "reviews" },
-      { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
-    ],
-  },
-  {
     label: "Compliance",
     items: [
       { id: "documents", label: "Documents", href: "/documents", icon: FileTextIcon, module: "documents" },
@@ -91,7 +86,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "System",
     items: [
       { id: "admin", label: "Admin", href: "/admin", icon: ShieldIcon, module: "admin" },
-      { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
     ],
   },
 ];
@@ -166,7 +160,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
       if (gKeyRef.current) {
         const map: Record<string, string> = {
-          o: "/overview",
+          o: "/loyverse",
+          l: "/loyverse",
           r: "/reviews",
           s: "/scheduling",
           a: "/attendance",
@@ -184,8 +179,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         if (dest) {
           const role = permissions.global_role;
           const allowed =
-            role === "reviewer" ? (dest === "/overview" || dest === "/reviews" ? dest : null)
-            : role === "direction" ? (dest === "/overview" || dest === "/reports" ? dest : null)
+            role === "reviewer" ? (dest === "/loyverse" || dest === "/reviews" ? dest : null)
+            : role === "direction" ? (dest === "/loyverse" || dest === "/reports" ? dest : null)
             : dest;
           if (allowed) {
             gKeyRef.current = false;
@@ -200,6 +195,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   }, [theme, setTheme, router, permissions.global_role]);
 
   function isActive(href: string): boolean {
+    if (href === "/loyverse") return pathname === "/loyverse" || pathname.startsWith("/loyverse");
     if (href === "/overview") return pathname === "/overview";
     return pathname.startsWith(href);
   }
@@ -300,12 +296,11 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
-              if (permissions.global_role === "reviewer") return item.id === "overview" || item.id === "reviews";
-              if (permissions.global_role === "direction") return item.id === "overview" || item.id === "reports";
+              if (permissions.global_role === "reviewer") return item.id === "loyverse" || item.id === "reviews";
+              if (permissions.global_role === "direction") return item.id === "loyverse" || item.id === "reports";
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "overview" && item.id !== "treasury" && item.id !== "loyverse" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
-              if (item.id === "loyverse" && permissions.global_role !== "owner") return false;
+              if (!item.module && item.id !== "loyverse" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;

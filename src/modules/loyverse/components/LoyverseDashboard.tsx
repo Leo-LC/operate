@@ -301,37 +301,75 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [allStoresRaw, status]);
 
-  // Aggregation correcte pour multi-jours : group snapshots par store
+  // Aggregation pour multi-jours : snapshots sont des rows flat (sales_drinks_net…), pas des PerStore buckets
   const aggregatedStores = React.useMemo(() => {
     if (rangeDays === 1) return allStoresRaw;
-    const snaps = (data?.snapshots ?? []) as Array<PerStore & { date: string }>;
+    const snaps = (data?.snapshots ?? []) as Array<Record<string, unknown>>;
     const byStore = new Map<string, PerStore>();
-    for (const s of snaps as unknown as PerStore[]) {
-      const key = s.store_id;
-      const existing = byStore.get(key);
+    for (const raw of snaps) {
+      const store_id = String((raw as { store_id?: string }).store_id ?? "");
+      const account_key = String((raw as { account_key?: string }).account_key ?? store_id);
+      if (!store_id) continue;
+      const revenue_total = Number((raw as { revenue_total?: number }).revenue_total ?? 0);
+      const sale_count = Number((raw as { sale_count?: number }).sale_count ?? 0);
+      const refund_count = Number((raw as { refund_count?: number }).refund_count ?? 0);
+      const ticket_count = sale_count - refund_count;
+      const receipt_count = Number((raw as { receipt_count?: number }).receipt_count ?? 0);
+      const snacks_sold = Number((raw as { snacks_sold?: number }).snacks_sold ?? 0);
+      const buckets = {
+        drinks: Number((raw as { sales_drinks_net?: number }).sales_drinks_net ?? 0),
+        ticket: Number((raw as { sales_ticket_net?: number }).sales_ticket_net ?? 0),
+        snack: Number((raw as { sales_snack_net?: number }).sales_snack_net ?? 0),
+        goodies: Number((raw as { sales_goodies_net?: number }).sales_goodies_net ?? 0),
+        surcharge: Number((raw as { sales_card_surcharge?: number }).sales_card_surcharge ?? 0),
+      };
+      const payments = {
+        cash: Number((raw as { payment_cash?: number }).payment_cash ?? 0),
+        scan: Number((raw as { payment_scan?: number }).payment_scan ?? 0),
+        credit_card: Number((raw as { payment_credit_card?: number }).payment_credit_card ?? 0),
+      };
+      const unmapped = {
+        line_items: Number((raw as { unmapped_line_items?: number }).unmapped_line_items ?? 0),
+        payments: Number((raw as { unmapped_payments?: number }).unmapped_payments ?? 0),
+      };
+      const location_id = (raw as { location_id?: string | null }).location_id ?? null;
+      const date = String((raw as { date?: string }).date ?? selectedDate);
+      const existing = byStore.get(store_id);
       if (!existing) {
-        byStore.set(key, { ...s, buckets: { ...s.buckets }, payments: { ...s.payments }, unmapped: { ...s.unmapped } });
+        byStore.set(store_id, {
+          account_key,
+          store_id,
+          location_id,
+          date,
+          revenue_total,
+          ticket_count,
+          receipt_count,
+          snacks_sold,
+          avg_ticket: 0,
+          buckets: { ...buckets },
+          payments: { ...payments },
+          unmapped: { ...unmapped },
+        });
       } else {
-        existing.revenue_total += s.revenue_total;
-        existing.ticket_count += s.ticket_count;
-        existing.receipt_count += s.receipt_count;
-        existing.snacks_sold += s.snacks_sold;
-        existing.buckets.drinks += s.buckets.drinks;
-        existing.buckets.ticket += s.buckets.ticket;
-        existing.buckets.snack += s.buckets.snack;
-        existing.buckets.goodies += s.buckets.goodies;
-        existing.buckets.surcharge += s.buckets.surcharge;
-        existing.payments.cash += s.payments.cash;
-        existing.payments.scan += s.payments.scan;
-        existing.payments.credit_card += s.payments.credit_card;
-        existing.unmapped.line_items += s.unmapped.line_items;
-        existing.unmapped.payments += s.unmapped.payments;
+        existing.revenue_total += revenue_total;
+        existing.ticket_count += ticket_count;
+        existing.receipt_count += receipt_count;
+        existing.snacks_sold += snacks_sold;
+        existing.buckets.drinks += buckets.drinks;
+        existing.buckets.ticket += buckets.ticket;
+        existing.buckets.snack += buckets.snack;
+        existing.buckets.goodies += buckets.goodies;
+        existing.buckets.surcharge += buckets.surcharge;
+        existing.payments.cash += payments.cash;
+        existing.payments.scan += payments.scan;
+        existing.payments.credit_card += payments.credit_card;
+        existing.unmapped.line_items += unmapped.line_items;
+        existing.unmapped.payments += unmapped.payments;
       }
     }
-    // Recalc avg_ticket
     for (const v of Array.from(byStore.values())) v.avg_ticket = v.ticket_count > 0 ? v.revenue_total / v.ticket_count : 0;
     return Array.from(byStore.values());
-  }, [allStoresRaw, data, rangeDays]);
+  }, [allStoresRaw, data, rangeDays, selectedDate]);
 
   const perStore = React.useMemo(() => {
     if (selectedStores.length === 0) return aggregatedStores;

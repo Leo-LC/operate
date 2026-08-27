@@ -11,7 +11,7 @@ import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
 
 const NAV_ITEMS = [
-  { id: "overview",   label: "Overview",   href: "/home",       icon: HomeIcon,         module: null },
+  { id: "loyverse",   label: "Loyverse",   href: "/loyverse",   icon: PlugIcon,         module: null },
   { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
   { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
   { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
@@ -55,9 +55,8 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const items = useMemo(() => {
     const nav = NAV_ITEMS
       .filter((n) => {
-        if (permissions.global_role === "direction") return n.id === "overview" || n.id === "reports";
+        if (permissions.global_role === "direction") return n.id === "loyverse" || n.id === "reports";
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
-        if (n.id === "loyverse" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
         return !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]);
       })
@@ -67,7 +66,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
       label: n.label,
       hint: "Go to module",
       icon: n.icon,
-      href: permissions.global_role === "direction" && n.id === "overview" ? "/overview" : n.href,
+      href: n.href,
     }));
     if (!query) return nav;
     const lc = query.toLowerCase();
