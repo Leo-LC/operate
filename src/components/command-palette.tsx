@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  HomeIcon, StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
+  StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon,
 } from "lucide-react";
@@ -27,7 +27,6 @@ const NAV_ITEMS = [
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
   { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
-  { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
   { id: "customer-insights", label: "Customer Insights", href: "/customer-insights", icon: UsersIcon, module: null },
 ] as const;
 
