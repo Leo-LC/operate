@@ -31,9 +31,6 @@ function parseDay(value: string): Date | null {
   if (!m) return null;
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
-function toDay(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 function daysBetween(from: string, to: string): number {
   const a = parseDay(from);
   const b = parseDay(to);
@@ -195,7 +192,6 @@ function DailyRevenueChart({ data }: { data: { date: string; revenue: number }[]
   const [hover, setHover] = React.useState<{ idx: number; x: number; y: number } | null>(null);
   if (data.length === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">Pas de données</div>;
   const max = Math.max(...data.map((d) => d.revenue), 1);
-  const min = Math.min(...data.map((d) => d.revenue), 0);
   const W = 640;
   const H = 160;
   const padLeft = 48;
@@ -468,7 +464,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   }
 
   const lastRun = status?.last_run;
-  const hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
   const kpi = filteredKpis;
   const snackAmount = perStore.reduce((s, r) => s + r.buckets.snack, 0);
   const snackPct = kpi && kpi.ticket_count > 0 ? (kpi.snacks_sold / kpi.ticket_count) * 100 : 0;
