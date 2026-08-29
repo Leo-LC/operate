@@ -81,6 +81,7 @@ export interface ProposedDailyEntry {
 export interface ProposedChallengeEntry {
   entry_count: number;
   snacks_sold: number;
+  tickets_sold: number;
 }
 
 export interface AggregationMeta {

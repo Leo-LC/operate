@@ -84,6 +84,7 @@ async function upsertSnapshot(
     cancelled_count: number;
     revenue_total: number;
     snacks_sold: number;
+    tickets_sold: number;
     avg_ticket: number;
     unmapped_line_items: number;
     unmapped_payments: number;
@@ -131,8 +132,8 @@ async function syncStoreDate(
       proposed.sales_goodies_net +
       proposed.sales_card_surcharge;
 
-    const entryCount = challenges.entry_count;
-    const avg_ticket = entryCount > 0 ? revenue_total / entryCount : 0;
+    const ticketsSold = challenges.tickets_sold;
+    const avg_ticket = ticketsSold > 0 ? revenue_total / ticketsSold : 0;
 
     const row = {
       account_key: account.key,
@@ -154,6 +155,7 @@ async function syncStoreDate(
       cancelled_count: meta.cancelled_count,
       revenue_total,
       snacks_sold: challenges.snacks_sold,
+      tickets_sold: challenges.tickets_sold,
       avg_ticket,
       unmapped_line_items: meta.unmapped_line_items,
       unmapped_payments: meta.unmapped_payments,
@@ -186,6 +188,7 @@ async function syncStoreDate(
         cancelled_count: row.cancelled_count,
         revenue_total: row.revenue_total,
         snacks_sold: row.snacks_sold,
+        tickets_sold: row.tickets_sold,
         avg_ticket: row.avg_ticket,
         unmapped_line_items: row.unmapped_line_items,
         unmapped_payments: row.unmapped_payments,

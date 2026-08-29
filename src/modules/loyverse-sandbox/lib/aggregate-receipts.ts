@@ -110,6 +110,7 @@ export function aggregateReceipts(
     unmapped_payments: 0,
   };
   let snacksSold = 0;
+  let ticketsSold = 0;
 
   const dayReceipts = receipts.filter(
     (r) => r.store_id === storeId && isSameDay(r, date),
@@ -144,6 +145,7 @@ export function aggregateReceipts(
           break;
         case "ticket":
           proposed.sales_ticket_net += amount;
+          ticketsSold += (line.quantity ?? 0) * mult;
           break;
         case "snack":
           proposed.sales_snack_net += amount;
@@ -186,6 +188,7 @@ export function aggregateReceipts(
     challenges: {
       entry_count: meta.sale_count - meta.refund_count,
       snacks_sold: Math.max(0, Math.round(snacksSold)),
+      tickets_sold: Math.max(0, Math.round(ticketsSold)),
     },
     meta,
   };

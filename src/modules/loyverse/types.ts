@@ -21,6 +21,7 @@ export type LoyverseSnapshot = {
   cancelled_count: number;
   revenue_total: number;
   snacks_sold: number;
+  tickets_sold: number;
   avg_ticket: number;
   unmapped_line_items: number;
   unmapped_payments: number;
