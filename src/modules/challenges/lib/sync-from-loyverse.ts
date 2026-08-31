@@ -77,9 +77,6 @@ export async function syncChallengesFromLoyverse(
       const existingSs = existing ? Number((existing as { snacks_sold: number | null }).snacks_sold ?? 0) : null;
 
       // Garde-fou: n'écrase pas une saisie manuelle existante sauf force=true
-      // Si la période a déjà une valeur (même 0) on considère qu'elle a été saisie manuellement
-      const hasExisting = existing !== null && (existingEc !== null || existingSs !== null) && (existingEc !== 0 || existingSs !== 0 || (existing as { entry_count: unknown }).entry_count !== null);
-      // Plus simple: si existing row existe et force=false, on skip si déjà rempli
       if (exists && !force) {
         // Si déjà rempli avec des valeurs non nulles, on skip
         const isFilled = (existing as { entry_count: number | null }).entry_count !== null || (existing as { snacks_sold: number | null }).snacks_sold !== null;
