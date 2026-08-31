@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { StoreIcon, ClockIcon, CoinsIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChevronDownIcon } from "lucide-react";
+import { StoreIcon, ClockIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChevronDownIcon } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { startOfMonth } from "date-fns";
@@ -67,7 +67,7 @@ const panelStyle: React.CSSProperties = {
 };
 
 function SingleDatePicker({ value, onChange, today }: { value: string; onChange: (v: string) => void; today: string }) {
-  const base = parseDay(today) ?? new Date();
+  const base = React.useMemo(() => parseDay(today) ?? new Date(), [today]);
   const selected = parseDay(value) ?? base;
   const [open, setOpen] = React.useState(false);
   const [viewMonth, setViewMonth] = React.useState<Date>(() => startOfMonth(selected));
@@ -149,63 +149,6 @@ function RenderValue({ value }: { value: unknown }) {
     );
   }
   return <span className="text-xs">{String(value)}</span>;
-}
-
-function ShiftCard({ shift, defaultOpen }: { shift: Record<string, unknown>; defaultOpen?: boolean }) {
-  const [open, setOpen] = React.useState(!!defaultOpen);
-  React.useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen, shift]);
-  const id = (shift.id as string) ?? (shift.uuid as string) ?? "—";
-  const storeId = (shift.store_id as string) ?? (shift.storeId as string) ?? null;
-  const openedAt = (shift.opened_at as string) ?? (shift.created_at as string) ?? (shift.open_at as string) ?? null;
-  const closedAt = (shift.closed_at as string) ?? (shift.updated_at as string) ?? null;
-  const status = (shift.status as string) ?? null;
-  const cashier = (shift.cashier_name as string) ?? (shift.employee_name as string) ?? (shift.closed_by as string) ?? null;
-  const moneyKeys = ["cash_sales", "card_sales", "total_sales", "total_money", "opening_cash", "closing_cash", "cash_amount", "expected_cash", "difference"];
-  const hasMoney = moneyKeys.some((k) => typeof shift[k] === "number");
-  return (
-    <div className="rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)]">
-      <div className="flex flex-wrap items-start justify-between gap-2 px-3 py-2.5">
-        <div className="min-w-0">
-          <p className="truncate font-mono text-xs font-semibold text-[var(--fg)]">{String(id).slice(0, 8)}…</p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--fg-4)]">
-            <ClockIcon className="size-3" />
-            {fmtDateTime(openedAt)} → {fmtDateTime(closedAt)}
-            {status && <Pill tone={status === "CLOSED" || status === "closed" ? "good" : "neutral"} size="sm">{status}</Pill>}
-          </p>
-          {(storeId || cashier) && (
-            <p className="mt-1 text-[11px] text-[var(--fg-3)]">
-              {storeId && <span className="font-mono">{String(storeId).slice(0, 8)}…</span>}
-              {storeId && cashier && " · "}
-              {cashier && <span>{cashier}</span>}
-            </p>
-          )}
-        </div>
-        <Button variant="secondary" size="sm" onClick={() => setOpen((v) => !v)} className="shrink-0">
-          {open ? "Masquer" : "Shift"}
-        </Button>
-      </div>
-      {hasMoney && (
-        <div className="flex flex-wrap gap-1.5 border-t border-[var(--line)] bg-[var(--bg-2)] px-3 py-2">
-          {moneyKeys.filter((k) => typeof shift[k] === "number").map((k) => (
-            <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium">
-              <CoinsIcon className="size-3 text-[var(--fg-4)]" />
-              <span className="text-[var(--fg-3)]">{k}</span>
-              <span className="font-mono tabular-nums text-[var(--fg)]">{fmtTHB(shift[k] as number)}</span>
-            </span>
-          ))}
-        </div>
-      )}
-      {open && (
-        <div className="border-t border-[var(--line)] px-3 py-3">
-          <div className="rounded bg-[var(--bg-2)] p-3"><RenderValue value={shift} /></div>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-xs font-medium text-[var(--fg-3)]">JSON brut</summary>
-            <pre className="mt-2 max-h-[320px] overflow-auto rounded bg-[var(--fg)] p-3 text-[11px] leading-relaxed text-white">{JSON.stringify(shift, null, 2)}</pre>
-          </details>
-        </div>
-      )}
-    </div>
-  );
 }
 
 type ShiftRow = {
