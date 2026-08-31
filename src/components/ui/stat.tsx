@@ -32,10 +32,7 @@ export function Stat({
         : "var(--fg-4)"
 
   return (
-    <div
-      className={cn("flex flex-col gap-1", className)}
-      {...props}
-    >
+    <div className={cn("flex flex-col gap-1", className)} {...props}>
       <div className="flex items-center gap-2">
         {icon && (
           <span
@@ -67,37 +64,32 @@ export function Stat({
           {label}
         </span>
       </div>
-      <div className="flex items-end gap-2">
+      <span
+        className="mono tabular-nums"
+        style={{
+          fontSize: "var(--t-24)",
+          fontWeight: 600,
+          color: "var(--fg)",
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </span>
+      {delta && (
         <span
           className="mono tabular-nums"
           style={{
-            fontSize: "var(--t-24)",
+            fontSize: 12,
             fontWeight: 600,
-            color: "var(--fg)",
+            color: deltaColor,
             lineHeight: 1,
           }}
         >
-          {value}
+          {delta}
         </span>
-        {delta && (
-          <span
-            className="mono tabular-nums"
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              color: deltaColor,
-              lineHeight: 1,
-              paddingBottom: 1,
-            }}
-          >
-            {delta}
-          </span>
-        )}
-        {sparkline && <div className="ml-auto">{sparkline}</div>}
-      </div>
-      {hint && (
-        <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{hint}</span>
       )}
+      {sparkline && <div className="mt-1">{sparkline}</div>}
+      {hint && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{hint}</span>}
     </div>
   )
 }

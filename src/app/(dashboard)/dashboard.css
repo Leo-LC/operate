@@ -24,9 +24,9 @@
 }
 
 /* App shell: collapsible sidebar + responsive topbar below 1024px.
-   The shell itself stays inline-styled (desktop default); these classes only
-   take effect inside the mobile media query, overriding via !important since
-   they must win over the inline styles set for desktop. */
+    The shell itself stays inline-styled (desktop default); these classes only
+    take effect inside the mobile media query, overriding via !important since
+    they must win over the inline styles set for desktop. */
 .app-mobile-menu-btn {
   display: none;
 }
@@ -35,12 +35,39 @@
   display: none;
 }
 
+.app-collapse-btn {
+  display: inline-flex;
+}
+
+/* Collapsed sidebar (tablet + desktop): icons-only */
+.app-sidebar.is-collapsed .app-sidebar-label,
+.app-sidebar.is-collapsed .app-sidebar-group-label,
+.app-sidebar.is-collapsed .app-sidebar-user-meta {
+  display: none !important;
+}
+.app-sidebar.is-collapsed nav {
+  align-items: center;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-sidebar.is-collapsed {
+    position: sticky !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+@media (max-width: 767px) {
+  .app-collapse-btn {
+    display: none !important;
+  }
+}
+
 @media (max-width: 1024px) {
   .app-mobile-menu-btn {
     display: inline-flex !important;
   }
 
-  .app-sidebar {
+  .app-sidebar:not(.is-collapsed) {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -51,8 +78,12 @@
     box-shadow: var(--shadow-2);
   }
 
-  .app-sidebar.is-open {
+  .app-sidebar.is-open:not(.is-collapsed) {
     transform: translateX(0);
+  }
+
+  .app-sidebar.is-collapsed.is-open {
+    transform: none !important;
   }
 
   .app-mobile-backdrop.is-open {

@@ -9,14 +9,14 @@ import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
 import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, ReceiptIcon } from "lucide-react";
-import { Sparkline } from "@/components/ui/sparkline";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 function fmtTHB(n: number) {
-  return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", maximumFractionDigits: 0 }).format(n);
 }
 function fmtInt(n: number) {
-  return new Intl.NumberFormat("fr-FR").format(Math.round(n));
+  return new Intl.NumberFormat("en-US").format(Math.round(n));
 }
 function fmtDelta(pct: number | null) {
   if (pct === null || !Number.isFinite(pct)) return null;
@@ -36,6 +36,10 @@ function daysBetween(from: string, to: string): number {
   const b = parseDay(to);
   if (!a || !b) return 1;
   return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
+}
+function capitalizeShop(name: string) {
+  if (!name) return name;
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 type DashboardKpis = {
@@ -92,7 +96,7 @@ type StatusData = {
 
 function Donut({ data, colors }: { data: { label: string; value: number }[]; colors: string[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
-  if (total === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">Pas de données</div>;
+  if (total === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">No data</div>;
   let acc = 0;
   const segments = data.map((d, i) => {
     const start = (acc / total) * 360;
@@ -158,8 +162,8 @@ function ShopPills({
       {locations.map((loc) => {
         const active = selected.includes(loc.id);
         return (
-          <PillButton key={loc.id} active={active} onClick={() => toggle(loc.id)}>
-            {loc.name}
+          <PillButton key={loc.id} active={active} onClick={() => toggle(loc.id)} style={{ textTransform: "capitalize" }}>
+            {capitalizeShop(loc.name)}
           </PillButton>
         );
       })}
@@ -167,112 +171,64 @@ function ShopPills({
   );
 }
 
-function HourlyChart({ data }: { data: { hour: number; revenue: number; count: number }[] }) {
+function HourlyBarChart({ data }: { data: { hour: number; revenue: number; count: number }[] }) {
   const filtered = data.filter((d) => d.hour >= 9 && d.hour <= 21);
   const display = filtered.length ? filtered : data;
-  const max = Math.max(...display.map((d) => d.revenue), 1);
+  const chartData = display.map((d) => ({ hour: `${d.hour}h`, revenue: d.revenue, count: d.count }));
   return (
-    <div className="flex items-end justify-center gap-1.5 sm:gap-2 w-full py-2">
-      {display.map((d) => (
-        <div key={d.hour} className="flex flex-1 max-w-[72px] flex-col items-center gap-1">
-          <div className="flex w-full justify-center" style={{ height: 80, alignItems: "flex-end" }}>
-            <div
-              style={{ width: "70%", maxWidth: 32, height: `${(d.revenue / max) * 80}px`, background: "var(--bronze)", borderRadius: "var(--r-sm)  var(--r-sm) 0 0", transition: "height 0.3s" }}
-              title={`${d.hour}h: ${fmtTHB(d.revenue)} (${d.count} passages)`}
-            />
-          </div>
-          <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{d.hour}h</span>
-        </div>
-      ))}
+    <div className="h-[220px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--line-2)" vertical={false} />
+          <XAxis dataKey="hour" tick={{ fontSize: 11, fill: "var(--fg-4)" }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={(v) => fmtTHB(v as number)} tick={{ fontSize: 10, fill: "var(--fg-4)" }} axisLine={false} tickLine={false} width={72} />
+          <Tooltip
+            cursor={{ fill: "var(--line-2)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const p = payload[0].payload as { hour: string; revenue: number; count: number };
+              return (
+                <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
+                  <div className="text-xs font-medium text-[var(--fg)]">{p.hour}</div>
+                  <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">{fmtTHB(p.revenue)}</div>
+                  <div className="text-[11px] text-[var(--fg-4)]">{p.count} receipts</div>
+                </div>
+              );
+            }}
+          />
+          <Bar dataKey="revenue" fill="var(--bronze)" radius={[6, 6, 0, 0]} maxBarSize={36} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
-function DailyRevenueChart({ data }: { data: { date: string; revenue: number }[] }) {
-  const [hover, setHover] = React.useState<{ idx: number; x: number; y: number } | null>(null);
-  if (data.length === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">Pas de données</div>;
-  const max = Math.max(...data.map((d) => d.revenue), 1);
-  const W = 640;
-  const H = 160;
-  const padLeft = 48;
-  const padRight = 12;
-  const padTop = 16;
-  const padBottom = 28;
-  const usableW = W - padLeft - padRight;
-  const usableH = H - padTop - padBottom;
-  const stepX = data.length < 2 ? usableW : usableW / Math.max(1, data.length - 1);
-  const pts = data.map((d, i) => {
-    const x = padLeft + i * stepX;
-    const y = padTop + usableH - (d.revenue / max) * usableH;
-    return { x, y, d };
-  });
-  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${p.y}`).join(" ");
-  const areaPath = `${linePath} L ${pts[pts.length - 1]!.x},${padTop + usableH} L ${pts[0]!.x},${padTop + usableH} Z`;
-  const yTicks = 4;
+function DailyBarChart({ data }: { data: { date: string; revenue: number }[] }) {
+  if (data.length === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">No data</div>;
+  const chartData = data.map((d) => ({ date: d.date.slice(5), fullDate: d.date, revenue: d.revenue }));
   return (
-    <div className="relative w-full overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-[180px] select-none"
-        preserveAspectRatio="none"
-        onMouseLeave={() => setHover(null)}
-      >
-        {/* grid lines */}
-        {Array.from({ length: yTicks + 1 }).map((_, i) => {
-          const y = padTop + (usableH / yTicks) * i;
-          const val = max - (max / yTicks) * i;
-          return (
-            <g key={i}>
-              <line x1={padLeft} x2={W - padRight} y1={y} y2={y} stroke="var(--line-2)" strokeWidth={1} strokeDasharray={i === yTicks ? "0" : "3 4"} />
-              <text x={padLeft - 8} y={y + 3} textAnchor="end" fontSize={9} fill="var(--fg-4)" className="font-mono tabular-nums">
-                {fmtTHB(val)}
-              </text>
-            </g>
-          );
-        })}
-        <path d={areaPath} fill="var(--bronze)" opacity={0.12} />
-        <path d={linePath} stroke="var(--bronze)" strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map((p, i) => (
-          <g key={p.d.date}>
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r={hover?.idx === i ? 5 : 3.5}
-              fill="var(--bronze)"
-              stroke="white"
-              strokeWidth={1.5}
-              style={{ transition: "r 0.15s ease", cursor: "pointer" }}
-              onMouseEnter={() => setHover({ idx: i, x: p.x, y: p.y })}
-              onMouseMove={() => setHover({ idx: i, x: p.x, y: p.y })}
-            />
-            {/* invisible hit area for easier hover */}
-            <rect x={p.x - stepX / 2} y={padTop} width={stepX} height={usableH} fill="transparent" onMouseEnter={() => setHover({ idx: i, x: p.x, y: p.y })} />
-          </g>
-        ))}
-        {/* hover guide line */}
-        {hover && <line x1={pts[hover.idx]!.x} x2={pts[hover.idx]!.x} y1={padTop} y2={padTop + usableH} stroke="var(--line-strong)" strokeWidth={1} strokeDasharray="4 4" opacity={0.6} />}
-      </svg>
-      {hover && (
-        <div
-          className="pointer-events-none absolute z-10 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 shadow-md"
-          style={{
-            left: `min(calc(${(pts[hover.idx]!.x / W) * 100}% + 8px), calc(100% - 160px))`,
-            top: 8,
-            transition: "left 0.15s ease",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <div className="text-xs font-medium text-[var(--fg)]">{pts[hover.idx]!.d.date}</div>
-          <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">{fmtTHB(pts[hover.idx]!.d.revenue)}</div>
-        </div>
-      )}
-      <div className="flex justify-between px-1 pt-1">
-        {data.map((d) => (
-          <span key={d.date} className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]" style={{ width: `${100 / data.length}%`, textAlign: "center" }}>
-            {d.date.slice(5)}
-          </span>
-        ))}
-      </div>
+    <div className="h-[240px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--line-2)" vertical={false} />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--fg-4)" }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={(v) => fmtTHB(v as number)} tick={{ fontSize: 10, fill: "var(--fg-4)" }} axisLine={false} tickLine={false} width={72} />
+          <Tooltip
+            cursor={{ fill: "var(--line-2)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const p = payload[0].payload as { fullDate: string; revenue: number };
+              return (
+                <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
+                  <div className="text-xs font-medium text-[var(--fg)]">{p.fullDate}</div>
+                  <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">{fmtTHB(p.revenue)}</div>
+                </div>
+              );
+            }}
+          />
+          <Bar dataKey="revenue" fill="var(--bronze)" radius={[6, 6, 0, 0]} maxBarSize={48} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -291,7 +247,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [syncError, setSyncError] = React.useState<string | null>(null);
-  const [curveData, setCurveData] = React.useState<number[] | null>(null);
   const [hourlyData, setHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
   const [hourlyLoading, setHourlyLoading] = React.useState(false);
 
@@ -303,14 +258,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Dashboard fetch failed");
       setData(json as DashboardData);
-      const snaps = (json.snapshots ?? []) as Array<{ date: string; revenue_total: number }>;
-      const byDate = new Map<string, number>();
-      for (const s of snaps) {
-        // only current period for sparkline (optional: keep all)
-        byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
-      }
-      const sortedDates = Array.from(byDate.keys()).sort();
-      setCurveData(sortedDates.map((d) => byDate.get(d) ?? 0));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -334,24 +281,45 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   }, [effectiveEnd, rangeDays, fetchDashboard, fetchStatus]);
 
   React.useEffect(() => {
-    // Hourly only for single day and single shop
-    if (rangeDays !== 1 || selectedStores.length !== 1 || !data?.per_store.length) {
+    if (rangeDays !== 1 || !data?.per_store.length) {
       setHourlyData(null);
       return;
     }
-    const selId = selectedStores[0]!;
-    const store = data.per_store.find((s) => s.store_id === selId || s.account_key === selId);
-    if (!store) {
+    const allStoresRaw = data.per_store;
+    const storesToFetch = selectedStores.length === 0 ? allStoresRaw : allStoresRaw.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
+    if (storesToFetch.length === 0) {
       setHourlyData(null);
       return;
     }
     setHourlyLoading(true);
-    fetch(`/api/loyverse/hourly?date=${effectiveEnd}&store_id=${store.store_id}&account_key=${store.account_key}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.hourly) setHourlyData(j.hourly);
+    Promise.all(
+      storesToFetch.map((store) =>
+        fetch(`/api/loyverse/hourly?date=${effectiveEnd}&store_id=${store.store_id}&account_key=${store.account_key}`, { cache: "no-store" })
+          .then((r) => r.json())
+          .then((j) => (j.hourly as { hour: number; revenue: number; count: number }[] | undefined) ?? [])
+          .catch(() => [] as { hour: number; revenue: number; count: number }[])
+      )
+    )
+      .then((results) => {
+        const merged = new Map<number, { revenue: number; count: number }>();
+        for (let h = 9; h <= 21; h++) merged.set(h, { revenue: 0, count: 0 });
+        for (const arr of results) {
+          for (const entry of arr) {
+            const cur = merged.get(entry.hour);
+            if (cur) {
+              cur.revenue += entry.revenue;
+              cur.count += entry.count;
+            } else {
+              merged.set(entry.hour, { revenue: entry.revenue, count: entry.count });
+            }
+          }
+        }
+        const hourly = Array.from(merged.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([hour, v]) => ({ hour, revenue: v.revenue, count: v.count }));
+        const hasData = hourly.some((h) => h.revenue > 0);
+        setHourlyData(hasData ? hourly : hourly);
       })
-      .catch(() => setHourlyData(null))
       .finally(() => setHourlyLoading(false));
   }, [effectiveEnd, rangeDays, selectedStores, data]);
 
@@ -361,7 +329,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     try {
       const body: Record<string, unknown> = {};
       if (rangeDays > 1) body.days = rangeDays;
-      // sync the selected range's end date if single day not today
       if (rangeDays === 1 && effectiveEnd !== bangkokToday()) body.dates = [effectiveEnd];
       const res = await fetch("/api/loyverse/sync", {
         method: "POST",
@@ -401,9 +368,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     const kpis = data?.kpis ?? null;
     if (!kpis) return null;
     if (selectedStores.length === 0) return kpis;
-    // Recompute filtered from perStore (already aggregated over current period in API)
     const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
-    // Compute vat filtered via snapshots current period filtered
     const snapshots = (data?.snapshots ?? []) as Array<Record<string, unknown>>;
     const startStr = data?.date_range.start ?? effectiveEnd;
     const endStr = data?.date_range.end ?? effectiveEnd;
@@ -418,7 +383,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     const filteredSnacks = perStore.reduce((s, r) => s + r.snacks_sold, 0);
     const filteredTickets = perStore.reduce((s, r) => s + r.ticket_count, 0);
     const filteredReceipts = perStore.reduce((s, r) => s + r.receipt_count, 0);
-    // Delta filtered: compare current filtered rev vs previous period filtered rev
     const prevStart = data?.date_range.prev_start;
     const prevEnd = data?.date_range.prev_end;
     let deltaFiltered: number | null = null;
@@ -449,14 +413,117 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     } as DashboardKpis;
   }, [selectedStores, perStore, data, effectiveEnd]);
 
+  // Deltas for Customers and Merch
+  const kpiDeltas = React.useMemo(() => {
+    if (!data || !filteredKpis) return { ticket: null as number | null, merch: null as number | null };
+    const snapshots = (data.snapshots ?? []) as Array<Record<string, unknown>>;
+    const prevStart = data.date_range.prev_start;
+    const prevEnd = data.date_range.prev_end;
+    if (!prevStart || !prevEnd) return { ticket: null, merch: null };
+    const startStr = data.date_range.start;
+    const endStr = data.date_range.end;
+    const inCurrent = (r: Record<string, unknown>) => {
+      const d = String((r as { date?: string }).date ?? "");
+      if (d < startStr || d > endStr) return false;
+      if (selectedStores.length === 0) return true;
+      const sid = String((r as { store_id?: string }).store_id ?? "");
+      const ak = String((r as { account_key?: string }).account_key ?? "");
+      return selectedStores.includes(sid) || selectedStores.includes(ak);
+    };
+    const inPrev = (r: Record<string, unknown>) => {
+      const d = String((r as { date?: string }).date ?? "");
+      if (d < prevStart || d > prevEnd) return false;
+      if (selectedStores.length === 0) return true;
+      const sid = String((r as { store_id?: string }).store_id ?? "");
+      const ak = String((r as { account_key?: string }).account_key ?? "");
+      return selectedStores.includes(sid) || selectedStores.includes(ak);
+    };
+    const ticketsForRow = (r: Record<string, unknown>) => {
+      const ts = Number((r as { tickets_sold?: number }).tickets_sold ?? 0);
+      if (ts > 0) return ts;
+      const sc = Number((r as { sale_count?: number }).sale_count ?? 0);
+      const rc = Number((r as { refund_count?: number }).refund_count ?? 0);
+      return Math.max(0, sc - rc);
+    };
+    const curTickets = snapshots.filter(inCurrent).reduce((s, r) => s + ticketsForRow(r), 0);
+    const prevTickets = snapshots.filter(inPrev).reduce((s, r) => s + ticketsForRow(r), 0);
+    const curMerch = snapshots.filter(inCurrent).reduce((s, r) => s + Number((r as { sales_goodies_net?: number }).sales_goodies_net ?? 0), 0);
+    const prevMerch = snapshots.filter(inPrev).reduce((s, r) => s + Number((r as { sales_goodies_net?: number }).sales_goodies_net ?? 0), 0);
+    return {
+      ticket: prevTickets > 0 ? ((curTickets - prevTickets) / prevTickets) * 100 : null,
+      merch: prevMerch > 0 ? ((curMerch - prevMerch) / prevMerch) * 100 : curMerch > 0 && prevMerch === 0 ? 100 : null,
+    };
+  }, [data, filteredKpis, selectedStores]);
+
+  // Per-store deltas mapped by store_id
+  const perStoreDeltas = React.useMemo(() => {
+    if (!data) return new Map<string, { rev: number | null; merch: number | null }>();
+    const snapshots = (data.snapshots ?? []) as Array<Record<string, unknown>>;
+    const prevStart = data.date_range.prev_start;
+    const prevEnd = data.date_range.prev_end;
+    const startStr = data.date_range.start;
+    const endStr = data.date_range.end;
+    const map = new Map<string, { rev: number | null; merch: number | null }>();
+    for (const store of perStore) {
+      const curRev = snapshots
+        .filter((r) => {
+          const d = String((r as { date?: string }).date ?? "");
+          if (d < startStr || d > endStr) return false;
+          const sid = String((r as { store_id?: string }).store_id ?? "");
+          const ak = String((r as { account_key?: string }).account_key ?? "");
+          return sid === store.store_id || ak === store.account_key;
+        })
+        .reduce((s, r) => s + Number((r as { revenue_total?: number }).revenue_total ?? 0), 0);
+      const curMerch = snapshots
+        .filter((r) => {
+          const d = String((r as { date?: string }).date ?? "");
+          if (d < startStr || d > endStr) return false;
+          const sid = String((r as { store_id?: string }).store_id ?? "");
+          const ak = String((r as { account_key?: string }).account_key ?? "");
+          return sid === store.store_id || ak === store.account_key;
+        })
+        .reduce((s, r) => s + Number((r as { sales_goodies_net?: number }).sales_goodies_net ?? 0), 0);
+      if (!prevStart || !prevEnd) {
+        map.set(store.store_id, { rev: null, merch: null });
+        continue;
+      }
+      const prevRev = snapshots
+        .filter((r) => {
+          const d = String((r as { date?: string }).date ?? "");
+          if (d < prevStart || d > prevEnd) return false;
+          const sid = String((r as { store_id?: string }).store_id ?? "");
+          const ak = String((r as { account_key?: string }).account_key ?? "");
+          return sid === store.store_id || ak === store.account_key;
+        })
+        .reduce((s, r) => s + Number((r as { revenue_total?: number }).revenue_total ?? 0), 0);
+      const prevMerch = snapshots
+        .filter((r) => {
+          const d = String((r as { date?: string }).date ?? "");
+          if (d < prevStart || d > prevEnd) return false;
+          const sid = String((r as { store_id?: string }).store_id ?? "");
+          const ak = String((r as { account_key?: string }).account_key ?? "");
+          return sid === store.store_id || ak === store.account_key;
+        })
+        .reduce((s, r) => s + Number((r as { sales_goodies_net?: number }).sales_goodies_net ?? 0), 0);
+      // fallback to store aggregated if snapshots missing for prev
+      const effectiveCurRev = curRev || store.revenue_total;
+      const effectiveCurMerch = curMerch || store.buckets.goodies;
+      map.set(store.store_id, {
+        rev: prevRev > 0 ? ((effectiveCurRev - prevRev) / prevRev) * 100 : null,
+        merch: prevMerch > 0 ? ((effectiveCurMerch - prevMerch) / prevMerch) * 100 : effectiveCurMerch > 0 && prevMerch === 0 ? 100 : null,
+      });
+    }
+    return map;
+  }, [data, perStore]);
+
   if (status && !status.configured) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title="Loyverse" eyebrow="Operations" />
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm text-[var(--fg-3)]">Loyverse n&apos;est pas configuré.</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Ajoutez LOYVERSE_ACCOUNTS dans Vercel.</p>
+            <p className="text-sm text-[var(--fg-3)]">Loyverse is not configured.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">Add LOYVERSE_ACCOUNTS in Vercel.</p>
           </CardContent>
         </Card>
       </div>
@@ -464,14 +531,35 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   }
 
   const lastRun = status?.last_run;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _hasSyncErrors = Boolean(lastRun?.per_account?.some((a) => a.error) || lastRun?.error);
   const kpi = filteredKpis;
   const snackAmount = perStore.reduce((s, r) => s + r.buckets.snack, 0);
   const snackPct = kpi && kpi.ticket_count > 0 ? (kpi.snacks_sold / kpi.ticket_count) * 100 : 0;
   const merchAmount = perStore.reduce((s, r) => s + r.buckets.goodies, 0);
   const deltaVal = kpi?.delta_vs_week_ago_pct ?? kpi?.delta_vs_prev_period_pct ?? null;
-  const deltaLabel = rangeDays === 1 ? "vs veille" : `vs ${rangeDays}j précédents`;
+
+  const dailyChartData = (() => {
+    const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string }>;
+    const byDate = new Map<string, number>();
+    for (const s of snaps) {
+      if (s.date < dateRange.from || s.date > dateRange.to) continue;
+      if (selectedStores.length > 0 && !selectedStores.includes(s.store_id) && !selectedStores.includes(s.account_key)) continue;
+      byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
+    }
+    return Array.from(byDate.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, revenue]) => ({ date, revenue }));
+  })();
+
+  const toggleShop = (store: PerStore) => {
+    const isSelected = selectedStores.includes(store.store_id) || selectedStores.includes(store.account_key);
+    if (isSelected) {
+      setSelectedStores((prev) => prev.filter((id) => id !== store.store_id && id !== store.account_key));
+    } else {
+      // single select behavior like pills: if All selected, switch to single; if some selected, add
+      if (selectedStores.length === 0) setSelectedStores([store.store_id]);
+      else setSelectedStores([...selectedStores, store.store_id]);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -483,12 +571,12 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             {canSync && (
               <Button onClick={handleSync} disabled={syncing} size="default">
                 <RefreshCwIcon className={cn("size-3.5", syncing && "animate-spin")} />
-                {syncing ? "Sync…" : "Synchroniser"}
+                {syncing ? "Syncing…" : "Sync"}
               </Button>
             )}
             {lastRun?.finished_at && (
               <span className="hidden text-xs text-[var(--fg-4)] sm:inline">
-                {lastRun.status === "completed" ? "✓" : "●"} {new Date(lastRun.finished_at).toLocaleDateString("fr-FR")} {new Date(lastRun.finished_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                {lastRun.status === "completed" ? "✓" : "●"} {new Date(lastRun.finished_at).toLocaleDateString("en-GB")} {new Date(lastRun.finished_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
           </div>
@@ -497,12 +585,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-[var(--fg-3)]">Période :</span>
-          <DateRangePicker
-            value={dateRange}
-            onChange={(range) => setDateRange(range)}
-            today={bangkokToday()}
-          />
+          <span className="text-xs font-medium text-[var(--fg-3)]">Period:</span>
+          <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Shops</span>
@@ -529,23 +613,24 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <Card>
             <CardContent>
               <Stat
-                label="CA"
+                label="Revenue"
                 value={fmtTHB(kpi.revenue_total)}
-                delta={fmtDelta(deltaVal) ? `${fmtDelta(deltaVal)} ${deltaLabel}` : undefined}
+                delta={fmtDelta(deltaVal) ?? undefined}
                 deltaDir={deltaVal !== null && deltaVal >= 0 ? "up" : deltaVal !== null ? "down" : "neutral"}
-                hint={rangeDays > 1 ? `${rangeDays}j · ${fmtInt(kpi.ticket_count)} clients · ${fmtInt(kpi.receipt_count)} passages` : `${fmtInt(kpi.ticket_count)} clients · panier ${fmtTHB(kpi.avg_ticket)}`}
+                hint={rangeDays > 1 ? `${rangeDays}d · ${fmtInt(kpi.ticket_count)} customers · ${fmtInt(kpi.receipt_count)} receipts` : `${fmtInt(kpi.ticket_count)} customers · avg ${fmtTHB(kpi.avg_ticket)}`}
                 icon={<TrendingUpIcon className="size-4" />}
                 iconColor="var(--bronze)"
-                sparkline={curveData ? <Sparkline data={curveData} color="var(--bronze)" width={64} height={20} /> : undefined}
               />
             </CardContent>
           </Card>
           <Card>
             <CardContent>
               <Stat
-                label="Clients"
+                label="Customers"
                 value={fmtInt(kpi.ticket_count)}
-                hint={`${fmtInt(kpi.receipt_count)} passages en caisse · panier ${fmtTHB(kpi.avg_ticket)}`}
+                delta={fmtDelta(kpiDeltas.ticket) ?? undefined}
+                deltaDir={kpiDeltas.ticket !== null && kpiDeltas.ticket >= 0 ? "up" : kpiDeltas.ticket !== null ? "down" : "neutral"}
+                hint={`${fmtInt(kpi.receipt_count)} receipts · avg ${fmtTHB(kpi.avg_ticket)}`}
                 icon={<UsersIcon className="size-4" />}
                 iconColor="var(--info)"
               />
@@ -556,7 +641,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <Stat
                 label="Snacks"
                 value={fmtTHB(snackAmount)}
-                hint={`${fmtInt(kpi.snacks_sold)} snacks · ${snackPct.toFixed(0)}% des clients`}
+                hint={`${fmtInt(kpi.snacks_sold)} snacks · ${snackPct.toFixed(0)}% of customers`}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--good)"
               />
@@ -567,7 +652,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <Stat
                 label="Merch"
                 value={fmtTHB(merchAmount)}
-                hint={`${((merchAmount / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% du CA · ${fmtInt(perStore.reduce((s, r) => s + r.buckets.goodies, 0) > 0 ? kpi.ticket_count : 0)} clients`}
+                delta={fmtDelta(kpiDeltas.merch) ?? undefined}
+                deltaDir={kpiDeltas.merch !== null && kpiDeltas.merch >= 0 ? "up" : kpiDeltas.merch !== null ? "down" : "neutral"}
+                hint={`${((merchAmount / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% of revenue`}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--warn)"
               />
@@ -576,9 +663,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <Card>
             <CardContent>
               <Stat
-                label="TVA encaissée"
+                label="VAT collected"
                 value={fmtTHB(kpi.vat_7)}
-                hint={`7% incluse · ${((kpi.vat_7 / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% du CA`}
+                hint={`7% incl. · ${((kpi.vat_7 / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% of revenue`}
                 icon={<ReceiptIcon className="size-4" />}
                 iconColor="var(--purple)"
               />
@@ -587,19 +674,21 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
         </div>
       ) : null}
 
-      {!loading && rangeDays === 1 && selectedStores.length === 1 && hourlyData && hourlyData.some((h) => h.revenue > 0) && (
+      {!loading && rangeDays === 1 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ClockIcon className="size-4" />
-              Ventes par heure — {effectiveEnd}
+              Hourly sales — {effectiveEnd} {selectedStores.length === 0 ? "(all shops)" : ""}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {hourlyLoading ? (
-              <div className="h-20 animate-pulse rounded bg-[var(--line-2)]" />
+              <div className="h-[220px] animate-pulse rounded bg-[var(--line-2)]" />
+            ) : hourlyData && hourlyData.some((h) => h.revenue > 0) ? (
+              <HourlyBarChart data={hourlyData} />
             ) : (
-              <HourlyChart data={hourlyData} />
+              <div className="py-8 text-center text-sm text-[var(--fg-4)]">No hourly data</div>
             )}
           </CardContent>
         </Card>
@@ -608,23 +697,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       {!loading && rangeDays > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>CA par jour — {rangeDays}j</CardTitle>
+            <CardTitle>Revenue per day — {rangeDays}d</CardTitle>
           </CardHeader>
           <CardContent>
-            <DailyRevenueChart
-              data={(() => {
-                const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string }>;
-                const byDate = new Map<string, number>();
-                for (const s of snaps) {
-                  if (s.date < dateRange.from || s.date > dateRange.to) continue;
-                  if (selectedStores.length > 0 && !selectedStores.includes(s.store_id) && !selectedStores.includes(s.account_key)) continue;
-                  byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
-                }
-                return Array.from(byDate.entries())
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([date, revenue]) => ({ date, revenue }));
-              })()}
-            />
+            <DailyBarChart data={dailyChartData} />
           </CardContent>
         </Card>
       )}
@@ -633,7 +709,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Buckets vente</CardTitle>
+              <CardTitle>Sales buckets</CardTitle>
             </CardHeader>
             <CardContent>
               <Donut
@@ -650,7 +726,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Mix paiements</CardTitle>
+              <CardTitle>Payment mix</CardTitle>
             </CardHeader>
             <CardContent>
               <Donut
@@ -662,18 +738,18 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 colors={["var(--good)", "var(--info)", "var(--bronze)"]}
               />
               <p className="mt-2 text-center text-xs text-[var(--fg-4)]">
-                Card dont {fmtTHB(perStore.reduce((s, r) => s + r.buckets.surcharge, 0))} frais (3%)
+                Card incl. {fmtTHB(perStore.reduce((s, r) => s + r.buckets.surcharge, 0))} fees (3%)
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>CA par boutique</CardTitle>
+              <CardTitle>Revenue by shop</CardTitle>
             </CardHeader>
             <CardContent>
               <Donut
                 data={perStore
-                  .map((s) => ({ label: s.account_key, value: s.revenue_total }))
+                  .map((s) => ({ label: capitalizeShop(s.account_key), value: s.revenue_total }))
                   .sort((a, b) => b.value - a.value)}
                 colors={["var(--bronze)", "var(--info)", "var(--good)", "var(--warn)", "var(--purple)", "var(--bad)", "var(--fg-4)", "var(--fg-3)"]}
               />
@@ -685,10 +761,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       {!loading && perStore.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm text-[var(--fg-3)]">Pas de données pour cette période.</p>
+            <p className="text-sm text-[var(--fg-3)]">No data for this period.</p>
             {canSync && (
               <Button size="sm" variant="secondary" className="mt-3" onClick={handleSync} disabled={syncing}>
-                Synchroniser {rangeDays > 1 ? `${rangeDays}j` : effectiveEnd}
+                Sync {rangeDays > 1 ? `${rangeDays}d` : effectiveEnd}
               </Button>
             )}
           </CardContent>
@@ -707,45 +783,58 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               .filter((b) => b.value > 0)
               .sort((a, b) => b.value - a.value);
             const bucketMax = Math.max(...bucketEntries.map((b) => b.value), 1);
+            const deltas = perStoreDeltas.get(store.store_id) ?? { rev: null, merch: null };
+            const isSelected = selectedStores.includes(store.store_id) || selectedStores.includes(store.account_key);
             return (
-              <Card key={`${store.account_key}-${store.store_id}-${store.date}`} className={cn("overflow-hidden", isDegraded && "border-[var(--warn)]/40")}>
-                <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--bg-2)] px-4 py-3">
+              <Card
+                key={`${store.account_key}-${store.store_id}-${store.date}`}
+                onClick={() => toggleShop(store)}
+                className={cn(
+                  "group cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]",
+                  isDegraded && "border-[var(--warn)]/40",
+                  isSelected && "ring-2 ring-[var(--bronze)] ring-offset-0 border-[var(--bronze)]"
+                )}
+              >
+                <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--bg-2)] px-4 py-3 transition-colors group-hover:bg-[var(--bronze-soft)]/30">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex size-7 items-center justify-center rounded-full bg-[var(--bronze-soft)] text-[10px] font-bold text-[var(--bronze)]">
                       {store.account_key.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-bold capitalize leading-none text-[var(--fg)]">{store.account_key}</p>
+                      <p className="truncate text-[15px] font-bold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
                     </div>
                   </div>
                   {isDegraded && (
                     <Pill tone="warn" size="sm" dot>
-                      À vérifier
+                      Check
                     </Pill>
                   )}
                 </div>
 
                 <CardContent className="space-y-3 pt-3">
-                  <div className="grid grid-cols-3 gap-2 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-2">
+                  <div className="grid grid-cols-2 gap-2 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-2">
                     <div className="text-center">
-                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">CA</p>
+                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Revenue</p>
                       <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtTHB(store.revenue_total)}</p>
-                      <p className="text-[10px] text-[var(--fg-4)]">{fmtInt(store.ticket_count)} clients</p>
+                      {fmtDelta(deltas.rev) ? (
+                        <p className="font-mono text-[11px] font-semibold tabular-nums" style={{ color: deltas.rev !== null && deltas.rev >= 0 ? "var(--good)" : "var(--bad)" }}>{fmtDelta(deltas.rev)}</p>
+                      ) : (
+                        <p className="text-[10px] text-[var(--fg-4)]">—</p>
+                      )}
                     </div>
-                    <div className="text-center border-x border-[var(--line)]">
-                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Clients</p>
-                      <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtInt(store.ticket_count)}</p>
-                      <p className="text-[10px] text-[var(--fg-4)]">{fmtInt(store.receipt_count)} passages</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Panier</p>
-                      <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtTHB(store.avg_ticket)}</p>
-                      <p className="text-[10px] text-[var(--fg-4)]">{fmtInt(store.snacks_sold)} snacks</p>
+                    <div className="text-center border-l border-[var(--line)]">
+                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Merch</p>
+                      <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtTHB(store.buckets.goodies)}</p>
+                      {fmtDelta(deltas.merch) ? (
+                        <p className="font-mono text-[11px] font-semibold tabular-nums" style={{ color: deltas.merch !== null && deltas.merch >= 0 ? "var(--good)" : "var(--bad)" }}>{fmtDelta(deltas.merch)}</p>
+                      ) : (
+                        <p className="text-[10px] text-[var(--fg-4)]">—</p>
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Répartition ventes</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Sales breakdown</p>
                     {bucketEntries.map((b) => (
                       <div key={b.label} className="flex items-center gap-2">
                         <span className="w-12 text-[11px] text-[var(--fg-3)]">{b.label}</span>
@@ -767,7 +856,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                     <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bronze-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--bronze)]">
                       Card {fmtTHB(store.payments.credit_card)}
                       {store.buckets.surcharge > 0 && (
-                        <span className="ml-1 rounded-full bg-white/70 px-1 py-0 text-[10px] leading-none">dont {fmtTHB(store.buckets.surcharge)} frais</span>
+                        <span className="ml-1 rounded-full bg-white/70 px-1 py-0 text-[10px] leading-none">incl. {fmtTHB(store.buckets.surcharge)} fees</span>
                       )}
                     </span>
                   </div>

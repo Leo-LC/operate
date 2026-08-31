@@ -9,7 +9,7 @@ import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon,
-  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -115,8 +115,20 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const [cmdOpen, setCmdOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("nexus-sidebar-collapsed");
+      if (v === "1") setSidebarCollapsed(true);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("nexus-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
+    } catch {}
+  }, [sidebarCollapsed]);
 
   /* Close the mobile drawer whenever the route changes */
   useEffect(() => {
@@ -220,9 +232,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
       {/* ── Sidebar ── */}
       <aside
-        className={`app-sidebar${mobileNavOpen ? " is-open" : ""}`}
+        className={`app-sidebar${mobileNavOpen ? " is-open" : ""}${sidebarCollapsed ? " is-collapsed" : ""}`}
         style={{
-          width: "var(--sidebar-w)",
+          width: sidebarCollapsed ? "64px" : "var(--sidebar-w)",
           flexShrink: 0,
           borderRight: "1px solid var(--line)",
           background: "var(--surface-2)",
@@ -232,6 +244,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           top: 0,
           height: "100vh",
           zIndex: 40,
+          transition: "width 200ms var(--ease)",
+          overflow: "hidden",
         }}
       >
         {/* Brand header — same height as topbar so they align */}
@@ -245,24 +259,47 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             flexShrink: 0,
           }}
         >
-          <Link
-            href="/home"
-            style={{ display: "flex", alignItems: "baseline", gap: 6, textDecoration: "none" }}
-          >
-            <span
-              style={{
-                fontSize: 17,
-                fontWeight: 700,
-                letterSpacing: "-0.01em",
-                color: "var(--fg)",
-                fontFamily: "var(--font-sans)",
-              }}
+          {!sidebarCollapsed && (
+            <Link
+              href="/home"
+              style={{ display: "flex", alignItems: "baseline", gap: 6, textDecoration: "none" }}
             >
-              Operate
-            </span>
-            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>v2.6</span>
-          </Link>
+              <span
+                style={{
+                  fontSize: 17,
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                  color: "var(--fg)",
+                  fontFamily: "var(--font-sans)",
+                }}
+              >
+                Operate
+              </span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>v2.6</span>
+            </Link>
+          )}
           <div style={{ flex: 1 }} />
+          {/* Collapse toggle — visible on tablet + desktop */}
+          <button
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+            title={sidebarCollapsed ? "Expand" : "Collapse"}
+            className="app-collapse-btn hover:!bg-[var(--row-hover)]"
+            style={{
+              width: 28,
+              height: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-sm)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            {sidebarCollapsed ? <PanelLeftOpenIcon size={16} strokeWidth={1.5} /> : <PanelLeftCloseIcon size={16} strokeWidth={1.5} />}
+          </button>
           <button
             onClick={() => setMobileNavOpen(false)}
             aria-label="Close navigation"
@@ -309,6 +346,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             return (
               <div key={group.label} style={{ marginTop: gi === 0 ? 0 : 12 }}>
                 <div
+                  className="app-sidebar-group-label"
                   style={{
                     fontSize: 10,
                     fontWeight: 600,
@@ -317,6 +355,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                     color: "var(--fg-mute)",
                     padding: "4px 10px 6px",
                     userSelect: "none",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {group.label}
@@ -353,6 +392,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                       <Link
                         key={item.id}
                         href={item.href}
+                        title={sidebarCollapsed ? item.label : undefined}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -366,6 +406,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                           border: `1px solid ${active ? "var(--line)" : "transparent"}`,
                           textDecoration: "none",
                           transition: "background var(--dur) var(--ease)",
+                          justifyContent: sidebarCollapsed ? "center" : "flex-start",
                         }}
                         className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg-2)] active:!bg-[var(--row-active)]"
                       >
@@ -377,7 +418,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                             strokeWidth: 1.5,
                           }}
                         />
-                        <span>{item.label}</span>
+                        <span className="app-sidebar-label">{item.label}</span>
                       </Link>
                     );
                   })}
@@ -419,7 +460,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             {initials(displayName || email)}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+          <div className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
             <span
               style={{
                 fontSize: 13,
