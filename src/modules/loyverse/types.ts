@@ -84,5 +84,18 @@ export type SyncAllResult = {
   error: string | null;
 };
 
+export type LoyverseShiftRawRow = {
+  id: string;
+  account_key: string;
+  store_id: string;
+  location_id: string | null;
+  date: string;
+  shifts: Record<string, unknown>[];
+  shift_count: number;
+  fetched_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 // Re-export for convenience
 export type { LoyverseReceipt };

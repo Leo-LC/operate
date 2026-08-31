@@ -8,6 +8,8 @@ import type { LoyverseReceipt, LoyverseStore } from "@/modules/loyverse-sandbox/
 import { LOYVERSE_SYNC_CONCURRENCY } from "../config";
 import type { SyncAllResult, SyncPerAccountResult, SyncPerStoreResult } from "../types";
 
+export type LoyverseShiftRaw = Record<string, unknown> & { id: string; store_id?: string };
+
 function getBangkokDates(count: number): string[] {
   const dates: string[] = [];
   const bangkokNowMs = Date.now() + 7 * 60 * 60 * 1000;
@@ -26,13 +28,15 @@ async function getMissingDatesForBackfill(): Promise<string[]> {
   const supabase = getSupabaseServerClient();
   const last30 = getBangkokDates(30);
   try {
-    const { data } = await supabase.from("loyverse_daily_snapshots").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]);
-    const existing = new Set((data ?? []).map((r) => r.date as string));
-    const missing = last30.filter((d) => !existing.has(d));
-    // Always include today + yesterday even if already present (to refresh)
+    const [snapRes, shiftsRes] = await Promise.all([
+      supabase.from("loyverse_daily_snapshots").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
+      supabase.from("loyverse_shifts_raw").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
+    ]);
+    const existingSnap = new Set((snapRes.data ?? []).map((r) => r.date as string));
+    const existingShifts = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
+    const missing = last30.filter((d) => !existingSnap.has(d) || !existingShifts.has(d));
     const mustInclude = getBangkokDates(2);
     for (const d of mustInclude) if (!missing.includes(d)) missing.push(d);
-    // Unique + sort desc (newest first)
     return Array.from(new Set(missing)).sort().reverse().slice(0, 30);
   } catch {
     return getBangkokDates(2);
@@ -98,6 +102,61 @@ async function upsertSnapshot(
     { onConflict: "account_key,store_id,date" },
   );
   if (error) throw error;
+}
+
+async function upsertShiftsRaw(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  row: {
+    account_key: string;
+    store_id: string;
+    location_id: string | null;
+    date: string;
+    shifts: LoyverseShiftRaw[];
+  },
+) {
+  const { error } = await supabase.from("loyverse_shifts_raw").upsert(
+    {
+      account_key: row.account_key,
+      store_id: row.store_id,
+      location_id: row.location_id,
+      date: row.date,
+      shifts: row.shifts as unknown as never,
+      shift_count: row.shifts.length,
+      fetched_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "account_key,store_id,date" },
+  );
+  if (error) throw error;
+}
+
+async function syncShiftsForStoreDate(
+  account: Account,
+  storeId: string,
+  date: string,
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  location_id: string | null,
+): Promise<{ stored: boolean; shift_count: number; error?: string }> {
+  const range = dateRangeForDay(date);
+  try {
+    const shifts = await loyverseFetchAll<LoyverseShiftRaw>(account, "/shifts", "shifts", {
+      store_ids: storeId,
+      created_at_min: range.created_at_min,
+      created_at_max: range.created_at_max,
+    });
+    await upsertShiftsRaw(supabase, {
+      account_key: account.key,
+      store_id: storeId,
+      location_id,
+      date,
+      shifts,
+    });
+    return { stored: true, shift_count: shifts.length };
+  } catch (err) {
+    const body = err instanceof LoyverseApiError ? (err.body ? ` ${JSON.stringify(err.body).slice(0, 300)}` : "") : "";
+    const message = err instanceof LoyverseApiError ? `${err.message}${body} (${err.status})` : err instanceof Error ? err.message : String(err);
+    return { stored: false, shift_count: 0, error: message };
+  }
 }
 
 async function syncStoreDate(
@@ -245,31 +304,38 @@ async function syncAccount(
     for (const store of stores) {
       const location_id = await getLocationIdForStoreAsync(store.id);
 
-      // Per-shop incremental: check which dates already have snapshots (closed shifts)
-      // If store has never been synced, expand to 30 days
       let datesForStore = dates;
       try {
-        const { data: existing } = await supabase
-          .from("loyverse_daily_snapshots")
-          .select("date")
-          .eq("account_key", account.key)
-          .eq("store_id", store.id)
-          .in("date", dates);
-        const existingSet = new Set((existing ?? []).map((r) => r.date as string));
+        const [snapRes, shiftsRes] = await Promise.all([
+          supabase
+            .from("loyverse_daily_snapshots")
+            .select("date")
+            .eq("account_key", account.key)
+            .eq("store_id", store.id)
+            .in("date", dates),
+          supabase
+            .from("loyverse_shifts_raw")
+            .select("date")
+            .eq("account_key", account.key)
+            .eq("store_id", store.id)
+            .in("date", dates),
+        ]);
+        const existingSnapSet = new Set((snapRes.data ?? []).map((r) => r.date as string));
+        const existingShiftSet = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
 
-        // If no existing at all for this store (never synced), expand to 30 days backfill
-        if (existingSet.size === 0 && dates.length <= 2) {
+        if (existingShiftSet.size === 0 && dates.length <= 2) {
           const backfill = getBangkokDates(30);
-          // Only keep those not already in dates
+          const extra = backfill.filter((d) => !dates.includes(d));
+          datesForStore = [...dates, ...extra];
+        } else if (existingSnapSet.size === 0 && dates.length <= 2) {
+          const backfill = getBangkokDates(30);
           const extra = backfill.filter((d) => !dates.includes(d));
           datesForStore = [...dates, ...extra];
         } else {
-          // For closed shifts (date < today), skip if already synced
           datesForStore = dates.filter((d) => {
-            if (d === bangkokToday) return true; // today is open, always refresh
-            return !existingSet.has(d);
+            if (d === bangkokToday) return true;
+            return !existingSnapSet.has(d) || !existingShiftSet.has(d);
           });
-          // If all filtered out (already synced and no today), keep at least today to refresh open shift
           if (datesForStore.length === 0) datesForStore = [bangkokToday];
         }
       } catch {
@@ -280,6 +346,11 @@ async function syncAccount(
         const res = await syncStoreDate(account, store.id, date, catalog, supabase, location_id);
         per_store.push(res);
         if (res.snapshot) snapshots_upserted++;
+        const shiftRes = await syncShiftsForStoreDate(account, store.id, date, supabase, location_id);
+        if (shiftRes.error) {
+          const target = per_store[per_store.length - 1];
+          if (target) target.error = [target.error, `shifts: ${shiftRes.error}`].filter(Boolean).join(" | ");
+        }
       }
     }
 
