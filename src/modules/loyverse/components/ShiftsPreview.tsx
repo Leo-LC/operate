@@ -435,8 +435,10 @@ function ChallengesPreviewCard({ month }: { month: string }) {
   >([]);
   const [unmapped, setUnmapped] = React.useState<typeof rows>([]);
   const [loading, setLoading] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  React.useEffect(() => {
+  const [result, setResult] = React.useState<string | null>(null);
+  const refresh = React.useCallback(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -452,6 +454,27 @@ function ChallengesPreviewCard({ month }: { month: string }) {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [month]);
+  React.useEffect(() => {
+    const cleanup = refresh();
+    return cleanup;
+  }, [refresh]);
+  const handleFill = async (force: boolean) => {
+    setSyncing(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch("/api/loyverse/challenges-write", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ month, dryRun: false, force }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? "Write failed");
+      setResult(`${j.location_upserted} périodes remplies, ${j.location_skipped} déjà OK, ${j.location_exists_overwritten ?? 0} existantes ignorées (force=false)`);
+      await new Promise((r) => setTimeout(r, 300));
+      refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <Card>
@@ -462,7 +485,17 @@ function ChallengesPreviewCard({ month }: { month: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <p className="text-xs text-[var(--fg-4)]">Compare ce que donnerait Loyverse (tickets/snacks du mois) vs ce qui est déjà saisi dans <code>location_entries</code>. Rien n&apos;est écrit — juste pour vérifier.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={() => handleFill(false)} disabled={syncing || loading}>
+            {syncing ? "Remplissage…" : "Remplir Challenges"}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => handleFill(true)} disabled={syncing || loading}>
+            Forcer (écrase)
+          </Button>
+          <span className="text-xs text-[var(--fg-4)]">n&apos;écrase pas les saisies existantes sauf Forcer — CRON quotidien 23:30 le fera auto</span>
+          {result && <span className="ml-auto text-xs font-medium text-[var(--good)]">{result}</span>}
+        </div>
+        <p className="text-xs text-[var(--fg-4)]">Compare ce que donnerait Loyverse (tickets/snacks du mois) vs ce qui est déjà saisi dans <code>location_entries</code>.</p>
         {loading ? (
           <div className="h-20 animate-pulse rounded bg-[var(--line-2)]" />
         ) : error ? (
