@@ -101,7 +101,7 @@ function ShiftCard({ shift }: { shift: Record<string, unknown> }) {
           )}
         </div>
         <Button variant="secondary" size="sm" onClick={() => setOpen((v) => !v)} className="shrink-0">
-          {open ? "Masquer" : "Détail brut"}
+          {open ? "Masquer" : "Shift"}
         </Button>
       </div>
       {hasMoney && (
@@ -250,13 +250,12 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
 
   const dates = React.useMemo(() => datesInRange(range.from, range.to), [range]);
   const todayStr = bangkokToday();
-  const loadedDates = React.useMemo(() => {
-    const s = new Set<string>();
-    for (const r of shiftRows) s.add(r.date);
-    for (const r of salesRows) s.add(r.date);
-    return s;
-  }, [shiftRows, salesRows]);
-  const missingDates = React.useMemo(() => dates.filter((d) => !loadedDates.has(d) && d !== todayStr), [dates, loadedDates]);
+  const loadedShiftDates = React.useMemo(() => new Set(shiftRows.map((r) => r.date)), [shiftRows]);
+  const loadedSalesDates = React.useMemo(() => new Set(salesRows.map((r) => r.date)), [salesRows]);
+  const missingDates = React.useMemo(
+    () => dates.filter((d) => d !== todayStr && (!loadedShiftDates.has(d) || !loadedSalesDates.has(d))),
+    [dates, loadedShiftDates, loadedSalesDates, todayStr],
+  );
   const allLoaded = missingDates.length === 0;
   const totalShifts = shiftRows.reduce((s, r) => s + (r.shift_count ?? r.shifts.length), 0);
 
@@ -278,14 +277,8 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   }, [shiftRows, salesRows]);
 
   const handleSync = async () => {
-    // Garde-fou: on ne re-pousse que les dates manquantes + aujourd'hui (ouvert)
-    const toSync = dates.filter((d) => !loadedDates.has(d) || d === todayStr);
-    if (toSync.length === 0) {
-      // si tout est déjà chargé et pas today, on force un refresh today quand même pour être safe
-      if (dates.includes(todayStr)) {
-        toSync.push(todayStr);
-      } else return;
-    }
+    const toSync = dates.filter((d) => d === todayStr || !loadedShiftDates.has(d) || !loadedSalesDates.has(d));
+    if (toSync.length === 0) return;
     setSyncing(true);
     setError(null);
     try {
@@ -304,27 +297,31 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
-          <DateRangePicker value={range} onChange={setRange} today={todayStr} />
-          <Button variant="secondary" size="sm" onClick={handleReload} disabled={loading}>
-            Recharger
-          </Button>
-          <Button size="sm" onClick={handleSync} disabled={syncing || loading}>
-            {syncing ? "Synchronisation…" : `Synchroniser Loyverse${missingDates.length ? ` (${missingDates.length}j)` : ""}`}
-          </Button>
-          <div className="ml-1 flex items-center gap-1.5">
+      <Card style={{ overflow: "visible" }}>
+        <CardContent className="flex flex-col gap-2 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangePicker value={range} onChange={setRange} today={todayStr} />
+            <Button variant="secondary" size="sm" onClick={handleReload} disabled={loading}>
+              Recharger
+            </Button>
+            <Button size="sm" onClick={handleSync} disabled={syncing || loading}>
+              {syncing ? "Synchronisation…" : `Synchroniser Loyverse${missingDates.length ? ` (${missingDates.length}j)` : ""}`}
+            </Button>
+            <span className="ml-auto flex items-center gap-2 text-xs">
+              {allLoaded ? <Pill tone="good" size="sm" dot>Archivé</Pill> : <Pill tone="warn" size="sm" dot>{missingDates.length} à synchroniser</Pill>}
+              <span className="hidden text-[var(--fg-4)] sm:inline">{byStore.length} shops · {totalShifts} shifts · {range.from} → {range.to}</span>
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-2">
+            <span className="text-xs font-medium text-[var(--fg-4)]">Afficher :</span>
             <Button variant={showCat ? "secondary" : "outline"} size="sm" onClick={() => setShowCat((v) => !v)}>
               <TagIcon className="size-3.5" /> {showCat ? "Masquer catégories" : "Catégories"}
             </Button>
             <Button variant={showItem ? "secondary" : "outline"} size="sm" onClick={() => setShowItem((v) => !v)}>
               <PackageIcon className="size-3.5" /> {showItem ? "Masquer articles" : "Articles"}
             </Button>
+            <span className="ml-1 text-xs text-[var(--fg-4)]">— Shift se gère par shift (bouton Shift)</span>
           </div>
-          <span className="ml-auto flex items-center gap-2 text-xs">
-            {allLoaded ? <Pill tone="good" size="sm" dot>Archivé</Pill> : <Pill tone="warn" size="sm" dot>{missingDates.length} à synchroniser</Pill>}
-            <span className="hidden text-[var(--fg-4)] sm:inline">{byStore.length} shops · {totalShifts} shifts · {range.from} → {range.to}</span>
-          </span>
         </CardContent>
       </Card>
 
@@ -385,17 +382,6 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
 
                   {showCat && <div className="pt-1"><p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><TagIcon className="size-3.5" /> Sales by category</p><SalesCategoryBlock rows={store.salesRows} /></div>}
                   {showItem && <div className="pt-1"><p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><PackageIcon className="size-3.5" /> Sales by item</p><SalesItemBlock rows={store.salesRows} /></div>}
-                  {!showCat && !showItem && (
-                    <p className="text-center text-xs text-[var(--fg-4)]">Affiche les ventes avec les boutons Catégories / Articles ci-dessus.</p>
-                  )}
-
-                  <details>
-                    <summary className="cursor-pointer text-xs font-medium text-[var(--fg-3)]">Payloads bruts ({store.shiftRows.length}j shifts, {store.salesRows.length}j sales)</summary>
-                    <div className="mt-2 grid gap-2">
-                      <pre className="max-h-[240px] overflow-auto rounded bg-[var(--fg)] p-3 text-[11px] leading-relaxed text-white">{JSON.stringify(store.shiftRows, null, 2)}</pre>
-                      <pre className="max-h-[240px] overflow-auto rounded bg-[var(--fg)] p-3 text-[11px] leading-relaxed text-white">{JSON.stringify(store.salesRows, null, 2)}</pre>
-                    </div>
-                  </details>
                 </CardContent>
               </Card>
             );
