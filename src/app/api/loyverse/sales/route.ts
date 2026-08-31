@@ -34,7 +34,6 @@ export async function GET(request: Request) {
     from = dateParam!;
     to = dateParam!;
   } else {
-    // Défaut: veille Bangkok
     const d = bangkokDate(-1);
     from = d;
     to = d;
@@ -44,7 +43,7 @@ export async function GET(request: Request) {
 
   try {
     let query = supabase
-      .from("loyverse_shifts_raw")
+      .from("loyverse_daily_sales")
       .select("*")
       .gte("date", from)
       .lte("date", to)
@@ -68,13 +67,13 @@ export async function GET(request: Request) {
       store_id: r.store_id,
       location_id: r.location_id,
       date: r.date,
-      shifts: r.shifts ?? [],
-      shift_count: r.shift_count ?? (Array.isArray(r.shifts) ? r.shifts.length : 0),
+      sales_by_category: r.sales_by_category ?? [],
+      sales_by_item: r.sales_by_item ?? [],
+      receipt_count: r.receipt_count ?? 0,
       fetched_at: r.fetched_at,
       updated_at: r.updated_at,
     }));
 
-    // Compat: si requête single date, garde ancien champ `date`
     const singleDate = from === to ? from : undefined;
     return NextResponse.json({ from, to, date: singleDate ?? to, rows });
   } catch (err) {

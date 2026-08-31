@@ -28,13 +28,15 @@ async function getMissingDatesForBackfill(): Promise<string[]> {
   const supabase = getSupabaseServerClient();
   const last30 = getBangkokDates(30);
   try {
-    const [snapRes, shiftsRes] = await Promise.all([
+    const [snapRes, shiftsRes, salesRes] = await Promise.all([
       supabase.from("loyverse_daily_snapshots").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
       supabase.from("loyverse_shifts_raw").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
+      supabase.from("loyverse_daily_sales").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
     ]);
     const existingSnap = new Set((snapRes.data ?? []).map((r) => r.date as string));
     const existingShifts = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
-    const missing = last30.filter((d) => !existingSnap.has(d) || !existingShifts.has(d));
+    const existingSales = new Set((salesRes.data ?? []).map((r) => r.date as string));
+    const missing = last30.filter((d) => !existingSnap.has(d) || !existingShifts.has(d) || !existingSales.has(d));
     const mustInclude = getBangkokDates(2);
     for (const d of mustInclude) if (!missing.includes(d)) missing.push(d);
     return Array.from(new Set(missing)).sort().reverse().slice(0, 30);
@@ -159,6 +161,75 @@ async function syncShiftsForStoreDate(
   }
 }
 
+function computeSalesAggregates(
+  receipts: LoyverseReceipt[],
+  date: string,
+  storeId: string,
+  itemCategoryMap: Map<string, string | null>,
+  categoryNames: Map<string, string>,
+): { sales_by_category: { category_id: string | null; category_name: string; quantity: number; total_money: number }[]; sales_by_item: { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }[] } {
+  const byCat = new Map<string, { category_id: string | null; category_name: string; quantity: number; total_money: number }>();
+  const byItem = new Map<string, { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }>();
+  for (const r of receipts) {
+    const localDate = (r.receipt_date ?? r.created_at ?? "").slice(0, 10);
+    if (localDate !== date) continue;
+    if (r.store_id !== storeId) continue;
+    if (r.cancelled_at) continue;
+    const mult = r.receipt_type === "REFUND" ? -1 : 1;
+    for (const line of r.line_items ?? []) {
+      const itemId = line.item_id ?? null;
+      const categoryId = itemId ? (itemCategoryMap.get(itemId) ?? null) : null;
+      const categoryName = categoryId ? (categoryNames.get(categoryId) ?? "Unknown") : line.item_name ? "Uncategorized" : "Unknown";
+      const total = (line.total_money ?? 0) * mult;
+      const qty = (line.quantity ?? 0) * mult;
+      const catKey = categoryId ?? `__uncat_${line.item_name ?? "unknown"}`;
+      const catEntry = byCat.get(catKey);
+      if (catEntry) {
+        catEntry.quantity += qty;
+        catEntry.total_money += total;
+      } else {
+        byCat.set(catKey, { category_id: categoryId, category_name: categoryName, quantity: qty, total_money: total });
+      }
+      const itemKey = itemId ?? `__name_${line.item_name ?? "unknown"}`;
+      const itemEntry = byItem.get(itemKey);
+      if (itemEntry) {
+        itemEntry.quantity += qty;
+        itemEntry.total_money += total;
+      } else {
+        byItem.set(itemKey, { item_id: itemId, item_name: line.item_name ?? "Unknown", category_id: categoryId, category_name: categoryId ? (categoryNames.get(categoryId) ?? null) : null, quantity: qty, total_money: total });
+      }
+    }
+  }
+  const sales_by_category = Array.from(byCat.values())
+    .filter((c) => c.quantity !== 0 || c.total_money !== 0)
+    .sort((a, b) => b.total_money - a.total_money);
+  const sales_by_item = Array.from(byItem.values())
+    .filter((c) => c.quantity !== 0 || c.total_money !== 0)
+    .sort((a, b) => b.total_money - a.total_money);
+  return { sales_by_category, sales_by_item };
+}
+
+async function upsertDailySales(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  row: { account_key: string; store_id: string; location_id: string | null; date: string; sales_by_category: unknown[]; sales_by_item: unknown[]; receipt_count: number },
+) {
+  const { error } = await supabase.from("loyverse_daily_sales").upsert(
+    {
+      account_key: row.account_key,
+      store_id: row.store_id,
+      location_id: row.location_id,
+      date: row.date,
+      sales_by_category: row.sales_by_category as unknown as never,
+      sales_by_item: row.sales_by_item as unknown as never,
+      receipt_count: row.receipt_count,
+      fetched_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "account_key,store_id,date" },
+  );
+  if (error) throw error;
+}
+
 async function syncStoreDate(
   account: Account,
   storeId: string,
@@ -221,6 +292,22 @@ async function syncStoreDate(
     };
 
     await upsertSnapshot(supabase, row);
+
+    // Dérivé sales by category/item — best-effort, ne fait pas échouer le snapshot
+    try {
+      const { sales_by_category, sales_by_item } = computeSalesAggregates(receipts, date, storeId, catalog.itemCategoryMap, catalog.categoryNames);
+      await upsertDailySales(supabase, {
+        account_key: account.key,
+        store_id: storeId,
+        location_id,
+        date,
+        sales_by_category,
+        sales_by_item,
+        receipt_count: meta.receipt_count,
+      });
+    } catch {
+      // ignore — snapshot reste prioritaire
+    }
 
     return {
       store_id: storeId,
@@ -306,7 +393,7 @@ async function syncAccount(
 
       let datesForStore = dates;
       try {
-        const [snapRes, shiftsRes] = await Promise.all([
+        const [snapRes, shiftsRes, salesRes] = await Promise.all([
           supabase
             .from("loyverse_daily_snapshots")
             .select("date")
@@ -319,11 +406,18 @@ async function syncAccount(
             .eq("account_key", account.key)
             .eq("store_id", store.id)
             .in("date", dates),
+          supabase
+            .from("loyverse_daily_sales")
+            .select("date")
+            .eq("account_key", account.key)
+            .eq("store_id", store.id)
+            .in("date", dates),
         ]);
         const existingSnapSet = new Set((snapRes.data ?? []).map((r) => r.date as string));
         const existingShiftSet = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
+        const existingSalesSet = new Set((salesRes.data ?? []).map((r) => r.date as string));
 
-        if (existingShiftSet.size === 0 && dates.length <= 2) {
+        if ((existingShiftSet.size === 0 || existingSalesSet.size === 0) && dates.length <= 2) {
           const backfill = getBangkokDates(30);
           const extra = backfill.filter((d) => !dates.includes(d));
           datesForStore = [...dates, ...extra];
@@ -334,7 +428,7 @@ async function syncAccount(
         } else {
           datesForStore = dates.filter((d) => {
             if (d === bangkokToday) return true;
-            return !existingSnapSet.has(d) || !existingShiftSet.has(d);
+            return !existingSnapSet.has(d) || !existingShiftSet.has(d) || !existingSalesSet.has(d);
           });
           if (datesForStore.length === 0) datesForStore = [bangkokToday];
         }

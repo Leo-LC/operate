@@ -97,5 +97,19 @@ export type LoyverseShiftRawRow = {
   updated_at: string;
 };
 
+export type LoyverseDailySalesRow = {
+  id: string;
+  account_key: string;
+  store_id: string;
+  location_id: string | null;
+  date: string;
+  sales_by_category: { category_id: string | null; category_name: string; quantity: number; total_money: number }[];
+  sales_by_item: { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }[];
+  receipt_count: number;
+  fetched_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 // Re-export for convenience
 export type { LoyverseReceipt };
