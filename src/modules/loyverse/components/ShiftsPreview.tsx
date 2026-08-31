@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { StoreIcon, ClockIcon, CoinsIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { StoreIcon, ClockIcon, CoinsIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChevronDownIcon } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
+import { startOfMonth } from "date-fns";
 
 function bangkokToday(): string {
   return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -37,6 +40,105 @@ function addDays(dateStr: string, delta: number): string {
 function capitalizeShop(name: string): string {
   if (!name) return name;
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+function parseDay(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+function toDay(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+function formatSingleLabel(dateStr: string): string {
+  const d = parseDay(dateStr);
+  if (!d) return dateStr;
+  const thisYear = new Date().getFullYear();
+  return d.getFullYear() === thisYear ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+const triggerStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 7,
+  height: 32,
+  minWidth: 150,
+  padding: "0 var(--s-3)",
+  borderRadius: "var(--r-sm)",
+  border: "1px solid var(--line)",
+  background: "var(--bg)",
+  fontSize: 13,
+  color: "var(--fg)",
+  cursor: "pointer",
+  transition: "background var(--dur) var(--ease)",
+};
+const panelStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 6px)",
+  zIndex: 50,
+  width: "max-content",
+  maxWidth: "min(92vw, 340px)",
+  overflowX: "auto",
+  borderRadius: "var(--r-lg)",
+  border: "1px solid var(--line)",
+  background: "var(--surface)",
+  boxShadow: "var(--shadow-2)",
+  padding: "var(--s-4)",
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+};
+
+function SingleDatePicker({ value, onChange, today }: { value: string; onChange: (v: string) => void; today: string }) {
+  const base = parseDay(today) ?? new Date();
+  const selected = parseDay(value) ?? base;
+  const [open, setOpen] = React.useState(false);
+  const [viewMonth, setViewMonth] = React.useState<Date>(() => startOfMonth(selected));
+  React.useEffect(() => {
+    if (!open) setViewMonth(startOfMonth(parseDay(value) ?? base));
+  }, [open, value, base]);
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={triggerStyle}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg)")}
+      >
+        <CalendarDaysIcon size={13} style={{ color: "var(--fg-3)", flexShrink: 0 }} />
+        <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap" }}>{formatSingleLabel(value)}</span>
+        <ChevronDownIcon size={13} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
+      </button>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
+          <div style={{ ...panelStyle, left: 0 }}>
+            <div className="nexus-dp">
+              <DayPicker
+                mode="single"
+                required
+                weekStartsOn={1}
+                showOutsideDays
+                today={base}
+                month={viewMonth}
+                onMonthChange={setViewMonth}
+                selected={selected}
+                onSelect={(d) => {
+                  if (d) {
+                    onChange(toDay(d));
+                    setOpen(false);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 function RenderValue({ value }: { value: unknown }) {
@@ -74,8 +176,9 @@ function RenderValue({ value }: { value: unknown }) {
   return <span className="text-xs">{String(value)}</span>;
 }
 
-function ShiftCard({ shift }: { shift: Record<string, unknown> }) {
-  const [open, setOpen] = React.useState(false);
+function ShiftCard({ shift, defaultOpen }: { shift: Record<string, unknown>; defaultOpen?: boolean }) {
+  const [open, setOpen] = React.useState(!!defaultOpen);
+  React.useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen, shift]);
   const id = (shift.id as string) ?? (shift.uuid as string) ?? "—";
   const storeId = (shift.store_id as string) ?? (shift.storeId as string) ?? null;
   const openedAt = (shift.opened_at as string) ?? (shift.created_at as string) ?? (shift.open_at as string) ?? null;
@@ -108,22 +211,18 @@ function ShiftCard({ shift }: { shift: Record<string, unknown> }) {
       </div>
       {hasMoney && (
         <div className="flex flex-wrap gap-1.5 border-t border-[var(--line)] bg-[var(--bg-2)] px-3 py-2">
-          {moneyKeys
-            .filter((k) => typeof shift[k] === "number")
-            .map((k) => (
-              <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium">
-                <CoinsIcon className="size-3 text-[var(--fg-4)]" />
-                <span className="text-[var(--fg-3)]">{k}</span>
-                <span className="font-mono tabular-nums text-[var(--fg)]">{fmtTHB(shift[k] as number)}</span>
-              </span>
-            ))}
+          {moneyKeys.filter((k) => typeof shift[k] === "number").map((k) => (
+            <span key={k} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium">
+              <CoinsIcon className="size-3 text-[var(--fg-4)]" />
+              <span className="text-[var(--fg-3)]">{k}</span>
+              <span className="font-mono tabular-nums text-[var(--fg)]">{fmtTHB(shift[k] as number)}</span>
+            </span>
+          ))}
         </div>
       )}
       {open && (
         <div className="border-t border-[var(--line)] px-3 py-3">
-          <div className="rounded bg-[var(--bg-2)] p-3">
-            <RenderValue value={shift} />
-          </div>
+          <div className="rounded bg-[var(--bg-2)] p-3"><RenderValue value={shift} /></div>
           <details className="mt-2">
             <summary className="cursor-pointer text-xs font-medium text-[var(--fg-3)]">JSON brut</summary>
             <pre className="mt-2 max-h-[320px] overflow-auto rounded bg-[var(--fg)] p-3 text-[11px] leading-relaxed text-white">{JSON.stringify(shift, null, 2)}</pre>
@@ -232,7 +331,6 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const [showCat, setShowCat] = React.useState(false);
   const [showItem, setShowItem] = React.useState(false);
 
-  // Shop list — même source que LoyverseDashboard (dashboard + status)
   React.useEffect(() => {
     let cancelled = false;
     async function loadShops() {
@@ -244,10 +342,8 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
         const perStore = (dashRes?.per_store as { store_id: string; account_key: string; location_id: string | null }[] | undefined) ?? [];
         const map = new Map<string, { store_id: string; account_key: string; location_id: string | null }>();
         for (const s of perStore) map.set(s.store_id, { store_id: s.store_id, account_key: s.account_key, location_id: s.location_id });
-        // Fallback via status accounts si dashboard vide (1er jour)
         if (map.size === 0 && statusRes?.accounts) {
           for (const a of statusRes.accounts as { key: string; label: string }[]) {
-            // store_id = account key fallback — sera remplacé à la première sync
             if (!map.has(a.key)) map.set(a.key, { store_id: a.key, account_key: a.key, location_id: null });
           }
         }
@@ -256,9 +352,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           setShops(list);
           if (list.length > 0 && !selectedStore) setSelectedStore(list[0].store_id);
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     loadShops();
     return () => { cancelled = true; };
@@ -287,16 +381,13 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   React.useEffect(() => { fetchAll(date); }, [date, fetchAll]);
 
   const todayStr = bangkokToday();
-  // Sauvegarde : chaque jour synchronisé est upserté dans loyverse_shifts_raw + loyverse_daily_sales (+ snapshot)
-  // -> accessible même à J+60 si déjà sync une fois (garde-fou : jour < today déjà présent = jamais re-fetché)
   const shiftForStore = React.useMemo(() => shiftRows.filter((r) => r.store_id === selectedStore), [shiftRows, selectedStore]);
   const salesForStore = React.useMemo(() => salesRows.filter((r) => r.store_id === selectedStore), [salesRows, selectedStore]);
   const hasShift = shiftForStore.length > 0;
   const hasSales = salesForStore.length > 0;
   const isArchived = hasShift && hasSales;
-  const needsSync = !isArchived && date !== todayStr;
-  const totalShifts = shiftForStore.reduce((s, r) => s + (r.shift_count ?? r.shifts.length), 0);
   const selectedShop = shops.find((s) => s.store_id === selectedStore) ?? null;
+  const totalShifts = shiftForStore.reduce((s, r) => s + (r.shift_count ?? r.shifts.length), 0);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -317,7 +408,27 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
     <div className="flex flex-col gap-4">
       <Card style={{ overflow: "visible" }}>
         <CardContent className="flex flex-col gap-3 py-3">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setDate((d) => addDays(d, -1))} className="px-2">
+              <ChevronLeftIcon className="size-4" />
+            </Button>
+            <SingleDatePicker value={date} onChange={setDate} today={todayStr} />
+            <Button variant="secondary" size="sm" onClick={() => setDate((d) => addDays(d, 1))} disabled={date >= todayStr} className="px-2">
+              <ChevronRightIcon className="size-4" />
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => fetchAll(date)} disabled={loading}>
+              Recharger
+            </Button>
+            <Button size="sm" onClick={handleSync} disabled={syncing || loading}>
+              {syncing ? "Synchronisation…" : isArchived ? "Synchroniser" : "Synchroniser Loyverse"}
+            </Button>
+            <span className="ml-auto flex items-center gap-2 text-xs">
+              {isArchived ? <Pill tone="good" size="sm" dot>Archivé</Pill> : date === todayStr ? <Pill tone="neutral" size="sm" dot>Ouvert</Pill> : <Pill tone="warn" size="sm" dot>À synchroniser</Pill>}
+              <span className="hidden text-[var(--fg-4)] sm:inline">{selectedShop ? capitalizeShop(selectedShop.account_key) : "—"} · {date}</span>
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5 border-t border-[var(--line)] pt-3">
             <span className="text-xs font-medium text-[var(--fg-4)]">Shop</span>
             <div className="flex flex-wrap gap-1.5">
               {shops.length === 0 ? (
@@ -330,29 +441,6 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                 ))
               )}
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3">
-            <Button variant="secondary" size="sm" onClick={() => setDate((d) => addDays(d, -1))} className="px-2">
-              <ChevronLeftIcon className="size-4" />
-            </Button>
-            <label className="flex items-center gap-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--fg-3)]">
-              <ClockIcon className="size-3.5" />
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr} className="bg-transparent text-[13px] font-medium text-[var(--fg)] outline-none" />
-            </label>
-            <Button variant="secondary" size="sm" onClick={() => setDate((d) => addDays(d, 1))} disabled={date >= todayStr} className="px-2">
-              <ChevronRightIcon className="size-4" />
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => fetchAll(date)} disabled={loading}>
-              Recharger
-            </Button>
-            <Button size="sm" onClick={handleSync} disabled={syncing || loading}>
-              {syncing ? "Synchronisation…" : needsSync ? "Synchroniser Loyverse" : "Synchroniser"}
-            </Button>
-            <span className="ml-auto flex items-center gap-2 text-xs">
-              {isArchived ? <Pill tone="good" size="sm" dot>Archivé</Pill> : date === todayStr ? <Pill tone="neutral" size="sm" dot>Ouvert</Pill> : <Pill tone="warn" size="sm" dot>À synchroniser</Pill>}
-              <span className="hidden text-[var(--fg-4)] sm:inline">{selectedShop ? capitalizeShop(selectedShop.account_key) : "—"} · {date}</span>
-            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-2">
@@ -380,7 +468,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-sm font-medium text-[var(--fg-3)]">Aucune donnée archivée pour {selectedShop ? capitalizeShop(selectedShop.account_key) : selectedStore} le {date}</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Ce jour est sauvegardé dès la première synchro (shift + ventes) et reste accessible même à J+60 — le garde-fou évite de re-fetcher un jour fermé déjà archivé.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">Ce jour est sauvegardé dès la première synchro (shift + ventes) et reste accessible même à J+60.</p>
             <Button size="sm" className="mt-3" onClick={handleSync} disabled={syncing}>{syncing ? "…" : `Synchroniser ${date}`}</Button>
           </CardContent>
         </Card>
@@ -398,18 +486,15 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           <CardContent className="flex flex-col gap-3">
             {showShift && (
               <div className="flex flex-col gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><ClockIcon className="size-3.5" /> Shift</p>
                 {shiftForStore.length === 0 ? (
-                  <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour (magasin fermé ou POS non ouvert).</p>
+                  <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
                 ) : (
-                  shiftForStore.map((r) => (
-                    <div key={r.date} className="flex flex-col gap-1.5">
-                      {r.shifts.length === 0 ? (
-                        <p className="rounded bg-[var(--bg-2)] px-2 py-2 text-xs text-[var(--fg-4)]">Aucun shift ce jour.</p>
-                      ) : (
-                        r.shifts.map((s, idx) => <ShiftCard key={(s.id as string) ?? `${r.date}-${idx}`} shift={s as Record<string, unknown>} />)
-                      )}
-                    </div>
-                  ))
+                  shiftForStore.flatMap((r) =>
+                    r.shifts.length === 0
+                      ? [<p key={r.date} className="rounded bg-[var(--bg-2)] px-2 py-2 text-xs text-[var(--fg-4)]">Aucun shift ce jour.</p>]
+                      : r.shifts.map((s, idx) => <ShiftCard key={(s.id as string) ?? `${r.date}-${idx}`} shift={s as Record<string, unknown>} defaultOpen />),
+                  )
                 )}
               </div>
             )}
@@ -419,7 +504,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           </CardContent>
         </Card>
       )}
-      <p className="text-center text-xs text-[var(--fg-4)]">Chaque jour synchronisé est sauvegardé dans <code>loyverse_shifts_raw</code> + <code>loyverse_daily_sales</code> + <code>loyverse_daily_snapshots</code> — accessible même à J+60 si déjà sync une fois (garde-fou : jour &lt; today déjà archivé = jamais re-fetché, seul today reste ouvert).</p>
+      <p className="text-center text-xs text-[var(--fg-4)]">Chaque jour synchronisé est sauvegardé dans <code>loyverse_shifts_raw</code> + <code>loyverse_daily_sales</code> + <code>loyverse_daily_snapshots</code> — accessible même à J+60 si déjà sync une fois (garde-fou : jour &lt; today déjà archivé = jamais re-fetché).</p>
     </div>
   );
 }
