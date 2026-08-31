@@ -422,14 +422,14 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           </CardContent>
         </Card>
       )}
-      <ChallengesPreviewCard month={date.slice(0, 7)} selectedStore={selectedStore} />
+      <ChallengesPreviewCard month={date.slice(0, 7)} />
 
       <p className="text-center text-xs text-[var(--fg-4)]">Chaque jour synchronisé est sauvegardé dans <code>loyverse_shifts_raw</code> + <code>loyverse_daily_sales</code> + <code>loyverse_daily_snapshots</code> — accessible même à J+60 si déjà sync une fois (garde-fou : jour &lt; today déjà archivé = jamais re-fetché).</p>
     </div>
   );
 }
 
-function ChallengesPreviewCard({ month, selectedStore }: { month: string; selectedStore: string | null }) {
+function ChallengesPreviewCard({ month }: { month: string }) {
   const [rows, setRows] = React.useState<
     { location_id: string; location_name: string; period: number; proposed_entry_count: number; proposed_snacks_sold: number; existing_entry_count: number | null; existing_snacks_sold: number | null; unmapped?: boolean }[]
   >([]);
