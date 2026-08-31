@@ -124,7 +124,9 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
 
   const uuidToGbp = new Map<string, string>();
   const gbpToInternalName = new Map<string, string>();
+  const idToName = new Map<string, string>();
   for (const loc of locationsResult.data ?? []) {
+    idToName.set(loc.id, loc.name as string);
     if (loc.external_id) {
       uuidToGbp.set(loc.id, loc.external_id);
       gbpToInternalName.set(loc.external_id, loc.name as string);
@@ -245,7 +247,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
     const gbp = gbpByLoc.get(locationId);
     const rev = revByLoc.get(locationId);
 
-    const title = acc?.internalName ?? gbp?.title ?? rev?.title ?? locationId;
+    const title = acc?.internalName ?? gbp?.title ?? rev?.title ?? idToName.get(locationId) ?? locationId;
     const entryCount = inputs.entryCount;
     const snacksSold = inputs.snacksSold;
 
