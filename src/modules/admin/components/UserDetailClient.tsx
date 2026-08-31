@@ -8,7 +8,7 @@ import type { AdminUser, AdminLocation } from "@/modules/admin/types";
 import type { ModuleKey } from "@/core/permissions/types";
 
 const ALL_MODULES: ModuleKey[] = [
-  "reviews", "documents", "animals", "schedules", "accounting", "reports", "contacts", "wiki", "brand",
+  "reviews", "documents", "animals", "schedules", "accounting", "reports", "contacts", "wiki", "brand", "loyverse", "loyverse_preview", "challenges", "attendance", "payments",
 ];
 
 const ROLE_OPTIONS = [

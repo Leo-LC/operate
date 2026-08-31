@@ -11,7 +11,9 @@ export type ModuleKey =
   | "payments"
   | "admin"
   | "wiki"
-  | "brand";
+  | "brand"
+  | "loyverse"
+  | "loyverse_preview";
 
 export type GlobalRole = "owner" | "admin" | "member" | "reviewer" | "direction";
 export type SessionRole = GlobalRole | "staff";
