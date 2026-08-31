@@ -9,13 +9,8 @@ import { StoreIcon, ClockIcon, CoinsIcon, TagIcon, PackageIcon, ChevronLeftIcon,
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { startOfMonth } from "date-fns";
+import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay, toDay } from "@/lib/loyverse/dates";
 
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-function bangkokYesterday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
-}
 function fmtTHB(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", maximumFractionDigits: 0 }).format(n);
 }
@@ -31,26 +26,6 @@ function fmtDateTime(v: string | null | undefined): string {
 }
 function isMoneyKey(k: string): boolean {
   return /amount|total|money|cash|card|payment|revenue|sales|tax|surcharge|discount|price/i.test(k);
-}
-function addDays(dateStr: string, delta: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
-}
-function capitalizeShop(name: string): string {
-  if (!name) return name;
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
-function parseDay(value: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!m) return null;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-function toDay(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 function formatSingleLabel(dateStr: string): string {
   const d = parseDay(dateStr);
@@ -363,14 +338,10 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
     setLoading(true);
     setError(null);
     try {
-      const [sRes, saRes] = await Promise.all([
-        fetch(`/api/loyverse/shifts?date=${d}`, { cache: "no-store" }).then((x) => x.json()),
-        fetch(`/api/loyverse/sales?date=${d}`, { cache: "no-store" }).then((x) => x.json()),
-      ]);
-      if (sRes.error) throw new Error(sRes.error);
-      if (saRes.error) throw new Error(saRes.error);
-      setShiftRows((sRes.rows as ShiftRow[]) ?? []);
-      setSalesRows((saRes.rows as SalesRow[]) ?? []);
+      const res = await fetch(`/api/loyverse/day?date=${d}`, { cache: "no-store" }).then((x) => x.json());
+      if (res.error) throw new Error(res.error);
+      setShiftRows((res.shifts as ShiftRow[]) ?? []);
+      setSalesRows((res.sales as SalesRow[]) ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

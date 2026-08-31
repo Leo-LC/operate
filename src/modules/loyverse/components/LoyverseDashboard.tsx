@@ -23,23 +23,13 @@ function fmtDelta(pct: number | null) {
   const sign = pct > 0 ? "+" : "";
   return `${sign}${pct.toFixed(1)}%`;
 }
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-function parseDay(value: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!m) return null;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
+import { bangkokToday, parseDay, capitalizeShop } from "@/lib/loyverse/dates";
+
 function daysBetween(from: string, to: string): number {
   const a = parseDay(from);
   const b = parseDay(to);
   if (!a || !b) return 1;
   return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
-}
-function capitalizeShop(name: string) {
-  if (!name) return name;
-  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 type DashboardKpis = {
