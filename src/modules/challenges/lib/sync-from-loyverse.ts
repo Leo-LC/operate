@@ -61,7 +61,7 @@ export async function syncChallengesFromLoyverse(
     details: [],
   };
 
-  for (const [, a] of agg) {
+  for (const [, a] of Array.from(agg.entries())) {
     try {
       const { data: existing } = await supabase
         .from("location_entries")
