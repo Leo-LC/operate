@@ -175,7 +175,8 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
   const entriesByLoc = new Map<string, EntryInputs>();
   for (const r of entriesResult.data ?? []) {
     const period = (r as { location_id: string; entry_count: number | null; snacks_sold: number | null; period: number }).period;
-    const existing = entriesByLoc.get(r.location_id) ?? {
+    const canonicalId = uuidToGbp.get(r.location_id) ?? r.location_id;
+    const existing = entriesByLoc.get(canonicalId) ?? {
       entryCount: null,
       snacksSold: null,
       entryCountP1: null,
@@ -203,7 +204,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
       existing.entryCountP1 !== null || existing.entryCountP2 !== null || existing.entryCountP3 !== null ? sumEc : null;
     existing.snacksSold =
       existing.snacksSoldP1 !== null || existing.snacksSoldP2 !== null || existing.snacksSoldP3 !== null ? sumSs : null;
-    entriesByLoc.set(r.location_id, existing);
+    entriesByLoc.set(canonicalId, existing);
   }
 
   const gbpByLoc = new Map(
