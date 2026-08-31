@@ -431,8 +431,9 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
 
 function ChallengesPreviewCard({ month, selectedStore }: { month: string; selectedStore: string | null }) {
   const [rows, setRows] = React.useState<
-    { location_id: string; location_name: string; period: number; proposed_entry_count: number; proposed_snacks_sold: number; existing_entry_count: number | null; existing_snacks_sold: number | null }[]
+    { location_id: string; location_name: string; period: number; proposed_entry_count: number; proposed_snacks_sold: number; existing_entry_count: number | null; existing_snacks_sold: number | null; unmapped?: boolean }[]
   >([]);
+  const [unmapped, setUnmapped] = React.useState<typeof rows>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   React.useEffect(() => {
@@ -444,16 +445,13 @@ function ChallengesPreviewCard({ month, selectedStore }: { month: string; select
       .then((j) => {
         if (cancelled) return;
         if (j.error) throw new Error(j.error);
-        const preview = (j.preview as typeof rows) ?? [];
-        // filtre au shop sélectionné si possible (match par location_id ou nom)
-        const filtered = selectedStore ? preview.filter((r) => r.location_id === selectedStore || r.location_name.toLowerCase().includes(selectedStore.slice(0, 4).toLowerCase())) : preview;
-        // si filtre vide (store_id Loyverse ≠ location_id), affiche tout mais surligné
-        setRows(filtered.length ? filtered : preview);
+        setRows((j.preview as typeof rows) ?? []);
+        setUnmapped((j.unmapped as typeof rows) ?? []);
       })
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [month, selectedStore]);
+  }, [month]);
 
   return (
     <Card>
@@ -472,28 +470,53 @@ function ChallengesPreviewCard({ month, selectedStore }: { month: string; select
         ) : rows.length === 0 ? (
           <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">Aucune donnée Loyverse pour {month}.</p>
         ) : (
-          <div className="overflow-auto rounded border border-[var(--line)]">
-            <table className="w-full text-xs">
-              <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
-                <tr><th className="px-2 py-1.5 text-left">Shop / Période</th><th className="px-2 py-1.5 text-right">Entrées (Loyverse)</th><th className="px-2 py-1.5 text-right">Entrées (actuel)</th><th className="px-2 py-1.5 text-right">Snacks (Loyverse)</th><th className="px-2 py-1.5 text-right">Snacks (actuel)</th></tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const ecDiff = r.existing_entry_count !== null && r.proposed_entry_count !== r.existing_entry_count;
-                  const ssDiff = r.existing_snacks_sold !== null && r.proposed_snacks_sold !== r.existing_snacks_sold;
-                  return (
-                    <tr key={`${r.location_id}-${r.period}`} className="border-t border-[var(--line)]">
-                      <td className="px-2 py-1.5 font-medium">{r.location_name} · P{r.period}</td>
-                      <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${ecDiff ? "bg-[var(--warn-soft)]" : ""}`}>{r.proposed_entry_count}</td>
-                      <td className="px-2 py-1.5 text-right font-mono tabular-nums text-[var(--fg-4)]">{r.existing_entry_count ?? "—"}</td>
-                      <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${ssDiff ? "bg-[var(--warn-soft)]" : ""}`}>{r.proposed_snacks_sold}</td>
-                      <td className="px-2 py-1.5 text-right font-mono tabular-nums text-[var(--fg-4)]">{r.existing_snacks_sold ?? "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="overflow-auto rounded border border-[var(--line)]">
+              <table className="w-full text-xs">
+                <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                  <tr><th className="px-2 py-1.5 text-left">Shop / Période</th><th className="px-2 py-1.5 text-right">Entrées (Loyverse)</th><th className="px-2 py-1.5 text-right">Entrées (actuel)</th><th className="px-2 py-1.5 text-right">Snacks (Loyverse)</th><th className="px-2 py-1.5 text-right">Snacks (actuel)</th></tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const ecDiff = r.existing_entry_count !== null && r.proposed_entry_count !== r.existing_entry_count;
+                    const ssDiff = r.existing_snacks_sold !== null && r.proposed_snacks_sold !== r.existing_snacks_sold;
+                    return (
+                      <tr key={`${r.location_id}-${r.period}`} className="border-t border-[var(--line)]">
+                        <td className="px-2 py-1.5 font-medium">{r.location_name} · P{r.period}</td>
+                        <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${ecDiff ? "bg-[var(--warn-soft)]" : ""}`}>{r.proposed_entry_count}</td>
+                        <td className="px-2 py-1.5 text-right font-mono tabular-nums text-[var(--fg-4)]">{r.existing_entry_count ?? "—"}</td>
+                        <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${ssDiff ? "bg-[var(--warn-soft)]" : ""}`}>{r.proposed_snacks_sold}</td>
+                        <td className="px-2 py-1.5 text-right font-mono tabular-nums text-[var(--fg-4)]">{r.existing_snacks_sold ?? "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {unmapped.length > 0 && (
+              <div className="rounded border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2">
+                <p className="text-xs font-semibold text-[var(--warn)]">Shops non mappés détectés — Silom probablement ici :</p>
+                <div className="mt-1 overflow-auto rounded border border-[var(--line)] bg-white">
+                  <table className="w-full text-xs">
+                    <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                      <tr><th className="px-2 py-1 text-left">Store Loyverse</th><th className="px-2 py-1 text-right">P</th><th className="px-2 py-1 text-right">Entrées</th><th className="px-2 py-1 text-right">Snacks</th></tr>
+                    </thead>
+                    <tbody>
+                      {unmapped.map((r) => (
+                        <tr key={`${r.location_id}-${r.period}`} className="border-t border-[var(--line)]">
+                          <td className="px-2 py-1 font-mono text-[11px]">{r.location_name}</td>
+                          <td className="px-2 py-1 text-right">{r.period}</td>
+                          <td className="px-2 py-1 text-right font-mono">{r.proposed_entry_count}</td>
+                          <td className="px-2 py-1 text-right font-mono">{r.proposed_snacks_sold}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--fg-4)]">Ajoute le <code>loyverse_store_id</code> dans <code>locations</code> pour ce shop (via Admin → Locations ou SQL) puis resync.</p>
+              </div>
+            )}
+          </>
         )}
         <p className="text-[11px] text-[var(--fg-4)]">Jaune = écart avec la saisie actuelle. Pour l&apos;instant on n&apos;écrit rien — dis-moi si les chiffres te semblent bons et je branche le remplissage auto.</p>
       </CardContent>

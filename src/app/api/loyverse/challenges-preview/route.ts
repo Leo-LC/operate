@@ -25,25 +25,41 @@ export async function GET(request: Request) {
 
   try {
     const [snapRes, entriesRes, locRes] = await Promise.all([
-      supabase.from("loyverse_daily_snapshots").select("location_id, date, tickets_sold, snacks_sold").gte("date", monthStart).lt("date", nextMonth),
+      supabase.from("loyverse_daily_snapshots").select("location_id, store_id, account_key, date, tickets_sold, snacks_sold").gte("date", monthStart).lt("date", nextMonth),
       supabase.from("location_entries").select("location_id, period, entry_count, snacks_sold").eq("organization_id", DEFAULT_ORG_ID).eq("month", month),
-      supabase.from("locations").select("id, name").eq("organization_id", DEFAULT_ORG_ID),
+      supabase.from("locations").select("id, name, loyverse_store_id").eq("organization_id", DEFAULT_ORG_ID),
     ]);
     if (snapRes.error) throw snapRes.error;
     if (entriesRes.error) throw entriesRes.error;
 
     const locNames = new Map((locRes.data ?? []).map((l) => [l.id as string, l.name as string]));
+    const storeIdToLocation = new Map((locRes.data ?? []).filter((l) => (l as { loyverse_store_id?: string | null }).loyverse_store_id).map((l) => [(l as { loyverse_store_id: string }).loyverse_store_id, l.id as string]));
 
     // Agrège Loyverse par location/period (tickets = entrées, snacks)
     const loyverseAgg = new Map<string, { location_id: string; period: 1 | 2 | 3; entry_count: number; snacks_sold: number }>();
+    const unmapped: { store_id: string; account_key: string; period: 1 | 2 | 3; entry_count: number; snacks_sold: number }[] = [];
     for (const snap of snapRes.data ?? []) {
       const locId = snap.location_id as string | null;
-      if (!locId) continue;
       const day = Number((snap.date as string).slice(8, 10));
       const period = periodForDay(day);
-      const key = `${locId}|${period}`;
       const ec = Number((snap as { tickets_sold?: number }).tickets_sold ?? 0);
-      const ss = Number(snap.snacks_sold ?? 0);
+      const ss = Number((snap as { snacks_sold?: number }).snacks_sold ?? 0);
+      if (!locId) {
+        // Garde trace des shops non mappés pour debug (ex: Silom)
+        const storeId = snap.store_id as string;
+        const accountKey = (snap as { account_key?: string }).account_key ?? storeId;
+        // tente de résoudre via locations.loyverse_store_id si mapping manquant dans snapshots
+        const resolved = storeIdToLocation.get(storeId);
+        if (resolved) {
+          const key = `${resolved}|${period}`;
+          const prev = loyverseAgg.get(key);
+          if (prev) { prev.entry_count += ec; prev.snacks_sold += ss; } else loyverseAgg.set(key, { location_id: resolved, period, entry_count: ec, snacks_sold: ss });
+        } else {
+          unmapped.push({ store_id: storeId, account_key: accountKey, period, entry_count: ec, snacks_sold: ss });
+        }
+        continue;
+      }
+      const key = `${locId}|${period}`;
       const prev = loyverseAgg.get(key);
       if (prev) { prev.entry_count += ec; prev.snacks_sold += ss; } else loyverseAgg.set(key, { location_id: locId, period, entry_count: ec, snacks_sold: ss });
     }
@@ -92,7 +108,27 @@ export async function GET(request: Request) {
     }
     preview.sort((a, b) => a.location_name.localeCompare(b.location_name) || a.period - b.period);
 
-    return NextResponse.json({ month, preview });
+    // Agrège unmapped par store/period pour diagnostic
+    const unmappedAgg = new Map<string, { store_id: string; account_key: string; period: 1 | 2 | 3; entry_count: number; snacks_sold: number }>();
+    for (const u of unmapped) {
+      const key = `${u.store_id}|${u.period}`;
+      const prev = unmappedAgg.get(key);
+      if (prev) { prev.entry_count += u.entry_count; prev.snacks_sold += u.snacks_sold; } else unmappedAgg.set(key, { ...u });
+    }
+    const unmappedPreview = Array.from(unmappedAgg.values()).map((u) => ({
+      location_id: u.store_id,
+      location_name: `⚠️ Non mappé: ${u.account_key} (${u.store_id.slice(0, 8)}…)`,
+      month,
+      period: u.period,
+      proposed_entry_count: u.entry_count,
+      proposed_snacks_sold: u.snacks_sold,
+      existing_entry_count: null as number | null,
+      existing_snacks_sold: null as number | null,
+      will_overwrite: false as boolean,
+      unmapped: true as const,
+    }));
+
+    return NextResponse.json({ month, preview, unmapped: unmappedPreview });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });
