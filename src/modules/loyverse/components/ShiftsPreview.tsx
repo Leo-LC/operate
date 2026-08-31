@@ -422,7 +422,81 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           </CardContent>
         </Card>
       )}
+      <ChallengesPreviewCard month={date.slice(0, 7)} selectedStore={selectedStore} />
+
       <p className="text-center text-xs text-[var(--fg-4)]">Chaque jour synchronisé est sauvegardé dans <code>loyverse_shifts_raw</code> + <code>loyverse_daily_sales</code> + <code>loyverse_daily_snapshots</code> — accessible même à J+60 si déjà sync une fois (garde-fou : jour &lt; today déjà archivé = jamais re-fetché).</p>
     </div>
+  );
+}
+
+function ChallengesPreviewCard({ month, selectedStore }: { month: string; selectedStore: string | null }) {
+  const [rows, setRows] = React.useState<
+    { location_id: string; location_name: string; period: number; proposed_entry_count: number; proposed_snacks_sold: number; existing_entry_count: number | null; existing_snacks_sold: number | null }[]
+  >([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetch(`/api/loyverse/challenges-preview?month=${month}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        if (j.error) throw new Error(j.error);
+        const preview = (j.preview as typeof rows) ?? [];
+        // filtre au shop sélectionné si possible (match par location_id ou nom)
+        const filtered = selectedStore ? preview.filter((r) => r.location_id === selectedStore || r.location_name.toLowerCase().includes(selectedStore.slice(0, 4).toLowerCase())) : preview;
+        // si filtre vide (store_id Loyverse ≠ location_id), affiche tout mais surligné
+        setRows(filtered.length ? filtered : preview);
+      })
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+  }, [month, selectedStore]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <TagIcon className="size-4 text-[var(--bronze)]" /> Challenges — pré-remplissage {month}
+          <span className="ml-auto text-xs font-normal text-[var(--fg-4)]">entrées = TICKETS · snacks = SNACKS (Samui A ENTRY inclus)</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <p className="text-xs text-[var(--fg-4)]">Compare ce que donnerait Loyverse (tickets/snacks du mois) vs ce qui est déjà saisi dans <code>location_entries</code>. Rien n&apos;est écrit — juste pour vérifier.</p>
+        {loading ? (
+          <div className="h-20 animate-pulse rounded bg-[var(--line-2)]" />
+        ) : error ? (
+          <div className="rounded bg-[var(--bad-soft)] px-3 py-2 text-xs text-[var(--bad)]">{error}</div>
+        ) : rows.length === 0 ? (
+          <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">Aucune donnée Loyverse pour {month}.</p>
+        ) : (
+          <div className="overflow-auto rounded border border-[var(--line)]">
+            <table className="w-full text-xs">
+              <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                <tr><th className="px-2 py-1.5 text-left">Shop / Période</th><th className="px-2 py-1.5 text-right">Entrées (Loyverse)</th><th className="px-2 py-1.5 text-right">Entrées (actuel)</th><th className="px-2 py-1.5 text-right">Snacks (Loyverse)</th><th className="px-2 py-1.5 text-right">Snacks (actuel)</th></tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const ecDiff = r.existing_entry_count !== null && r.proposed_entry_count !== r.existing_entry_count;
+                  const ssDiff = r.existing_snacks_sold !== null && r.proposed_snacks_sold !== r.existing_snacks_sold;
+                  return (
+                    <tr key={`${r.location_id}-${r.period}`} className="border-t border-[var(--line)]">
+                      <td className="px-2 py-1.5 font-medium">{r.location_name} · P{r.period}</td>
+                      <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${ecDiff ? "bg-[var(--warn-soft)]" : ""}`}>{r.proposed_entry_count}</td>
+                      <td className="px-2 py-1.5 text-right font-mono tabular-nums text-[var(--fg-4)]">{r.existing_entry_count ?? "—"}</td>
+                      <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${ssDiff ? "bg-[var(--warn-soft)]" : ""}`}>{r.proposed_snacks_sold}</td>
+                      <td className="px-2 py-1.5 text-right font-mono tabular-nums text-[var(--fg-4)]">{r.existing_snacks_sold ?? "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[11px] text-[var(--fg-4)]">Jaune = écart avec la saisie actuelle. Pour l&apos;instant on n&apos;écrit rien — dis-moi si les chiffres te semblent bons et je branche le remplissage auto.</p>
+      </CardContent>
+    </Card>
   );
 }
