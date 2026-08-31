@@ -91,7 +91,8 @@ export async function writeBackForDate(
     const period = periodForDay(day);
     const month = date.slice(0, 7);
     const key = `${location_id}|${month}|${period}`;
-    const entry_count = Number(snap.sale_count ?? 0) - Number(snap.refund_count ?? 0);
+    // Entrées = quantité catégorie TICKETS (tickets_sold, pas receipts) — gère les spelling TICKETS/Ticket/entry et Samui A ENTRY
+    const entry_count = Number(snap.tickets_sold ?? 0);
     const snacks_sold = Number(snap.snacks_sold ?? 0);
     const existing = byLocationPeriod.get(key);
     if (existing) {
@@ -229,7 +230,7 @@ export async function writeBackForDate(
         for (const ps of periodSnaps ?? []) {
           const d = Number((ps.date as string).slice(8, 10));
           if (periodForDay(d) !== agg.period) continue;
-          totalEc += Number(ps.sale_count ?? 0) - Number(ps.refund_count ?? 0);
+          totalEc += Number((ps as { tickets_sold?: number }).tickets_sold ?? 0);
           totalSs += Number(ps.snacks_sold ?? 0);
         }
 
@@ -258,7 +259,7 @@ export async function writeBackForDate(
         // No existing row — insert aggregated totals (single date for now, will be completed as more dates sync)
         const { data: periodSnaps } = await supabase
           .from("loyverse_daily_snapshots")
-          .select("sale_count, refund_count, snacks_sold, date")
+          .select("tickets_sold, snacks_sold, date")
           .eq("location_id", agg.location_id)
           .gte("date", `${agg.month}-01`)
           .lt("date", agg.month === "12" ? `${Number(agg.month.slice(0, 4)) + 1}-01-01` : `${agg.month.slice(0, 5)}${String(Number(agg.month.slice(5, 7)) + 1).padStart(2, "0")}-01`);
@@ -268,7 +269,7 @@ export async function writeBackForDate(
         for (const ps of periodSnaps ?? []) {
           const d = Number((ps.date as string).slice(8, 10));
           if (periodForDay(d) !== agg.period) continue;
-          totalEc += Number(ps.sale_count ?? 0) - Number(ps.refund_count ?? 0);
+          totalEc += Number((ps as { tickets_sold?: number }).tickets_sold ?? 0);
           totalSs += Number(ps.snacks_sold ?? 0);
         }
 

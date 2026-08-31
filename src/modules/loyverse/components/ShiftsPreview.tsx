@@ -246,8 +246,8 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showShift, setShowShift] = React.useState(true);
-  const [showCat, setShowCat] = React.useState(false);
-  const [showItem, setShowItem] = React.useState(false);
+  const [showCat, setShowCat] = React.useState(true);
+  const [showItem, setShowItem] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
