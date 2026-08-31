@@ -268,7 +268,7 @@ function SalesItemBlock({ rows }: { rows: SalesRow[] }) {
       const prev = m.get(key);
       if (prev) { prev.quantity += it.quantity; prev.total_money += it.total_money; } else m.set(key, { item_name: it.item_name, category_name: it.category_name, quantity: it.quantity, total_money: it.total_money });
     }
-    return Array.from(m.values()).sort((a, b) => b.total_money - a.total_money).slice(0, 100);
+    return Array.from(m.values()).sort((a, b) => b.total_money - a.total_money);
   }, [rows]);
   if (agg.length === 0) return <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Aucune vente par article.</p>;
   return (
@@ -288,7 +288,7 @@ function SalesItemBlock({ rows }: { rows: SalesRow[] }) {
           ))}
         </tbody>
       </table>
-      {agg.length === 100 && <p className="bg-[var(--bg-2)] px-2 py-1 text-center text-[11px] text-[var(--fg-4)]">Top 100 affichés</p>}
+
     </div>
   );
 }
