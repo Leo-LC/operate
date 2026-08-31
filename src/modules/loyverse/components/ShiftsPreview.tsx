@@ -457,14 +457,18 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           <CardContent className="flex flex-col gap-3">
             {showShift && (
               <div className="flex flex-col gap-2">
-                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><ClockIcon className="size-3.5" /> Shift</p>
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><ClockIcon className="size-3.5" /> Shift — détail brut</p>
                 {shiftForStore.length === 0 ? (
                   <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
                 ) : (
                   shiftForStore.flatMap((r) =>
                     r.shifts.length === 0
                       ? [<p key={r.date} className="rounded bg-[var(--bg-2)] px-2 py-2 text-xs text-[var(--fg-4)]">Aucun shift ce jour.</p>]
-                      : r.shifts.map((s, idx) => <ShiftCard key={(s.id as string) ?? `${r.date}-${idx}`} shift={s as Record<string, unknown>} defaultOpen />),
+                      : r.shifts.map((s, idx) => (
+                          <div key={(s.id as string) ?? `${r.date}-${idx}`} className="rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-3">
+                            <RenderValue value={s} />
+                          </div>
+                        )),
                   )
                 )}
               </div>
