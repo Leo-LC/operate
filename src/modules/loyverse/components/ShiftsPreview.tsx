@@ -22,12 +22,6 @@ function fmtDateTime(v: string | null | undefined): string {
     return String(v);
   }
 }
-function fmtNum(v: unknown): string {
-  if (v === null || v === undefined) return "—";
-  if (typeof v === "number") return Number.isInteger(v) && Math.abs(v) >= 100 ? fmtTHB(v) : String(v);
-  return String(v);
-}
-
 function isMoneyKey(k: string): boolean {
   return /amount|total|money|cash|card|payment|revenue|sales|tax|surcharge|discount|price/i.test(k);
 }
@@ -214,7 +208,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-sm font-medium text-[var(--fg-3)]">Aucun shift archivé pour {date}</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Lance une synchro si la veille n'a pas encore été collectée (cron 22:20 ou bouton Synchroniser).</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">Lance une synchro si la veille n&apos;a pas encore été collectée (cron 22:20 ou bouton Synchroniser).</p>
             <Button
               size="sm"
               className="mt-3"
