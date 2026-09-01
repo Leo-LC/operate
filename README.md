@@ -1,6 +1,6 @@
-# Capybara Coffee — GBP Review Manager
+# Operate — Nexus Hub
 
-Next.js app for managing Google Business Profile reviews across 7 Capybara Coffee locations in Thailand.
+Internal operations system for Capybara Coffee (reviews, accounting, scheduling, and more). Next.js 14 App Router.
 
 ## Tech stack
 
