@@ -492,7 +492,7 @@ function ChallengesPreviewCard({ month }: { month: string }) {
           <Button variant="secondary" size="sm" onClick={() => handleFill(true)} disabled={syncing || loading}>
             Forcer (écrase)
           </Button>
-          <span className="text-xs text-[var(--fg-4)]">n&apos;écrase pas les saisies existantes sauf Forcer — CRON quotidien 23:30 le fera auto</span>
+          <span className="text-xs text-[var(--fg-4)]">n&apos;écrase pas les saisies existantes sauf Forcer — CRON quotidien 05:30 (Bangkok) le fera auto</span>
           {result && <span className="ml-auto text-xs font-medium text-[var(--good)]">{result}</span>}
         </div>
         <p className="text-xs text-[var(--fg-4)]">Compare ce que donnerait Loyverse (tickets/snacks du mois) vs ce qui est déjà saisi dans <code>location_entries</code>.</p>

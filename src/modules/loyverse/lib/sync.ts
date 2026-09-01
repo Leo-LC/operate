@@ -353,6 +353,7 @@ async function syncAccount(
   account: Account,
   dates: string[],
   supabase: ReturnType<typeof getSupabaseServerClient>,
+  triggeredBy: "manual" | "cron" = "cron",
 ): Promise<SyncPerAccountResult> {
   const start = Date.now();
   try {
@@ -392,48 +393,51 @@ async function syncAccount(
       const location_id = await getLocationIdForStoreAsync(store.id);
 
       let datesForStore = dates;
-      try {
-        const [snapRes, shiftsRes, salesRes] = await Promise.all([
-          supabase
-            .from("loyverse_daily_snapshots")
-            .select("date")
-            .eq("account_key", account.key)
-            .eq("store_id", store.id)
-            .in("date", dates),
-          supabase
-            .from("loyverse_shifts_raw")
-            .select("date")
-            .eq("account_key", account.key)
-            .eq("store_id", store.id)
-            .in("date", dates),
-          supabase
-            .from("loyverse_daily_sales")
-            .select("date")
-            .eq("account_key", account.key)
-            .eq("store_id", store.id)
-            .in("date", dates),
-        ]);
-        const existingSnapSet = new Set((snapRes.data ?? []).map((r) => r.date as string));
-        const existingShiftSet = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
-        const existingSalesSet = new Set((salesRes.data ?? []).map((r) => r.date as string));
+      const isManualExplicitDates = triggeredBy === "manual" && dates.length <= 5;
+      if (!isManualExplicitDates) {
+        try {
+          const [snapRes, shiftsRes, salesRes] = await Promise.all([
+            supabase
+              .from("loyverse_daily_snapshots")
+              .select("date")
+              .eq("account_key", account.key)
+              .eq("store_id", store.id)
+              .in("date", dates),
+            supabase
+              .from("loyverse_shifts_raw")
+              .select("date")
+              .eq("account_key", account.key)
+              .eq("store_id", store.id)
+              .in("date", dates),
+            supabase
+              .from("loyverse_daily_sales")
+              .select("date")
+              .eq("account_key", account.key)
+              .eq("store_id", store.id)
+              .in("date", dates),
+          ]);
+          const existingSnapSet = new Set((snapRes.data ?? []).map((r) => r.date as string));
+          const existingShiftSet = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
+          const existingSalesSet = new Set((salesRes.data ?? []).map((r) => r.date as string));
 
-        if ((existingShiftSet.size === 0 || existingSalesSet.size === 0) && dates.length <= 2) {
-          const backfill = getBangkokDates(30);
-          const extra = backfill.filter((d) => !dates.includes(d));
-          datesForStore = [...dates, ...extra];
-        } else if (existingSnapSet.size === 0 && dates.length <= 2) {
-          const backfill = getBangkokDates(30);
-          const extra = backfill.filter((d) => !dates.includes(d));
-          datesForStore = [...dates, ...extra];
-        } else {
-          datesForStore = dates.filter((d) => {
-            if (d === bangkokToday) return true;
-            return !existingSnapSet.has(d) || !existingShiftSet.has(d) || !existingSalesSet.has(d);
-          });
-          if (datesForStore.length === 0) datesForStore = [bangkokToday];
+          if ((existingShiftSet.size === 0 || existingSalesSet.size === 0) && dates.length <= 2) {
+            const backfill = getBangkokDates(30);
+            const extra = backfill.filter((d) => !dates.includes(d));
+            datesForStore = [...dates, ...extra];
+          } else if (existingSnapSet.size === 0 && dates.length <= 2) {
+            const backfill = getBangkokDates(30);
+            const extra = backfill.filter((d) => !dates.includes(d));
+            datesForStore = [...dates, ...extra];
+          } else {
+            datesForStore = dates.filter((d) => {
+              if (d === bangkokToday) return true;
+              return !existingSnapSet.has(d) || !existingShiftSet.has(d) || !existingSalesSet.has(d);
+            });
+            if (datesForStore.length === 0) datesForStore = [bangkokToday];
+          }
+        } catch {
+          datesForStore = dates;
         }
-      } catch {
-        datesForStore = dates;
       }
 
       for (const date of datesForStore) {
@@ -513,7 +517,7 @@ export async function syncAllLoyverse(opts?: {
 
   const limit = pLimit<SyncPerAccountResult>(LOYVERSE_SYNC_CONCURRENCY);
   const finalDates = dates ?? getBangkokDates(2);
-  const per_account = await Promise.all(accounts.map((acc) => limit(() => syncAccount(acc, finalDates, supabase))));
+  const per_account = await Promise.all(accounts.map((acc) => limit(() => syncAccount(acc, finalDates, supabase, triggeredBy))));
 
   const total_snapshots = per_account.reduce((s, a) => s + a.snapshots_upserted, 0);
   const total_stores = per_account.reduce((s, a) => s + a.stores_attempted, 0);

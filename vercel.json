@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/cron/loyverse-challenges",
-      "schedule": "30 16 * * *"
+      "schedule": "30 22 * * *"
     }
   ]
 }
