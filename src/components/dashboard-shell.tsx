@@ -43,7 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Performance",
     items: [
       { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
-      { id: "loyverse-preview", label: "Shifts & Sales", href: "/loyverse-preview", icon: ClockIcon, module: "loyverse_preview" },
+      { id: "loyverse-preview", label: "Shifts & Sales", href: "/shift-sales", icon: ClockIcon, module: "loyverse_preview" },
       { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
       { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,     module: "challenges" },
       { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,       module: "reviews" },
@@ -209,7 +209,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
   function isActive(href: string): boolean {
     if (href === "/loyverse") return pathname === "/loyverse";
-    if (href === "/loyverse-preview") return pathname.startsWith("/loyverse-preview");
+    if (href === "/shift-sales") return pathname.startsWith("/shift-sales") || pathname.startsWith("/loyverse-preview");
     if (href === "/overview") return pathname === "/overview";
     return pathname.startsWith(href);
   }

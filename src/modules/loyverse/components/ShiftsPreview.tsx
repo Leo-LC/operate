@@ -12,7 +12,7 @@ import { startOfMonth } from "date-fns";
 import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay, toDay } from "@/lib/loyverse/dates";
 
 function fmtTHB(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 function fmtDateTime(v: string | null | undefined): string {
   if (!v) return "—";
@@ -114,6 +114,58 @@ function SingleDatePicker({ value, onChange, today }: { value: string; onChange:
       )}
     </div>
   );
+}
+
+// ── Shift cleaning helpers ──────────────────────────
+const HIDDEN_TOP_KEYS = new Set(["id", "store_id", "pos_device_id", "opened_at", "closed_at", "opened_by_employee", "closed_by_employee", "tip"]);
+
+function cleanShift(shift: Record<string, unknown>, paymentMap: Map<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(shift)) {
+    if (HIDDEN_TOP_KEYS.has(k)) continue;
+    if (k === "taxes" && Array.isArray(v)) {
+      const cleaned = (v as Record<string, unknown>[]).map((t) => {
+        const c: Record<string, unknown> = {};
+        for (const [tk, tv] of Object.entries(t)) {
+          if (tk === "tax_id") continue;
+          c[tk] = tv;
+        }
+        return c;
+      });
+      out[k] = cleaned;
+      continue;
+    }
+    if (k === "cash_movements" && Array.isArray(v)) {
+      const cleaned = (v as Record<string, unknown>[]).map((cm) => {
+        const c: Record<string, unknown> = {};
+        for (const [ck, cv] of Object.entries(cm)) {
+          if (ck === "created_at" || ck === "employee_id") continue;
+          c[ck] = cv;
+        }
+        return c;
+      });
+      out[k] = cleaned;
+      continue;
+    }
+    if (k === "payments" && Array.isArray(v)) {
+      const cleaned = (v as Record<string, unknown>[]).map((p) => {
+        const c: Record<string, unknown> = {};
+        for (const [pk, pv] of Object.entries(p)) {
+          if (pk === "payment_type_id") {
+            const mapped = paymentMap.get(String(pv));
+            c["payment_type"] = mapped ?? String(pv);
+            continue;
+          }
+          c[pk] = pv;
+        }
+        return c;
+      });
+      out[k] = cleaned;
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 function RenderValue({ value }: { value: unknown }) {
@@ -236,6 +288,24 @@ function SalesItemBlock({ rows }: { rows: SalesRow[] }) {
   );
 }
 
+function CollapsibleSection({ title, icon, defaultOpen = true, children }: { title: string; icon: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-xs font-semibold text-[var(--fg-3)] hover:bg-[var(--bg-2)]"
+      >
+        {icon}
+        <span className="flex-1">{title}</span>
+        <ChevronDownIcon className={`size-3.5 shrink-0 transition-transform ${open ? "" : "-rotate-90"}`} />
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const [date, setDate] = React.useState<string>(() => initialDate ?? bangkokYesterday());
   const [selectedStore, setSelectedStore] = React.useState<string | null>(null);
@@ -245,9 +315,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [showShift, setShowShift] = React.useState(true);
-  const [showCat, setShowCat] = React.useState(true);
-  const [showItem, setShowItem] = React.useState(true);
+  const [paymentMap, setPaymentMap] = React.useState<Map<string, string>>(new Map());
 
   React.useEffect(() => {
     let cancelled = false;
@@ -275,6 +343,24 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
     loadShops();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/loyverse/payment-types", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        const m = new Map<string, string>();
+        for (const pt of (j.payment_types as { id: string; name?: string; type?: string }[]) ?? []) {
+          const label = pt.name ?? pt.type ?? pt.id;
+          // Normalize to bucket-like label: keep original name but lowercase for display
+          m.set(pt.id, label);
+        }
+        setPaymentMap(m);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const fetchAll = React.useCallback(async (d: string) => {
@@ -356,19 +442,6 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
               )}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--line)] pt-2">
-            <span className="text-xs font-medium text-[var(--fg-4)]">Afficher :</span>
-            <Button variant={showShift ? "secondary" : "outline"} size="sm" onClick={() => setShowShift((v) => !v)}>
-              <ClockIcon className="size-3.5" /> {showShift ? "Masquer shift" : "Shift"}
-            </Button>
-            <Button variant={showCat ? "secondary" : "outline"} size="sm" onClick={() => setShowCat((v) => !v)}>
-              <TagIcon className="size-3.5" /> {showCat ? "Masquer catégories" : "Catégories"}
-            </Button>
-            <Button variant={showItem ? "secondary" : "outline"} size="sm" onClick={() => setShowItem((v) => !v)}>
-              <PackageIcon className="size-3.5" /> {showItem ? "Masquer articles" : "Articles"}
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -398,33 +471,34 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {showShift && (
-              <div className="flex flex-col gap-2">
-                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><ClockIcon className="size-3.5" /> Shift — détail brut</p>
-                {shiftForStore.length === 0 ? (
-                  <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
-                ) : (
-                  shiftForStore.flatMap((r) =>
-                    r.shifts.length === 0
-                      ? [<p key={r.date} className="rounded bg-[var(--bg-2)] px-2 py-2 text-xs text-[var(--fg-4)]">Aucun shift ce jour.</p>]
-                      : r.shifts.map((s, idx) => (
+            <CollapsibleSection title="Shift — détail brut" icon={<ClockIcon className="size-3.5" />} defaultOpen>
+              {shiftForStore.length === 0 ? (
+                <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
+              ) : (
+                shiftForStore.flatMap((r) =>
+                  r.shifts.length === 0
+                    ? [<p key={r.date} className="rounded bg-[var(--bg-2)] px-2 py-2 text-xs text-[var(--fg-4)]">Aucun shift ce jour.</p>]
+                    : r.shifts.map((s, idx) => {
+                        const cleaned = cleanShift(s as Record<string, unknown>, paymentMap);
+                        return (
                           <div key={(s.id as string) ?? `${r.date}-${idx}`} className="rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-3">
-                            <RenderValue value={s} />
+                            <RenderValue value={cleaned} />
                           </div>
-                        )),
-                  )
-                )}
-              </div>
-            )}
-            {showCat && <div className="pt-1"><p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><TagIcon className="size-3.5" /> Sales by category</p><SalesCategoryBlock rows={salesForStore} /></div>}
-            {showItem && <div className="pt-1"><p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--fg-3)]"><PackageIcon className="size-3.5" /> Sales by item</p><SalesItemBlock rows={salesForStore} /></div>}
-            {!showShift && !showCat && !showItem && <p className="py-4 text-center text-xs text-[var(--fg-4)]">Choisis quoi afficher avec les boutons Shift / Catégories / Articles ci-dessus.</p>}
+                        );
+                      }),
+                )
+              )}
+            </CollapsibleSection>
+            <CollapsibleSection title="Sales by category" icon={<TagIcon className="size-3.5" />} defaultOpen>
+              <SalesCategoryBlock rows={salesForStore} />
+            </CollapsibleSection>
+            <CollapsibleSection title="Sales by item" icon={<PackageIcon className="size-3.5" />} defaultOpen>
+              <SalesItemBlock rows={salesForStore} />
+            </CollapsibleSection>
           </CardContent>
         </Card>
       )}
       <ChallengesPreviewCard month={date.slice(0, 7)} />
-
-      <p className="text-center text-xs text-[var(--fg-4)]">Chaque jour synchronisé est sauvegardé dans <code>loyverse_shifts_raw</code> + <code>loyverse_daily_sales</code> + <code>loyverse_daily_snapshots</code> — accessible même à J+60 si déjà sync une fois (garde-fou : jour &lt; today déjà archivé = jamais re-fetché).</p>
     </div>
   );
 }
