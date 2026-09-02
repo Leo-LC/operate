@@ -382,6 +382,7 @@ async function syncAccount(
   dates: string[],
   supabase: ReturnType<typeof getSupabaseServerClient>,
   triggeredBy: "manual" | "cron" = "cron",
+  opts?: { force?: boolean },
 ): Promise<SyncPerAccountResult> {
   const start = Date.now();
   try {
@@ -424,7 +425,7 @@ async function syncAccount(
 
       let datesForStore = dates;
       const isManualExplicitDates = triggeredBy === "manual" && dates.length <= 5;
-      if (!isManualExplicitDates) {
+      if (!isManualExplicitDates && !opts?.force) {
         try {
           const [snapRes, shiftsRes, salesRes] = await Promise.all([
             supabase
@@ -507,6 +508,7 @@ export async function syncAllLoyverse(opts?: {
   dates?: string[];
   days?: number;
   backfill?: boolean;
+  force?: boolean;
 }): Promise<SyncAllResult> {
   const triggeredBy = opts?.triggeredBy ?? "manual";
   let dates = opts?.dates;
@@ -547,7 +549,7 @@ export async function syncAllLoyverse(opts?: {
 
   const limit = pLimit<SyncPerAccountResult>(LOYVERSE_SYNC_CONCURRENCY);
   const finalDates = dates ?? getBangkokDates(2);
-  const per_account = await Promise.all(accounts.map((acc) => limit(() => syncAccount(acc, finalDates, supabase, triggeredBy))));
+  const per_account = await Promise.all(accounts.map((acc) => limit(() => syncAccount(acc, finalDates, supabase, triggeredBy, { force: opts?.force } ))));
 
   const total_snapshots = per_account.reduce((s, a) => s + a.snapshots_upserted, 0);
   const total_stores = per_account.reduce((s, a) => s + a.stores_attempted, 0);

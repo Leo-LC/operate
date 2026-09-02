@@ -18,9 +18,10 @@ export async function POST(request: Request) {
   const dates: string[] | undefined = Array.isArray(body?.dates) ? body.dates : undefined;
   const days: number | undefined = typeof body?.days === "number" ? body.days : body?.days ? Number(body.days) : undefined;
   const backfill: boolean | undefined = body?.backfill === true;
+  const force: boolean | undefined = body?.force === true;
 
   try {
-    const result = await syncAllLoyverse({ triggeredBy: "manual", dates, days, backfill });
+    const result = await syncAllLoyverse({ triggeredBy: "manual", dates, days, backfill, force });
     return Response.json(result);
   } catch (err) {
     const message = err instanceof LoyverseApiError ? err.message : err instanceof Error ? err.message : String(err);
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
   const daysParam = url.searchParams.get("days");
   const days = daysParam ? Number(daysParam) : undefined;
   const backfill = url.searchParams.get("backfill") === "true";
+  const force = url.searchParams.get("force") === "true";
 
   if (!isLoyverseConfigured()) {
     return Response.json({ error: "Loyverse not configured" }, { status: 503 });
@@ -49,7 +51,7 @@ export async function GET(request: Request) {
     if (accounts.length === 0) {
       return Response.json({ error: "No accounts" }, { status: 503 });
     }
-    const result = await syncAllLoyverse({ triggeredBy: "manual", dates, days, backfill });
+    const result = await syncAllLoyverse({ triggeredBy: "manual", dates, days, backfill, force });
     return Response.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
