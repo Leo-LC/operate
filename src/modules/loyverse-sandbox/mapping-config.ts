@@ -37,6 +37,22 @@ export const PAYMENT_TYPE_KEYWORDS: Record<PaymentBucket, string[]> = {
   other: [],
 };
 
+// Samui temporary POS fix — keep until POS is updated (see AGENTS / spec)
+export const SAMUI_SNACK_ITEM_NORMALIZED = "a snacks";
+export const SAMUI_ENTRY_ITEM_NORMALIZED = new Set<string>(["a entry adult", "a entry child"]);
+
+export function normalizeItemName(name: string | null | undefined): string {
+  return (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function isSamuiSnackItem(itemName: string | null | undefined): boolean {
+  return normalizeItemName(itemName) === SAMUI_SNACK_ITEM_NORMALIZED;
+}
+
+export function isSamuiEntryItem(itemName: string | null | undefined): boolean {
+  return SAMUI_ENTRY_ITEM_NORMALIZED.has(normalizeItemName(itemName));
+}
+
 export function resolveSalesBucket(
   categoryId: string | null | undefined,
   categoryName: string | null | undefined,
@@ -55,6 +71,20 @@ export function resolveSalesBucket(
     if (haystack.includes(keyword)) return bucket;
   }
   return "other";
+}
+
+export function resolveSalesBucketForSamui(
+  categoryId: string | null | undefined,
+  categoryName: string | null | undefined,
+  itemName: string | null | undefined,
+): SalesBucket {
+  const normalized = normalizeItemName(itemName);
+  if (normalized === SAMUI_SNACK_ITEM_NORMALIZED) return "snack";
+  if (SAMUI_ENTRY_ITEM_NORMALIZED.has(normalized)) return "ticket";
+  const bucket = resolveSalesBucket(categoryId, categoryName, itemName);
+  // For Samui, only the explicit items above count as snack/ticket; ignore category-based tickets/snacks
+  if (bucket === "snack" || bucket === "ticket") return "other";
+  return bucket;
 }
 
 export function resolvePaymentBucket(

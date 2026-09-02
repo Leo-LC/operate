@@ -7,7 +7,7 @@ import type {
   ProposedChallengeEntry,
   ProposedDailyEntry,
 } from "../types";
-import { resolvePaymentBucket, resolveSalesBucket } from "../mapping-config";
+import { resolvePaymentBucket, resolveSalesBucket, resolveSalesBucketForSamui } from "../mapping-config";
 
 const AUTO_FILLABLE_FIELDS = [
   "sales_drinks_net",
@@ -95,6 +95,7 @@ export function aggregateReceipts(
   storeId: string,
   itemCategoryMap: Map<string, string | null>,
   categoryNames: Map<string, string>,
+  opts?: { isSamui?: boolean },
 ): {
   proposed: ProposedDailyEntry;
   challenges: ProposedChallengeEntry;
@@ -136,7 +137,9 @@ export function aggregateReceipts(
     for (const line of receipt.line_items ?? []) {
       const categoryId = line.item_id ? itemCategoryMap.get(line.item_id) ?? null : null;
       const categoryName = categoryId ? categoryNames.get(categoryId) ?? null : null;
-      const bucket = resolveSalesBucket(categoryId, categoryName, line.item_name ?? null);
+      const bucket = opts?.isSamui
+        ? resolveSalesBucketForSamui(categoryId, categoryName, line.item_name ?? null)
+        : resolveSalesBucket(categoryId, categoryName, line.item_name ?? null);
       const amount = (line.total_money ?? 0) * mult;
 
       switch (bucket) {

@@ -10,6 +10,32 @@ import type { SyncAllResult, SyncPerAccountResult, SyncPerStoreResult } from "..
 
 export type LoyverseShiftRaw = Record<string, unknown> & { id: string; store_id?: string };
 
+// Samui temporary POS fix — snacks = "A Snacks" in Drinks, entries = "A ENTRY adult/child"
+let samuiLocationIdsCache: Set<string> | null = null;
+let samuiCacheAt = 0;
+const SAMUI_CACHE_TTL_MS = 60_000;
+
+async function getSamuiLocationIds(supabase: ReturnType<typeof getSupabaseServerClient>): Promise<Set<string>> {
+  const now = Date.now();
+  if (samuiLocationIdsCache && now - samuiCacheAt < SAMUI_CACHE_TTL_MS) return samuiLocationIdsCache;
+  try {
+    const { data } = await supabase.from("locations").select("id, name, slug").or("name.ilike.%samui%,slug.ilike.%samui%");
+    const ids = new Set<string>((data ?? []).map((r) => (r as { id: string }).id));
+    samuiLocationIdsCache = ids;
+    samuiCacheAt = now;
+    return ids;
+  } catch {
+    return samuiLocationIdsCache ?? new Set();
+  }
+}
+
+function isSamuiStore(store: LoyverseStore, account: Account, locationId: string | null, samuiIds: Set<string>): boolean {
+  if (locationId && samuiIds.has(locationId)) return true;
+  const hay = `${store.name ?? ""} ${account.key ?? ""} ${store.id ?? ""}`.toLowerCase();
+  if (hay.includes("samui")) return true;
+  return false;
+}
+
 function getBangkokDates(count: number): string[] {
   const dates: string[] = [];
   const bangkokNowMs = Date.now() + 7 * 60 * 60 * 1000;
@@ -237,6 +263,7 @@ async function syncStoreDate(
   catalog: Awaited<ReturnType<typeof fetchCatalogWithCache>>,
   supabase: ReturnType<typeof getSupabaseServerClient>,
   location_id: string | null,
+  opts?: { isSamui?: boolean },
 ): Promise<SyncPerStoreResult> {
   const range = dateRangeForDay(date);
 
@@ -253,6 +280,7 @@ async function syncStoreDate(
       storeId,
       catalog.itemCategoryMap,
       catalog.categoryNames,
+      { isSamui: opts?.isSamui ?? false },
     );
 
     const revenue_total =
@@ -388,9 +416,11 @@ async function syncAccount(
     const per_store: SyncPerStoreResult[] = [];
     let snapshots_upserted = 0;
     const bangkokToday = getBangkokDates(1)[0];
+    const samuiIds = await getSamuiLocationIds(supabase);
 
     for (const store of stores) {
       const location_id = await getLocationIdForStoreAsync(store.id);
+      const isSamui = isSamuiStore(store, account, location_id, samuiIds);
 
       let datesForStore = dates;
       const isManualExplicitDates = triggeredBy === "manual" && dates.length <= 5;
@@ -441,7 +471,7 @@ async function syncAccount(
       }
 
       for (const date of datesForStore) {
-        const res = await syncStoreDate(account, store.id, date, catalog, supabase, location_id);
+        const res = await syncStoreDate(account, store.id, date, catalog, supabase, location_id, { isSamui });
         per_store.push(res);
         if (res.snapshot) snapshots_upserted++;
         const shiftRes = await syncShiftsForStoreDate(account, store.id, date, supabase, location_id);

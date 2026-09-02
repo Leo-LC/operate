@@ -31,6 +31,14 @@ export async function GET(request: Request) {
 
   try {
     const range = dateRangeForDay(date);
+    const locationIdEarly = getLocationIdForStore(storeId);
+    const supabaseEarly = getSupabaseServerClient();
+    let isSamuiEarly = false;
+    try {
+      const { data: samuiLocs } = await supabaseEarly.from("locations").select("id, name, slug").or("name.ilike.%samui%,slug.ilike.%samui%");
+      const samuiIds = new Set((samuiLocs ?? []).map((r) => (r as { id: string }).id));
+      if (locationIdEarly && samuiIds.has(locationIdEarly)) isSamuiEarly = true;
+    } catch {}
     const [receipts, catalog] = await Promise.all([
       loyverseFetchAll<LoyverseReceipt>(account, "/receipts", "receipts", {
         store_id: storeId,
@@ -47,10 +55,11 @@ export async function GET(request: Request) {
       storeId,
       itemCategoryMap,
       categoryNames,
+      { isSamui: isSamuiEarly },
     );
 
-    const locationId = getLocationIdForStore(storeId);
-    const supabase = getSupabaseServerClient();
+    const locationId = locationIdEarly;
+    const supabase = supabaseEarly;
 
     let existingEntry: Record<string, number | string | null> | null = null;
     let locationName: string | null = null;

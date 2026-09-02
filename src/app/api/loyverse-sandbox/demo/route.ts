@@ -50,6 +50,12 @@ export async function GET(request: Request) {
 
     const locationId = getLocationIdForStore(storeId);
     const supabase = getSupabaseServerClient();
+    let isSamuiDemo = false;
+    try {
+      const { data: samuiLocs } = await supabase.from("locations").select("id, name, slug").or("name.ilike.%samui%,slug.ilike.%samui%");
+      const samuiIds = new Set((samuiLocs ?? []).map((r) => (r as { id: string }).id));
+      if (locationId && samuiIds.has(locationId)) isSamuiDemo = true;
+    } catch {}
     let locationName: string | null = null;
     let existingDates = new Set<string>();
 
@@ -73,6 +79,7 @@ export async function GET(request: Request) {
         storeId,
         itemCategoryMap,
         categoryNames,
+        { isSamui: isSamuiDemo },
       );
       return {
         date,
