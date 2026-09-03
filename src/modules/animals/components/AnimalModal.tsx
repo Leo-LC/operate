@@ -48,10 +48,13 @@ const EMPTY_FORM: FormValues = {
   vaccination_passport: false,
 };
 
+type SpeciesOption = { key: string; label: string };
+
 interface AnimalModalProps {
   animal: Animal | null;
   locations: AdminLocation[];
-  availableSpecies?: string[];
+  speciesList?: SpeciesOption[];
+  onSpeciesCreated?: (opt: SpeciesOption) => void;
   initialDuplicate?: { animal: Animal; vaccineDates: string[] } | null;
   onClose: () => void;
   onSaved: (animal: Animal) => void;
@@ -98,19 +101,9 @@ const selectStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
-function dedupSpecies(base: string[], extra: string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const s of [...base, ...extra]) {
-    const v = s.trim().toLowerCase();
-    if (!v || seen.has(v)) continue;
-    seen.add(v);
-    out.push(v);
-  }
-  return out.sort();
-}
+const NEW_SPECIES = "__new__";
 
-export function AnimalModal({ animal, locations, availableSpecies, initialDuplicate, onClose, onSaved, onDeleted }: AnimalModalProps) {
+export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, initialDuplicate, onClose, onSaved, onDeleted }: AnimalModalProps) {
   const isAdd = animal === null;
   const isDuplicateInit = !!initialDuplicate && isAdd;
 
@@ -144,13 +137,46 @@ export function AnimalModal({ animal, locations, availableSpecies, initialDuplic
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(isDuplicateInit);
 
+  const [newSpeciesName, setNewSpeciesName] = useState("");
+  const [creatingSpecies, setCreatingSpecies] = useState(false);
+
   const speciesOptions = React.useMemo(() => {
-    const base = ANIMAL_SPECIES.map((s) => s.toLowerCase());
-    const extra = availableSpecies ?? [];
-    // include current species values so custom ones stay visible
-    const current = [detail?.species, form?.species].filter(Boolean) as string[];
-    return dedupSpecies(base, [...extra, ...current]);
-  }, [availableSpecies, detail?.species, form?.species]);
+    const base = speciesList?.length ? speciesList : ANIMAL_SPECIES.map((s) => ({ key: s.toLowerCase(), label: s }));
+    const map = new Map<string, string>();
+    for (const o of base) map.set(o.key, o.label);
+    // ensure current values stay visible even if not yet in list
+    for (const cur of [detail?.species, form?.species].filter(Boolean) as string[]) {
+      const k = cur.trim().toLowerCase();
+      if (k && !map.has(k)) map.set(k, cur.trim().replace(/^\w/, (c) => c.toUpperCase()));
+    }
+    return Array.from(map.entries()).map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [speciesList, detail?.species, form?.species]);
+
+  async function handleCreateSpecies() {
+    const label = newSpeciesName.trim();
+    if (!label) { toast.error("Enter a species name"); return; }
+    setCreatingSpecies(true);
+    try {
+      const res = await fetch("/api/animals/species", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to create species");
+      const created = json as SpeciesOption;
+      const opt = { key: (created.key ?? label.toLowerCase().replace(/\s+/g, "_")), label: (created.label ?? label) };
+      onSpeciesCreated?.(opt);
+      setForm((f) => (f ? { ...f, species: opt.key } : f));
+      setFormErrors((prev) => ({ ...prev, species: undefined }));
+      setNewSpeciesName("");
+      toast.success(`${opt.label} added`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create species");
+    } finally {
+      setCreatingSpecies(false);
+    }
+  }
 
   function handleDuplicate() {
     if (!detail) return;
@@ -259,7 +285,7 @@ export function AnimalModal({ animal, locations, availableSpecies, initialDuplic
     e.preventDefault();
     if (!form) return;
     const errors: { species?: string; location_id?: string } = {};
-    if (!form.species) errors.species = "Species is required";
+    if (!form.species || form.species === NEW_SPECIES) errors.species = form.species === NEW_SPECIES ? "Click Add to create the new species" : "Species is required";
     if (!form.location_id) errors.location_id = "Location is required";
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
     setFormErrors({});
@@ -395,19 +421,52 @@ export function AnimalModal({ animal, locations, availableSpecies, initialDuplic
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Species <span style={{ color: "var(--bad)" }}>*</span></label>
-                <input
-                  list="species-list"
-                  value={form.species}
-                  onChange={(e) => { setForm((f) => (f ? { ...f, species: e.target.value } : f)); setFormErrors((prev) => ({ ...prev, species: undefined })); }}
-                  style={{ ...inputStyle, borderColor: formErrors.species ? "var(--bad)" : undefined, textTransform: "capitalize" }}
-                  placeholder="e.g. Capybara or new species"
-                />
-                <datalist id="species-list">
-                  {speciesOptions.map((s) => (
-                    <option key={s} value={s} />
+                <select
+                  value={speciesOptions.some((o) => o.key === form.species) ? form.species : form.species === NEW_SPECIES ? NEW_SPECIES : form.species ? form.species : ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === NEW_SPECIES) {
+                      setForm((f) => (f ? { ...f, species: NEW_SPECIES } : f));
+                      setFormErrors((prev) => ({ ...prev, species: undefined }));
+                    } else {
+                      setForm((f) => (f ? { ...f, species: v } : f));
+                      setFormErrors((prev) => ({ ...prev, species: undefined }));
+                    }
+                  }}
+                  style={{ ...selectStyle, borderColor: formErrors.species ? "var(--bad)" : undefined }}
+                >
+                  <option value="">— select —</option>
+                  {speciesOptions.map((o) => (
+                    <option key={o.key} value={o.key}>{o.label}</option>
                   ))}
-                </datalist>
-                <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>Type a new species to add it — it will be reusable.</p>
+                  <option value={NEW_SPECIES}>＋ Add new species…</option>
+                </select>
+                {form.species === NEW_SPECIES && (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      value={newSpeciesName}
+                      onChange={(e) => setNewSpeciesName(e.target.value)}
+                      placeholder="e.g. Parrot"
+                      style={{ ...inputStyle, flex: 1 }}
+                      autoFocus
+                    />
+                    <Button type="button" size="sm" onClick={() => void handleCreateSpecies()} disabled={creatingSpecies || !newSpeciesName.trim()}>
+                      {creatingSpecies ? "Adding…" : "Add"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setForm((f) => (f ? { ...f, species: "" } : f));
+                        setNewSpeciesName("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+                {form.species !== NEW_SPECIES && <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>Select existing or add new — new species will be reusable.</p>}
                 {formErrors.species && <p style={{ fontSize: 11, color: "var(--bad)", margin: 0 }}>{formErrors.species}</p>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

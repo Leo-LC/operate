@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo, type ReactNode } from "react";
+import React, { useState, useMemo, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import type { Animal } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { AnimalModal } from "@/modules/animals/components/AnimalModal";
+
+type SpeciesOption = { key: string; label: string };
 
 interface AnimalsListClientProps {
   initialAnimals: Animal[];
@@ -42,11 +44,39 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   const totalCapybara = displayedAnimals.filter((a) => a.species === "capybara").length;
   const totalMeerkat = displayedAnimals.filter((a) => a.species === "meerkat").length;
 
-  const availableSpecies = useMemo(() => {
-    const set = new Set<string>();
-    for (const a of animals) if (a.species) set.add(a.species.trim().toLowerCase());
-    return Array.from(set).sort();
+  const [speciesList, setSpeciesList] = useState<SpeciesOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/animals/species", { cache: "no-store" });
+        if (!res.ok) throw new Error();
+        const json = (await res.json()) as { species: SpeciesOption[] };
+        if (!cancelled) setSpeciesList((json.species ?? []).map((s) => ({ key: s.key, label: s.label })));
+      } catch {
+        // fallback to distinct from animals + defaults
+        if (!cancelled) {
+          const set = new Map<string, string>();
+          set.set("capybara", "Capybara");
+          set.set("meerkat", "Meerkat");
+          for (const a of animals) {
+            const k = a.species?.trim().toLowerCase();
+            if (k && !set.has(k)) set.set(k, a.species.trim().replace(/^\w/, (c) => c.toUpperCase()));
+          }
+          setSpeciesList(Array.from(set.entries()).map(([key, label]) => ({ key, label })));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [animals]);
+
+  function handleSpeciesCreated(opt: SpeciesOption) {
+    setSpeciesList((prev) => {
+      if (prev.some((p) => p.key === opt.key)) return prev;
+      return [...prev, opt].sort((a, b) => a.label.localeCompare(b.label));
+    });
+  }
 
   async function handleDuplicate(animal: Animal) {
     try {
@@ -244,7 +274,8 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           key={modal.duplicate ? `dup-${modal.duplicate.animal.id}` : modal.animal?.id ?? "new"}
           animal={modal.animal}
           locations={locations}
-          availableSpecies={availableSpecies}
+          speciesList={speciesList}
+          onSpeciesCreated={handleSpeciesCreated}
           initialDuplicate={modal.duplicate ?? null}
           onClose={() => setModal(null)}
           onSaved={upsertAnimal}
