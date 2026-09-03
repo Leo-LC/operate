@@ -41,10 +41,34 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   const vaccineDueCount = animals.filter((a) => a.next_vaccination_date && a.next_vaccination_date <= in30).length;
   const missingLocationCount = animals.filter((a) => !a.location_id).length;
 
-  const totalCapybara = displayedAnimals.filter((a) => a.species === "capybara").length;
-  const totalMeerkat = displayedAnimals.filter((a) => a.species === "meerkat").length;
-
   const [speciesList, setSpeciesList] = useState<SpeciesOption[]>([]);
+
+  const speciesCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of displayedAnimals) {
+      const k = (a.species ?? "").trim().toLowerCase();
+      if (!k) continue;
+      map.set(k, (map.get(k) ?? 0) + 1);
+    }
+    return map;
+  }, [displayedAnimals]);
+
+  const speciesCards = useMemo(() => {
+    // Order by speciesList sort order, then any extra species alphabetically
+    const labelMap = new Map(speciesList.map((s) => [s.key, s.label] as const));
+    const ordered: SpeciesOption[] = [];
+    for (const s of speciesList) {
+      if (speciesCounts.has(s.key)) ordered.push(s);
+    }
+    for (const [key, count] of speciesCounts) {
+      if (!labelMap.has(key)) {
+        const label = key.charAt(0).toUpperCase() + key.slice(1);
+        ordered.push({ key, label });
+      }
+    }
+    // Include speciesList items with 0 count? no – only those with animals
+    return ordered;
+  }, [speciesList, speciesCounts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,20 +183,24 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       {view === "animals" ? (
         /* ── Animals view ──────────────────────────────────────────────── */
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-          {/* Summary cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+          {/* Summary cards — dynamic per species */}
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))`, gap: 10 }}>
             <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)" }}>
               <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Animals</p>
               <p className="mono" style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{displayedAnimals.length}</p>
             </div>
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)" }}>
-              <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Capybaras</p>
-              <p className="mono" style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{totalCapybara}</p>
-            </div>
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)" }}>
-              <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Meerkats</p>
-              <p className="mono" style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{totalMeerkat}</p>
-            </div>
+            {speciesCards.map((sp) => (
+              <div key={sp.key} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)" }}>
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4, textTransform: "capitalize" }}>{sp.label}</p>
+                <p className="mono" style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{speciesCounts.get(sp.key) ?? 0}</p>
+              </div>
+            ))}
+            {speciesCards.length === 0 && (
+              <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "var(--s-3) var(--s-4)", opacity: 0.6 }}>
+                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Species</p>
+                <p className="mono" style={{ fontSize: 20, fontWeight: 700 }}>—</p>
+              </div>
+            )}
           </div>
 
           {/* Animal list */}
