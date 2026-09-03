@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("employees")
-    .select(`*, locations ( name ), employee_locations ( id, location_id, is_primary, locations ( name ) )`)
+    .select(`*, locations ( name ), employee_locations ( id, location_id, is_primary, base_salary_monthly, service_charge_eligible, locations ( name ) )`)
     .eq("id", params.id)
     .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
@@ -58,6 +58,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     location_ids: string[];
     primary_location_id: string | null;
     location_salaries?: Record<string, number>;
+    location_service_charge_eligible?: Record<string, boolean>;
   }>;
   try {
     body = await request.json();
@@ -121,9 +122,19 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
   }
 
+  // Keep per-location eligibility in sync when only the legacy global field was changed
+  // (for backward compat: single-shop edits without location_ids).
+  if ("service_charge_eligible" in body && body.location_ids === undefined && body.location_service_charge_eligible === undefined) {
+    await supabase
+      .from("employee_locations")
+      .update({ service_charge_eligible: body.service_charge_eligible ?? true })
+      .eq("employee_id", params.id);
+  }
+
   if (body.location_ids !== undefined) {
     const primaryId = body.primary_location_id ?? body.location_ids[0] ?? null;
     const locationSalaries = body.location_salaries ?? {};
+    const locationEligible = body.location_service_charge_eligible ?? {};
     const primarySalary = primaryId ? locationSalaries[primaryId] : undefined;
     await supabase.from("employee_locations").delete().eq("employee_id", params.id);
     if (body.location_ids.length > 0) {
@@ -133,6 +144,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
           location_id: lid,
           is_primary: lid === primaryId,
           base_salary_monthly: locationSalaries[lid] ?? body.base_salary_monthly ?? null,
+          service_charge_eligible: locationEligible[lid] ?? ("service_charge_eligible" in body ? (body.service_charge_eligible ?? true) : true),
         }))
       );
     }

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       credit_note, service_charge_pct, employment_start_date, employment_end_date, service_charge_eligible,
       user_id, archived_at, created_at, updated_at,
       locations ( name ),
-      employee_locations ( id, location_id, is_primary, base_salary_monthly, locations ( name ) )
+      employee_locations ( id, location_id, is_primary, base_salary_monthly, service_charge_eligible, locations ( name ) )
     `)
     .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  type ELRow = { id: string; location_id: string; is_primary: boolean; base_salary_monthly: number | null; locations: { name: string } | null };
+  type ELRow = { id: string; location_id: string; is_primary: boolean; base_salary_monthly: number | null; service_charge_eligible: boolean | null; locations: { name: string } | null };
   type EmpRow = typeof data extends (infer T)[] | null ? T : never;
 
   const mapped = (data ?? []).map((e) => {
@@ -72,6 +72,7 @@ export async function GET(request: Request) {
         location_name: el.locations?.name ?? el.location_id,
         is_primary: el.is_primary,
         base_salary_monthly: el.base_salary_monthly ?? null,
+        service_charge_eligible: el.service_charge_eligible ?? true,
       })),
     };
   });
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
     location_ids?: string[];
     primary_location_id?: string;
     location_salaries?: Record<string, number>;
+    location_service_charge_eligible?: Record<string, boolean>;
   };
   try {
     body = await request.json();
@@ -121,6 +123,7 @@ export async function POST(request: Request) {
 
   const primaryLocationId = body.primary_location_id ?? body.location_ids?.[0] ?? null;
   const locationSalaries = body.location_salaries ?? {};
+  const locationEligible = body.location_service_charge_eligible ?? {};
   const primarySalary = primaryLocationId ? locationSalaries[primaryLocationId] : undefined;
 
   const supabase = getSupabaseServerClient();
@@ -160,6 +163,7 @@ export async function POST(request: Request) {
         location_id: lid,
         is_primary: lid === primaryLocationId,
         base_salary_monthly: locationSalaries[lid] ?? body.base_salary_monthly ?? null,
+        service_charge_eligible: locationEligible[lid] ?? body.service_charge_eligible ?? true,
       }))
     );
   }

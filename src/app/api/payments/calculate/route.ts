@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const [empRes, dailyRes, locRes, existingRes] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, service_charge_pct, location_id, employee_locations(location_id)")
+      .select("id, first_name, last_name, base_salary_monthly, has_thai_bank_account, service_charge_pct, service_charge_eligible, location_id, employee_locations(location_id, service_charge_eligible)")
       .eq("organization_id", DEFAULT_ORG_ID)
       .is("archived_at", null)
       .is("deleted_at", null),
@@ -73,12 +73,16 @@ export async function POST(request: Request) {
   const totalNetRevenue = (dailyRes.data ?? []).reduce((sum, row) => sum + salesNetTotal(row as DailyEntry), 0);
 
   const locationEmployees = (empRes.data ?? []).filter((e) => {
-    const locs = (e.employee_locations as { location_id: string }[] | null) ?? [];
+    const locs = (e.employee_locations as { location_id: string; service_charge_eligible?: boolean | null }[] | null) ?? [];
     return locs.some((el) => el.location_id === location_id) || e.location_id === location_id;
   });
 
   const upsertRows = locationEmployees.map((emp) => {
-    const pct = (emp.service_charge_pct as number | null) ?? defaultPct;
+    const locs = (emp.employee_locations as { location_id: string; service_charge_eligible?: boolean | null }[] | null) ?? [];
+    const locEligible = locs.find((el) => el.location_id === location_id)?.service_charge_eligible;
+    // Per-location eligibility takes precedence; fallback to global employee flag for legacy/single-shop
+    const eligible = locEligible !== undefined && locEligible !== null ? locEligible : ((emp.service_charge_eligible as boolean | null) ?? true);
+    const pct = eligible ? ((emp.service_charge_pct as number | null) ?? defaultPct) : 0;
     const existing = existingMap.get(emp.id);
     return {
       organization_id: DEFAULT_ORG_ID,
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
       period_year,
       period_month,
       base_salary: (emp.base_salary_monthly as number | null) ?? 0,
-      service_charge: Math.round(totalNetRevenue * (pct / 100) * 100) / 100,
+      service_charge: eligible ? Math.round(totalNetRevenue * (pct / 100) * 100) / 100 : 0,
       payment_method: existing?.payment_method ?? ((emp.has_thai_bank_account as boolean) ? "bank_transfer" : "cash"),
       notes: existing?.notes ?? null,
       created_by: session.user.userId ?? null,

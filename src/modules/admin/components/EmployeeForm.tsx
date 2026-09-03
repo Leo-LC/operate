@@ -72,11 +72,13 @@ export function EmployeeForm({
   primaryLoc,
   locations,
   locationSalaries = {},
+  locationEligible = {},
   submitting,
   onChange,
   onToggleLoc,
   onSetPrimary,
   onSalaryChange,
+  onEligibleChange,
   onSubmit,
   onCancel,
   submitLabel,
@@ -86,11 +88,13 @@ export function EmployeeForm({
   primaryLoc: string;
   locations: AdminLocation[];
   locationSalaries?: Record<string, string>;
+  locationEligible?: Record<string, boolean>;
   submitting: boolean;
   onChange: (key: keyof EmployeeFormState, val: string | boolean) => void;
   onToggleLoc: (id: string) => void;
   onSetPrimary: (id: string) => void;
   onSalaryChange?: (locationId: string, value: string) => void;
+  onEligibleChange?: (locationId: string, value: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
   submitLabel: string;
@@ -253,6 +257,16 @@ export function EmployeeForm({
                           onClick={(e) => e.stopPropagation()}
                           style={{ width: 88, height: 22, marginLeft: 4, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }}
                         />
+                      )}
+                      {onEligibleChange && (
+                        <label onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: "var(--fg-3)", marginLeft: 4 }}>
+                          <input
+                            type="checkbox"
+                            checked={locationEligible[loc.id] ?? true}
+                            onChange={(e) => onEligibleChange(loc.id, e.target.checked)}
+                          />
+                          SC
+                        </label>
                       )}
                     </>
                   )}

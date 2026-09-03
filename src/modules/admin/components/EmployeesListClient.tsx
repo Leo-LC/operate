@@ -73,10 +73,10 @@ function primarySalary(emp: Employee): number | null {
   return perLoc[0]?.base_salary_monthly ?? emp.base_salary_monthly;
 }
 
-function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onSubmit, onCancel, submitLabel }: {
-  form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; locationSalaries: Record<string, string>; submitting: boolean;
+function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, locationEligible, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onEligibleChange, onSubmit, onCancel, submitLabel }: {
+  form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; locationSalaries: Record<string, string>; locationEligible: Record<string, boolean>; submitting: boolean;
   onChange: (key: keyof FormState, value: string | boolean) => void; onToggleLoc: (id: string) => void;
-  onSetPrimary: (id: string) => void; onSalaryChange: (id: string, value: string) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
+  onSetPrimary: (id: string) => void; onSalaryChange: (id: string, value: string) => void; onEligibleChange: (id: string, value: boolean) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
 }) {
   return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
@@ -115,6 +115,10 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
             <>
               <button type="button" onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(location.id); }} style={{ fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "2px 4px", background: isPrimary ? "var(--bronze)" : "transparent", color: isPrimary ? "#fff" : "var(--fg-4)", border: "none", cursor: "pointer" }} title={isPrimary ? "Primary location" : "Set as primary"}>{isPrimary ? "PRIMARY" : "set primary"}</button>
               <input type="number" min="0" step="100" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
+              <label onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: "var(--fg-3)" }}>
+                <input type="checkbox" checked={locationEligible[location.id] ?? true} onChange={(e) => onEligibleChange(location.id, e.target.checked)} />
+                SC
+              </label>
             </>
           )}
         </div>;
@@ -155,11 +159,13 @@ export function EmployeesListClient({ locations }: Props) {
   const [formLocIds, setFormLocIds] = useState<Set<string>>(new Set());
   const [formPrimaryLoc, setFormPrimaryLoc] = useState("");
   const [formSalaries, setFormSalaries] = useState<Record<string, string>>({});
+  const [formEligible, setFormEligible] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
   const [editLocIds, setEditLocIds] = useState<Set<string>>(new Set());
   const [editPrimaryLoc, setEditPrimaryLoc] = useState("");
   const [editSalaries, setEditSalaries] = useState<Record<string, string>>({});
+  const [editEligible, setEditEligible] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string; isArchived: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -236,6 +242,7 @@ export function EmployeesListClient({ locations }: Props) {
     setFormLocIds(new Set());
     setFormPrimaryLoc("");
     setFormSalaries({});
+    setFormEligible({});
     setShowAdd(false);
   }
 
@@ -247,10 +254,13 @@ export function EmployeesListClient({ locations }: Props) {
     const primary = emp.employee_locations?.find((el) => el.is_primary)?.location_id ?? emp.location_id ?? "";
     setEditPrimaryLoc(primary);
     const salaries: Record<string, string> = {};
+    const eligible: Record<string, boolean> = {};
     for (const el of emp.employee_locations ?? []) {
       if (el.base_salary_monthly != null) salaries[el.location_id] = String(el.base_salary_monthly);
+      eligible[el.location_id] = el.service_charge_eligible ?? true;
     }
     setEditSalaries(salaries);
+    setEditEligible(eligible);
   }
 
   function toggleLoc(
@@ -264,7 +274,7 @@ export function EmployeesListClient({ locations }: Props) {
     if (next.has(id)) {
       next.delete(id);
       setter(next);
-      // Clear per-location salary for the removed shop
+      // Clear per-location salary/eligibility for the removed shop
       setFormSalaries((prev) => {
         if (!(id in prev)) return prev;
         const copy = { ...prev };
@@ -272,6 +282,18 @@ export function EmployeesListClient({ locations }: Props) {
         return copy;
       });
       setEditSalaries((prev) => {
+        if (!(id in prev)) return prev;
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      setFormEligible((prev) => {
+        if (!(id in prev)) return prev;
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      setEditEligible((prev) => {
         if (!(id in prev)) return prev;
         const copy = { ...prev };
         delete copy[id];
@@ -305,6 +327,7 @@ export function EmployeesListClient({ locations }: Props) {
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
           location_salaries: formSalaries,
+          location_service_charge_eligible: formEligible,
         }),
       });
       if (!res.ok) {
@@ -339,6 +362,7 @@ export function EmployeesListClient({ locations }: Props) {
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,
           location_salaries: editSalaries,
+          location_service_charge_eligible: editEligible,
         }),
       });
       if (!res.ok) {
@@ -446,11 +470,13 @@ export function EmployeesListClient({ locations }: Props) {
           primaryLoc={formPrimaryLoc}
           locations={locations}
           locationSalaries={formSalaries}
+          locationEligible={formEligible}
           submitting={submitting}
           onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
           onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, formPrimaryLoc, setFormPrimaryLoc, id)}
           onSetPrimary={setFormPrimaryLoc}
           onSalaryChange={(id, val) => setFormSalaries((prev) => ({ ...prev, [id]: val }))}
+          onEligibleChange={(id, val) => setFormEligible((prev) => ({ ...prev, [id]: val }))}
           onSubmit={(e) => void handleAdd(e)}
           onCancel={resetAddForm}
           submitLabel="Add employee"
@@ -501,11 +527,13 @@ export function EmployeesListClient({ locations }: Props) {
                         primaryLoc={editPrimaryLoc}
                         locations={locations}
                         locationSalaries={editSalaries}
+                        locationEligible={editEligible}
                         submitting={submitting}
                         onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
                         onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, editPrimaryLoc, setEditPrimaryLoc, id)}
                         onSetPrimary={setEditPrimaryLoc}
                         onSalaryChange={(id, val) => setEditSalaries((prev) => ({ ...prev, [id]: val }))}
+                        onEligibleChange={(id, val) => setEditEligible((prev) => ({ ...prev, [id]: val }))}
                         onSubmit={(e) => void handleEdit(e)}
                         onCancel={() => setEditingId(null)}
                         submitLabel="Save"
@@ -634,7 +662,25 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
         {emp.has_thai_bank_account ? "Yes" : "No"}
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
-        {emp.service_charge_eligible === false ? "Not eligible" : emp.service_charge_pct != null ? `${emp.service_charge_pct}%` : "Shop default"}
+        {(() => {
+          const pctLabel = emp.service_charge_pct != null ? `${emp.service_charge_pct}%` : "Shop default";
+          if (emp.employee_locations && emp.employee_locations.length > 0) {
+            const anyEligible = emp.employee_locations.some((el) => el.service_charge_eligible !== false);
+            const allEligible = emp.employee_locations.every((el) => el.service_charge_eligible !== false);
+            if (!anyEligible) return "Not eligible";
+            if (!allEligible) {
+              return (
+                <span>
+                  {pctLabel}
+                  <span style={{ display: "block", fontSize: 10, color: "var(--fg-4)" }}>
+                    {emp.employee_locations.filter((el) => el.service_charge_eligible === false).map((el) => `${el.location_name}: off`).join(", ")}
+                  </span>
+                </span>
+              );
+            }
+          } else if (emp.service_charge_eligible === false) return "Not eligible";
+          return pctLabel;
+        })()}
       </td>
       <td style={{ padding: "10px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
