@@ -166,6 +166,10 @@ Tailwind `tailwind.config.ts:14` maps sand/ink/bronze.
 - [ ] Git commits per milestone, summary + next pages suggestion
 
 ## Progress Log
-- 2026-09-03: Branch created, this plan persisted at docs/operate-os-redesign-plan.md
-- 2026-09-03: Phase 2 starting — tokens
+- 2026-09-03: Branch created at docs/operate-os-redesign-plan.md
+- 2026-09-03: Phase 2 completed — neutral dark tokens (#08090B canvas, #111216 sidebar, #2563EB accent, 4/6/8/10 radii, 13px Geist base)
+- 2026-09-03: Phase 3 completed — Button blue 32h, Card radius 6, Stat compact 22 mono, PageHeader 24 + divider, Tabs blue line, Pill/ResponsiveTable refined, AppPage primitives added
+- 2026-09-03: Phase 4 completed — sidebar 220/56, active blue fill, inactive muted, topbar 48 canvas, search 32, shell compact
+- 2026-09-03: Phase 5 — Home hero compact 24/13 no display/script, module cards r-md no lift, Recurring Costs FIELD 32h + surface, Reports/Animals validated via token remap (bronze→blue, warm→mono, r-lg→r-md) — systematic migration pending review
+- 2026-09-03: Build verified — `npx tsc --noEmit` clean, `npm run build` success (see commit ca6656c onward)
 

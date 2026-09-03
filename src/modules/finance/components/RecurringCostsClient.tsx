@@ -46,7 +46,7 @@ type Preview = {
 
 const ALL_SHOPS = "all";
 const NEW_CATEGORY = "__new__";
-const FIELD: React.CSSProperties = { height: 38, border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", padding: "0 11px", fontSize: 13, width: "100%" };
+const FIELD: React.CSSProperties = { height: 32, border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--surface)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%" };
 
 function bangkokMonth(): string {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).formatToParts(new Date());
