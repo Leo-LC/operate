@@ -247,7 +247,7 @@ export async function POST(request: Request) {
   // Also keep finance_shop_monthly_inputs in sync for daily P&L.
   // Map recurring total into other_fixed_amount for compatibility, preserve bonus.
   try {
-    await supabase.from("finance_shop_monthly_inputs").upsert({
+    const basePayload: Record<string, unknown> = {
       organization_id: DEFAULT_ORG_ID,
       location_id: locationId,
       period_year: periodYear,
@@ -264,7 +264,13 @@ export async function POST(request: Request) {
       created_by: auth.session.user.userId ?? null,
       updated_by: auth.session.user.userId ?? null,
       updated_at: now,
-    } as never, { onConflict: "organization_id,location_id,period_year,period_month" });
+    };
+    const res = await supabase.from("finance_shop_monthly_inputs").upsert(basePayload as never, { onConflict: "organization_id,location_id,period_year,period_month" });
+    if (res.error && String(res.error.message).includes("bonus_amount")) {
+      const withoutBonus = { ...basePayload };
+      delete withoutBonus.bonus_amount;
+      await supabase.from("finance_shop_monthly_inputs").upsert(withoutBonus as never, { onConflict: "organization_id,location_id,period_year,period_month" });
+    }
   } catch { /* non-fatal */ }
 
   try {
