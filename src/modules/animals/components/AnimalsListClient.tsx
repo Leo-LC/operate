@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon } from "lucide-react";
+import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon, CopyIcon } from "lucide-react";
+import { toast } from "sonner";
 import type { Animal } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { AnimalModal } from "@/modules/animals/components/AnimalModal";
@@ -25,7 +26,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   const [animals, setAnimals] = useState(initialAnimals);
   const [view, setView] = useState<ViewMode>("animals");
   const [shopFilter, setShopFilter] = useState("");
-  const [modal, setModal] = useState<{ animal: Animal | null } | null>(null);
+  const [modal, setModal] = useState<{ animal: Animal | null; duplicate?: { animal: Animal; vaccineDates: string[] } | null } | null>(null);
 
   const displayedAnimals = useMemo(() => {
     return animals.filter((a) => {
@@ -40,6 +41,25 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
   const totalCapybara = displayedAnimals.filter((a) => a.species === "capybara").length;
   const totalMeerkat = displayedAnimals.filter((a) => a.species === "meerkat").length;
+
+  const availableSpecies = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of animals) if (a.species) set.add(a.species.trim().toLowerCase());
+    return Array.from(set).sort();
+  }, [animals]);
+
+  async function handleDuplicate(animal: Animal) {
+    try {
+      const res = await fetch(`/api/animals/${animal.id}`);
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as { animal: Animal; vaccination_dates: string[] };
+      setModal({ animal: null, duplicate: { animal: data.animal, vaccineDates: data.vaccination_dates ?? [] } });
+    } catch {
+      // fallback: duplicate with known fields only
+      toast.error("Could not load vaccine history — duplicating basic info only");
+      setModal({ animal: null, duplicate: { animal, vaccineDates: animal.last_vaccination_date ? [animal.last_vaccination_date] : [] } });
+    }
+  }
 
   function upsertAnimal(updated: Animal) {
     setAnimals((prev) => {
@@ -135,13 +155,13 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
-                    {["Name", "Species", "Shop", "Last vaccine", "Next vaccine", ""].map((h, i) => (
+                    {["Name", "Species", "Shop", "Last vaccine", "Next vaccine", "", ""].map((h, i) => (
                       <th
                         key={i}
                         style={{
                           padding: "10px var(--s-5)", textAlign: "left",
                           color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
-                          width: i === 5 ? 40 : undefined,
+                          width: i >= 5 ? 40 : undefined,
                         }}
                       >
                         {h}
@@ -168,6 +188,29 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                       </td>
                       <td style={{ padding: "12px var(--s-5)", fontSize: 12, color: "var(--fg-3)" }}>
                         {fmtDate(animal.next_vaccination_date) ?? <span style={{ color: "var(--fg-mute)" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "12px var(--s-5)", textAlign: "center" }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDuplicate(animal);
+                          }}
+                          title="Duplicate"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "var(--r-sm)", border: "1px solid transparent", background: "transparent", color: "var(--fg-4)", cursor: "pointer" }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = "var(--bg-2)";
+                            (e.currentTarget as HTMLElement).style.color = "var(--fg)";
+                            (e.currentTarget as HTMLElement).style.borderColor = "var(--line)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = "transparent";
+                            (e.currentTarget as HTMLElement).style.color = "var(--fg-4)";
+                            (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+                          }}
+                        >
+                          <CopyIcon style={{ width: 13, height: 13 }} />
+                        </button>
                       </td>
                       <td style={{ padding: "12px var(--s-5)", textAlign: "right" }}>
                         <span style={{ color: "var(--fg-4)" }}>›</span>
@@ -198,8 +241,11 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
       {modal && (
         <AnimalModal
+          key={modal.duplicate ? `dup-${modal.duplicate.animal.id}` : modal.animal?.id ?? "new"}
           animal={modal.animal}
           locations={locations}
+          availableSpecies={availableSpecies}
+          initialDuplicate={modal.duplicate ?? null}
           onClose={() => setModal(null)}
           onSaved={upsertAnimal}
           onDeleted={removeAnimal}

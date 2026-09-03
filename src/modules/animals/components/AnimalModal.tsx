@@ -7,6 +7,7 @@ import { DateInput } from "@/components/ui/date-input";
 import { Pill } from "@/components/ui/pill";
 import type { PillTone } from "@/components/ui/pill";
 import {
+  CopyIcon,
   PencilIcon,
   PlusIcon,
   ShieldCheckIcon,
@@ -50,6 +51,8 @@ const EMPTY_FORM: FormValues = {
 interface AnimalModalProps {
   animal: Animal | null;
   locations: AdminLocation[];
+  availableSpecies?: string[];
+  initialDuplicate?: { animal: Animal; vaccineDates: string[] } | null;
   onClose: () => void;
   onSaved: (animal: Animal) => void;
   onDeleted?: (animalId: string) => void;
@@ -95,18 +98,82 @@ const selectStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
-export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: AnimalModalProps) {
+function dedupSpecies(base: string[], extra: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of [...base, ...extra]) {
+    const v = s.trim().toLowerCase();
+    if (!v || seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out.sort();
+}
+
+export function AnimalModal({ animal, locations, availableSpecies, initialDuplicate, onClose, onSaved, onDeleted }: AnimalModalProps) {
   const isAdd = animal === null;
+  const isDuplicateInit = !!initialDuplicate && isAdd;
 
   const [detail, setDetail] = useState<Animal | null>(isAdd ? null : animal);
   const [vaccineDates, setVaccineDates] = useState<string[]>([]);
   const [editing, setEditing] = useState(isAdd);
-  const [form, setForm] = useState<FormValues | null>(isAdd ? EMPTY_FORM : null);
+  const [form, setForm] = useState<FormValues | null>(() => {
+    if (!isAdd) return null;
+    if (initialDuplicate) {
+      const src = initialDuplicate.animal;
+      const dates = [...(initialDuplicate.vaccineDates ?? [])].filter(Boolean).sort();
+      const suggested = suggestNextVaccine(dates) ?? src.next_vaccination_date ?? "";
+      const overridden = !!src.next_vaccination_date && src.next_vaccination_date !== suggestNextVaccine(dates);
+      return {
+        name: src.name ? `${src.name} (copy)` : "",
+        species: src.species ?? "",
+        sex: (src.sex as AnimalSex) ?? "",
+        location_id: src.location_id ?? "",
+        estimated_birth_date: src.estimated_birth_date ?? "",
+        vaccination_dates: dates,
+        next_vaccination_date: overridden ? (src.next_vaccination_date ?? "") : suggested,
+        vaccination_passport: src.vaccination_passport ?? false,
+      };
+    }
+    return EMPTY_FORM;
+  });
   const [nextOverridden, setNextOverridden] = useState(false);
   const [formErrors, setFormErrors] = useState<{ species?: string; location_id?: string }>({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDuplicate, setIsDuplicate] = useState(isDuplicateInit);
+
+  const speciesOptions = React.useMemo(() => {
+    const base = ANIMAL_SPECIES.map((s) => s.toLowerCase());
+    const extra = availableSpecies ?? [];
+    // include current species values so custom ones stay visible
+    const current = [detail?.species, form?.species].filter(Boolean) as string[];
+    return dedupSpecies(base, [...extra, ...current]);
+  }, [availableSpecies, detail?.species, form?.species]);
+
+  function handleDuplicate() {
+    if (!detail) return;
+    const dates = [...vaccineDates];
+    const suggested = suggestNextVaccine(dates) ?? detail.next_vaccination_date ?? "";
+    const storedNext = detail.next_vaccination_date ?? "";
+    const overridden = !!storedNext && storedNext !== suggestNextVaccine(dates);
+    const dupNext = overridden ? storedNext : suggested;
+    setForm({
+      name: detail.name ? `${detail.name} (copy)` : "",
+      species: detail.species,
+      sex: detail.sex ?? "",
+      location_id: detail.location_id ?? "",
+      estimated_birth_date: detail.estimated_birth_date ?? "",
+      vaccination_dates: dates,
+      next_vaccination_date: dupNext,
+      vaccination_passport: detail.vaccination_passport,
+    });
+    setNextOverridden(overridden);
+    setFormErrors({});
+    setIsDuplicate(true);
+    setEditing(true);
+  }
 
   // The modal mounts fresh each time it is opened; props stay stable for its lifetime.
   useEffect(() => {
@@ -149,6 +216,7 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
     });
     setNextOverridden(overridden);
     setFormErrors({});
+    setIsDuplicate(false);
     setEditing(true);
   }
 
@@ -207,13 +275,18 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
       vaccination_passport: form.vaccination_passport,
     };
 
+    // normalize species to lowercase for storage but keep display-friendly
+    const normalizedSpecies = form.species.trim().toLowerCase();
+    const bodySpecies = normalizedSpecies || form.species.trim();
+    const bodyWithSpecies = { ...body, species: bodySpecies };
+
     setSaving(true);
     try {
-      if (isAdd) {
+      if (isAdd || isDuplicate) {
         const res = await fetch("/api/animals", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify(bodyWithSpecies),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -231,7 +304,7 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
       const res = await fetch(`/api/animals/${animal!.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(bodyWithSpecies),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -269,14 +342,22 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
   const viewStatus = getVaccineStatus(detail?.next_vaccination_date ?? null);
 
   const title = isAdd
-    ? "Add animal"
+    ? isDuplicate
+      ? `Duplicate — ${initialDuplicate?.animal.name ?? form?.name ?? ""}`
+      : "Add animal"
     : editing
-      ? `Edit — ${detail?.name ?? animal?.name ?? ""}`
+      ? isDuplicate
+        ? `Duplicate — ${detail?.name ?? animal?.name ?? ""}`
+        : `Edit — ${detail?.name ?? animal?.name ?? ""}`
       : detail?.name ?? animal?.name ?? "";
   const description = isAdd
-    ? "Create a profile to track vaccines."
+    ? isDuplicate
+      ? "Duplicated profile — adjust before saving."
+      : "Create a profile to track vaccines."
     : editing
-      ? "Update the animal's profile and vaccine history."
+      ? isDuplicate
+        ? "Duplicated profile — adjust before saving."
+        : "Update the animal's profile and vaccine history."
       : detail?.location_name ?? "No location";
 
   return (
@@ -291,7 +372,7 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button size="sm" type="submit" form="animal-form" disabled={saving}>
-              {saving ? "Saving…" : isAdd ? "Add animal" : "Save changes"}
+              {saving ? "Saving…" : isDuplicate || isAdd ? "Add animal" : "Save changes"}
             </Button>
           </div>
         ) : (
@@ -314,14 +395,19 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Species <span style={{ color: "var(--bad)" }}>*</span></label>
-                <select
+                <input
+                  list="species-list"
                   value={form.species}
                   onChange={(e) => { setForm((f) => (f ? { ...f, species: e.target.value } : f)); setFormErrors((prev) => ({ ...prev, species: undefined })); }}
-                  style={{ ...selectStyle, borderColor: formErrors.species ? "var(--bad)" : undefined }}
-                >
-                  <option value="">— select —</option>
-                  {ANIMAL_SPECIES.map((s) => <option key={s} value={s.toLowerCase()}>{s}</option>)}
-                </select>
+                  style={{ ...inputStyle, borderColor: formErrors.species ? "var(--bad)" : undefined, textTransform: "capitalize" }}
+                  placeholder="e.g. Capybara or new species"
+                />
+                <datalist id="species-list">
+                  {speciesOptions.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+                <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>Type a new species to add it — it will be reusable.</p>
                 {formErrors.species && <p style={{ fontSize: 11, color: "var(--bad)", margin: 0 }}>{formErrors.species}</p>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -334,7 +420,7 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Est. birth date</label>
-                <DateInput value={form.estimated_birth_date} onChange={(e) => setForm((f) => (f ? { ...f, estimated_birth_date: e.target.value } : f))} />
+                <DateInput value={form.estimated_birth_date} onChange={(e: { target: { value: string } }) => setForm((f) => (f ? { ...f, estimated_birth_date: e.target.value } : f))} />
               </div>
             </div>
           </div>
@@ -369,14 +455,14 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
                 form.vaccination_dates.map((d, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <SyringeIcon style={{ width: 14, height: 14, color: "var(--fg-4)", flexShrink: 0 }} />
-                    <DateInput value={d} onChange={(e) => handleDateChange(i, e.target.value)} />
+                    <DateInput value={d} onChange={(e: { target: { value: string } }) => handleDateChange(i, e.target.value)} />
                     <button
                       type="button"
                       onClick={() => handleRemoveDate(i)}
                       aria-label="Remove vaccine date"
                       style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 4, borderRadius: "var(--r-sm)", flexShrink: 0 }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bad)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+                      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.color = "var(--bad)")}
+                      onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.color = "var(--fg-4)")}
                     >
                       <XIcon style={{ width: 14, height: 14 }} />
                     </button>
@@ -397,7 +483,7 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>
                   Next vaccine {!nextOverridden && <span style={{ color: "var(--fg-4)" }}>(auto)</span>}
                 </label>
-                <DateInput value={form.next_vaccination_date} onChange={(e) => handleNextChange(e.target.value)} />
+                <DateInput value={form.next_vaccination_date} onChange={(e: { target: { value: string } }) => handleNextChange(e.target.value)} />
                 <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>
                   Auto: {suggestNextVaccine(form.vaccination_dates) ? "1 month after the first vaccine, then 1 year after each" : "—"}
                 </p>
@@ -423,6 +509,9 @@ export function AnimalModal({ animal, locations, onClose, onSaved, onDeleted }: 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <Pill tone={VACCINE_TONE[viewStatus.key]} dot>{viewStatus.label}</Pill>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Button size="sm" variant="secondary" onClick={handleDuplicate}>
+                <CopyIcon className="size-3.5" /> Duplicate
+              </Button>
               <Button size="sm" variant="secondary" onClick={startEdit}>
                 <PencilIcon className="size-3.5" /> Edit
               </Button>
