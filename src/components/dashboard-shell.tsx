@@ -236,27 +236,27 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       <aside
         className={`app-sidebar${mobileNavOpen ? " is-open" : ""}${sidebarCollapsed ? " is-collapsed" : ""}`}
         style={{
-          width: sidebarCollapsed ? "64px" : "var(--sidebar-w)",
+          width: sidebarCollapsed ? "56px" : "var(--sidebar-w)",
           flexShrink: 0,
           borderRight: "1px solid var(--line)",
-          background: "var(--surface-2)",
+          background: "var(--sidebar)",
           display: "flex",
           flexDirection: "column",
           position: "sticky",
           top: 0,
           height: "100vh",
           zIndex: 40,
-          transition: "width 200ms var(--ease)",
+          transition: "width 180ms var(--ease)",
           overflow: "hidden",
         }}
       >
-        {/* Brand header — same height as topbar so they align */}
+        {/* Brand header — same height as topbar */}
         <div
           style={{
             height: "var(--topbar-h)",
             display: "flex",
             alignItems: "center",
-            padding: "0 var(--s-5)",
+            padding: "0 14px",
             borderBottom: "1px solid var(--line)",
             flexShrink: 0,
           }}
@@ -268,16 +268,16 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             >
               <span
                 style={{
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: 700,
-                  letterSpacing: "-0.01em",
+                  letterSpacing: "-0.02em",
                   color: "var(--fg)",
                   fontFamily: "var(--font-sans)",
                 }}
               >
                 Operate
               </span>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>v2.6</span>
+              <span style={{ fontSize: 10, color: "var(--fg-mute)", fontWeight: 600 }}>OS</span>
             </Link>
           )}
           <div style={{ flex: 1 }} />
@@ -288,19 +288,19 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             title={sidebarCollapsed ? "Expand" : "Collapse"}
             className="app-collapse-btn hover:!bg-[var(--row-hover)]"
             style={{
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               alignItems: "center",
               justifyContent: "center",
               borderRadius: "var(--r-sm)",
-              color: "var(--fg-3)",
+              color: "var(--fg-mute)",
               background: "transparent",
               border: "none",
               cursor: "pointer",
               flexShrink: 0,
             }}
           >
-            {sidebarCollapsed ? <PanelLeftOpenIcon size={16} strokeWidth={1.5} /> : <PanelLeftCloseIcon size={16} strokeWidth={1.5} />}
+            {sidebarCollapsed ? <PanelLeftOpenIcon size={14} strokeWidth={1.75} /> : <PanelLeftCloseIcon size={14} strokeWidth={1.75} />}
           </button>
           <button
             onClick={() => setMobileNavOpen(false)}
@@ -326,10 +326,10 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         <nav
           style={{
             flex: 1,
-            padding: "var(--s-3)",
+            padding: "8px 8px",
             display: "flex",
             flexDirection: "column",
-            gap: 1,
+            gap: 0,
             overflowY: "auto",
           }}
         >
@@ -346,16 +346,16 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             });
             if (visibleItems.length === 0) return null;
             return (
-              <div key={group.label} style={{ marginTop: gi === 0 ? 0 : 12 }}>
+              <div key={group.label} style={{ marginTop: gi === 0 ? 0 : 14 }}>
                 <div
                   className="app-sidebar-group-label"
                   style={{
                     fontSize: 10,
                     fontWeight: 600,
-                    letterSpacing: "0.08em",
+                    letterSpacing: "0.07em",
                     textTransform: "uppercase",
                     color: "var(--fg-mute)",
-                    padding: "4px 10px 6px",
+                    padding: "4px 8px 4px",
                     userSelect: "none",
                     whiteSpace: "nowrap",
                   }}
@@ -374,23 +374,23 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 10,
-                            padding: "7px 10px",
-                            borderRadius: 8,
-                            fontSize: 13,
+                            gap: 8,
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            fontSize: 12.5,
                             fontWeight: 400,
                             color: "var(--fg-mute)",
                             cursor: "not-allowed",
                             opacity: 0.5,
                           }}
                         >
-                          <Icon size={16} style={{ color: "var(--fg-mute)", flexShrink: 0, strokeWidth: 1.5 }} />
+                          <Icon size={15} style={{ color: "var(--fg-mute)", flexShrink: 0, strokeWidth: 1.75 }} />
                           <span>{item.label}</span>
                           <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--fg-mute)", fontStyle: "italic" }}>soon</span>
                         </div>
                       );
                     }
-                    return (
+                      return (
                       <Link
                         key={item.id}
                         href={item.href}
@@ -398,26 +398,26 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 10,
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          fontSize: 13,
-                          fontWeight: active ? 500 : 400,
-                          color: active ? "var(--fg)" : "var(--fg-3)",
-                          background: active ? "var(--surface)" : "transparent",
-                          border: `1px solid ${active ? "var(--line)" : "transparent"}`,
+                          gap: 8,
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          fontSize: 12.5,
+                          fontWeight: active ? 600 : 450,
+                          color: active ? "#fff" : "var(--fg-3)",
+                          background: active ? "var(--accent)" : "transparent",
+                          border: `1px solid ${active ? "var(--accent)" : "transparent"}`,
                           textDecoration: "none",
                           transition: "background var(--dur) var(--ease)",
                           justifyContent: sidebarCollapsed ? "center" : "flex-start",
                         }}
-                        className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg-2)] active:!bg-[var(--row-active)]"
+                        className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg)] active:!bg-[var(--row-active)]"
                       >
                         <Icon
-                          size={16}
+                          size={15}
                           style={{
-                            color: active ? "var(--bronze)" : "var(--fg-3)",
+                            color: active ? "#fff" : "var(--fg-3)",
                             flexShrink: 0,
-                            strokeWidth: 1.5,
+                            strokeWidth: 1.75,
                           }}
                         />
                         <span className="app-sidebar-label">{item.label}</span>
@@ -433,11 +433,11 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         {/* User footer */}
         <div
           style={{
-            padding: "var(--s-3) var(--s-4)",
+            padding: "10px 12px",
             borderTop: "1px solid var(--line)",
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
             flexShrink: 0,
           }}
         >
@@ -512,11 +512,11 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           style={{
             height: "var(--topbar-h)",
             borderBottom: "1px solid var(--line)",
-            background: "var(--bg)",
-            padding: "0 var(--s-5)",
+            background: "var(--canvas)",
+            padding: "0 16px",
             display: "flex",
             alignItems: "center",
-            gap: "var(--s-3)",
+            gap: 12,
             position: "sticky",
             top: 0,
             zIndex: 30,
@@ -552,12 +552,12 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              height: 34,
-              padding: "0 12px",
-              minWidth: 260,
+              height: 32,
+              padding: "0 10px",
+              minWidth: 240,
               background: "var(--surface)",
               border: "1px solid var(--line)",
-              borderRadius: "var(--r-md)",
+              borderRadius: "var(--r-sm)",
               fontSize: 13,
               color: "var(--fg-4)",
               cursor: "pointer",
@@ -565,14 +565,14 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               transition: "border-color var(--dur) var(--ease)",
             }}
           >
-            <SearchIcon size={15} style={{ flexShrink: 0 }} />
-            <span className="app-search-label" style={{ flex: 1 }}>Jump to module, employee, document…</span>
+            <SearchIcon size={14} style={{ flexShrink: 0 }} />
+            <span className="app-search-label" style={{ flex: 1 }}>Jump to…</span>
             <kbd
               style={{
                 fontSize: 10,
                 fontFamily: "var(--font-mono)",
-                color: "var(--fg-4)",
-                background: "var(--bg-2)",
+                color: "var(--fg-mute)",
+                background: "var(--surface-2)",
                 border: "1px solid var(--line)",
                 borderRadius: "var(--r-sm)",
                 padding: "1px 5px",
@@ -655,7 +655,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           className="app-main"
           style={{
             flex: 1,
-            padding: "var(--s-5) var(--s-6) var(--s-7)",
+            padding: "16px 20px 32px",
             maxWidth: "var(--content-max)",
             width: "100%",
             margin: "0 auto",

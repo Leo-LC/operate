@@ -20,7 +20,7 @@ export function Stat({
   hint,
   sparkline,
   icon,
-  iconColor = "var(--bronze)",
+  iconColor = "var(--accent)",
   className,
   ...props
 }: StatProps) {
@@ -33,17 +33,17 @@ export function Stat({
 
   return (
     <div className={cn("flex flex-col gap-1", className)} {...props}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {icon && (
           <span
             style={{
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 36,
-              height: 36,
-              borderRadius: "var(--r-pill)",
-              background: `color-mix(in srgb, ${iconColor} 16%, transparent)`,
+              width: 22,
+              height: 22,
+              borderRadius: "var(--r-sm)",
+              background: `color-mix(in srgb, ${iconColor} 14%, transparent)`,
               color: iconColor,
               flexShrink: 0,
             }}
@@ -56,7 +56,7 @@ export function Stat({
             fontSize: 11,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
-            fontWeight: 500,
+            fontWeight: 600,
             color: "var(--fg-4)",
             fontFamily: "var(--font-sans)",
           }}
@@ -67,10 +67,11 @@ export function Stat({
       <span
         className="mono tabular-nums"
         style={{
-          fontSize: "var(--t-24)",
-          fontWeight: 600,
+          fontSize: 22,
+          fontWeight: 700,
           color: "var(--fg)",
           lineHeight: 1,
+          letterSpacing: "-0.02em",
         }}
       >
         {value}
@@ -79,7 +80,7 @@ export function Stat({
         <span
           className="mono tabular-nums"
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 600,
             color: deltaColor,
             lineHeight: 1,
@@ -89,7 +90,7 @@ export function Stat({
         </span>
       )}
       {sparkline && <div className="mt-1">{sparkline}</div>}
-      {hint && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{hint}</span>}
+      {hint && <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{hint}</span>}
     </div>
   )
 }
