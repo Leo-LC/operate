@@ -108,10 +108,14 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
     <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {locations.map((location) => {
         const selected = locIds.has(location.id);
+        const isPrimary = primaryLoc === location.id && selected;
         return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)" }}>
-          <button type="button" onClick={() => { onToggleLoc(location.id); if (!selected) onSetPrimary(location.id); }} aria-pressed={selected} style={{ padding: "3px 0", background: "transparent", border: "none", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}{primaryLoc === location.id && selected ? " · primary" : ""}</button>
+          <button type="button" onClick={() => onToggleLoc(location.id)} aria-pressed={selected} style={{ padding: "3px 0", background: "transparent", border: "none", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}</button>
           {selected && (
-            <input type="number" min="0" step="100" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
+            <>
+              <button type="button" onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(location.id); }} style={{ fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "2px 4px", background: isPrimary ? "var(--bronze)" : "transparent", color: isPrimary ? "#fff" : "var(--fg-4)", border: "none", cursor: "pointer" }} title={isPrimary ? "Primary location" : "Set as primary"}>{isPrimary ? "PRIMARY" : "set primary"}</button>
+              <input type="number" min="0" step="100" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
+            </>
           )}
         </div>;
       })}
@@ -249,10 +253,38 @@ export function EmployeesListClient({ locations }: Props) {
     setEditSalaries(salaries);
   }
 
-  function toggleLoc(set: Set<string>, setter: (s: Set<string>) => void, primarySetter: (s: string) => void, id: string) {
-    const next = set.has(id) ? new Set<string>() : new Set([id]);
-    primarySetter(next.has(id) ? id : "");
-    setter(next);
+  function toggleLoc(
+    set: Set<string>,
+    setter: (s: Set<string>) => void,
+    primary: string,
+    primarySetter: (s: string) => void,
+    id: string,
+  ) {
+    const next = new Set(set);
+    if (next.has(id)) {
+      next.delete(id);
+      setter(next);
+      // Clear per-location salary for the removed shop
+      setFormSalaries((prev) => {
+        if (!(id in prev)) return prev;
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      setEditSalaries((prev) => {
+        if (!(id in prev)) return prev;
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      if (primary === id) {
+        primarySetter(next.values().next().value ?? "");
+      }
+    } else {
+      next.add(id);
+      setter(next);
+      if (!primary) primarySetter(id);
+    }
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -416,7 +448,7 @@ export function EmployeesListClient({ locations }: Props) {
           locationSalaries={formSalaries}
           submitting={submitting}
           onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
-          onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, setFormPrimaryLoc, id)}
+          onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, formPrimaryLoc, setFormPrimaryLoc, id)}
           onSetPrimary={setFormPrimaryLoc}
           onSalaryChange={(id, val) => setFormSalaries((prev) => ({ ...prev, [id]: val }))}
           onSubmit={(e) => void handleAdd(e)}
@@ -471,7 +503,7 @@ export function EmployeesListClient({ locations }: Props) {
                         locationSalaries={editSalaries}
                         submitting={submitting}
                         onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
-                        onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, setEditPrimaryLoc, id)}
+                        onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, editPrimaryLoc, setEditPrimaryLoc, id)}
                         onSetPrimary={setEditPrimaryLoc}
                         onSalaryChange={(id, val) => setEditSalaries((prev) => ({ ...prev, [id]: val }))}
                         onSubmit={(e) => void handleEdit(e)}
