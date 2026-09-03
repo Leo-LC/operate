@@ -343,7 +343,6 @@ export function RecurringCostsClient() {
               <div style={{ flex: 1, paddingLeft: 12 }}>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus</span>
                 <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.bonus.toLocaleString()}</span>
-                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>× {monthTotals.employeeCount} staff</span>
               </div>
             </div>
           </Card>
@@ -389,7 +388,7 @@ export function RecurringCostsClient() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Payroll</span>
-                <span style={{ display: "block", fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{selectedMonth} • {monthTotals.employeeCount} staff</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{selectedMonth}</span>
               </div>
               <span className="mono" style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em" }}>฿{monthTotals.payroll.toLocaleString()}</span>
             </div>
@@ -397,19 +396,16 @@ export function RecurringCostsClient() {
               <div style={{ flex: 1, paddingRight: 12 }}>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaries</span>
                 <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.salaries.toLocaleString()}</span>
-                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>base</span>
               </div>
               <div style={{ width: 1, background: "var(--line)", opacity: 0.7 }} />
               <div style={{ flex: 1, padding: "0 12px" }}>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Service Charge</span>
                 <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.service.toLocaleString()}</span>
-                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>revenue × rate</span>
               </div>
               <div style={{ width: 1, background: "var(--line)", opacity: 0.7 }} />
               <div style={{ flex: 1, paddingLeft: 12 }}>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus</span>
                 <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.bonus.toLocaleString()}</span>
-                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>× {monthTotals.employeeCount} staff</span>
               </div>
             </div>
           </Card>

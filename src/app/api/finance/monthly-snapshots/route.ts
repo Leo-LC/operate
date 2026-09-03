@@ -151,6 +151,8 @@ async function computePreview(supabase: ReturnType<typeof getSupabaseServerClien
     const rate = rateByLoc.get(id) ?? 0;
     const empCount = countByLoc[id] ?? 0;
     const serviceCharge = calcServiceCharge(revenue, rate, empCount);
+    const rawBonus = bonusByLoc[id] ?? 0;
+    const bonusTotal = rawBonus > 0 && empCount > 0 ? rawBonus * empCount : rawBonus;
     return {
       location_id: id,
       location_name: (loc as { name: string }).name,
@@ -161,7 +163,7 @@ async function computePreview(supabase: ReturnType<typeof getSupabaseServerClien
       service_charge_rate_pct: rate,
       employee_count: empCount,
       service_charge_amount: Math.round(serviceCharge),
-      challenge_bonus_amount: bonusByLoc[id] ?? 0,
+      challenge_bonus_amount: bonusTotal,
       status: "estimated" as const,
     };
   });

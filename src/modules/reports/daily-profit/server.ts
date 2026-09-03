@@ -229,7 +229,9 @@ export async function getDailyProfitData(
       for (const { locationId, period } of stillMissing) {
         const key = `${locationId}:${period.year}-${period.month}`;
         const monthKey = `${period.year}-${String(period.month).padStart(2, "0")}`;
-        const bonus = bonusByKey.get(monthKey)?.get(locationId) ?? 0;
+        const rawBonus = bonusByKey.get(monthKey)?.get(locationId) ?? 0;
+        const empCountForBonus = countByLoc[locationId] ?? 0;
+        const bonus = rawBonus > 0 && empCountForBonus > 0 ? rawBonus * empCountForBonus : rawBonus;
         monthlyInputs.push({
           id: `fallback:${key}`,
           location_id: locationId,
