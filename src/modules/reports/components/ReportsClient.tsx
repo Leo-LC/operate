@@ -302,18 +302,18 @@ function KpiCard({
   );
 }
 
-// ── Section card + header ─────────────────────────────────────────────────────
+// ── Section card + header — neutral, no colored bg, muted icon ─────
 
-function SectionHeader({ label, bg, color, icon }: { label: string; bg: string; color: string; icon?: React.ReactNode }) {
+function SectionHeader({ label, icon }: { label: string; bg?: string; color?: string; icon?: React.ReactNode }) {
   return (
     <div
       style={{
-        padding: "10px var(--s-5)", borderBottom: "1px solid var(--line)",
-        background: bg, display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 16px", borderBottom: "1px solid var(--line)",
+        background: "var(--surface-2)", display: "flex", alignItems: "center", gap: 8,
       }}
     >
-      {icon && <span style={{ color, display: "inline-flex" }}>{icon}</span>}
-      <h3 className="eyebrow" style={{ color, margin: 0 }}>{label}</h3>
+      {icon && <span style={{ color: "var(--fg-4)", display: "inline-flex" }}>{icon}</span>}
+      <h3 className="eyebrow" style={{ color: "var(--fg-3)", margin: 0 }}>{label}</h3>
     </div>
   );
 }
