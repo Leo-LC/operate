@@ -14,42 +14,61 @@ export async function GET(request: Request) {
   const includePreview = url.searchParams.get("preview") === "1";
 
   const supabase = getSupabaseServerClient();
-  let query = supabase.from("finance_monthly_snapshots").select("*").eq("organization_id", DEFAULT_ORG_ID).order("period_year", { ascending: false }).order("period_month", { ascending: false });
-  if (year && month) query = query.eq("period_year", year).eq("period_month", month);
-  if (locationId && locationId !== "all") query = query.eq("location_id", locationId);
-
-  const { data: snapshots, error } = await query;
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  let snapshots: Record<string, unknown>[] = [];
+  try {
+    let query = supabase.from("finance_monthly_snapshots").select("*").eq("organization_id", DEFAULT_ORG_ID).order("period_year", { ascending: false }).order("period_month", { ascending: false });
+    if (year && month) query = query.eq("period_year", year).eq("period_month", month);
+    if (locationId && locationId !== "all") query = query.eq("location_id", locationId);
+    const { data, error } = await query;
+    if (!error) snapshots = (data as unknown as Record<string, unknown>[]) ?? [];
+  } catch {
+    snapshots = [];
+  }
 
   let preview: Record<string, unknown>[] | null = null;
   if (includePreview && year && month) {
     try {
       preview = await computePreview(supabase, year, month, locationId);
     } catch {
-      // preview is best-effort
       preview = null;
     }
   }
 
-  return Response.json({ snapshots: snapshots ?? [], preview });
+  return Response.json({ snapshots, preview });
 }
 
 async function computePreview(supabase: ReturnType<typeof getSupabaseServerClient>, year: number, month: number, locationFilter: string | null) {
   // Locations
-  const { data: locations } = await supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name");
+  let locations: Array<{ id: string; name: string }> | null = null;
+  try {
+    const res = await supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name");
+    locations = (res.data as unknown as typeof locations) ?? [];
+  } catch { locations = []; }
   const targetLocations = locationFilter && locationFilter !== "all" ? (locations ?? []).filter((l) => String(l.id) === locationFilter) : (locations ?? []);
   if (targetLocations.length === 0) return [];
 
   // Recurring costs totals per location
-  const { data: costRules } = await supabase.from("finance_cost_rules").select("location_id,estimated_amount,is_active,category").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses");
+  let costRules: Array<{ location_id: string; estimated_amount: number | string } > | null = null;
+  try {
+    const res = await supabase.from("finance_cost_rules").select("location_id,estimated_amount,is_active,category").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses");
+    costRules = (res.data as unknown as typeof costRules) ?? [];
+  } catch { costRules = []; }
   const costByLoc = new Map<string, number>();
   for (const r of costRules ?? []) {
     const loc = String(r.location_id);
     costByLoc.set(loc, (costByLoc.get(loc) ?? 0) + Number(r.estimated_amount ?? 0));
   }
 
-  // Payroll totals
-  const { data: employees } = await supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true).is("deleted_at", null);
+  // Payroll totals (deleted_at may not exist on all envs → filter client-side)
+  let employees: Array<{ id: string; location_id: string | null; base_salary_monthly: number | null; employee_locations: Array<{ location_id: string; base_salary_monthly: number | null }> | null; deleted_at?: string | null; active?: boolean }> | null = null;
+  try {
+    const res = await supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true);
+    employees = (res.data as unknown as typeof employees) ?? [];
+    // filter deleted_at client-side if column exists
+    employees = (employees ?? []).filter((e) => !(e as unknown as { deleted_at?: string | null }).deleted_at);
+  } catch {
+    employees = [];
+  }
   const payrollByLoc: Record<string, number> = {};
   for (const emp of employees ?? []) {
     const assignments = (emp.employee_locations as unknown as { location_id: string; base_salary_monthly: number | null }[] | null) ?? [];
@@ -76,19 +95,27 @@ async function computePreview(supabase: ReturnType<typeof getSupabaseServerClien
   }
 
   // Service charge rate per location
-  const { data: shopSettings } = await supabase.from("finance_shop_settings").select("location_id,service_charge_rate_pct").eq("organization_id", DEFAULT_ORG_ID);
+  let shopSettings: Array<{ location_id: string; service_charge_rate_pct: number }> | null = null;
+  try {
+    const res = await supabase.from("finance_shop_settings").select("location_id,service_charge_rate_pct").eq("organization_id", DEFAULT_ORG_ID);
+    shopSettings = (res.data as unknown as typeof shopSettings) ?? [];
+  } catch { shopSettings = []; }
   const rateByLoc = new Map((shopSettings ?? []).map((s) => [String(s.location_id), Number(s.service_charge_rate_pct ?? 0)]));
 
   // Monthly revenue per location for service charge calculation
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
   const monthStart = `${monthStr}-01`;
   const nextMonth = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  const { data: daily } = await supabase
-    .from("daily_entries")
-    .select("location_id, entry_date, sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, sales_card_surcharge")
-    .eq("organization_id", DEFAULT_ORG_ID)
-    .gte("entry_date", monthStart)
-    .lt("entry_date", nextMonth);
+  let daily: Array<Record<string, unknown>> | null = null;
+  try {
+    const res = await supabase
+      .from("daily_entries")
+      .select("location_id, entry_date, sales_drinks_net, sales_ticket_net, sales_snack_net, sales_goodies_net, sales_card_surcharge")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .gte("entry_date", monthStart)
+      .lt("entry_date", nextMonth);
+    daily = (res.data as unknown as Array<Record<string, unknown>>) ?? [];
+  } catch { daily = []; }
   const revenueByLoc: Record<string, number> = {};
   for (const row of daily ?? []) {
     const loc = String((row as Record<string, unknown>).location_id);

@@ -169,6 +169,84 @@ export async function getDailyProfitData(
       employee_count: Number(snap.employee_count ?? 0),
       bonus_amount: Number(snap.challenge_bonus_amount ?? 0),
     });
+    seenKeys.add(key);
+  }
+
+  // Fallback for months still missing (no manual input nor snapshot): synthesize from live rules/payroll/service settings + challenge bonus
+  // This ensures past months like 2026-08 show correct HR values even before a snapshot is manually saved.
+  const stillMissing: Array<{ locationId: string; period: { year: number; month: number } }> = [];
+  for (const locationId of selectedLocationIds) {
+    for (const period of periodMonths) {
+      const key = `${locationId}:${period.year}-${period.month}`;
+      if (!seenKeys.has(key)) stillMissing.push({ locationId, period });
+    }
+  }
+  if (stillMissing.length > 0) {
+    try {
+      const [costRulesRes, employeesRes, shopSettingsRes] = await Promise.all([
+        supabase.from("finance_cost_rules").select("location_id,estimated_amount").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses"),
+        supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true),
+        supabase.from("finance_shop_settings").select("location_id,service_charge_rate_pct").eq("organization_id", DEFAULT_ORG_ID),
+      ]);
+      const costByLoc = new Map<string, number>();
+      for (const r of (costRulesRes.data as Array<{ location_id: string; estimated_amount: number }> | null) ?? []) {
+        costByLoc.set(String(r.location_id), (costByLoc.get(String(r.location_id)) ?? 0) + Number(r.estimated_amount ?? 0));
+      }
+      const payrollByLoc: Record<string, number> = {};
+      const countByLoc: Record<string, number> = {};
+      for (const emp of (employeesRes.data as Array<{ id: string; location_id: string | null; base_salary_monthly: number | null; employee_locations: Array<{ location_id: string; base_salary_monthly: number | null }> | null }> | null) ?? []) {
+        const assignments = (emp.employee_locations as unknown as Array<{ location_id: string; base_salary_monthly: number | null }> | null) ?? [];
+        if (assignments.length > 0) {
+          for (const a of assignments) {
+            const loc = String(a.location_id);
+            payrollByLoc[loc] = (payrollByLoc[loc] ?? 0) + Number(a.base_salary_monthly ?? emp.base_salary_monthly ?? 0);
+            countByLoc[loc] = (countByLoc[loc] ?? 0) + 1;
+          }
+        } else if (emp.location_id) {
+          const loc = String(emp.location_id);
+          payrollByLoc[loc] = (payrollByLoc[loc] ?? 0) + Number(emp.base_salary_monthly ?? 0);
+          countByLoc[loc] = (countByLoc[loc] ?? 0) + 1;
+        }
+      }
+      const rateByLoc = new Map(((shopSettingsRes.data as Array<{ location_id: string; service_charge_rate_pct: number }> | null) ?? []).map((s) => [String(s.location_id), Number(s.service_charge_rate_pct ?? 0)]));
+      // Bonus per month (group by month)
+      const bonusByKey = new Map<string, Map<string, number>>();
+      const distinctMonths = Array.from(new Set(stillMissing.map((m) => `${m.period.year}-${String(m.period.month).padStart(2, "0")}`)));
+      for (const monthKey of distinctMonths) {
+        try {
+          const { getChallengesOverview } = await import("@/modules/challenges/overview-data");
+          const overviews = await getChallengesOverview(monthKey);
+          const perLoc = new Map<string, number>();
+          for (const o of overviews) {
+            const titleKey = String(o.locationTitle).replace(/^Capybara Coffee\s*/i, "").trim().toLowerCase();
+            // map title to internal location id via selected locations names
+            const match = locations.find((l) => titleKey.includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(titleKey));
+            if (match) perLoc.set(match.id, Number(o.totalBonus ?? 0));
+          }
+          bonusByKey.set(monthKey, perLoc);
+        } catch { bonusByKey.set(monthKey, new Map()); }
+      }
+      for (const { locationId, period } of stillMissing) {
+        const key = `${locationId}:${period.year}-${period.month}`;
+        const monthKey = `${period.year}-${String(period.month).padStart(2, "0")}`;
+        const bonus = bonusByKey.get(monthKey)?.get(locationId) ?? 0;
+        monthlyInputs.push({
+          id: `fallback:${key}`,
+          location_id: locationId,
+          period_year: period.year,
+          period_month: period.month,
+          salaries_amount: payrollByLoc[locationId] ?? 0,
+          rent_amount: 0,
+          electricity_amount: 0,
+          water_amount: 0,
+          other_fixed_amount: costByLoc.get(locationId) ?? 0,
+          service_charge_rate_pct: rateByLoc.get(locationId) ?? 0,
+          employee_count: countByLoc[locationId] ?? 0,
+          bonus_amount: bonus,
+        });
+        seenKeys.add(key);
+      }
+    } catch { /* fallback is best-effort */ }
   }
 
   const engine = calculateDailyProfit({

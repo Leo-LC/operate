@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangleIcon, BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
+import { BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
@@ -218,11 +218,6 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-              <Card style={{ gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><strong>Data confidence</strong><span className="mono" style={{ fontSize: 20, color: data.coverage.score >= 80 ? "var(--good)" : "var(--warn)" }}>{data.coverage.score}%</span></div>
-                <div style={{ height: 6, borderRadius: 999, background: "var(--bg-3)", overflow: "hidden" }}><div style={{ width: `${data.coverage.score}%`, height: "100%", background: data.coverage.score >= 80 ? "var(--good)" : "var(--warn)" }} /></div>
-                {data.coverage.warnings.length === 0 ? <span style={{ display: "flex", gap: 7, color: "var(--good)", fontSize: 12 }}><CheckCircle2Icon size={14} />All configured sources are current.</span> : data.coverage.warnings.map((warning) => <span key={warning} style={{ display: "flex", gap: 7, color: "var(--fg-3)", fontSize: 12 }}><AlertTriangleIcon size={14} style={{ color: "var(--warn)", flexShrink: 0 }} />{warning}</span>)}
-              </Card>
               <Card style={{ gap: 10 }}><strong>Cost composition</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label} {category.status === "estimated" && <em style={{ color: "var(--warn)" }}>est.</em>}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
               <Card style={{ gap: 10 }}><strong>Shop contribution</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 4, fontSize: 12 }}><span>{row.name}</span><span className="mono" style={{ color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)" }}>{money(row.economicProfit)}</span><span style={{ color: "var(--fg-4)" }}>{pct(row.margin)} margin</span><span style={{ color: "var(--fg-4)", textAlign: "right" }}>{row.estimatedAmount > 0 ? "estimated" : "actual"}</span></div>)}</Card>
             </div>

@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarIcon, PlusIcon, SaveIcon, UsersIcon } from "lucide-react";
+import { PlusIcon, SaveIcon, UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
+import { MonthSelector } from "@/modules/challenges/components/MonthSelector";
 
 type Location = { id: string; name: string };
 type Cost = { id: string; label: string; category: string; location_id: string | null; estimated_amount: number; custom_allocations?: { amount_mode?: "fixed" | "variable"; support_type?: string | null }; is_active: boolean };
@@ -333,34 +334,47 @@ export function RecurringCostsClient() {
       {locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}
     </div></Card>
 
-    {/* Month selector + snapshot summary */}
+    {/* Month selector + snapshot summary — styled like challenges */}
     <Card style={{ gap: 12 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--fg-3)" }}>
-          <CalendarIcon size={14} /> Month
-          <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ ...FIELD, width: 160, height: 32 }} />
-          {hasSnapshotForSelected ? <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--good-soft, #e6f4ea)", color: "var(--good)", fontSize: 11, fontWeight: 600 }}>Snapshot enregistré</span> : <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--bg-2)", color: "var(--fg-4)", fontSize: 11 }}>Estimation live</span>}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
+          {(() => {
+            const isPast = selectedMonth < bangkokMonth();
+            if (hasSnapshotForSelected) return <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--good-soft, #e6f4ea)", color: "var(--good)", fontSize: 11, fontWeight: 600, border: "1px solid var(--good)" }}>● Snapshot figé</span>;
+            if (isPast) return <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--warn-soft, #fef3c7)", color: "var(--warn, #d97706)", fontSize: 11, fontWeight: 600, border: "1px solid var(--warn)" }}>Mois clos — à figer</span>;
+            return <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--bg-2)", color: "var(--fg-4)", fontSize: 11, border: "1px solid var(--line)" }}>Mois en cours — estimation</span>;
+          })()}
+        </div>
         {canManage && (
-          <div style={{ display: "flex", gap: 8 }}>
-            {!hasSnapshotForSelected ? (
-              <Button size="sm" disabled={savingSnapshot} onClick={() => void saveSnapshot()}><SaveIcon size={14} />{savingSnapshot ? "Saving…" : `Enregistrer ${selectedMonth}`}</Button>
-            ) : isAll ? (
-              <span style={{ fontSize: 11, color: "var(--fg-4)", alignSelf: "center" }}>Snapshots existants — ajustables par shop</span>
-            ) : (
-              <Button size="sm" variant="secondary" disabled={savingSnapshot} onClick={() => {
-                const snap = snapshotMap.get(locationId);
-                if (!snap) return;
-                setSnapshotEdit({
-                  recurring: String(snap.recurring_costs_amount),
-                  payroll: String(snap.payroll_amount),
-                  service_charge: String(snap.service_charge_amount),
-                  bonus: String(snap.challenge_bonus_amount),
-                  rate: String(snap.service_charge_rate_pct),
-                  employees: String(snap.employee_count),
-                });
-              }}>Ajuster ce mois</Button>
-            )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {(() => {
+              const isPast = selectedMonth < bangkokMonth();
+              if (!hasSnapshotForSelected && isPast) {
+                return <Button size="sm" disabled={savingSnapshot} onClick={() => void saveSnapshot()}><SaveIcon size={14} />{savingSnapshot ? "Saving…" : `Figer ${selectedMonth} pour le P&L`}</Button>;
+              }
+              if (!hasSnapshotForSelected && !isPast) {
+                return <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Prévisualisation live — figé à la clôture</span>;
+              }
+              if (hasSnapshotForSelected && isAll) {
+                return <span style={{ fontSize: 11, color: "var(--fg-4)", alignSelf: "center" }}>Snapshots par shop — ajustables individuellement</span>;
+              }
+              if (hasSnapshotForSelected && !isAll) {
+                return <Button size="sm" variant="secondary" disabled={savingSnapshot} onClick={() => {
+                  const snap = snapshotMap.get(locationId);
+                  if (!snap) return;
+                  setSnapshotEdit({
+                    recurring: String(snap.recurring_costs_amount),
+                    payroll: String(snap.payroll_amount),
+                    service_charge: String(snap.service_charge_amount),
+                    bonus: String(snap.challenge_bonus_amount),
+                    rate: String(snap.service_charge_rate_pct),
+                    employees: String(snap.employee_count),
+                  });
+                }}>Ajuster</Button>;
+              }
+              return null;
+            })()}
           </div>
         )}
       </div>
