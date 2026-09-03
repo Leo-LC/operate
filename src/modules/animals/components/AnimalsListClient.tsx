@@ -60,7 +60,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
     for (const s of speciesList) {
       if (speciesCounts.has(s.key)) ordered.push(s);
     }
-    for (const [key, count] of speciesCounts) {
+    for (const [key] of Array.from(speciesCounts.entries())) {
       if (!labelMap.has(key)) {
         const label = key.charAt(0).toUpperCase() + key.slice(1);
         ordered.push({ key, label });

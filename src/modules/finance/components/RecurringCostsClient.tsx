@@ -226,7 +226,7 @@ export function RecurringCostsClient() {
 
   const monthTotals = useMemo(() => {
     const ids = locationId === ALL_SHOPS ? locations.map((l) => l.id) : locationId ? [locationId] : [];
-    let recurring = 0, salaries = 0, service = 0, bonus = 0;
+    let recurring = 0, salaries = 0, service = 0, bonus = 0, employeeCount = 0;
     for (const id of ids) {
       const d = getDisplayForLocation(id);
       if (!d) continue;
@@ -234,9 +234,10 @@ export function RecurringCostsClient() {
       salaries += Number((d as unknown as { payroll_amount: number }).payroll_amount ?? 0);
       service += Number((d as unknown as { service_charge_amount: number }).service_charge_amount ?? 0);
       bonus += Number((d as unknown as { challenge_bonus_amount: number }).challenge_bonus_amount ?? 0);
+      employeeCount += Number((d as unknown as { employee_count: number }).employee_count ?? 0);
     }
     const payroll = calcPayroll(salaries, service, bonus);
-    return { recurring, salaries, service, bonus, payroll, grand: recurring + payroll };
+    return { recurring, salaries, service, bonus, payroll, grand: recurring + payroll, employeeCount };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshots, preview, locationId, locations]);
 
@@ -318,24 +319,31 @@ export function RecurringCostsClient() {
             <span className="mono" style={{ fontSize: 22, fontWeight: 700 }}>฿{monthTotals.recurring.toLocaleString()}</span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{selectedMonth} • {locations.length} shops</span>
           </div>
-          <Card style={{ gap: 10, borderColor: "var(--bronze)", background: "var(--bronze-soft, #fdf6e3)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <strong style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--fg-3)" }}>Payroll</strong>
-              <span className="mono" style={{ fontSize: 20, fontWeight: 800 }}>฿{monthTotals.payroll.toLocaleString()}</span>
+          <Card style={{ gap: 12, borderColor: "var(--bronze)", background: "var(--surface)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Payroll</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{selectedMonth} • {monthTotals.employeeCount} staff</span>
+              </div>
+              <span className="mono" style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em" }}>฿{monthTotals.payroll.toLocaleString()}</span>
             </div>
-            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{selectedMonth} • Salaries + Service + Bonus</span>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 4 }}>
-              <div style={{ padding: "8px 9px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)" }}>
-                <span style={{ fontSize: 10, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".05em" }}>Salaries</span>
-                <span className="mono" style={{ display: "block", fontSize: 13, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.salaries.toLocaleString()}</span>
+            <div style={{ display: "flex", gap: 0, paddingTop: 12, borderTop: "1px solid var(--line)", marginTop: 2 }}>
+              <div style={{ flex: 1, paddingRight: 12 }}>
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaries</span>
+                <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.salaries.toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>base</span>
               </div>
-              <div style={{ padding: "8px 9px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)" }}>
-                <span style={{ fontSize: 10, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".05em" }}>Service Charge</span>
-                <span className="mono" style={{ display: "block", fontSize: 13, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.service.toLocaleString()}</span>
+              <div style={{ width: 1, background: "var(--line)", opacity: 0.7 }} />
+              <div style={{ flex: 1, padding: "0 12px" }}>
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Service Charge</span>
+                <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.service.toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>revenue × rate</span>
               </div>
-              <div style={{ padding: "8px 9px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)" }}>
-                <span style={{ fontSize: 10, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".05em" }}>Bonus</span>
-                <span className="mono" style={{ display: "block", fontSize: 13, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.bonus.toLocaleString()}</span>
+              <div style={{ width: 1, background: "var(--line)", opacity: 0.7 }} />
+              <div style={{ flex: 1, paddingLeft: 12 }}>
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus</span>
+                <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.bonus.toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>× {monthTotals.employeeCount} staff</span>
               </div>
             </div>
           </Card>
@@ -377,24 +385,31 @@ export function RecurringCostsClient() {
             <span className="mono" style={{ fontSize: 22, fontWeight: 700 }}>฿{monthTotals.recurring.toLocaleString()}</span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{selectedMonth} • {locationName}</span>
           </div>
-          <Card onClick={openPayroll} style={{ gap: 10, borderColor: "var(--bronze)", background: "var(--bronze-soft, #fdf6e3)", cursor: "pointer" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <strong style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--fg-3)" }}>Payroll</strong>
-              <span className="mono" style={{ fontSize: 20, fontWeight: 800 }}>฿{monthTotals.payroll.toLocaleString()}</span>
+          <Card onClick={openPayroll} style={{ gap: 12, background: "var(--surface)", cursor: "pointer", transition: "border-color 150ms, box-shadow 150ms", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }} className="hover:!border-[var(--line-strong)] hover:!shadow-sm">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".06em", fontWeight: 600 }}>Payroll</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{selectedMonth} • {monthTotals.employeeCount} staff</span>
+              </div>
+              <span className="mono" style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em" }}>฿{monthTotals.payroll.toLocaleString()}</span>
             </div>
-            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{selectedMonth} • Salaries + Service + Bonus • {employees.length} staff • click to edit</span>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 4 }}>
-              <div style={{ padding: "8px 9px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)" }}>
-                <span style={{ fontSize: 10, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".05em" }}>Salaries</span>
-                <span className="mono" style={{ display: "block", fontSize: 13, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.salaries.toLocaleString()}</span>
+            <div style={{ display: "flex", gap: 0, paddingTop: 12, borderTop: "1px solid var(--line)", marginTop: 2 }}>
+              <div style={{ flex: 1, paddingRight: 12 }}>
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaries</span>
+                <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.salaries.toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>base</span>
               </div>
-              <div style={{ padding: "8px 9px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)" }}>
-                <span style={{ fontSize: 10, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".05em" }}>Service Charge</span>
-                <span className="mono" style={{ display: "block", fontSize: 13, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.service.toLocaleString()}</span>
+              <div style={{ width: 1, background: "var(--line)", opacity: 0.7 }} />
+              <div style={{ flex: 1, padding: "0 12px" }}>
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Service Charge</span>
+                <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.service.toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>revenue × rate</span>
               </div>
-              <div style={{ padding: "8px 9px", border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--bg)" }}>
-                <span style={{ fontSize: 10, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".05em" }}>Bonus</span>
-                <span className="mono" style={{ display: "block", fontSize: 13, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.bonus.toLocaleString()}</span>
+              <div style={{ width: 1, background: "var(--line)", opacity: 0.7 }} />
+              <div style={{ flex: 1, paddingLeft: 12 }}>
+                <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus</span>
+                <span className="mono" style={{ display: "block", fontSize: 14, fontWeight: 650, marginTop: 2 }}>฿{monthTotals.bonus.toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>× {monthTotals.employeeCount} staff</span>
               </div>
             </div>
           </Card>
