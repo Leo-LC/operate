@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon, CopyIcon } from "lucide-react";
+import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon, CopyIcon, TrashIcon, CheckIcon, XIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Animal } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
@@ -29,13 +29,51 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   const [view, setView] = useState<ViewMode>("animals");
   const [shopFilter, setShopFilter] = useState("");
   const [modal, setModal] = useState<{ animal: Animal | null; duplicate?: { animal: Animal; vaccineDates: string[] } | null } | null>(null);
+  const [sortKey, setSortKey] = useState<"name" | "species" | "shop" | "nextVaccine" | "passport" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [deleteTarget, setDeleteTarget] = useState<Animal | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const locNameMap = useMemo(() => Object.fromEntries(locations.map((l) => [l.id, l.name])), [locations]);
 
   const displayedAnimals = useMemo(() => {
-    return animals.filter((a) => {
+    let out = animals.filter((a) => {
       if (shopFilter && a.location_id !== shopFilter) return false;
       return true;
     });
-  }, [animals, shopFilter]);
+    if (sortKey) {
+      out = [...out].sort((a, b) => {
+        let cmp = 0;
+        switch (sortKey) {
+          case "name":
+            cmp = a.name.localeCompare(b.name);
+            break;
+          case "species":
+            cmp = (a.species ?? "").localeCompare(b.species ?? "");
+            break;
+          case "shop":
+            cmp = (locNameMap[a.location_id ?? ""] ?? "").localeCompare(locNameMap[b.location_id ?? ""] ?? "");
+            break;
+          case "nextVaccine":
+            cmp = (a.next_vaccination_date ?? "").localeCompare(b.next_vaccination_date ?? "");
+            // nulls last
+            if (!a.next_vaccination_date && b.next_vaccination_date) cmp = 1;
+            else if (a.next_vaccination_date && !b.next_vaccination_date) cmp = -1;
+            break;
+          case "passport":
+            cmp = Number(!!a.vaccination_passport) - Number(!!b.vaccination_passport);
+            break;
+        }
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+    return out;
+  }, [animals, shopFilter, sortKey, sortDir, locNameMap]);
+
+  function toggleSort(key: typeof sortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
 
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   const vaccineDueCount = animals.filter((a) => a.next_vaccination_date && a.next_vaccination_date <= in30).length;
@@ -112,6 +150,22 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       // fallback: duplicate with known fields only
       toast.error("Could not load vaccine history — duplicating basic info only");
       setModal({ animal: null, duplicate: { animal, vaccineDates: animal.last_vaccination_date ? [animal.last_vaccination_date] : [] } });
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/animals/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success(`${deleteTarget.name} supprimé`);
+      removeAnimal(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch {
+      toast.error("Suppression échouée");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -213,16 +267,34 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
-                    {["Name", "Species", "Shop", "Last vaccine", "Next vaccine", "", ""].map((h, i) => (
+                    {[
+                      { label: "Name", key: "name" as const, sortable: true },
+                      { label: "Species", key: "species" as const, sortable: true },
+                      { label: "Shop", key: "shop" as const, sortable: true },
+                      { label: "Next vaccine", key: "nextVaccine" as const, sortable: true },
+                      { label: "Passport", key: "passport" as const, sortable: true },
+                      { label: "", key: null, sortable: false },
+                      { label: "", key: null, sortable: false },
+                      { label: "", key: null, sortable: false },
+                    ].map((col, i) => (
                       <th
                         key={i}
+                        onClick={() => col.sortable && col.key && toggleSort(col.key)}
                         style={{
-                          padding: "10px var(--s-5)", textAlign: "left",
+                          padding: "10px var(--s-5)", textAlign: i === 4 ? "center" : "left",
                           color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
-                          width: i >= 5 ? 40 : undefined,
+                          width: i >= 5 ? 44 : undefined,
+                          cursor: col.sortable ? "pointer" : undefined,
+                          userSelect: col.sortable ? "none" : undefined,
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {h}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {col.label}
+                          {col.sortable && col.key && sortKey === col.key && (
+                            sortDir === "asc" ? <ArrowUpIcon style={{ width: 11, height: 11 }} /> : <ArrowDownIcon style={{ width: 11, height: 11 }} />
+                          )}
+                        </span>
                       </th>
                     ))}
                   </tr>
@@ -242,10 +314,18 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                         {animal.location_name ?? <span style={{ color: "var(--fg-mute)", fontStyle: "italic" }}>No location</span>}
                       </td>
                       <td style={{ padding: "12px var(--s-5)", fontSize: 12, color: "var(--fg-3)" }}>
-                        {fmtDate(animal.last_vaccination_date) ?? <span style={{ color: "var(--fg-mute)" }}>—</span>}
-                      </td>
-                      <td style={{ padding: "12px var(--s-5)", fontSize: 12, color: "var(--fg-3)" }}>
                         {fmtDate(animal.next_vaccination_date) ?? <span style={{ color: "var(--fg-mute)" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "12px var(--s-5)", textAlign: "center" }}>
+                        {animal.vaccination_passport ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "var(--r-pill)", background: "var(--good-soft)", color: "var(--good)" }}>
+                            <CheckIcon style={{ width: 12, height: 12 }} />
+                          </span>
+                        ) : (
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "var(--r-pill)", background: "var(--bg-2)", color: "var(--fg-mute)" }}>
+                            <XIcon style={{ width: 11, height: 11 }} />
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: "12px var(--s-5)", textAlign: "center" }}>
                         <button
@@ -254,7 +334,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                             e.stopPropagation();
                             void handleDuplicate(animal);
                           }}
-                          title="Duplicate"
+                          title="Dupliquer"
                           style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "var(--r-sm)", border: "1px solid transparent", background: "transparent", color: "var(--fg-4)", cursor: "pointer" }}
                           onMouseEnter={(e) => {
                             (e.currentTarget as HTMLElement).style.background = "var(--bg-2)";
@@ -268,6 +348,29 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                           }}
                         >
                           <CopyIcon style={{ width: 13, height: 13 }} />
+                        </button>
+                      </td>
+                      <td style={{ padding: "12px var(--s-5)", textAlign: "center" }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(animal);
+                          }}
+                          title="Supprimer"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "var(--r-sm)", border: "1px solid transparent", background: "transparent", color: "var(--fg-4)", cursor: "pointer" }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = "var(--bad-soft)";
+                            (e.currentTarget as HTMLElement).style.color = "var(--bad)";
+                            (e.currentTarget as HTMLElement).style.borderColor = "var(--bad)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = "transparent";
+                            (e.currentTarget as HTMLElement).style.color = "var(--fg-4)";
+                            (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+                          }}
+                        >
+                          <TrashIcon style={{ width: 13, height: 13 }} />
                         </button>
                       </td>
                       <td style={{ padding: "12px var(--s-5)", textAlign: "right" }}>
@@ -297,6 +400,36 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         </div>
       )}
 
+      {deleteTarget && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 60,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
+            padding: "0 16px",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+        >
+          <div style={{
+            width: "100%", maxWidth: 400,
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
+            background: "var(--surface)", padding: 24,
+            boxShadow: "var(--shadow-2)",
+          }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Supprimer {deleteTarget.name} ?</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+              Êtes-vous sûr de vouloir supprimer cette fiche ? Cette action est irréversible. L’animal et son historique vaccinal seront définitivement supprimés.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleting}>Annuler</Button>
+              <Button variant="danger" size="sm" onClick={() => void handleDeleteConfirm()} disabled={deleting}>
+                {deleting ? "Suppression…" : "Supprimer"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modal && (
         <AnimalModal
           key={modal.duplicate ? `dup-${modal.duplicate.animal.id}` : modal.animal?.id ?? "new"}
@@ -317,20 +450,25 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Animal[]; locations: AdminLocation[]; onOpen: (a: Animal) => void }) {
   const today = new Date().toISOString().split("T")[0];
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const in60 = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const locMap = Object.fromEntries(locations.map((l) => [l.id, l.name]));
 
   const overdue: Animal[] = [];
-  const dueSoon: Animal[] = [];
+  const due30: Animal[] = [];
+  const due60: Animal[] = [];
   const upcoming: Animal[] = [];
   const noDate: Animal[] = [];
 
   for (const a of animals) {
     if (!a.next_vaccination_date) { noDate.push(a); continue; }
     if (a.next_vaccination_date < today) { overdue.push(a); continue; }
-    if (a.next_vaccination_date <= in30) { dueSoon.push(a); continue; }
+    if (a.next_vaccination_date <= in30) { due30.push(a); continue; }
+    if (a.next_vaccination_date <= in60) { due60.push(a); continue; }
     upcoming.push(a);
   }
+  // keep legacy alias for header count
+  const dueSoon = due30;
 
   const sortByDate = (arr: Animal[]) =>
     [...arr].sort((a, b) => (a.next_vaccination_date ?? "").localeCompare(b.next_vaccination_date ?? ""));
@@ -384,7 +522,7 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
     );
   }
 
-  if (overdue.length === 0 && dueSoon.length === 0 && upcoming.length === 0 && noDate.length === 0) {
+  if (overdue.length === 0 && due30.length === 0 && due60.length === 0 && upcoming.length === 0 && noDate.length === 0) {
     return (
       <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", padding: "48px 0", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
         No animals with vaccination data yet.
@@ -403,7 +541,14 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
       />
       <Section
         title="Due within 30 days"
-        animals={sortByDate(dueSoon)}
+        animals={sortByDate(due30)}
+        badge={(a) => (
+          <Pill tone="bad" size="sm">in {daysUntil(a.next_vaccination_date!)}d</Pill>
+        )}
+      />
+      <Section
+        title="Due within 60 days"
+        animals={sortByDate(due60)}
         badge={(a) => (
           <Pill tone="warn" size="sm">in {daysUntil(a.next_vaccination_date!)}d</Pill>
         )}
