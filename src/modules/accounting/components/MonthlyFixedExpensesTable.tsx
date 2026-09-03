@@ -155,7 +155,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
           minWidth: "4.5rem",
           color: isOverridden ? "var(--bronze-2, var(--bronze))" : "var(--fg)",
           fontWeight: isOverridden ? 600 : 400,
-          background: isOverridden ? "var(--bronze-soft)" : undefined,
+          background: isOverridden ? "color-mix(in srgb, var(--accent) 7%, transparent)" : undefined,
           userSelect: "none",
           transition: "background var(--dur) var(--ease)",
           position: "relative",
@@ -204,7 +204,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
                   {m}
                 </th>
               ))}
-              <th style={{ padding: "10px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", borderRight: "1px solid var(--line)", minWidth: "5rem", fontStyle: "italic", background: "var(--bronze-soft)" }}>
+              <th style={{ padding: "10px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", borderRight: "1px solid var(--line)", minWidth: "5rem", fontStyle: "italic", background: "var(--surface-2)" }}>
                 Year total
               </th>
             </tr>
@@ -224,7 +224,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
                     </div>
                   </td>
                   {MONTH_NAMES.map((m, i) => cell(cost, i + 1, m))}
-                  <td className="mono tabular-nums" style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", fontStyle: "italic", borderRight: "1px solid var(--line)", background: "var(--bronze-soft)" }}>
+                  <td className="mono tabular-nums" style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", fontStyle: "italic", borderRight: "1px solid var(--line)", background: "var(--surface-2)" }}>
                     {fmt(rowTotal)}
                   </td>
                 </tr>
@@ -232,8 +232,8 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
             })}
 
             {/* Totals row */}
-            <tr style={{ borderTop: "2px solid var(--line)", background: "var(--bronze-soft)" }}>
-              <td className="sticky left-0 z-10" style={{ padding: "8px 12px", fontSize: 12, fontWeight: 600, color: "var(--bronze)", borderRight: "1px solid var(--line)", background: "var(--bronze-soft)" }}>
+            <tr style={{ borderTop: "2px solid var(--line)", background: "var(--surface-2)" }}>
+              <td className="sticky left-0 z-10" style={{ padding: "8px 12px", fontSize: 12, fontWeight: 600, color: "var(--bronze)", borderRight: "1px solid var(--line)", background: "var(--surface-2)" }}>
                 Monthly total
               </td>
               {perMonthTotals.map((t, i) => (
