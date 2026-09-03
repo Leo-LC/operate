@@ -14,7 +14,7 @@ function Card({
         "flex flex-col overflow-hidden text-sm",
         "bg-[var(--surface)] text-[var(--fg)]",
         "border border-[var(--line)]",
-        "rounded-[var(--r-md)]",
+        "rounded-[var(--r-lg)]",
         !flush && "p-4",
         className
       )}
@@ -37,7 +37,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("text-[14px] font-semibold leading-snug text-[var(--fg)]", className)}
+      className={cn("text-[13px] font-medium leading-snug text-[var(--fg)]", className)}
       {...props}
     />
   )

@@ -289,8 +289,8 @@ function KpiCard({
     <div
       style={{
         borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-        background: "var(--surface)", padding: "var(--s-5)",
-        display: "flex", flexDirection: "column", gap: 8,
+        background: "var(--surface)", padding: 16,
+        display: "flex", flexDirection: "column", gap: 6,
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>

@@ -53,10 +53,10 @@ export function Stat({
         )}
         <span
           style={{
-            fontSize: 11,
-            letterSpacing: "0.06em",
+            fontSize: 10,
+            letterSpacing: "0.07em",
             textTransform: "uppercase",
-            fontWeight: 600,
+            fontWeight: 500,
             color: "var(--fg-4)",
             fontFamily: "var(--font-sans)",
           }}
@@ -67,11 +67,11 @@ export function Stat({
       <span
         className="mono tabular-nums"
         style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: 16,
+          fontWeight: 600,
           color: "var(--fg)",
-          lineHeight: 1,
-          letterSpacing: "-0.02em",
+          lineHeight: 1.1,
+          letterSpacing: "-0.015em",
         }}
       >
         {value}
@@ -81,7 +81,7 @@ export function Stat({
           className="mono tabular-nums"
           style={{
             fontSize: 11,
-            fontWeight: 600,
+            fontWeight: 500,
             color: deltaColor,
             lineHeight: 1,
           }}

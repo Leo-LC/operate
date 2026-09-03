@@ -19,7 +19,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-[var(--line)] mb-4",
+        "flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-[var(--line)] mb-4",
         className,
       )}
       {...props}
@@ -30,11 +30,11 @@ export function PageHeader({
         )}
         <h1
           style={{
-            fontSize: 24,
-            fontWeight: 650,
+            fontSize: 18,
+            fontWeight: 600,
             color: "var(--fg)",
-            lineHeight: 1.15,
-            letterSpacing: "-0.015em",
+            lineHeight: 1.2,
+            letterSpacing: "-0.01em",
             margin: 0,
           }}
         >

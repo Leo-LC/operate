@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { GeistSans } from "geist/font/sans";
-import { JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { getOrgTheme } from "@/lib/theme";
+
+const sans = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -38,7 +44,7 @@ export default async function RootLayout({
       data-theme={orgTheme}
       className={cn(
         "font-sans dark",
-        GeistSans.variable,
+        sans.variable,
         mono.variable,
       )}
       suppressHydrationWarning
