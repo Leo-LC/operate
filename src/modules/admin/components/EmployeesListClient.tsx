@@ -7,7 +7,7 @@ import { Pill } from "@/components/ui/pill";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
-import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, type EmployeeFormState } from "./EmployeeForm";
+import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, THAI_BANKS, type EmployeeFormState } from "./EmployeeForm";
 
 interface Props {
   locations: AdminLocation[];
@@ -110,6 +110,21 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
         Eligible for service charge
       </label>
     </div>
+    {form.has_thai_bank_account && (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Bank name
+          <select value={form.bank_name ?? ""} onChange={(e) => onChange("bank_name", e.target.value)} style={{ ...SIMPLE_INPUT, cursor: "pointer" }}>
+            {THAI_BANKS.map((b) => <option key={b} value={b}>{b || "— Select bank —"}</option>)}
+          </select>
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Account number
+          <input value={form.bank_account_number ?? ""} onChange={(e) => onChange("bank_account_number", e.target.value.replace(/[^\d-]/g, ""))} style={SIMPLE_INPUT} placeholder="123-4-56789-0" />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Holder name
+          <input value={form.bank_account_name ?? ""} onChange={(e) => onChange("bank_account_name", e.target.value)} style={SIMPLE_INPUT} placeholder="As on bank book" />
+        </label>
+      </div>
+    )}
     <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shops {readOnlyShops && <span style={{ fontSize: 10, color: "var(--fg-4)", fontWeight: 400 }}>(read-only)</span>}</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {locations.map((location) => {
         const selected = locIds.has(location.id);
@@ -158,6 +173,9 @@ function empToForm(emp: Employee): FormState {
     notes: emp.notes ?? "",
     base_salary_monthly: emp.base_salary_monthly != null ? String(emp.base_salary_monthly) : "",
     has_thai_bank_account: emp.has_thai_bank_account ?? false,
+    bank_name: (emp as unknown as { bank_name?: string | null }).bank_name ?? "",
+    bank_account_number: (emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "",
+    bank_account_name: (emp as unknown as { bank_account_name?: string | null }).bank_account_name ?? "",
     credit_note: emp.credit_note ?? "",
     service_charge_pct: emp.service_charge_pct != null ? String(emp.service_charge_pct) : "",
     employment_start_date: emp.employment_start_date?.slice(0, 10) ?? "",
@@ -357,6 +375,9 @@ export function EmployeesListClient({ locations }: Props) {
           nationality: form.nationality || undefined,
           base_salary_monthly: form.base_salary_monthly ? parseFloat(form.base_salary_monthly) : undefined,
           has_thai_bank_account: form.has_thai_bank_account,
+          bank_name: form.bank_name || undefined,
+          bank_account_number: form.bank_account_number || undefined,
+          bank_account_name: form.bank_account_name || undefined,
           service_charge_pct: form.service_charge_pct ? parseFloat(form.service_charge_pct) : undefined,
           service_charge_eligible: form.service_charge_eligible,
           location_ids: Array.from(formLocIds),
@@ -399,6 +420,9 @@ export function EmployeesListClient({ locations }: Props) {
           nationality: editForm.nationality || null,
           base_salary_monthly: editForm.base_salary_monthly ? parseFloat(editForm.base_salary_monthly) : null,
           has_thai_bank_account: editForm.has_thai_bank_account,
+          bank_name: editForm.bank_name || null,
+          bank_account_number: editForm.bank_account_number || null,
+          bank_account_name: editForm.bank_account_name || null,
           service_charge_pct: editForm.service_charge_pct ? parseFloat(editForm.service_charge_pct) : null,
           service_charge_eligible: editForm.service_charge_eligible,
           location_ids: Array.from(editLocIds),
@@ -731,7 +755,21 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
         })()}
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
-        {emp.has_thai_bank_account ? "Yes" : "No"}
+        {emp.has_thai_bank_account ? (
+          <span>
+            Yes
+            {((emp as unknown as { bank_name?: string | null }).bank_name || (emp as unknown as { bank_account_number?: string | null }).bank_account_number) && (
+              <span style={{ display: "block", fontSize: 10, color: "var(--fg-4)" }}>
+                {((emp as unknown as { bank_name?: string | null }).bank_name ?? "").trim()}
+                {(emp as unknown as { bank_name?: string | null }).bank_name && (emp as unknown as { bank_account_number?: string | null }).bank_account_number ? " · " : ""}
+                {((emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "").replace(/\d(?=\d{4})/g, "•")}
+              </span>
+            )}
+            {((emp as unknown as { bank_account_name?: string | null }).bank_account_name) && (
+              <span style={{ display: "block", fontSize: 10, color: "var(--fg-4)" }}>{(emp as unknown as { bank_account_name?: string | null }).bank_account_name}</span>
+            )}
+          </span>
+        ) : "No"}
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
         {(() => {

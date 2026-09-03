@@ -47,6 +47,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     notes: string | null;
     base_salary_monthly: number | null;
     has_thai_bank_account: boolean;
+    bank_name: string | null;
+    bank_account_number: string | null;
+    bank_account_name: string | null;
     credit_note: string | null;
     service_charge_pct: number | null;
     employment_start_date: string | null;
@@ -81,6 +84,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if ("notes" in body) updates.notes = body.notes?.trim() ?? null;
   if ("base_salary_monthly" in body) updates.base_salary_monthly = body.base_salary_monthly ?? null;
   if ("has_thai_bank_account" in body) updates.has_thai_bank_account = body.has_thai_bank_account ?? false;
+  if ("bank_name" in body) updates.bank_name = body.bank_name?.trim() ?? null;
+  if ("bank_account_number" in body) updates.bank_account_number = body.bank_account_number?.trim().replace(/[\s-]/g, "") ?? null;
+  if ("bank_account_name" in body) updates.bank_account_name = body.bank_account_name?.trim() ?? null;
+  // Clear bank details when Thai bank is disabled
+  if (body.has_thai_bank_account === false) {
+    updates.bank_name = null;
+    updates.bank_account_number = null;
+    updates.bank_account_name = null;
+  }
   if ("credit_note" in body) updates.credit_note = body.credit_note?.trim() ?? null;
   if ("service_charge_pct" in body) updates.service_charge_pct = body.service_charge_pct ?? null;
   if ("employment_start_date" in body) updates.employment_start_date = body.employment_start_date || null;

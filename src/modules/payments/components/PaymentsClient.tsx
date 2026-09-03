@@ -156,6 +156,9 @@ export function PaymentsClient({ initialLocations }: Props) {
       phone: emp.phone ?? "", notes: emp.notes ?? "",
       base_salary_monthly: emp.base_salary_monthly ? String(emp.base_salary_monthly) : "",
       has_thai_bank_account: emp.has_thai_bank_account ?? false,
+      bank_name: (emp as unknown as { bank_name?: string | null }).bank_name ?? "",
+      bank_account_number: (emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "",
+      bank_account_name: (emp as unknown as { bank_account_name?: string | null }).bank_account_name ?? "",
       credit_note: emp.credit_note ?? "",
       service_charge_pct: emp.service_charge_pct != null ? String(emp.service_charge_pct) : "",
     });

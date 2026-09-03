@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       id, organization_id, location_id, first_name, last_name, position,
       nationality, national_id, work_permit_number, work_permit_expires_at,
       email, phone, active, notes, base_salary_monthly, has_thai_bank_account,
+      bank_name, bank_account_number, bank_account_name,
       credit_note, service_charge_pct, employment_start_date, employment_end_date, service_charge_eligible,
       user_id, archived_at, created_at, updated_at,
       locations ( name ),
@@ -57,6 +58,9 @@ export async function GET(request: Request) {
       notes: emp.notes ?? null,
       base_salary_monthly: emp.base_salary_monthly ?? null,
       has_thai_bank_account: emp.has_thai_bank_account ?? false,
+      bank_name: (emp as unknown as { bank_name?: string | null }).bank_name ?? null,
+      bank_account_number: (emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? null,
+      bank_account_name: (emp as unknown as { bank_account_name?: string | null }).bank_account_name ?? null,
       credit_note: (emp as unknown as { credit_note?: string | null }).credit_note ?? null,
       service_charge_pct: (emp as unknown as { service_charge_pct?: number | null }).service_charge_pct ?? null,
       employment_start_date: (emp as unknown as { employment_start_date?: string | null }).employment_start_date ?? null,
@@ -98,6 +102,9 @@ export async function POST(request: Request) {
     notes?: string;
     base_salary_monthly?: number;
     has_thai_bank_account?: boolean;
+    bank_name?: string;
+    bank_account_number?: string;
+    bank_account_name?: string;
     credit_note?: string;
     service_charge_pct?: number;
     employment_start_date?: string;
@@ -144,6 +151,9 @@ export async function POST(request: Request) {
       notes: body.notes?.trim() ?? null,
       base_salary_monthly: primarySalary ?? body.base_salary_monthly ?? null,
       has_thai_bank_account: body.has_thai_bank_account ?? false,
+      bank_name: body.bank_name?.trim() ?? null,
+      bank_account_number: body.bank_account_number?.trim().replace(/[\s-]/g, "") ?? null,
+      bank_account_name: body.bank_account_name?.trim() ?? null,
       credit_note: body.credit_note?.trim() ?? null,
       service_charge_pct: body.service_charge_pct ?? null,
       employment_start_date: body.employment_start_date ?? null,

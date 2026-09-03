@@ -7,6 +7,11 @@ import type { AdminLocation } from "@/modules/admin/types";
 
 export const POSITIONS = ["", "All-rounder", "Bartender", "Cashier", "Manager", "Director"] as const;
 export const NATIONALITIES = ["", "Thai", "Burmese", "French", "Other"] as const;
+export const THAI_BANKS = [
+  "", "Bangkok Bank", "Kasikorn Bank (KBank)", "Siam Commercial Bank (SCB)",
+  "Krungthai Bank", "Bank of Ayudhya (Krungsri)", "TMBThanachart Bank (TTB)",
+  "Government Savings Bank", "CIMB Thai", "UOB Thailand", "Krungsri", "Other",
+] as const;
 
 export type EmployeeFormState = {
   first_name: string;
@@ -21,6 +26,9 @@ export type EmployeeFormState = {
   notes: string;
   base_salary_monthly: string;
   has_thai_bank_account: boolean;
+  bank_name: string;
+  bank_account_number: string;
+  bank_account_name: string;
   credit_note: string;
   service_charge_pct: string;
   employment_start_date?: string;
@@ -41,6 +49,9 @@ export const EMPTY_EMPLOYEE_FORM: EmployeeFormState = {
   notes: "",
   base_salary_monthly: "",
   has_thai_bank_account: false,
+  bank_name: "",
+  bank_account_number: "",
+  bank_account_name: "",
   credit_note: "",
   service_charge_pct: "",
   employment_start_date: "",
@@ -162,6 +173,25 @@ export function EmployeeForm({
             <span style={{ color: "var(--fg)" }}>Thai bank account</span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>(salary paid by transfer)</span>
           </label>
+          {form.has_thai_bank_account && (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 180 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Bank name</label>
+                <select value={form.bank_name} onChange={(e) => onChange("bank_name", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
+                  {THAI_BANKS.map((b) => <option key={b} value={b}>{b || "— Select bank —"}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 160 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Account number</label>
+                <input type="text" inputMode="numeric" value={form.bank_account_number} onChange={(e) => onChange("bank_account_number", e.target.value.replace(/[^\d-]/g, ""))} style={inputStyle} placeholder="123-4-56789-0" />
+                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>5–16 digits (hyphens allowed)</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 180 }}>
+                <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Account holder name</label>
+                <input type="text" value={form.bank_account_name} onChange={(e) => onChange("bank_account_name", e.target.value)} style={inputStyle} placeholder="Full name as on bank book" />
+              </div>
+            </>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140 }}>
             <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Service charge %</label>
             <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(e) => onChange("service_charge_pct", e.target.value)} style={inputStyle} placeholder="location default" />

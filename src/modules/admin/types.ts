@@ -77,6 +77,9 @@ export interface Employee {
   notes: string | null;
   base_salary_monthly: number | null;
   has_thai_bank_account: boolean;
+  bank_name: string | null;
+  bank_account_number: string | null;
+  bank_account_name: string | null;
   credit_note: string | null;
   service_charge_pct: number | null;
   employment_start_date?: string | null;
