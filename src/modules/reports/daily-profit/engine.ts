@@ -35,6 +35,7 @@ function emptyDay(date: string): DailyProfitRow {
     payroll: 0,
     recurringCosts: 0,
     serviceCharge: 0,
+    bonus: 0,
     adjustments: 0,
     economicProfit: 0,
     margin: 0,
@@ -85,14 +86,15 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
         day.payroll = Number(settings.salaries_amount) / divisor;
         day.recurringCosts = fixedMonthlyTotal(settings) / divisor;
         day.serviceCharge = day.revenue * (Number(settings.service_charge_rate_pct) / 100) * Number(settings.employee_count);
+        day.bonus = Number((settings as { bonus_amount?: number }).bonus_amount ?? 0) / divisor;
       }
-      day.economicProfit = day.revenue - day.directExpenses - day.payroll - day.recurringCosts - day.serviceCharge;
+      day.economicProfit = day.revenue - day.directExpenses - day.payroll - day.recurringCosts - day.serviceCharge - day.bonus;
       day.margin = day.revenue > 0 ? day.economicProfit / day.revenue * 100 : 0;
     }
   }
 
   const allDays = Array.from(dailyByLocation.values()).flatMap((days) => Array.from(days.values()));
-  const total = (field: keyof Pick<DailyProfitRow, "directExpenses" | "payroll" | "recurringCosts" | "serviceCharge">) => allDays.reduce((sum, day) => sum + day[field], 0);
+  const total = (field: keyof Pick<DailyProfitRow, "directExpenses" | "payroll" | "recurringCosts" | "serviceCharge" | "bonus">) => allDays.reduce((sum, day) => sum + day[field], 0);
   return {
     dailyByLocation,
     categories: [
@@ -100,6 +102,7 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
       { key: "salaries", label: "Manual salaries", amount: total("payroll"), status: "actual" as const },
       { key: "fixed_costs", label: "Manual fixed costs", amount: total("recurringCosts"), status: "actual" as const },
       { key: "service_charge", label: "Calculated service charge", amount: total("serviceCharge"), status: "actual" as const },
+      { key: "bonus", label: "Challenge bonus", amount: total("bonus"), status: "actual" as const },
     ].sort((a, b) => b.amount - a.amount),
   };
 }

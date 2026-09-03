@@ -1,6 +1,6 @@
 export const DAILY_PROFIT_METHODOLOGY = {
-  version: "Simplified v2 · 2026-08-12",
-  formula: "Revenue − Sheet expenses excl. HR − salaries − fixed costs − service charge",
+  version: "Simplified v3 · 2026-09-03",
+  formula: "Revenue − Sheet expenses excl. HR − salaries − fixed costs − service charge − challenge bonus",
   revenueFields: [
     "sales_drinks_net",
     "sales_ticket_net",
@@ -27,10 +27,11 @@ export const DAILY_PROFIT_METHODOLOGY = {
     "hr_accompte_cash",
   ],
   rules: [
-    "Salaries, rent, electricity, water and other fixed costs are entered per shop and per month.",
+    "Salaries, rent, electricity, water, other fixed costs and challenge bonus are entered per shop and per month (via Monthly snapshots or manual entry).",
     "Monthly amounts are spread across all calendar days of the month, in Bangkok time.",
     "Each day's service charge equals the day's revenue × the shop's rate × number of employees.",
+    "Challenge bonus is the gated monthly bonus from the Challenges module, spread evenly per day.",
     "Google Sheets HR fields are excluded from the result to avoid double counting.",
-    "A month without manual entry uses zero and triggers a coverage alert.",
+    "A month without manual entry or snapshot uses zero and triggers a coverage alert.",
   ],
 } as const;

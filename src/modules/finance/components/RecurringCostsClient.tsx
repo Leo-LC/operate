@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { PlusIcon, UsersIcon } from "lucide-react";
+import { CalendarIcon, PlusIcon, SaveIcon, UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,10 +15,43 @@ type Cost = { id: string; label: string; category: string; location_id: string |
 type CategoryOption = { value: string; label: string };
 type EditState = { id: string; label: string; category: string; amount: string; amount_mode: "fixed" | "variable"; support_type: string | null };
 type Employee = { id: string; name: string; position: string | null; base_salary_monthly: number };
+type Snapshot = {
+  id: string;
+  location_id: string;
+  period_year: number;
+  period_month: number;
+  recurring_costs_amount: number;
+  payroll_amount: number;
+  service_charge_rate_pct: number;
+  employee_count: number;
+  service_charge_amount: number;
+  challenge_bonus_amount: number;
+  status: string;
+  reason?: string;
+};
+type Preview = {
+  location_id: string;
+  location_name: string;
+  period_year: number;
+  period_month: number;
+  recurring_costs_amount: number;
+  payroll_amount: number;
+  service_charge_rate_pct: number;
+  employee_count: number;
+  service_charge_amount: number;
+  challenge_bonus_amount: number;
+};
 
 const ALL_SHOPS = "all";
 const NEW_CATEGORY = "__new__";
 const FIELD: React.CSSProperties = { height: 38, border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", padding: "0 11px", fontSize: 13, width: "100%" };
+
+function bangkokMonth(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")?.value ?? "2026";
+  const m = parts.find((p) => p.type === "month")?.value ?? "09";
+  return `${y}-${m}`;
+}
 
 export function RecurringCostsClient() {
   const [locationId, setLocationId] = useState("");
@@ -38,6 +71,13 @@ export function RecurringCostsClient() {
   const [payrollOpen, setPayrollOpen] = useState(false);
   const [salaryDraft, setSalaryDraft] = useState<Record<string, string>>({});
   const [savingSalary, setSavingSalary] = useState(false);
+
+  // Month / snapshot state
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => bangkokMonth());
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [preview, setPreview] = useState<Preview[]>([]);
+  const [savingSnapshot, setSavingSnapshot] = useState(false);
+  const [snapshotEdit, setSnapshotEdit] = useState<Record<string, string>>({});
 
   const categoryLabels = useMemo(() => Object.fromEntries(categories.map((c) => [c.value, c.label])), [categories]);
 
@@ -63,6 +103,22 @@ export function RecurringCostsClient() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { const requested = new URLSearchParams(window.location.search).get("shop"); if (requested) setLocationId(requested); }, []);
 
+  // Load snapshots for selected month
+  const loadSnapshots = useCallback(async () => {
+    if (!selectedMonth) return;
+    const [y, m] = selectedMonth.split("-").map(Number);
+    if (!y || !m) return;
+    const q = new URLSearchParams({ year: String(y), month: String(m), preview: "1" });
+    // For snapshot preview we want all locations unless filtered? Use no location filter to get all
+    const res = await fetch(`/api/finance/monthly-snapshots?${q}`, { cache: "no-store" });
+    const json = await res.json();
+    if (!res.ok) return;
+    setSnapshots(json.snapshots ?? []);
+    setPreview(json.preview ?? []);
+  }, [selectedMonth]);
+
+  useEffect(() => { void loadSnapshots(); }, [loadSnapshots]);
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (locationId === ALL_SHOPS) { toast.error("Select a shop to add a cost"); return; }
@@ -80,11 +136,10 @@ export function RecurringCostsClient() {
         estimated_amount: Number(form.amount),
         amount_mode: form.amount_mode,
       };
-      // When creating custom, API expects custom_category; also set category for compatibility
       if (isNew) payload.category = "__custom__";
       const response = await fetch("/api/finance/recurring-costs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await response.json(); if (!response.ok) throw new Error(json.error ?? "Unable to save cost");
-      setForm({ category: "rent", support_type: "social_media", amount: "", amount_mode: "fixed", customCategory: "" }); setShowForm(false); toast.success("Monthly cost saved"); await load();
+      setForm({ category: "rent", support_type: "social_media", amount: "", amount_mode: "fixed", customCategory: "" }); setShowForm(false); toast.success("Monthly cost saved"); await load(); await loadSnapshots();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save cost"); } finally { setSaving(false); }
   }
 
@@ -117,7 +172,7 @@ export function RecurringCostsClient() {
       }
       const response = await fetch(`/api/finance/recurring-costs/${editing.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await response.json(); if (!response.ok) throw new Error(json.error ?? "Unable to save cost");
-      setEditing(null); setEditCustomCategory(""); toast.success("Monthly cost updated"); await load();
+      setEditing(null); setEditCustomCategory(""); toast.success("Monthly cost updated"); await load(); await loadSnapshots();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save cost"); } finally { setSaving(false); }
   }
 
@@ -129,7 +184,7 @@ export function RecurringCostsClient() {
       if (!response.ok) throw new Error((json as { error?: string }).error ?? "Unable to delete");
       toast.success("Cost deleted");
       setEditing(null); setConfirmDeleteId(null);
-      await load();
+      await load(); await loadSnapshots();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to delete"); } finally { setDeleting(false); }
   }
 
@@ -153,15 +208,108 @@ export function RecurringCostsClient() {
         const response = await fetch("/api/finance/recurring-costs/employee-salary", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employee_id: employee.id, location_id: locationId, base_salary_monthly: amount, reason: "Salary edited from the recurring costs payroll" }) });
         const json = await response.json(); if (!response.ok) throw new Error(json.error ?? "Unable to save salary");
       }
-      toast.success("Salaries updated"); setPayrollOpen(false); await load();
+      toast.success("Salaries updated"); setPayrollOpen(false); await load(); await loadSnapshots();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save salaries"); } finally { setSavingSalary(false); }
+  }
+
+  // Snapshot helpers
+  const snapshotMap = useMemo(() => new Map(snapshots.map((s) => [s.location_id, s])), [snapshots]);
+  const previewMap = useMemo(() => new Map(preview.map((p) => [p.location_id, p])), [preview]);
+
+  function getDisplayForLocation(locId: string): (Snapshot | Preview) & { isSnapshot: boolean } | null {
+    const snap = snapshotMap.get(locId);
+    if (snap) return { ...snap, isSnapshot: true } as unknown as (Snapshot & { isSnapshot: boolean });
+    const pre = previewMap.get(locId);
+    if (pre) return { ...(pre as unknown as Preview), id: `preview-${locId}`, status: "estimated", isSnapshot: false } as unknown as (Preview & { isSnapshot: boolean, id: string, status: string });
+    return null;
+  }
+
+  const monthTotals = useMemo(() => {
+    const ids = locationId === ALL_SHOPS ? locations.map((l) => l.id) : locationId ? [locationId] : [];
+    let recurring = 0, payroll = 0, service = 0, bonus = 0;
+    for (const id of ids) {
+      const d = getDisplayForLocation(id);
+      if (!d) continue;
+      recurring += Number((d as unknown as { recurring_costs_amount: number }).recurring_costs_amount ?? 0);
+      payroll += Number((d as unknown as { payroll_amount: number }).payroll_amount ?? 0);
+      service += Number((d as unknown as { service_charge_amount: number }).service_charge_amount ?? 0);
+      bonus += Number((d as unknown as { challenge_bonus_amount: number }).challenge_bonus_amount ?? 0);
+    }
+    return { recurring, payroll, service, bonus, grand: recurring + payroll + service + bonus };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshots, preview, locationId, locations]);
+
+  const hasSnapshotForSelected = useMemo(() => {
+    if (locationId === ALL_SHOPS) return snapshots.length > 0;
+    return snapshotMap.has(locationId);
+  }, [snapshots, locationId, snapshotMap]);
+
+  async function saveSnapshot() {
+    const [y, m] = selectedMonth.split("-").map(Number);
+    if (!y || !m) { toast.error("Invalid month"); return; }
+    setSavingSnapshot(true);
+    try {
+      const targets = locationId === ALL_SHOPS ? locations.map((l) => l.id) : [locationId];
+      for (const locId of targets) {
+        const display = getDisplayForLocation(locId);
+        if (!display) continue;
+        // If already a snapshot, skip unless editing
+        if ((display as unknown as { isSnapshot: boolean }).isSnapshot) continue;
+        const payload = {
+          location_id: locId,
+          period_year: y,
+          period_month: m,
+          recurring_costs_amount: Number((display as unknown as { recurring_costs_amount: number }).recurring_costs_amount ?? 0),
+          payroll_amount: Number((display as unknown as { payroll_amount: number }).payroll_amount ?? 0),
+          service_charge_rate_pct: Number((display as unknown as { service_charge_rate_pct: number }).service_charge_rate_pct ?? 0),
+          employee_count: Number((display as unknown as { employee_count: number }).employee_count ?? 0),
+          service_charge_amount: Number((display as unknown as { service_charge_amount: number }).service_charge_amount ?? 0),
+          challenge_bonus_amount: Number((display as unknown as { challenge_bonus_amount: number }).challenge_bonus_amount ?? 0),
+          reason: `Snapshot for ${selectedMonth} saved from recurring costs`,
+          status: "actual",
+        };
+        const res = await fetch("/api/finance/monthly-snapshots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Unable to save snapshot");
+      }
+      toast.success(hasSnapshotForSelected ? "Snapshot updated" : "Snapshot saved");
+      await loadSnapshots();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Unable to save snapshot"); } finally { setSavingSnapshot(false); }
+  }
+
+  async function saveSnapshotEdit() {
+    const [y, m] = selectedMonth.split("-").map(Number);
+    if (!locationId || locationId === ALL_SHOPS) { toast.error("Select a shop to edit"); return; }
+    const snap = snapshotMap.get(locationId);
+    if (!snap) { toast.error("No snapshot to edit"); return; }
+    setSavingSnapshot(true);
+    try {
+      const payload = {
+        location_id: locationId,
+        period_year: y,
+        period_month: m,
+        recurring_costs_amount: Number(snapshotEdit.recurring ?? snap.recurring_costs_amount),
+        payroll_amount: Number(snapshotEdit.payroll ?? snap.payroll_amount),
+        service_charge_amount: Number(snapshotEdit.service_charge ?? snap.service_charge_amount),
+        challenge_bonus_amount: Number(snapshotEdit.bonus ?? snap.challenge_bonus_amount),
+        service_charge_rate_pct: Number(snapshotEdit.rate ?? snap.service_charge_rate_pct),
+        employee_count: Number(snapshotEdit.employees ?? snap.employee_count),
+        reason: "Manual adjustment from recurring costs snapshot",
+        status: snap.status,
+      };
+      const res = await fetch("/api/finance/monthly-snapshots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unable to update");
+      toast.success("Snapshot updated");
+      setSnapshotEdit({});
+      await loadSnapshots();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Unable to update"); } finally { setSavingSnapshot(false); }
   }
 
   const payrollTotal = employees.reduce((sum, employee) => sum + (Number(salaryDraft[employee.id] ?? "") || 0), 0);
   const locationName = locations.find((location) => location.id === locationId)?.name ?? "this shop";
   const isAll = locationId === ALL_SHOPS;
 
-  // Aggregations for All shops
   const totalCosts = useMemo(() => costs.reduce((sum, c) => sum + Number(c.estimated_amount), 0), [costs]);
   const totalPayroll = useMemo(() => Object.values(salaries).reduce((sum, v) => sum + Number(v), 0), [salaries]);
   const costsByCategory = useMemo(() => {
@@ -176,12 +324,99 @@ export function RecurringCostsClient() {
   }, [costs, locations]);
   const displayedCosts = isAll ? [] : costs;
 
+  const selectedDisplay = locationId !== ALL_SHOPS ? getDisplayForLocation(locationId) : null;
+
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader eyebrow="Finance" title="Recurring costs" subtitle="The few costs each shop expects every month." actions={canManage ? <Button size="sm" onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null} />
     <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       <PillButton active={isAll} onClick={() => setLocationId(ALL_SHOPS)}>All shops</PillButton>
       {locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}
     </div></Card>
+
+    {/* Month selector + snapshot summary */}
+    <Card style={{ gap: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--fg-3)" }}>
+          <CalendarIcon size={14} /> Month
+          <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ ...FIELD, width: 160, height: 32 }} />
+          {hasSnapshotForSelected ? <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--good-soft, #e6f4ea)", color: "var(--good)", fontSize: 11, fontWeight: 600 }}>Snapshot enregistré</span> : <span style={{ padding: "3px 8px", borderRadius: 999, background: "var(--bg-2)", color: "var(--fg-4)", fontSize: 11 }}>Estimation live</span>}
+        </span>
+        {canManage && (
+          <div style={{ display: "flex", gap: 8 }}>
+            {!hasSnapshotForSelected ? (
+              <Button size="sm" disabled={savingSnapshot} onClick={() => void saveSnapshot()}><SaveIcon size={14} />{savingSnapshot ? "Saving…" : `Enregistrer ${selectedMonth}`}</Button>
+            ) : isAll ? (
+              <span style={{ fontSize: 11, color: "var(--fg-4)", alignSelf: "center" }}>Snapshots existants — ajustables par shop</span>
+            ) : (
+              <Button size="sm" variant="secondary" disabled={savingSnapshot} onClick={() => {
+                const snap = snapshotMap.get(locationId);
+                if (!snap) return;
+                setSnapshotEdit({
+                  recurring: String(snap.recurring_costs_amount),
+                  payroll: String(snap.payroll_amount),
+                  service_charge: String(snap.service_charge_amount),
+                  bonus: String(snap.challenge_bonus_amount),
+                  rate: String(snap.service_charge_rate_pct),
+                  employees: String(snap.employee_count),
+                });
+              }}>Ajuster ce mois</Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Totals for selected month */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+        <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Recurring costs ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.recurring.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{isAll ? `${locations.length} shops` : locationName}</span>
+        </div>
+        <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Payroll ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.payroll.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaires du mois</span>
+        </div>
+        <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Service charge ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.service.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Calculé sur revenue</span>
+        </div>
+        <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Challenge bonus ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.bonus.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus gated</span>
+        </div>
+        <div style={{ padding: "10px 12px", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)", background: "var(--bg)" }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Grand total ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 700 }}>฿{monthTotals.grand.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Feed Reports → Daily P&L</span>
+        </div>
+      </div>
+
+      {/* Per-location snapshot edit when single shop and snapshot exists */}
+      {!isAll && selectedDisplay && (selectedDisplay as unknown as { isSnapshot: boolean }).isSnapshot && Object.keys(snapshotEdit).length > 0 && (
+        <Card style={{ gap: 10, background: "var(--bg-2)" }}>
+          <strong style={{ fontSize: 12 }}>Ajuster le snapshot {selectedMonth} · {locationName}</strong>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Recurring<input value={snapshotEdit.recurring ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, recurring: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Payroll<input value={snapshotEdit.payroll ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, payroll: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Service charge<input value={snapshotEdit.service_charge ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, service_charge: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Bonus<input value={snapshotEdit.bonus ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, bonus: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>SC rate %<input value={snapshotEdit.rate ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, rate: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" step="0.1" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Employees<input value={snapshotEdit.employees ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, employees: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button size="sm" disabled={savingSnapshot} onClick={() => void saveSnapshotEdit()}>{savingSnapshot ? "Saving…" : "Save adjustments"}</Button>
+            <Button size="sm" variant="secondary" onClick={() => setSnapshotEdit({})}>Cancel</Button>
+          </div>
+        </Card>
+      )}
+
+      {!isAll && selectedDisplay && !(selectedDisplay as unknown as { isSnapshot: boolean }).isSnapshot && (
+        <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>Aperçu live pour {selectedMonth} — valeurs actuelles + service charge/bonus calculés. Enregistrez pour figer ce mois et l&apos;utiliser dans Reports.</p>
+      )}
+    </Card>
 
     {showForm ? <Card><form onSubmit={save} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>What is it?<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} style={FIELD}>

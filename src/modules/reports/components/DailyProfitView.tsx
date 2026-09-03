@@ -37,7 +37,7 @@ function ProfitRibbon({ rows, onSelect }: { rows: DailyProfitRow[]; onSelect: (r
   const width = 900;
   const height = 210;
   const pad = 24;
-  const max = Math.max(1, ...rows.flatMap((row) => [row.revenue, row.directExpenses + row.payroll + row.recurringCosts + row.serviceCharge, Math.abs(row.economicProfit)]));
+  const max = Math.max(1, ...rows.flatMap((row) => [row.revenue, row.directExpenses + row.payroll + row.recurringCosts + row.serviceCharge + (row.bonus ?? 0), Math.abs(row.economicProfit)]));
   const chartHeight = height - pad * 2;
   const barWidth = Math.max(3, Math.min(18, (width - pad * 2) / Math.max(1, rows.length) - 3));
 
@@ -49,7 +49,7 @@ function ProfitRibbon({ rows, onSelect }: { rows: DailyProfitRow[]; onSelect: (r
           const slot = (width - pad * 2) / Math.max(1, rows.length);
           const x = pad + index * slot + slot / 2;
           const revenueHeight = row.revenue / max * chartHeight / 2;
-          const costHeight = (row.directExpenses + row.payroll + row.recurringCosts + row.serviceCharge) / max * chartHeight / 2;
+          const costHeight = (row.directExpenses + row.payroll + row.recurringCosts + row.serviceCharge + (row.bonus ?? 0)) / max * chartHeight / 2;
           const profitY = height / 2 - row.economicProfit / max * chartHeight / 2;
           return (
             <g key={row.date} onClick={() => onSelect(row)} style={{ cursor: "pointer" }} tabIndex={0} role="button" aria-label={`${row.date}: ${money(row.economicProfit)} profit`}>
@@ -200,7 +200,7 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
             <Metric label="Result" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} margin · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
             <Metric label="Revenue" value={money(data.summary.revenue)} hint={`${data.daily.length} calendar days`} />
             <Metric label="Sheet expenses excl. HR" value={money(data.summary.directExpenses)} hint="Daily Accounting data" tone="bad" />
-            <Metric label="Added costs" value={money(data.summary.payroll + data.summary.recurringCosts + data.summary.serviceCharge)} hint="Salaries + fixed + service charge" tone="bad" />
+            <Metric label="Added costs" value={money(data.summary.payroll + data.summary.recurringCosts + data.summary.serviceCharge + (data.summary.bonus ?? 0))} hint="Salaries + fixed + service charge + bonus" tone="bad" />
           </div>
 
           <Card style={{ gap: 8 }}>
@@ -214,7 +214,7 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(260px,.8fr)]" style={{ gap: "var(--s-4)", alignItems: "start" }}>
             <Card flush>
               <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Daily detail</strong></div>
-              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Revenue", "Expenses", "Salaries", "Fixed costs", "Service charge", "Result", "Margin"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={{ ...tdNumber, color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)", fontWeight: 650 }}>{money(row.economicProfit)}</td><td style={tdNumber}>{pct(row.margin)}</td></tr>)}</tbody></table></div>
+              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Revenue", "Expenses", "Salaries", "Fixed costs", "Service charge", "Bonus", "Result", "Margin"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td><td style={{ ...tdNumber, color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)", fontWeight: 650 }}>{money(row.economicProfit)}</td><td style={tdNumber}>{pct(row.margin)}</td></tr>)}</tbody></table></div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
@@ -234,7 +234,7 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
         {selectedDay && <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{[
           ["Revenue (VAT incl.)", selectedDay.revenue, TrendingUpIcon], ["Daily operating expenses", selectedDay.directExpenses, TrendingDownIcon],
           ["Weighted salaries", selectedDay.payroll, WalletCardsIcon], ["Weighted fixed costs", selectedDay.recurringCosts, CalendarDaysIcon],
-          ["Calculated service charge", selectedDay.serviceCharge, CalculatorIcon], ["Result", selectedDay.economicProfit, selectedDay.economicProfit >= 0 ? TrendingUpIcon : TrendingDownIcon],
+          ["Calculated service charge", selectedDay.serviceCharge, CalculatorIcon], ["Challenge bonus", selectedDay.bonus ?? 0, WalletCardsIcon], ["Result", selectedDay.economicProfit, selectedDay.economicProfit >= 0 ? TrendingUpIcon : TrendingDownIcon],
           ["Cash received", selectedDay.cashIn, WalletCardsIcon], ["Cash paid", selectedDay.cashOut, WalletCardsIcon],
         ].map(([label, value, Icon]) => { const RowIcon = Icon as typeof TrendingUpIcon; return <div key={String(label)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingBottom: 10, borderBottom: "1px solid var(--line)" }}><span style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--fg-3)" }}><RowIcon size={14} />{String(label)}</span><strong className="mono">{money(Number(value))}</strong></div>; })}</div>}
       </Drawer>
@@ -261,7 +261,7 @@ function MethodologyPanel({ data }: { data: DailyProfitResponse }) {
     </div>
     <Card flush>
       <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Settings actually applied · {data.scope.label}</strong></div>
-      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td></tr>)}</tbody></table></div>}
+      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees", "Bonus"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td><td style={tdNumber}>{money(row.bonus)}</td></tr>)}</tbody></table></div>}
     </Card>
   </div>;
 }

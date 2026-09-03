@@ -19,6 +19,7 @@ interface MonthlyInputRow {
   other_fixed_amount: number;
   service_charge_rate_pct: number;
   employee_count: number;
+  bonus_amount?: number;
 }
 interface ConfigData { locations: LocationRow[]; monthlyInputs: MonthlyInputRow[]; }
 interface Props { open: boolean; onClose: () => void; onChanged: () => void; defaultDate: string; }
@@ -31,6 +32,7 @@ const emptyValues = {
   other_fixed_amount: "",
   service_charge_rate_pct: "1",
   employee_count: "",
+  bonus_amount: "",
 };
 
 export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate }: Props) {
@@ -73,6 +75,7 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
       other_fixed_amount: String(current.other_fixed_amount),
       service_charge_rate_pct: String(current.service_charge_rate_pct),
       employee_count: String(current.employee_count),
+      bonus_amount: String((current as { bonus_amount?: number }).bonus_amount ?? ""),
     });
   }, [current]);
 
@@ -134,6 +137,7 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
               <MoneyField label="Electricity" value={values.electricity_amount} onChange={(value) => setField("electricity_amount", value)} />
               <MoneyField label="Water" value={values.water_amount} onChange={(value) => setField("water_amount", value)} />
               <MoneyField label="Other fixed costs" value={values.other_fixed_amount} onChange={(value) => setField("other_fixed_amount", value)} />
+              <MoneyField label="Challenge bonus" value={String(values.bonus_amount ?? "")} onChange={(value) => setField("bonus_amount", value)} />
             </div>
           </section>
 

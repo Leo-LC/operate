@@ -91,6 +91,7 @@ export interface FinanceShopMonthlyInput {
   other_fixed_amount: number;
   service_charge_rate_pct: number;
   employee_count: number;
+  bonus_amount?: number;
 }
 
 export interface PayrollPeriod {
@@ -108,6 +109,7 @@ export interface DailyProfitRow {
   payroll: number;
   recurringCosts: number;
   serviceCharge: number;
+  bonus: number;
   adjustments: number;
   economicProfit: number;
   margin: number;
@@ -147,6 +149,7 @@ export interface DailyProfitResponse {
     payroll: number;
     recurringCosts: number;
     serviceCharge: number;
+    bonus: number;
     adjustments: number;
     totalCosts: number;
     economicProfit: number;
@@ -186,6 +189,7 @@ export interface DailyProfitResponse {
       otherFixed: number;
       serviceChargeRatePct: number;
       employeeCount: number;
+      bonus: number;
     }>;
   };
 }
