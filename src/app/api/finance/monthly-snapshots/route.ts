@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { requireFinanceOwner, requireFinanceRead } from "@/modules/finance/server";
+import { calcServiceCharge } from "@/modules/finance/lib/hr";
 
 
 
@@ -149,7 +150,7 @@ async function computePreview(supabase: ReturnType<typeof getSupabaseServerClien
     const revenue = revenueByLoc[id] ?? 0;
     const rate = rateByLoc.get(id) ?? 0;
     const empCount = countByLoc[id] ?? 0;
-    const serviceCharge = revenue * (rate / 100) * empCount;
+    const serviceCharge = calcServiceCharge(revenue, rate, empCount);
     return {
       location_id: id,
       location_name: (loc as { name: string }).name,

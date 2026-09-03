@@ -10,6 +10,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
 import { MonthSelector } from "@/modules/challenges/components/MonthSelector";
+import { calcPayroll } from "@/modules/finance/lib/hr";
 
 type Location = { id: string; name: string };
 type Cost = { id: string; label: string; category: string; location_id: string | null; estimated_amount: number; custom_allocations?: { amount_mode?: "fixed" | "variable"; support_type?: string | null }; is_active: boolean };
@@ -227,16 +228,17 @@ export function RecurringCostsClient() {
 
   const monthTotals = useMemo(() => {
     const ids = locationId === ALL_SHOPS ? locations.map((l) => l.id) : locationId ? [locationId] : [];
-    let recurring = 0, payroll = 0, service = 0, bonus = 0;
+    let recurring = 0, salaries = 0, service = 0, bonus = 0;
     for (const id of ids) {
       const d = getDisplayForLocation(id);
       if (!d) continue;
       recurring += Number((d as unknown as { recurring_costs_amount: number }).recurring_costs_amount ?? 0);
-      payroll += Number((d as unknown as { payroll_amount: number }).payroll_amount ?? 0);
+      salaries += Number((d as unknown as { payroll_amount: number }).payroll_amount ?? 0);
       service += Number((d as unknown as { service_charge_amount: number }).service_charge_amount ?? 0);
       bonus += Number((d as unknown as { challenge_bonus_amount: number }).challenge_bonus_amount ?? 0);
     }
-    return { recurring, payroll, service, bonus, grand: recurring + payroll + service + bonus };
+    const payroll = calcPayroll(salaries, service, bonus);
+    return { recurring, salaries, service, bonus, payroll, grand: recurring + payroll };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshots, preview, locationId, locations]);
 
@@ -379,32 +381,37 @@ export function RecurringCostsClient() {
         )}
       </div>
 
-      {/* Totals for selected month */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+      {/* Totals for selected month — Salaries vs Payroll distinction */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(165px,1fr))", gap: 10 }}>
         <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Recurring costs ({selectedMonth})</span>
           <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.recurring.toLocaleString()}</span>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{isAll ? `${locations.length} shops` : locationName}</span>
         </div>
         <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Payroll ({selectedMonth})</span>
-          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.payroll.toLocaleString()}</span>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaires du mois</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaries ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.salaries.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Base salaries</span>
         </div>
         <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Service charge ({selectedMonth})</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Service Charge ({selectedMonth})</span>
           <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.service.toLocaleString()}</span>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Calculé sur revenue</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Revenue × rate × staff</span>
         </div>
         <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Challenge bonus ({selectedMonth})</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus ({selectedMonth})</span>
           <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{monthTotals.bonus.toLocaleString()}</span>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Bonus gated</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Challenge gated</span>
+        </div>
+        <div style={{ padding: "10px 12px", border: "1px solid var(--bronze)", borderRadius: "var(--r-md)", background: "var(--bronze-soft, #fdf6e3)" }}>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Payroll ({selectedMonth})</span>
+          <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 700 }}>฿{monthTotals.payroll.toLocaleString()}</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Salaries + Service + Bonus</span>
         </div>
         <div style={{ padding: "10px 12px", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)", background: "var(--bg)" }}>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Grand total ({selectedMonth})</span>
           <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 700 }}>฿{monthTotals.grand.toLocaleString()}</span>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Feed Reports → Daily P&L</span>
+          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Recurring + Payroll → P&L</span>
         </div>
       </div>
 
@@ -414,8 +421,8 @@ export function RecurringCostsClient() {
           <strong style={{ fontSize: 12 }}>Ajuster le snapshot {selectedMonth} · {locationName}</strong>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
             <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Recurring<input value={snapshotEdit.recurring ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, recurring: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
-            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Payroll<input value={snapshotEdit.payroll ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, payroll: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
-            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Service charge<input value={snapshotEdit.service_charge ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, service_charge: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Salaries (base)<input value={snapshotEdit.payroll ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, payroll: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
+            <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Service Charge<input value={snapshotEdit.service_charge ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, service_charge: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
             <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Bonus<input value={snapshotEdit.bonus ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, bonus: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
             <label style={{ fontSize: 11, color: "var(--fg-3)" }}>SC rate %<input value={snapshotEdit.rate ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, rate: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" step="0.1" /></label>
             <label style={{ fontSize: 11, color: "var(--fg-3)" }}>Employees<input value={snapshotEdit.employees ?? ""} onChange={(e) => setSnapshotEdit((s) => ({ ...s, employees: e.target.value }))} style={{ ...FIELD, height: 32 }} type="number" /></label>
