@@ -550,7 +550,7 @@ export function RecurringCostsClient() {
                     <strong style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{employee.name}</strong>
                     <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{employee.position ?? "Employee"}</span>
                   </div>
-                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--fg-3)" }}>฿<input type="number" min="0" step="100" disabled={!canManage || savingSalary} value={raw} onChange={(event) => setSalaryDraft((prev) => ({ ...prev, [employee.id]: event.target.value }))} style={{ ...FIELD, width: 130, height: 32 }} /></label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--fg-3)" }}>฿<input type="number" min="0" step="1" disabled={!canManage || savingSalary} value={raw} onChange={(event) => setSalaryDraft((prev) => ({ ...prev, [employee.id]: event.target.value }))} style={{ ...FIELD, width: 130, height: 32 }} /></label>
                   {changed && <span style={{ fontSize: 10, color: "var(--bronze-2, var(--bronze))" }}>changed</span>}
                 </div>
               );

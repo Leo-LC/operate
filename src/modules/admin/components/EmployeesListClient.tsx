@@ -93,7 +93,7 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
         </select>
       </label>
       <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>{salaryLabel}
-        <input type="number" min="0" step="100" value={form.base_salary_monthly} onChange={(event) => onChange("base_salary_monthly", event.target.value)} style={SIMPLE_INPUT} placeholder="e.g. 15000" />
+        <input type="number" min="0" step="1" value={form.base_salary_monthly} onChange={(event) => onChange("base_salary_monthly", event.target.value)} style={SIMPLE_INPUT} placeholder="e.g. 15000" />
         {salaryHint && <span style={{ fontSize: 10, color: "var(--fg-4)" }}>{salaryHint}</span>}
       </label>
       <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Service charge %
@@ -143,7 +143,7 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
           {selected && (
             <>
               <button type="button" onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(location.id); }} style={{ fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "2px 4px", background: isPrimary ? "var(--bronze)" : "transparent", color: isPrimary ? "#fff" : "var(--fg-4)", border: "none", cursor: "pointer" }} title={isPrimary ? "Primary location" : "Set as primary"}>{isPrimary ? "PRIMARY" : "set primary"}</button>
-              <input type="number" min="0" step="100" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
+              <input type="number" min="0" step="1" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
               <label onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: "var(--fg-3)" }}>
                 <input type="checkbox" checked={locationEligible[location.id] ?? true} onChange={(e) => onEligibleChange(location.id, e.target.checked)} />
                 SC

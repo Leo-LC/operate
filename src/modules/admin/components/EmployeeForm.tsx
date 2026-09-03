@@ -161,7 +161,7 @@ export function EmployeeForm({
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 170 }}>
             <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Base salary / month (฿)</label>
-            <input type="number" min="0" step="100" value={form.base_salary_monthly} onChange={(e) => onChange("base_salary_monthly", e.target.value)} style={inputStyle} placeholder="e.g. 15000" />
+            <input type="number" min="0" step="1" value={form.base_salary_monthly} onChange={(e) => onChange("base_salary_monthly", e.target.value)} style={inputStyle} placeholder="e.g. 15000" />
             {form.base_salary_monthly && (
               <p className="mono" style={{ fontSize: 10, color: "var(--fg-4)" }}>
                 ≈ ฿{(parseFloat(form.base_salary_monthly) / 208).toFixed(0)}/hr (÷208h)
@@ -279,7 +279,7 @@ export function EmployeeForm({
                         <input
                           type="number"
                           min="0"
-                          step="100"
+                          step="1"
                           value={locationSalaries[loc.id] ?? ""}
                           onChange={(e) => onSalaryChange(loc.id, e.target.value)}
                           placeholder="฿/mo"
