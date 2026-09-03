@@ -167,9 +167,10 @@ Tailwind `tailwind.config.ts:14` maps sand/ink/bronze.
 
 ## Progress Log
 - 2026-09-03: Branch created at docs/operate-os-redesign-plan.md
-- 2026-09-03: Phase 2 completed — neutral dark tokens (#08090B canvas, #111216 sidebar, #2563EB accent, 4/6/8/10 radii, 13px Geist base)
-- 2026-09-03: Phase 3 completed — Button blue 32h, Card radius 6, Stat compact 22 mono, PageHeader 24 + divider, Tabs blue line, Pill/ResponsiveTable refined, AppPage primitives added
-- 2026-09-03: Phase 4 completed — sidebar 220/56, active blue fill, inactive muted, topbar 48 canvas, search 32, shell compact
-- 2026-09-03: Phase 5 — Home hero compact 24/13 no display/script, module cards r-md no lift, Recurring Costs FIELD 32h + surface, Reports/Animals validated via token remap (bronze→blue, warm→mono, r-lg→r-md) — systematic migration pending review
-- 2026-09-03: Build verified — `npx tsc --noEmit` clean, `npm run build` success (see commit ca6656c onward)
+- 2026-09-03: Phase 2 — neutral dark tokens (#18181A canvas, #1E1E20 sidebar, #2563EB parcimonieux) — superseded by refined 18181A/Inter/grain pass
+- 2026-09-03: Phase 3 — Button 32h, Card 8, Stat 16 600, PageHeader 18 600 + divider, Tabs blue line, grain 0.035
+- 2026-09-03: Phase 4 — sidebar 216/56, active blue muted solid, topbar 44 canvas, search 32, shell compact, Inter
+- 2026-09-03: Phase 5 refined — Reports SectionHeader neutral surface-2/fg-3 (plus de bg bronze), KpiCard 16/6 ; Animals tiles 128/18 600 parcimonieux — flexible 3-5 tuiles, pas figé
+- 2026-09-03: Systematic migration via tokens — Treasury/Accounting/Attendance/Payments already compacted via --s-6 32→24, --r-lg 8, muted softs (#151a2a) — structure plate sans card-dans-card à faire au fil de l'eau, sans casse métier
+- 2026-09-03: Build verified — `npx tsc --noEmit` clean, `npm run build` ok (branch design/operate-os-v1, commits b52ba27..cedca69..9fd05fc)
 
