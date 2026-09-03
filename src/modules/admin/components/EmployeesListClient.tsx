@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PageHeader } from "@/components/ui/page-header";
-import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, THAI_BANKS, type EmployeeFormState } from "./EmployeeForm";
 
@@ -207,6 +207,7 @@ export function EmployeesListClient({ locations }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("first_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [shopFilter, setShopFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const shopFiltered = useMemo(() => {
     if (!shopFilter) return employees;
@@ -216,8 +217,21 @@ export function EmployeesListClient({ locations }: Props) {
     });
   }, [employees, shopFilter]);
 
+  const searchFiltered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return shopFiltered;
+    return shopFiltered.filter((emp) => {
+      const haystack = [
+        emp.first_name, emp.last_name, emp.position ?? "", emp.nationality ?? "",
+        emp.location_name ?? "", emp.email ?? "", emp.phone ?? "",
+        ...(emp.employee_locations ?? []).map((el) => el.location_name),
+      ].join(" ").toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [shopFiltered, searchQuery]);
+
   const sorted = useMemo(() => {
-    const arr = [...shopFiltered];
+    const arr = [...searchFiltered];
     const dir = sortDir === "asc" ? 1 : -1;
     arr.sort((a, b) => {
       let cmp = 0;
@@ -244,7 +258,7 @@ export function EmployeesListClient({ locations }: Props) {
       return cmp * dir;
     });
     return arr;
-  }, [shopFiltered, sortKey, sortDir]);
+  }, [searchFiltered, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -502,7 +516,27 @@ export function EmployeesListClient({ locations }: Props) {
         }
       />
 
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <SearchIcon size={14} style={{ position: "absolute", left: 9, color: "var(--fg-4)", pointerEvents: "none" }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search employee…"
+            style={{
+              height: 32, paddingLeft: 28, paddingRight: searchQuery ? 28 : 10,
+              borderRadius: "var(--r-md)", border: "1px solid var(--line)",
+              background: "var(--surface)", color: "var(--fg)", fontSize: 13,
+              width: 220, outline: "none",
+            }}
+          />
+          {searchQuery && (
+            <button type="button" onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex", padding: 2 }}>
+              <XIcon size={14} />
+            </button>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setShopFilter(null)}
@@ -547,7 +581,7 @@ export function EmployeesListClient({ locations }: Props) {
           locationEligible={formEligible}
           submitting={submitting}
           activeShopId={shopFilter}
-          readOnlyShops={!!shopFilter}
+          readOnlyShops={false}
           onChange={(key, val) => {
             setForm((prev) => ({ ...prev, [key]: val }));
             if (key === "base_salary_monthly" && shopFilter && formLocIds.has(shopFilter)) {
@@ -614,7 +648,7 @@ export function EmployeesListClient({ locations }: Props) {
                         locationEligible={editEligible}
                         submitting={submitting}
                         activeShopId={shopFilter}
-                        readOnlyShops
+                        readOnlyShops={false}
                         onChange={(key, val) => {
                           setEditForm((prev) => ({ ...prev, [key]: val }));
                           if (key === "base_salary_monthly") {
@@ -653,6 +687,9 @@ export function EmployeesListClient({ locations }: Props) {
           )}
           {employees.length > 0 && shopFiltered.length === 0 && (
             <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees at this shop.</div>
+          )}
+          {employees.length > 0 && shopFiltered.length > 0 && sorted.length === 0 && (
+            <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees match “{searchQuery}”.</div>
           )}
         </div>
       )}
