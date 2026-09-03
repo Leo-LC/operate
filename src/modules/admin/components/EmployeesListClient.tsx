@@ -73,11 +73,15 @@ function primarySalary(emp: Employee): number | null {
   return perLoc[0]?.base_salary_monthly ?? emp.base_salary_monthly;
 }
 
-function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, locationEligible, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onEligibleChange, onSubmit, onCancel, submitLabel }: {
+function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, locationEligible, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onEligibleChange, onSubmit, onCancel, submitLabel, activeShopId, readOnlyShops }: {
   form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; locationSalaries: Record<string, string>; locationEligible: Record<string, boolean>; submitting: boolean;
   onChange: (key: keyof FormState, value: string | boolean) => void; onToggleLoc: (id: string) => void;
   onSetPrimary: (id: string) => void; onSalaryChange: (id: string, value: string) => void; onEligibleChange: (id: string, value: boolean) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
+  activeShopId?: string | null; readOnlyShops?: boolean;
 }) {
+  const activeShopName = activeShopId ? locations.find((l) => l.id === activeShopId)?.name ?? null : null;
+  const salaryLabel = activeShopName ? `Base salary at ${activeShopName} (฿)` : "Base salary / month (฿)";
+  const salaryHint = activeShopName ? `Updates salary for ${activeShopName} only` : undefined;
   return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
       <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>First name
@@ -88,8 +92,9 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
           {NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality || "Select nationality"}</option>)}
         </select>
       </label>
-      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Base salary / month (฿)
+      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>{salaryLabel}
         <input type="number" min="0" step="100" value={form.base_salary_monthly} onChange={(event) => onChange("base_salary_monthly", event.target.value)} style={SIMPLE_INPUT} placeholder="e.g. 15000" />
+        {salaryHint && <span style={{ fontSize: 10, color: "var(--fg-4)" }}>{salaryHint}</span>}
       </label>
       <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Service charge %
         <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(event) => onChange("service_charge_pct", event.target.value)} style={SIMPLE_INPUT} placeholder="Shop default" />
@@ -105,10 +110,19 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
         Eligible for service charge
       </label>
     </div>
-    <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shops {readOnlyShops && <span style={{ fontSize: 10, color: "var(--fg-4)", fontWeight: 400 }}>(read-only)</span>}</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {locations.map((location) => {
         const selected = locIds.has(location.id);
         const isPrimary = primaryLoc === location.id && selected;
+        // Read-only: show only assigned shops as static pills
+        if (readOnlyShops) {
+          if (!selected) return null;
+          return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 12, color: "var(--fg-3)" }}>
+            <span style={{ fontWeight: 500, color: isPrimary ? "var(--bronze)" : "var(--fg-3)" }}>{location.name}{isPrimary ? " ★ primary" : ""}</span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{locationSalaries[location.id] ? `฿${Number(locationSalaries[location.id]).toLocaleString()}/mo` : ""}</span>
+            <span style={{ fontSize: 11, color: (locationEligible[location.id] ?? true) ? "var(--good)" : "var(--bad)" }}>{(locationEligible[location.id] ?? true) ? "SC" : "no SC"}</span>
+          </div>;
+        }
         return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)" }}>
           <button type="button" onClick={() => onToggleLoc(location.id)} aria-pressed={selected} style={{ padding: "3px 0", background: "transparent", border: "none", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}</button>
           {selected && (
@@ -123,7 +137,9 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
           )}
         </div>;
       })}
-    </div></div>
+    </div>
+    {readOnlyShops && locIds.size === 0 && <p style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 6 }}>No shop assigned.</p>}
+    </div>
     <div style={{ display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={submitting}>{submitting ? "Saving…" : submitLabel}</Button><Button type="button" size="sm" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button></div>
   </form>;
 }
@@ -248,7 +264,6 @@ export function EmployeesListClient({ locations }: Props) {
 
   function startEdit(emp: Employee) {
     setEditingId(emp.id);
-    setEditForm(empToForm(emp));
     const locIds = new Set((emp.employee_locations ?? []).map((el) => el.location_id));
     setEditLocIds(locIds);
     const primary = emp.employee_locations?.find((el) => el.is_primary)?.location_id ?? emp.location_id ?? "";
@@ -261,6 +276,18 @@ export function EmployeesListClient({ locations }: Props) {
     }
     setEditSalaries(salaries);
     setEditEligible(eligible);
+    // Main fields (salary + SC) are contextual: show values for the currently filtered shop if any
+    const base = empToForm(emp);
+    if (shopFilter && locIds.has(shopFilter)) {
+      base.base_salary_monthly = salaries[shopFilter] ?? (emp.base_salary_monthly != null ? String(emp.base_salary_monthly) : "");
+      base.service_charge_eligible = eligible[shopFilter] ?? (emp.service_charge_eligible ?? true);
+    } else if (primary && salaries[primary]) {
+      base.base_salary_monthly = salaries[primary];
+      base.service_charge_eligible = eligible[primary] ?? (emp.service_charge_eligible ?? true);
+    } else if (primary && eligible[primary] !== undefined) {
+      base.service_charge_eligible = eligible[primary];
+    }
+    setEditForm(base);
   }
 
   function toggleLoc(
@@ -313,6 +340,14 @@ export function EmployeesListClient({ locations }: Props) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      // Main fields (salary + SC eligible) are contextual to the active shop filter:
+      const effectiveSalaries: Record<string, string> = { ...formSalaries };
+      const effectiveEligibleAdd: Record<string, boolean> = { ...formEligible };
+      const targetAddId = shopFilter && formLocIds.has(shopFilter) ? shopFilter : formPrimaryLoc || Array.from(formLocIds)[0];
+      if (targetAddId) {
+        if (form.base_salary_monthly) effectiveSalaries[targetAddId] = form.base_salary_monthly;
+        if (typeof form.service_charge_eligible === "boolean") effectiveEligibleAdd[targetAddId] = form.service_charge_eligible;
+      }
       const res = await fetch("/api/admin/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -326,8 +361,8 @@ export function EmployeesListClient({ locations }: Props) {
           service_charge_eligible: form.service_charge_eligible,
           location_ids: Array.from(formLocIds),
           primary_location_id: formPrimaryLoc || undefined,
-          location_salaries: formSalaries,
-          location_service_charge_eligible: formEligible,
+          location_salaries: effectiveSalaries,
+          location_service_charge_eligible: effectiveEligibleAdd,
         }),
       });
       if (!res.ok) {
@@ -349,6 +384,13 @@ export function EmployeesListClient({ locations }: Props) {
     if (!editingId) return;
     setSubmitting(true);
     try {
+      const effectiveEditSalaries: Record<string, string> = { ...editSalaries };
+      const effectiveEditEligible: Record<string, boolean> = { ...editEligible };
+      const targetEditId = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc || Array.from(editLocIds)[0];
+      if (targetEditId) {
+        effectiveEditSalaries[targetEditId] = editForm.base_salary_monthly ?? "";
+        if (typeof editForm.service_charge_eligible === "boolean") effectiveEditEligible[targetEditId] = editForm.service_charge_eligible;
+      }
       const res = await fetch(`/api/admin/employees/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -361,8 +403,8 @@ export function EmployeesListClient({ locations }: Props) {
           service_charge_eligible: editForm.service_charge_eligible,
           location_ids: Array.from(editLocIds),
           primary_location_id: editPrimaryLoc || null,
-          location_salaries: editSalaries,
-          location_service_charge_eligible: editEligible,
+          location_salaries: effectiveEditSalaries,
+          location_service_charge_eligible: effectiveEditEligible,
         }),
       });
       if (!res.ok) {
@@ -421,7 +463,15 @@ export function EmployeesListClient({ locations }: Props) {
       <PageHeader
         title="Employees"
         actions={
-          <Button size="sm" onClick={() => { setShowAdd((v) => !v); setEditingId(null); }}>
+          <Button size="sm" onClick={() => {
+            const next = !showAdd;
+            setShowAdd(next);
+            setEditingId(null);
+            if (next && shopFilter) {
+              setFormLocIds(new Set([shopFilter]));
+              setFormPrimaryLoc(shopFilter);
+            }
+          }}>
             <PlusIcon className="size-4" />
             Add employee
           </Button>
@@ -472,7 +522,17 @@ export function EmployeesListClient({ locations }: Props) {
           locationSalaries={formSalaries}
           locationEligible={formEligible}
           submitting={submitting}
-          onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
+          activeShopId={shopFilter}
+          readOnlyShops={!!shopFilter}
+          onChange={(key, val) => {
+            setForm((prev) => ({ ...prev, [key]: val }));
+            if (key === "base_salary_monthly" && shopFilter && formLocIds.has(shopFilter)) {
+              setFormSalaries((prev) => ({ ...prev, [shopFilter]: val as string }));
+            }
+            if (key === "service_charge_eligible" && shopFilter && formLocIds.has(shopFilter)) {
+              setFormEligible((prev) => ({ ...prev, [shopFilter]: val as boolean }));
+            }
+          }}
           onToggleLoc={(id) => toggleLoc(formLocIds, setFormLocIds, formPrimaryLoc, setFormPrimaryLoc, id)}
           onSetPrimary={setFormPrimaryLoc}
           onSalaryChange={(id, val) => setFormSalaries((prev) => ({ ...prev, [id]: val }))}
@@ -529,7 +589,19 @@ export function EmployeesListClient({ locations }: Props) {
                         locationSalaries={editSalaries}
                         locationEligible={editEligible}
                         submitting={submitting}
-                        onChange={(key, val) => setEditForm((prev) => ({ ...prev, [key]: val }))}
+                        activeShopId={shopFilter}
+                        readOnlyShops
+                        onChange={(key, val) => {
+                          setEditForm((prev) => ({ ...prev, [key]: val }));
+                          if (key === "base_salary_monthly") {
+                            const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
+                            if (target) setEditSalaries((prev) => ({ ...prev, [target]: val as string }));
+                          }
+                          if (key === "service_charge_eligible") {
+                            const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
+                            if (target) setEditEligible((prev) => ({ ...prev, [target]: val as boolean }));
+                          }
+                        }}
                         onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, editPrimaryLoc, setEditPrimaryLoc, id)}
                         onSetPrimary={setEditPrimaryLoc}
                         onSalaryChange={(id, val) => setEditSalaries((prev) => ({ ...prev, [id]: val }))}
