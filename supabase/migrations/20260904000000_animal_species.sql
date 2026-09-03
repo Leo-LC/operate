@@ -17,19 +17,19 @@ CREATE INDEX IF NOT EXISTS animal_species_org_active ON animal_species(organizat
 
 -- Seed default species (Capybara, Meerkat)
 INSERT INTO animal_species (organization_id, key, label, sort_order) VALUES
-  ('a1b2c3d4-0000-0000-0000-000000000001', 'capybara', 'Capybara', 1),
-  ('a1b2c3d4-0000-0000-0000-000000000001', 'meerkat',  'Meerkat',  2)
+  ('a1b2c3d4-0000-0000-0000-000000000001'::uuid, 'capybara', 'Capybara', 1),
+  ('a1b2c3d4-0000-0000-0000-000000000001'::uuid, 'meerkat',  'Meerkat',  2)
 ON CONFLICT (organization_id, key) DO NOTHING;
 
 -- Backfill any distinct species already used in animals that are not yet in the list
 INSERT INTO animal_species (organization_id, key, label, sort_order)
 SELECT DISTINCT
-  'a1b2c3d4-0000-0000-0000-000000000001',
+  'a1b2c3d4-0000-0000-0000-000000000001'::uuid,
   lower(trim(species)),
   initcap(trim(species)),
   100
 FROM animals
-WHERE organization_id = 'a1b2c3d4-0000-0000-0000-000000000001'
+WHERE organization_id = 'a1b2c3d4-0000-0000-0000-000000000001'::uuid
   AND trim(species) <> ''
-  AND lower(trim(species)) NOT IN (SELECT key FROM animal_species WHERE organization_id = 'a1b2c3d4-0000-0000-0000-000000000001')
+  AND lower(trim(species)) NOT IN (SELECT key FROM animal_species WHERE organization_id = 'a1b2c3d4-0000-0000-0000-000000000001'::uuid)
 ON CONFLICT (organization_id, key) DO NOTHING;
