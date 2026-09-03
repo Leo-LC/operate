@@ -14,6 +14,10 @@ export async function requireFinanceRead() {
 export async function requireFinanceOwner() {
   const auth = await requireFinanceRead();
   if (auth.error) return auth;
-  if (auth.permissions.global_role !== "owner") return { error: Response.json({ error: "Owner access required" }, { status: 403 }) };
+  if (auth.permissions.global_role !== "owner" && auth.permissions.global_role !== "admin") return { error: Response.json({ error: "Owner access required" }, { status: 403 }) };
   return auth;
+}
+
+export async function requireFinanceManage() {
+  return requireFinanceOwner();
 }

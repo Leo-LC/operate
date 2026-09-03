@@ -16,7 +16,7 @@ export async function GET() {
     employeeCount: (employees.data ?? []).filter((employee) => employee.location_id === location.id).length,
     recurringMonthly: (costs.data ?? []).filter((cost) => cost.location_id === location.id).reduce((sum, cost) => sum + Number(cost.estimated_amount ?? 0), 0),
   }]));
-  return Response.json({ locations: locations.data ?? [], settings: settings.data ?? [], summaries, canManage: auth.permissions.global_role === "owner" });
+  return Response.json({ locations: locations.data ?? [], settings: settings.data ?? [], summaries, canManage: auth.permissions.global_role === "owner" || auth.permissions.global_role === "admin" });
 }
 
 export async function POST(request: Request) {

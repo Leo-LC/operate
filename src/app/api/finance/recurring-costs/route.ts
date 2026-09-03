@@ -2,7 +2,20 @@ import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireFinanceOwner, requireFinanceRead } from "@/modules/finance/server";
 
-const CATEGORIES = new Set(["rent", "utilities", "marketing", "support_workers", "other"]);
+const DEFAULT_CATEGORIES = new Set(["rent", "utilities", "marketing", "support_workers", "other"]);
+const CATEGORY_LABELS: Record<string, string> = { rent: "Rent", utilities: "Utilities", marketing: "Marketing", support_workers: "Support workers", other: "Accounting" };
+
+function normalizeCategory(value: string): string | null {
+  const slug = value.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "").slice(0, 32);
+  if (!slug || slug.length < 2) return null;
+  if (!/^[a-z]/.test(slug)) return null;
+  return slug;
+}
+
+function labelForCategory(value: string): string {
+  if (CATEGORY_LABELS[value]) return CATEGORY_LABELS[value];
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export async function GET(request: Request) {
   const auth = await requireFinanceRead();
@@ -11,6 +24,11 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
   let query = supabase.from("finance_cost_rules").select("*").eq("organization_id", DEFAULT_ORG_ID).neq("category", "legacy_fixed_expenses").order("created_at", { ascending: false });
   if (locationId) query = query.eq("location_id", locationId);
+  let categoriesResult: { data: { slug: string; label: string }[] | null; error: unknown } = { data: null, error: null };
+  try {
+    const res = await supabase.from("finance_cost_categories").select("slug,label").eq("organization_id", DEFAULT_ORG_ID).order("label");
+    categoriesResult = res as unknown as typeof categoriesResult;
+  } catch { categoriesResult = { data: null, error: null }; }
   const [{ data: locations, error: locationsError }, { data, error }, { data: employees, error: employeesError }] = await Promise.all([
     supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     query,
@@ -45,7 +63,16 @@ export async function GET(request: Request) {
     }
   }
   employeeList?.sort((a, b) => a.name.localeCompare(b.name));
-  return Response.json({ locations: locations ?? [], costs: data ?? [], salaries, employees: employeeList ?? [], canManage: auth.permissions.global_role === "owner" });
+  // Build categories list: defaults + distinct from costs + explicit registry
+  const distinctFromCosts = new Set((data ?? []).map((r: { category: string }) => r.category));
+  const registry = categoriesResult.data ?? [];
+  const categorySet = new Set<string>([...Array.from(DEFAULT_CATEGORIES), ...Array.from(distinctFromCosts), ...registry.map((r) => r.slug)]);
+  const categories = Array.from(categorySet).map((value) => {
+    const reg = registry.find((r) => r.slug === value);
+    return { value, label: reg?.label ?? CATEGORY_LABELS[value] ?? labelForCategory(value) };
+  }).sort((a, b) => a.label.localeCompare(b.label));
+  const canManage = auth.permissions.global_role === "owner" || auth.permissions.global_role === "admin";
+  return Response.json({ locations: locations ?? [], costs: data ?? [], salaries, employees: employeeList ?? [], categories, canManage });
 }
 
 export async function POST(request: Request) {
@@ -53,12 +80,28 @@ export async function POST(request: Request) {
   if (auth.error) return auth.error;
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON" }, { status: 400 }); }
-  const category = String(body.category ?? "");
+  let category = String(body.category ?? "").trim().toLowerCase();
+  // Handle custom category creation
+  if (body.custom_category) {
+    const normalized = normalizeCategory(String(body.custom_category));
+    if (!normalized) return Response.json({ error: "Invalid custom category name" }, { status: 400 });
+    category = normalized;
+    // Persist new category globally if not exists
+    const supabaseCat = getSupabaseServerClient();
+    const customLabel = String(body.custom_label ?? body.custom_category).trim() || labelForCategory(category);
+    await supabaseCat.from("finance_cost_categories").upsert({ organization_id: DEFAULT_ORG_ID, slug: category, label: customLabel }, { onConflict: "organization_id,slug" });
+  } else {
+    const normalized = normalizeCategory(category);
+    if (!normalized) return Response.json({ error: "Choose a shop, category and valid amount" }, { status: 400 });
+    category = normalized;
+  }
   const supportType = body.support_type ? String(body.support_type) : null;
-  const label = category === "support_workers" ? `Support workers · ${supportType === "bookings" ? "Bookings" : supportType === "social_media_and_bookings" ? "Social media + bookings" : "Social media"}` : category.charAt(0).toUpperCase() + category.slice(1);
+  const label = category === "support_workers" ? `Support workers · ${supportType === "bookings" ? "Bookings" : supportType === "social_media_and_bookings" ? "Social media + bookings" : "Social media"}` : labelForCategory(category);
   const amount = Number(body.estimated_amount); const locationId = body.location_id ? String(body.location_id) : null;
   const amountMode = body.amount_mode === "variable" ? "variable" : "fixed";
-  if (!locationId || !CATEGORIES.has(category) || !Number.isFinite(amount) || amount < 0) return Response.json({ error: "Choose a shop, category and valid amount" }, { status: 400 });
+  if (!locationId || !Number.isFinite(amount) || amount < 0) return Response.json({ error: "Choose a shop, category and valid amount" }, { status: 400 });
+  // Validate category: allow any normalized slug, but ensure it exists in registry or defaults or just created
+  // No strict set check anymore — custom categories are allowed
   const effectiveFrom = `${new Date().toISOString().slice(0, 7)}-01`;
   const reason = "Saved from the simplified recurring costs register";
   const supabase = getSupabaseServerClient();
