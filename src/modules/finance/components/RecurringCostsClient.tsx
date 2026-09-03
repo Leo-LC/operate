@@ -31,7 +31,10 @@ export function RecurringCostsClient() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ category: "rent", support_type: "social_media", amount: "", amount_mode: "fixed" as "fixed" | "variable", customCategory: "" });
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [editCustomCategory, setEditCustomCategory] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [payrollOpen, setPayrollOpen] = useState(false);
   const [salaryDraft, setSalaryDraft] = useState<Record<string, string>>({});
   const [savingSalary, setSavingSalary] = useState(false);
@@ -89,15 +92,45 @@ export function RecurringCostsClient() {
     if (!canManage) return;
     setShowForm(false);
     setEditing({ id: cost.id, label: cost.label, category: cost.category, amount: String(cost.estimated_amount), amount_mode: cost.custom_allocations?.amount_mode ?? "fixed", support_type: cost.custom_allocations?.support_type ?? null });
+    setEditCustomCategory("");
+    setConfirmDeleteId(null);
   }
 
   async function saveEdit(event: React.FormEvent) {
-    event.preventDefault(); if (!editing) return; setSaving(true);
+    event.preventDefault(); if (!editing) return;
+    const isNewCat = editing.category === NEW_CATEGORY;
+    if (isNewCat && !editCustomCategory.trim()) { toast.error("Enter a category name"); return; }
+    setSaving(true);
     try {
-      const response = await fetch(`/api/finance/recurring-costs/${editing.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estimated_amount: Number(editing.amount), custom_allocations: { amount_mode: editing.amount_mode, ...(editing.support_type ? { support_type: editing.support_type } : {}) }, reason: "Edited from the simplified recurring costs register" }) });
+      const payload: Record<string, unknown> = {
+        estimated_amount: Number(editing.amount),
+        custom_allocations: { amount_mode: editing.amount_mode, ...(editing.support_type ? { support_type: editing.support_type } : {}) },
+        reason: "Edited from the simplified recurring costs register",
+      };
+      if (isNewCat) {
+        payload.custom_category = editCustomCategory.trim();
+        payload.custom_label = editCustomCategory.trim();
+        payload.label = editing.label.trim() || editCustomCategory.trim();
+      } else {
+        payload.category = editing.category;
+        payload.label = editing.label.trim();
+      }
+      const response = await fetch(`/api/finance/recurring-costs/${editing.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await response.json(); if (!response.ok) throw new Error(json.error ?? "Unable to save cost");
-      setEditing(null); toast.success("Monthly cost updated"); await load();
+      setEditing(null); setEditCustomCategory(""); toast.success("Monthly cost updated"); await load();
     } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save cost"); } finally { setSaving(false); }
+  }
+
+  async function deleteCost(id: string) {
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/finance/recurring-costs/${id}?reason=${encodeURIComponent("Deleted from recurring costs register")}`, { method: "DELETE" });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((json as { error?: string }).error ?? "Unable to delete");
+      toast.success("Cost deleted");
+      setEditing(null); setConfirmDeleteId(null);
+      await load();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to delete"); } finally { setDeleting(false); }
   }
 
   function openPayroll() {
@@ -166,13 +199,30 @@ export function RecurringCostsClient() {
     </form></Card> : null}
 
     {editing ? <Card><form onSubmit={saveEdit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
-      <div style={{ fontSize: 12, color: "var(--fg-3)" }}><span style={{ display: "block", marginBottom: 6 }}>Category</span><span style={{ ...FIELD, display: "flex", alignItems: "center", background: "var(--surface-2, var(--bg))", opacity: 0.7 }}>{categoryLabels[editing.category] ?? editing.category}</span><span style={{ fontSize: 11, color: "var(--fg-4)" }}>Cannot be changed after creation</span></div>
-      <div style={{ fontSize: 12, color: "var(--fg-3)" }}><span style={{ display: "block", marginBottom: 6 }}>Name</span><span style={{ ...FIELD, display: "flex", alignItems: "center", background: "var(--surface-2, var(--bg))", opacity: 0.7 }}>{editing.label}</span></div>
+      <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Category<select value={editing.category} onChange={(event) => setEditing({ ...editing, category: event.target.value })} style={FIELD}>
+        {categories.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        <option value={NEW_CATEGORY}>＋ New category…</option>
+      </select></label>
+      {editing.category === NEW_CATEGORY ? <label style={{ fontSize: 12, color: "var(--fg-3)" }}>New category name<input required value={editCustomCategory} onChange={(event) => setEditCustomCategory(event.target.value)} placeholder="e.g. Insurance" style={FIELD} /></label> : null}
+      <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Name<input required value={editing.label} onChange={(event) => setEditing({ ...editing, label: event.target.value })} style={FIELD} /></label>
+      {editing.category === "support_workers" ? <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Support type<select value={editing.support_type ?? "social_media"} onChange={(event) => setEditing({ ...editing, support_type: event.target.value })} style={FIELD}><option value="social_media">Social media</option><option value="bookings">Bookings</option><option value="social_media_and_bookings">Social media + bookings</option></select></label> : null}
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>Monthly amount (฿)<input required type="number" min="0" step="0.01" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: event.target.value })} style={FIELD} /></label>
       <fieldset style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}><legend style={{ marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Does the amount change?</legend><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {(["fixed", "variable"] as const).map((mode) => <PillButton key={mode} active={editing.amount_mode === mode} onClick={() => setEditing({ ...editing, amount_mode: mode })}>{mode === "fixed" ? "Same each month" : "Variable each month"}</PillButton>)}
       </div></fieldset>
-      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button><Button type="button" size="sm" variant="secondary" onClick={() => setEditing(null)}>Cancel</Button></div>
+      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+        <Button type="button" size="sm" variant="secondary" onClick={() => { setEditing(null); setEditCustomCategory(""); setConfirmDeleteId(null); }}>Cancel</Button>
+        {confirmDeleteId === editing.id ? (
+          <span style={{ display: "inline-flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
+            <span style={{ fontSize: 12, color: "var(--fg-3)" }}>Êtes-vous sûr ?</span>
+            <Button type="button" size="sm" variant="destructive" disabled={deleting} onClick={() => void deleteCost(editing.id)}>{deleting ? "Deleting…" : "Confirm delete"}</Button>
+            <Button type="button" size="sm" variant="secondary" disabled={deleting} onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+          </span>
+        ) : (
+          <Button type="button" size="sm" variant="destructive" style={{ marginLeft: "auto" }} onClick={() => setConfirmDeleteId(editing.id)}>Delete expense</Button>
+        )}
+      </div>
     </form></Card> : null}
 
     {isAll ? (
@@ -205,16 +255,6 @@ export function RecurringCostsClient() {
             ))}
           </div>
         </Card>
-        {costs.length > 0 ? (
-          <Card style={{ gap: 8 }}><strong style={{ fontSize: 13 }}>All lines</strong>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
-              {costs.map((cost) => {
-                const locName = locations.find((l) => l.id === cost.location_id)?.name ?? "—";
-                return <Card key={cost.id} onClick={() => startEdit(cost)} style={{ gap: 6, cursor: "pointer" }} className="hover:!border-[var(--line-strong)]"><span style={{ fontSize: 11, color: "var(--fg-4)" }}>{categoryLabels[cost.category] ?? cost.category} · {locName}</span><strong style={{ fontSize: 14 }}>{cost.label}</strong><span className="mono" style={{ fontSize: 18 }}>฿{Number(cost.estimated_amount).toLocaleString()}</span></Card>;
-              })}
-            </div>
-          </Card>
-        ) : null}
       </div>
     ) : (
       <>
