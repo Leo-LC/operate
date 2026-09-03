@@ -664,12 +664,12 @@ export function PaymentsClient({ initialLocations }: Props) {
                 style={{
                   display: "grid", gridTemplateColumns: COL_GRID,
                   padding: "12px var(--s-4)", alignItems: "center", gap: 12,
-                  borderTop: "2px solid var(--line)", background: "var(--bronze-soft)",
+                  borderTop: "2px solid var(--line)", background: "var(--surface-2)",
                   fontWeight: 600, fontSize: 13,
                 }}
               >
                 <div />
-                <div style={{ color: "var(--bronze)", fontWeight: 600 }}>Total</div>
+                <div style={{ color: "var(--fg-3)", fontWeight: 600 }}>Total</div>
                 <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
                   {totals.base > 0 ? fmtThb(totals.base) : "—"}
                 </div>
@@ -679,7 +679,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 <div className="mono tabular-nums" style={{ textAlign: "right", color: totals.adj !== 0 ? (totals.adj > 0 ? "var(--good)" : "var(--bad)") : "var(--fg-4)" }}>
                   {totals.adj !== 0 ? `${totals.adj > 0 ? "+" : "−"}${fmtThb(Math.abs(totals.adj))}` : "—"}
                 </div>
-                <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 15, color: "var(--bronze)" }}>
+                <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 15, color: "var(--fg-3)" }}>
                   {fmtThb(totals.total)}
                 </div>
                 <div />
