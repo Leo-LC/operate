@@ -12,7 +12,7 @@ function Card({
       data-slot="card"
       className={cn(
         "flex flex-col overflow-hidden text-sm",
-        "bg-[var(--surface)] text-[var(--fg)]",
+        "bg-transparent text-[var(--fg)]",
         "border border-[var(--line)]",
         "rounded-[var(--r-lg)]",
         !flush && "p-4",

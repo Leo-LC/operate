@@ -371,7 +371,7 @@ export function TreasuryClient() {
           { label: "Free cash",             value: freeCash,              color: statusColor },
         ].map(({ label, value, color }) => (
           <div key={label} style={{
-            borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)",
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent",
             padding: "14px 16px",
           }}>
             <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--fg-4)" }}>{label}</p>

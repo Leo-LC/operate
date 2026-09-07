@@ -223,9 +223,9 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         }
       />
 
-      {/* Shop selector (same pattern as shop settings) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <span style={{ fontSize: 12, color: "var(--fg-3)" }}>View</span>
+      {/* Shop selector — fond plus clair englobant */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--fg-4)" }}>View</span>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <PillButton active={!shopFilter} onClick={() => setShopFilter("")}>All shops</PillButton>
           {locations.map((l) => (
@@ -239,18 +239,18 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
           {/* Summary cards — dynamic per species */}
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(128px, 1fr))`, gap: 10 }}>
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 14px" }}>
+            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: "12px 14px" }}>
               <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Animals</p>
               <p className="mono" style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{displayedAnimals.length}</p>
             </div>
             {speciesCards.map((sp) => (
-              <div key={sp.key} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 14px" }}>
+              <div key={sp.key} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: "12px 14px" }}>
                 <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4, textTransform: "capitalize" }}>{sp.label}</p>
                 <p className="mono" style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{speciesCounts.get(sp.key) ?? 0}</p>
               </div>
             ))}
             {speciesCards.length === 0 && (
-              <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 14px", opacity: 0.6 }}>
+              <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: "12px 14px", opacity: 0.6 }}>
                 <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Species</p>
                 <p className="mono" style={{ fontSize: 18, fontWeight: 600 }}>—</p>
               </div>
