@@ -1,37 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import localFont from "next/font/local";
-import { JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { getOrgTheme } from "@/lib/theme";
 
-const sans = localFont({
-  src: "../../public/brand/fonts/satoshi/Fonts/WEB/fonts/Satoshi-Variable.woff2",
+const sans = Inter({
+  subsets: ["latin"],
   variable: "--font-sans",
-  weight: "300 900",
-  display: "swap",
-});
-
-const serif = localFont({
-  src: "../../public/brand/fonts/cabinet_grotesk/Fonts/WEB/fonts/CabinetGrotesk-Variable.woff2",
-  variable: "--font-serif",
-  weight: "100 900",
-  display: "swap",
-});
-
-const display = localFont({
-  src: "../../public/brand/fonts/the_next_southerland/Next Southerland Serif.ttf",
-  variable: "--font-display",
-  weight: "400 600",
-  display: "swap",
-});
-
-const script = localFont({
-  src: "../../public/brand/fonts/the_next_southerland/Next Southerland Script.ttf",
-  variable: "--font-script",
-  weight: "400",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -65,11 +43,8 @@ export default async function RootLayout({
       lang="en"
       data-theme={orgTheme}
       className={cn(
-        "font-sans",
+        "font-sans dark",
         sans.variable,
-        serif.variable,
-        display.variable,
-        script.variable,
         mono.variable,
       )}
       suppressHydrationWarning

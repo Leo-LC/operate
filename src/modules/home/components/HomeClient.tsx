@@ -147,46 +147,43 @@ export function HomeClient({ name, permissions, docsAlert, animalsAlert, snippet
   const showPulse = (permissions.global_role === "owner" || permissions.global_role === "admin") && pulseStats.length > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-7)" }}>
-      {/* Greeting hero */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+      {/* Greeting hero — compact OS */}
       <div
         style={{
-          borderRadius: "var(--r-lg)",
+          borderRadius: "var(--r-md)",
           border: "1px solid var(--line)",
           background: "var(--surface)",
-          padding: "var(--s-6) var(--s-6)",
+          padding: "16px 20px",
         }}
       >
-        <span className="eyebrow" style={{ color: "var(--fg-4)", display: "block", marginBottom: 8 }}>
+        <span className="eyebrow" style={{ color: "var(--fg-4)", display: "block", marginBottom: 4 }}>
           {today}
         </span>
         <h1
           style={{
             margin: 0,
-            fontSize: 40,
-            fontWeight: 400,
-            fontStyle: "italic",
+            fontSize: 24,
+            fontWeight: 700,
             color: "var(--fg)",
-            fontFamily: "var(--font-display)",
-            letterSpacing: "-0.005em",
-            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2,
           }}
         >
           {timeGreeting()}, {firstName}.
         </h1>
         <p
-          className="script"
           style={{
             margin: 0,
-            marginTop: 10,
-            fontSize: 28,
-            color: "var(--bronze)",
-            lineHeight: 1,
+            marginTop: 4,
+            fontSize: 13,
+            color: "var(--fg-3)",
+            lineHeight: 1.4,
           }}
         >
           {totalAlerts > 0
-            ? `${totalAlerts} item${totalAlerts !== 1 ? "s" : ""} need your eye today.`
-            : "Everything looks good — sharp eye today."}
+            ? `${totalAlerts} item${totalAlerts !== 1 ? "s" : ""} need attention today.`
+            : "Everything normal — no alerts."}
         </p>
       </div>
 
@@ -274,22 +271,14 @@ export function HomeClient({ name, permissions, docsAlert, animalsAlert, snippet
                       style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: "var(--s-4)",
-                        borderRadius: "var(--r-lg)",
+                        gap: 12,
+                        borderRadius: "var(--r-md)",
                         border: `1px solid ${alert ? "var(--warn)" : "var(--line)"}`,
                         background: alert ? "var(--warn-soft)" : "var(--surface)",
-                        padding: "var(--s-5)",
+                        padding: 16,
                         height: "100%",
-                        transition: "all var(--dur-2) var(--ease)",
+                        transition: "border-color var(--dur) var(--ease)",
                         boxSizing: "border-box",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                        (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-2)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.transform = "none";
-                        (e.currentTarget as HTMLElement).style.boxShadow = "none";
                       }}
                     >
                       {/* Icon + arrow */}
@@ -369,23 +358,23 @@ export function HomeClient({ name, permissions, docsAlert, animalsAlert, snippet
               {toolsModules.map((mod) => {
                 const Icon = mod.icon;
                 return (
-                  <Link
+                    <Link
                     key={mod.key}
                     href={mod.href}
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
-                      borderRadius: "var(--r-lg)",
+                      borderRadius: "var(--r-sm)",
                       border: "1px solid var(--line)",
                       background: "var(--surface)",
-                      padding: "var(--s-2) var(--s-3)",
-                      fontSize: 13, color: "var(--fg)",
+                      padding: "6px 10px",
+                      fontSize: 12, color: "var(--fg-3)",
                       textDecoration: "none",
                       transition: "all var(--dur) var(--ease)",
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
                   >
-                    <Icon style={{ width: 14, height: 14 }} />
+                    <Icon style={{ width: 13, height: 13 }} />
                     <span>{mod.label}</span>
                   </Link>
                 );

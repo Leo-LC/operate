@@ -104,9 +104,9 @@ function Section({ title, action, children }: { title: string; action?: React.Re
     <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", overflow: "hidden" }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 20px", borderBottom: "1px solid var(--line)", background: "var(--surface-2)",
+        padding: "10px 16px", borderBottom: "1px solid var(--line)", background: "var(--surface-2)",
       }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{title}</h3>
+        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--fg-3)", letterSpacing: "-0.01em" }}>{title}</h3>
         {action}
       </div>
       {children}
@@ -149,13 +149,13 @@ function CashPositionRow({
   }
 
   return (
-    <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--line)" }}>
+    <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{shortName}</p>
           {!editing && (
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--fg-4)" }}>
-              Cash: {thb(pos?.cash_on_hand)} · Transfer: {thb(pos?.expected_transfer)}
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--fg-4)" }}>
+              Cash: <span className="mono tabular-nums">{thb(pos?.cash_on_hand)}</span> · Transfer: <span className="mono tabular-nums">{thb(pos?.expected_transfer)}</span>
               {pos?.last_count_date ? ` · Last count: ${pos.last_count_date}` : ""}
             </p>
           )}
@@ -362,20 +362,20 @@ export function TreasuryClient() {
         subtitle="Cash position, bank accounts, and reserve obligations."
       />
 
-      {/* Top summary cards */}
+      {/* Top summary — compact tiles 16/8 as ref */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Cash in shops",        value: totalCash,             color: "var(--fg)" },
           { label: "Bank balance declared", value: totalBank,             color: "var(--fg)" },
-          { label: "Reserved obligations",  value: totalReserved,         color: "var(--warn)" },
+          { label: "Reserved obligations",  value: totalReserved,         color: "var(--fg-3)" },
           { label: "Free cash",             value: freeCash,              color: statusColor },
         ].map(({ label, value, color }) => (
           <div key={label} style={{
-            borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)",
-            padding: "var(--s-5)",
+            borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent",
+            padding: "14px 16px",
           }}>
-            <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--fg-4)" }}>{label}</p>
-            <p className="mono tabular-nums" style={{ margin: 0, fontSize: 22, fontWeight: 700, color }}>{thb(value)}</p>
+            <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--fg-4)" }}>{label}</p>
+            <p className="mono tabular-nums" style={{ margin: 0, fontSize: 18, fontWeight: 600, color, letterSpacing: "-0.015em" }}>{thb(value)}</p>
           </div>
         ))}
       </div>

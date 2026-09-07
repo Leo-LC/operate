@@ -5,18 +5,18 @@ export type PillTone = "neutral" | "bronze" | "good" | "warn" | "bad" | "info" |
 type PillSize = "sm" | "md"
 
 const TONE_STYLES: Record<PillTone, string> = {
-  neutral: "bg-[var(--bg-2)] text-[var(--fg-3)] border-[var(--line)]",
-  bronze:  "bg-[var(--bronze-soft)] text-[var(--bronze-2)] border-transparent",
-  good:    "bg-[var(--good-soft)] text-[var(--good)] border-transparent",
-  warn:    "bg-[var(--warn-soft)] text-[var(--warn)] border-transparent",
-  bad:     "bg-[var(--bad-soft)] text-[var(--bad)] border-transparent",
-  info:    "bg-[var(--info-soft)] text-[var(--info)] border-transparent",
+  neutral: "bg-[var(--surface-2)] text-[var(--fg-3)] border-[var(--line)]",
+  bronze:  "bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--line)]",
+  good:    "bg-[var(--good-soft)] text-[var(--good)] border border-[var(--good)]/20",
+  warn:    "bg-[var(--warn-soft)] text-[var(--warn)] border border-[var(--warn)]/20",
+  bad:     "bg-[var(--bad-soft)] text-[var(--bad)] border border-[var(--bad)]/20",
+  info:    "bg-[var(--info-soft)] text-[var(--info)] border border-[var(--info)]/20",
   outline: "bg-transparent text-[var(--fg-3)] border-[var(--line-strong)]",
 }
 
 const DOT_COLORS: Record<PillTone, string> = {
   neutral: "bg-[var(--fg-4)]",
-  bronze:  "bg-[var(--bronze)]",
+  bronze:  "bg-[var(--accent)]",
   good:    "bg-[var(--good)]",
   warn:    "bg-[var(--warn)]",
   bad:     "bg-[var(--bad)]",

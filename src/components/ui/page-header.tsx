@@ -19,7 +19,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-4 pb-6",
+        "flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-[var(--line)] mb-4",
         className,
       )}
       {...props}
@@ -30,10 +30,11 @@ export function PageHeader({
         )}
         <h1
           style={{
-            fontSize: "clamp(22px, 4vw, 28px)",
-            fontWeight: 500,
+            fontSize: 18,
+            fontWeight: 600,
             color: "var(--fg)",
             lineHeight: 1.2,
+            letterSpacing: "-0.01em",
             margin: 0,
           }}
         >
@@ -42,9 +43,10 @@ export function PageHeader({
         {subtitle && (
           <p
             style={{
-              fontSize: "var(--t-13)",
+              fontSize: 13,
               color: "var(--fg-3)",
               marginTop: 2,
+              lineHeight: 1.4,
             }}
           >
             {subtitle}

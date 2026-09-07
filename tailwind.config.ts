@@ -36,27 +36,32 @@ const config: Config = {
           ring:               "var(--sidebar-ring)",
         },
 
-        /* ── Design tokens: surfaces ── */
+        /* ── Core surfaces (dark spec) ── */
+        canvas:   "var(--canvas)",
+        surface:  "var(--surface)",
+        "surface-raised": "var(--surface-raised)",
+        "surface-2": "var(--surface-2)",
+        bg:       "var(--bg)",
+        "bg-2":   "var(--bg-2)",
+
+        /* ── Legacy aliases (kept for compat, map to new tokens) ── */
         sand:     "var(--sand)",
         "sand-2": "var(--sand-2)",
         wheat:    "var(--wheat)",
         paper:    "var(--paper)",
         "paper-2": "var(--paper-2)",
-
-        /* ── Design tokens: ink ── */
         ink:    "var(--ink)",
         "ink-2": "var(--ink-2)",
         "ink-3": "var(--ink-3)",
         "ink-4": "var(--ink-4)",
         "ink-5": "var(--ink-5)",
         stone:  "var(--stone)",
-
-        /* ── Design tokens: accent ── */
         bronze:       "var(--bronze)",
         "bronze-2":   "var(--bronze-2)",
         "bronze-soft": "var(--bronze-soft)",
 
-        /* ── Design tokens: status ── */
+        /* ── Accent / status ── */
+        "accent-soft": "var(--accent-soft)",
         good:       "var(--good)",
         "good-soft": "var(--good-soft)",
         warn:       "var(--warn)",
@@ -66,16 +71,12 @@ const config: Config = {
         info:       "var(--info)",
         "info-soft": "var(--info-soft)",
 
-        /* ── Design tokens: semantic ── */
+        /* ── Semantic fg ── */
         fg:         "var(--fg)",
         "fg-2":     "var(--fg-2)",
         "fg-3":     "var(--fg-3)",
         "fg-4":     "var(--fg-4)",
         "fg-mute":  "var(--fg-mute)",
-        bg:         "var(--bg)",
-        "bg-2":     "var(--bg-2)",
-        surface:    "var(--surface)",
-        "surface-2": "var(--surface-2)",
       },
       borderRadius: {
         /* Design radius tokens */

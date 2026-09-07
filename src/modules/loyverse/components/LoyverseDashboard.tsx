@@ -578,8 +578,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <span className="text-xs font-medium text-[var(--fg-3)]">Period:</span>
           <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Shops</span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <ShopPills locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
         </div>
       </div>
@@ -599,9 +598,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           ))}
         </div>
       ) : kpi ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <Card>
-            <CardContent>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Revenue"
                 value={fmtTHB(kpi.revenue_total)}
@@ -613,8 +612,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Customers"
                 value={fmtInt(kpi.ticket_count)}
@@ -626,8 +625,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Snacks"
                 value={fmtTHB(snackAmount)}
@@ -637,8 +636,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Merch"
                 value={fmtTHB(merchAmount)}
@@ -650,8 +649,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="VAT collected"
                 value={fmtTHB(kpi.vat_7)}
@@ -785,14 +784,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                   isSelected && "ring-2 ring-[var(--bronze)] ring-offset-0 border-[var(--bronze)]"
                 )}
               >
-                <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] bg-[var(--bg-2)] px-4 py-3 transition-colors group-hover:bg-[var(--bronze-soft)]/30">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex size-7 items-center justify-center rounded-full bg-[var(--bronze-soft)] text-[10px] font-bold text-[var(--bronze)]">
-                      {store.account_key.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-bold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
-                    </div>
+                <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
                   </div>
                   {isDegraded && (
                     <Pill tone="warn" size="sm" dot>
@@ -802,21 +796,21 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 </div>
 
                 <CardContent className="space-y-3 pt-3">
-                  <div className="grid grid-cols-2 gap-2 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-2">
-                    <div className="text-center">
-                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Revenue</p>
-                      <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtTHB(store.revenue_total)}</p>
+                  <div className="grid grid-cols-2 gap-0 divide-x divide-[var(--line)] border-b border-[var(--line)]">
+                    <div className="px-2 py-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Revenue</p>
+                      <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--fg)]">{fmtTHB(store.revenue_total)}</p>
                       {fmtDelta(deltas.rev) ? (
-                        <p className="font-mono text-[11px] font-semibold tabular-nums" style={{ color: deltas.rev !== null && deltas.rev >= 0 ? "var(--good)" : "var(--bad)" }}>{fmtDelta(deltas.rev)}</p>
+                        <p className="font-mono text-[11px] tabular-nums" style={{ color: deltas.rev !== null && deltas.rev >= 0 ? "var(--good-muted)" : "var(--bad-muted)" }}>{fmtDelta(deltas.rev)}</p>
                       ) : (
                         <p className="text-[10px] text-[var(--fg-4)]">—</p>
                       )}
                     </div>
-                    <div className="text-center border-l border-[var(--line)]">
-                      <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Merch</p>
-                      <p className="font-mono text-[13px] font-bold tabular-nums text-[var(--fg)]">{fmtTHB(store.buckets.goodies)}</p>
+                    <div className="px-2 py-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Merch</p>
+                      <p className="font-mono text-[13px] font-semibold tabular-nums text-[var(--fg)]">{fmtTHB(store.buckets.goodies)}</p>
                       {fmtDelta(deltas.merch) ? (
-                        <p className="font-mono text-[11px] font-semibold tabular-nums" style={{ color: deltas.merch !== null && deltas.merch >= 0 ? "var(--good)" : "var(--bad)" }}>{fmtDelta(deltas.merch)}</p>
+                        <p className="font-mono text-[11px] tabular-nums" style={{ color: deltas.merch !== null && deltas.merch >= 0 ? "var(--good-muted)" : "var(--bad-muted)" }}>{fmtDelta(deltas.merch)}</p>
                       ) : (
                         <p className="text-[10px] text-[var(--fg-4)]">—</p>
                       )}
@@ -836,19 +830,24 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                     ))}
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--good-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--good)]">
-                      Cash {fmtTHB(store.payments.cash)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--info-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--info)]">
-                      Scan {fmtTHB(store.payments.scan)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bronze-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--bronze)]">
-                      Card {fmtTHB(store.payments.credit_card)}
-                      {store.buckets.surcharge > 0 && (
-                        <span className="ml-1 rounded-full bg-white/70 px-1 py-0 text-[10px] leading-none">incl. {fmtTHB(store.buckets.surcharge)} fees</span>
-                      )}
-                    </span>
+                  <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
+                    <div className="flex items-center justify-between py-1.5">
+                      <span className="text-[11px] text-[var(--fg-4)]">Cash</span>
+                      <span className="font-mono text-[12px] font-medium tabular-nums text-[var(--fg-2)]">{fmtTHB(store.payments.cash)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1.5">
+                      <span className="text-[11px] text-[var(--fg-4)]">Scan</span>
+                      <span className="font-mono text-[12px] font-medium tabular-nums text-[var(--fg-2)]">{fmtTHB(store.payments.scan)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1.5">
+                      <span className="text-[11px] text-[var(--fg-4)]">Card</span>
+                      <span className="font-mono text-[12px] font-medium tabular-nums text-[var(--fg-2)]">
+                        {fmtTHB(store.payments.credit_card)}
+                        {store.buckets.surcharge > 0 && (
+                          <span className="ml-2 text-[10px] text-[var(--fg-4)]">incl. {fmtTHB(store.buckets.surcharge)} fees</span>
+                        )}
+                      </span>
+                    </div>
                   </div>
 
                   {failingAccount?.error && (

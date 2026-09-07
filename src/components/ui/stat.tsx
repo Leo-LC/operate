@@ -20,7 +20,7 @@ export function Stat({
   hint,
   sparkline,
   icon,
-  iconColor = "var(--bronze)",
+  iconColor = "var(--accent)",
   className,
   ...props
 }: StatProps) {
@@ -32,19 +32,17 @@ export function Stat({
         : "var(--fg-4)"
 
   return (
-    <div className={cn("flex flex-col gap-1", className)} {...props}>
-      <div className="flex items-center gap-2">
+    <div className={cn("flex flex-col flex-1", className)} {...props} style={{ minHeight: 72, ...props.style }}>
+      <div className="flex items-center gap-1.5">
         {icon && (
           <span
             style={{
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 36,
-              height: 36,
-              borderRadius: "var(--r-pill)",
-              background: `color-mix(in srgb, ${iconColor} 16%, transparent)`,
-              color: iconColor,
+              width: 14,
+              height: 14,
+              color: "var(--fg-4)",
               flexShrink: 0,
             }}
           >
@@ -53,12 +51,13 @@ export function Stat({
         )}
         <span
           style={{
-            fontSize: 11,
-            letterSpacing: "0.06em",
+            fontSize: 10,
+            letterSpacing: "0.07em",
             textTransform: "uppercase",
             fontWeight: 500,
             color: "var(--fg-4)",
             fontFamily: "var(--font-sans)",
+            lineHeight: 1,
           }}
         >
           {label}
@@ -67,29 +66,34 @@ export function Stat({
       <span
         className="mono tabular-nums"
         style={{
-          fontSize: "var(--t-24)",
-          fontWeight: 600,
+          fontSize: 22,
+          fontWeight: 700,
           color: "var(--fg)",
-          lineHeight: 1,
+          lineHeight: 1.1,
+          letterSpacing: "-0.02em",
+          marginTop: 8,
         }}
       >
         {value}
       </span>
-      {delta && (
+      {delta ? (
         <span
           className="mono tabular-nums"
           style={{
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: 11,
+            fontWeight: 500,
             color: deltaColor,
             lineHeight: 1,
+            marginTop: 4,
           }}
         >
           {delta}
         </span>
+      ) : (
+        <span style={{ marginTop: 4, height: 11 }} aria-hidden />
       )}
-      {sparkline && <div className="mt-1">{sparkline}</div>}
-      {hint && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{hint}</span>}
+      {sparkline && <div style={{ marginTop: 6 }}>{sparkline}</div>}
+      {hint && <span style={{ fontSize: 11, color: "var(--fg-4)", lineHeight: 1.3, marginTop: "auto", paddingTop: 8 }}>{hint}</span>}
     </div>
   )
 }

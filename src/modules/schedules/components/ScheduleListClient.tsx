@@ -357,7 +357,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                 <th
                   key={i}
                   style={{
-                    padding: "10px var(--s-5)", textAlign: i === 3 ? "right" : "left",
+                    padding: "8px 14px", textAlign: i === 3 ? "right" : "left",
                     color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
                     borderBottom: "1px solid var(--line)",
                     width: i === 3 ? 120 : undefined,
@@ -377,7 +377,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
               >
-                <td style={{ padding: "12px var(--s-5)", fontWeight: 500 }}>
+                <td style={{ padding: "10px 14px", fontWeight: 500 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <CalendarIcon style={{ width: 13, height: 13, color: "var(--fg-4)", flexShrink: 0 }} />
                     {s.name}
@@ -389,9 +389,9 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                     )}
                   </div>
                 </td>
-                <td style={{ padding: "12px var(--s-5)", color: "var(--fg-3)" }}>{s.location_name ?? "—"}</td>
-                <td style={{ padding: "12px var(--s-5)", color: "var(--fg-3)" }}>{weekLabel(s.week_start_date)}</td>
-                <td style={{ padding: "12px var(--s-5)" }} onClick={(e) => e.stopPropagation()}>
+                <td style={{ padding: "10px 14px", color: "var(--fg-3)" }}>{s.location_name ?? "—"}</td>
+                <td style={{ padding: "10px 14px", color: "var(--fg-3)" }}>{weekLabel(s.week_start_date)}</td>
+                <td style={{ padding: "10px 14px" }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
                     <Button size="icon" variant="ghost" title="Duplicate" disabled={submitting} onClick={() => openDuplicate(s)}>
                       <CopyIcon style={{ width: 13, height: 13 }} />

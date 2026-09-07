@@ -46,7 +46,7 @@ type Preview = {
 
 const ALL_SHOPS = "all";
 const NEW_CATEGORY = "__new__";
-const FIELD: React.CSSProperties = { height: 38, border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", padding: "0 11px", fontSize: 13, width: "100%" };
+const FIELD: React.CSSProperties = { height: 32, border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--surface)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%" };
 
 function bangkokMonth(): string {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).formatToParts(new Date());
@@ -259,15 +259,15 @@ export function RecurringCostsClient() {
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader eyebrow="Finance" title="Recurring costs" subtitle="The few costs each shop expects every month." actions={canManage ? <Button size="sm" onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null} />
-    <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>Shop</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       <PillButton active={isAll} onClick={() => setLocationId(ALL_SHOPS)}>All shops</PillButton>
       {locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}
-    </div></Card>
+    </div>
 
-    <Card style={{ gap: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-      <span style={{ fontSize: 12, color: "var(--fg-3)", fontWeight: 500 }}>Month</span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--fg-4)" }}>Month</span>
       <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
-    </Card>
+    </div>
 
     {showForm ? <Card><form onSubmit={save} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
       <label style={{ fontSize: 12, color: "var(--fg-3)" }}>What is it?<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} style={FIELD}>

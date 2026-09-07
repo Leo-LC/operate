@@ -91,7 +91,7 @@ export function DocumentsCalendar({ documents, onEdit }: Props) {
                   borderRight: colIdx === 6 ? "none" : "1px solid var(--line)",
                   display: "flex", flexDirection: "column", gap: 2,
                   cursor: due.length > 0 ? "pointer" : "default",
-                  background: isSelected ? "var(--bronze-soft)" : "var(--surface)",
+                  background: isSelected ? "color-mix(in srgb, var(--accent) 8%, var(--surface))" : "var(--surface)",
                   transition: "background 150ms",
                 }}
               >

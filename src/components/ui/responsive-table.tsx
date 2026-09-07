@@ -19,7 +19,7 @@ export function ResponsiveTable({
   return (
     <div
       className={cn(
-        "overflow-x-auto -mx-3 md:mx-0 rounded-[var(--r-lg)] border border-[var(--line)]",
+        "overflow-x-auto -mx-3 md:mx-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]",
         "[&>table]:w-full [&>table]:min-w-[var(--rt-min)]",
         className
       )}

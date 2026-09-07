@@ -638,21 +638,21 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {withAbsence.map((s, i) => (
-                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "10px var(--s-5)", borderTop: i > 0 ? "1px solid var(--line)" : undefined }}>
+                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "8px 14px", borderTop: i > 0 ? "1px solid var(--line)" : undefined }}>
                       <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--bad)", flexShrink: 0 }} />
                       <span style={{ fontSize: 13, fontWeight: 500, minWidth: 140 }}>{s.employee_name}</span>
                       <span style={{ fontSize: 12, color: "var(--bad)" }}>{s.absence_days} absence{s.absence_days > 1 ? "s" : ""}</span>
                     </div>
                   ))}
                   {withUnpaid.map((s, i) => (
-                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "10px var(--s-5)", borderTop: (i > 0 || withAbsence.length > 0) ? "1px solid var(--line)" : undefined }}>
+                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "8px 14px", borderTop: (i > 0 || withAbsence.length > 0) ? "1px solid var(--line)" : undefined }}>
                       <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--warn)", flexShrink: 0 }} />
                       <span style={{ fontSize: 13, fontWeight: 500, minWidth: 140 }}>{s.employee_name}</span>
                       <span style={{ fontSize: 12, color: "var(--warn)" }}>{s.totalUnpaidDays}d unpaid leave</span>
                     </div>
                   ))}
                   {withOt.map((s, i) => (
-                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "10px var(--s-5)", borderTop: (i > 0 || withAbsence.length > 0 || withUnpaid.length > 0) ? "1px solid var(--line)" : undefined }}>
+                    <div key={s.employee_id} style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", padding: "8px 14px", borderTop: (i > 0 || withAbsence.length > 0 || withUnpaid.length > 0) ? "1px solid var(--line)" : undefined }}>
                       <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--info)", flexShrink: 0 }} />
                       <span style={{ fontSize: 13, fontWeight: 500, minWidth: 140 }}>{s.employee_name}</span>
                       <span style={{ fontSize: 12, color: "var(--info)" }}>{s.totalOtHours}h OT</span>
