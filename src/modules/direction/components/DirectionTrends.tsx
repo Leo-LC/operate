@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PillButton } from "@/components/ui/pill-button";
-import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
+import { useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
 function fmtM(n: number) {
   return `${(n / 1_000_000).toFixed(2)}M`;
@@ -33,7 +33,6 @@ export function DirectionTrends() {
   const expPct = pct(aug.exp26, aug.exp25);
   const salesPct = pct(aug.sales26, aug.sales25);
   const maxSales = Math.max(...PLACEHOLDER.map((p) => Math.max(p.sales26, p.sales25)), 1);
-  const { from, to } = useDirectionPeriod();
 
   // Boutiques — persistant via hook
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
@@ -80,13 +79,6 @@ export function DirectionTrends() {
           ))}
         </div>
       )}
-
-      {/* Période affichée bien visible — persistante */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm">
-        <span className="font-medium">Période affichée : </span>
-        <span className="font-mono">{from} → {to}</span>
-        <span className="ml-2 text-xs text-[var(--fg-4)]">vs même période N-1 (placeholder)</span>
-      </div>
 
       {/* Cartes résumé — Ventes / Dépenses seulement, vs montant sous le % */}
       <div className="grid grid-cols-2 gap-3">
