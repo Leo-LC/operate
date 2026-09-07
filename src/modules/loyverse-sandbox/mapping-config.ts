@@ -17,6 +17,7 @@ export const CATEGORY_NAME_TO_BUCKET: Record<string, SalesBucket> = {
   merch: "goodies",
   merchandise: "goodies",
   souvenir: "goodies",
+  capybara: "goodies",
 };
 
 /**
