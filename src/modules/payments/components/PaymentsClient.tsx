@@ -7,6 +7,7 @@ import {
   PrinterIcon, XIcon, EyeIcon, ListIcon, PlusIcon, Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Stat } from "@/components/ui/stat";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -382,17 +383,11 @@ export function PaymentsClient({ initialLocations }: Props) {
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             {/* Location selector */}
-            <select
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              style={{
-                height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-                background: "var(--surface)", color: "var(--fg)",
-                padding: "0 var(--s-3)", fontSize: 13, fontFamily: "var(--font-sans)", outline: "none",
-              }}
-            >
-              {initialLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {initialLocations.map((l) => (
+                <PillButton key={l.id} active={locationId === l.id} onClick={() => setLocationId(l.id)}>{l.name}</PillButton>
+              ))}
+            </div>
 
             {/* Month nav */}
             <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -495,7 +490,7 @@ export function PaymentsClient({ initialLocations }: Props) {
           <div
             key={s.label}
             style={{
-              background: "var(--surface)", border: "1px solid var(--line)",
+              background: "transparent", border: "1px solid var(--line)",
               borderRadius: "var(--r-lg)", padding: "var(--s-4)",
             }}
           >
@@ -524,7 +519,7 @@ export function PaymentsClient({ initialLocations }: Props) {
             <div
               style={{
                 display: "grid", gridTemplateColumns: COL_GRID,
-                padding: "10px var(--s-4)", background: "var(--bg-2)",
+                padding: "10px var(--s-4)", background: "transparent",
                 borderBottom: "1px solid var(--line)", gap: 12, alignItems: "center",
               }}
             >
@@ -664,7 +659,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 style={{
                   display: "grid", gridTemplateColumns: COL_GRID,
                   padding: "12px var(--s-4)", alignItems: "center", gap: 12,
-                  borderTop: "2px solid var(--line)", background: "var(--surface-2)",
+                  borderTop: "2px solid var(--line)", background: "transparent",
                   fontWeight: 600, fontSize: 13,
                 }}
               >
@@ -697,7 +692,7 @@ export function PaymentsClient({ initialLocations }: Props) {
         <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--s-4)", minHeight: 480 }}>
           {/* Left: employee list */}
           <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
-            <div style={{ padding: "10px var(--s-4)", background: "var(--bg-2)", borderBottom: "1px solid var(--line)", fontSize: 11, color: "var(--fg-4)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div style={{ padding: "10px var(--s-4)", background: "transparent", borderBottom: "1px solid var(--line)", fontSize: 11, color: "var(--fg-4)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Employees · {rows.filter(r => r.record).length}
             </div>
             {rows.filter(r => r.record).map(({ employee: emp, record }) => {
@@ -739,7 +734,7 @@ export function PaymentsClient({ initialLocations }: Props) {
             <div
               style={{
                 border: "1px solid var(--line)", borderRadius: "var(--r-lg)",
-                background: "var(--surface)", display: "flex", flexDirection: "column",
+                background: "transparent", display: "flex", flexDirection: "column",
               }}
             >
               {/* Header */}

@@ -111,7 +111,7 @@ export function EmployeeForm({
   submitLabel: string;
 }) {
   return (
-    <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+    <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Basic info */}
       <div>
         <p className="eyebrow" style={{ ...sectionStyle, color: "var(--fg-4)" }}>Basic info</p>

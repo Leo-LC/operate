@@ -15,7 +15,7 @@ const BACKDROP: React.CSSProperties = {
 const PANEL: React.CSSProperties = {
   width: "100%", maxWidth: 400,
   borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-  background: "var(--surface)", padding: 20,
+  background: "transparent", padding: 20,
   boxShadow: "var(--shadow-2)",
 };
 

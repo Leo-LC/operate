@@ -30,7 +30,7 @@ function weekLabel(weekStart: string): string {
 export function ReviewsChart({ data, loading }: ReviewsChartProps) {
   if (loading) {
     return (
-      <div className="flex h-56 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+      <div className="flex h-56 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
         <div className="h-32 w-full animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)] mx-6" />
       </div>
     );
@@ -38,7 +38,7 @@ export function ReviewsChart({ data, loading }: ReviewsChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-56 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+      <div className="flex h-56 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
         <span className="text-sm text-[var(--fg-4)]">No reviews this month.</span>
       </div>
     );
@@ -51,7 +51,7 @@ export function ReviewsChart({ data, loading }: ReviewsChartProps) {
   }));
 
   return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
       <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
         Reviews per week
       </p>

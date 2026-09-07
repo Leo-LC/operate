@@ -23,7 +23,7 @@ function weekLabel(weekStart: string): string {
 export function WeeklyLineChart({ data, loading }: WeeklyLineChartProps) {
   if (loading) {
     return (
-      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
         <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
           Submissions by week
         </p>
@@ -34,7 +34,7 @@ export function WeeklyLineChart({ data, loading }: WeeklyLineChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
         <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
           Submissions by week
         </p>
@@ -51,7 +51,7 @@ export function WeeklyLineChart({ data, loading }: WeeklyLineChartProps) {
   }));
 
   return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
       <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
         Submissions by week
       </p>

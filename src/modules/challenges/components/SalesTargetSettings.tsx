@@ -96,7 +96,7 @@ export function SalesTargetSettings() {
           const parsed = raw === "" ? null : Number(raw);
           const isOverride = parsed !== null && parsed !== shop.default;
           return (
-            <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-3" style={{ padding: "10px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)" }}>
+            <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-3" style={{ padding: "10px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "transparent" }}>
               <div className="flex flex-col">
                 <span className="text-xs font-medium text-[var(--fg)]">{shop.name}</span>
                 <span className="text-[11px] text-[var(--fg-4)]">

@@ -164,7 +164,7 @@ export function CustomerInsightsClient() {
         </label>
       </div>
 
-      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-5">
+      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-5">
         <Stat
           label="Total submissions"
           value={loading ? "—" : (data?.totalSubmissions ?? 0).toLocaleString()}

@@ -113,7 +113,7 @@ function ChartShell({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
       <div className="mb-3">
         <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">{title}</p>
         {subtitle && <p className="mt-1 text-xs text-[var(--fg-4)]">{subtitle}</p>}

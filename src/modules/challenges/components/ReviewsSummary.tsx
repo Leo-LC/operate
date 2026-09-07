@@ -21,7 +21,7 @@ function StatCard({
   loading: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="flex flex-col gap-1 rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
       <span className="text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">{label}</span>
       {loading ? (
         <div className="h-8 w-20 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />

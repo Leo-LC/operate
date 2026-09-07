@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
+import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
@@ -54,13 +55,6 @@ const SORT_HEADER_STYLE: React.CSSProperties = {
   font: "inherit", letterSpacing: "inherit", textTransform: "inherit",
 };
 
-const SHOP_PILL_STYLE: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 6,
-  borderRadius: "var(--r-pill)", padding: "5px 12px", fontSize: 12, fontWeight: 500,
-  border: "1px solid var(--line)", background: "var(--bg)", color: "var(--fg-3)",
-  cursor: "pointer", transition: "all 150ms",
-};
-
 function primaryShopName(emp: Employee): string | null {
   const primary = emp.employee_locations?.find((el) => el.is_primary);
   if (primary) return primary.location_name;
@@ -82,7 +76,7 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
   const activeShopName = activeShopId ? locations.find((l) => l.id === activeShopId)?.name ?? null : null;
   const salaryLabel = activeShopName ? `Base salary at ${activeShopName} (฿)` : "Base salary / month (฿)";
   const salaryHint = activeShopName ? `Updates salary for ${activeShopName} only` : undefined;
-  return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+  return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
       <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>First name
         <input autoFocus required value={form.first_name} onChange={(event) => onChange("first_name", event.target.value)} style={SIMPLE_INPUT} placeholder="First name" />
@@ -537,38 +531,10 @@ export function EmployeesListClient({ locations }: Props) {
             </button>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setShopFilter(null)}
-          aria-pressed={shopFilter === null}
-          style={{
-            ...SHOP_PILL_STYLE,
-            ...(shopFilter === null
-              ? { border: "1px solid var(--bronze)", background: "var(--bronze-soft)", color: "var(--bronze)" }
-              : {}),
-          }}
-        >
-          All shops
-        </button>
-        {locations.map((loc) => {
-          const active = shopFilter === loc.id;
-          return (
-            <button
-              key={loc.id}
-              type="button"
-              onClick={() => setShopFilter(active ? null : loc.id)}
-              aria-pressed={active}
-              style={{
-                ...SHOP_PILL_STYLE,
-                ...(active
-                  ? { border: "1px solid var(--bronze)", background: "var(--bronze-soft)", color: "var(--bronze)" }
-                  : {}),
-              }}
-            >
-              {loc.name}
-            </button>
-          );
-        })}
+        <PillButton active={shopFilter === null} onClick={() => setShopFilter(null)}>All shops</PillButton>
+        {locations.map((loc) => (
+          <PillButton key={loc.id} active={shopFilter === loc.id} onClick={() => setShopFilter(shopFilter === loc.id ? null : loc.id)}>{loc.name}</PillButton>
+        ))}
       </div>
 
       {showAdd && (
@@ -609,7 +575,7 @@ export function EmployeesListClient({ locations }: Props) {
       ) : (
         <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-            <thead style={{ background: "var(--bg-2)" }}>
+            <thead style={{ background: "transparent" }}>
               <tr>
                 {COLUMNS.map((col) => (
                   <th key={col.label || "__actions__"} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>
@@ -748,7 +714,7 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
   return (
     <tr
       style={{
-        background: hovered && !isArchived ? "var(--row-hover)" : "var(--surface)",
+        background: hovered && !isArchived ? "var(--row-hover)" : "transparent",
         opacity: isArchived ? 0.6 : 1,
         borderTop: "1px solid var(--line)",
         cursor: isArchived ? "default" : "pointer",
