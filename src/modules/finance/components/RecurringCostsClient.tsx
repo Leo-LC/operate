@@ -259,7 +259,7 @@ export function RecurringCostsClient() {
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader eyebrow="Finance" title="Recurring costs" subtitle="The few costs each shop expects every month." actions={canManage ? <Button size="sm" onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null} />
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       <PillButton active={isAll} onClick={() => setLocationId(ALL_SHOPS)}>All shops</PillButton>
       {locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}
     </div>

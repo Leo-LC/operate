@@ -223,15 +223,12 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         }
       />
 
-      {/* Shop selector — fond plus clair englobant */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--fg-4)" }}>View</span>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <PillButton active={!shopFilter} onClick={() => setShopFilter("")}>All shops</PillButton>
-          {locations.map((l) => (
-            <PillButton key={l.id} active={shopFilter === l.id} onClick={() => setShopFilter(l.id)}>{l.name}</PillButton>
-          ))}
-        </div>
+      {/* Shop selector */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <PillButton active={!shopFilter} onClick={() => setShopFilter("")}>All shops</PillButton>
+        {locations.map((l) => (
+          <PillButton key={l.id} active={shopFilter === l.id} onClick={() => setShopFilter(l.id)}>{l.name}</PillButton>
+        ))}
       </div>
 
       {view === "animals" ? (

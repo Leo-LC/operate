@@ -578,7 +578,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <span className="text-xs font-medium text-[var(--fg-3)]">Period:</span>
           <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <ShopPills locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
         </div>
       </div>
