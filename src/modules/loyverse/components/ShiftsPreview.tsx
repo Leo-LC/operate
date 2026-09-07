@@ -281,6 +281,16 @@ const TEMPLATE_COLUMNS = [
   "cash_safe",
 ] as const;
 const COMPUTED_COLS = new Set<string>(["sales_net_inc_vat", "payment_delta", "exp_cash_total", "exp_bank_total", "exp_total", "hr_total", "cash_end_day", "cash_safe"]);
+// Visible columns in accounting copy table — stop at CC, no date, no scroll on desktop
+const VISIBLE_COLUMNS = TEMPLATE_COLUMNS.filter((c) => c !== "date" && TEMPLATE_COLUMNS.indexOf(c) <= TEMPLATE_COLUMNS.indexOf("payment_credit_card")) as unknown as typeof TEMPLATE_COLUMNS;
+function formatDateDDMMYYYY(dateStr: string): string {
+  const d = parseDay(dateStr);
+  if (!d) return dateStr;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(d.getFullYear());
+  return `${dd} ${mm} ${yyyy}`;
+}
 const COLUMN_LABELS: Record<string, string> = {
   date: "date",
   sales_drinks_net: "Drinks",
@@ -500,7 +510,7 @@ function AccountingCopySection({
   const hasAnyData = Boolean(rawShift || snapshot);
 
   const handleCopy = async () => {
-    const line = TEMPLATE_COLUMNS.map((c) => values[c] ?? "").join("\t");
+    const line = (VISIBLE_COLUMNS as unknown as string[]).map((c) => values[c] ?? "").join("\t");
     try {
       await navigator.clipboard.writeText(line);
       setCopied(true);
@@ -528,25 +538,20 @@ function AccountingCopySection({
     );
   }
 
-  const sourceLabel = rawShift ? "shift brut" : snapshot ? "snapshot (ventes Loyverse)" : "—";
-  const salesMissing = !snapshot && !rawShift;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={handleCopy} className="gap-1.5">
           {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
-          {copied ? "Copié !" : "Copier la ligne"}
+          {copied ? "copied" : "copy"}
         </Button>
-        <span className="text-xs text-[var(--fg-4)]">
-          TSV prêt à coller dans Google Sheets · source: <span className="font-medium text-[var(--fg-3)]">{sourceLabel}</span> · {TEMPLATE_COLUMNS.length} colonnes · vides = calculs Sheets
-        </span>
-        {salesMissing && <Pill tone="warn" size="sm">ventes non mappées</Pill>}
+        <span className="text-xs font-mono tabular-nums text-[var(--fg-3)]">{formatDateDDMMYYYY(date)}</span>
       </div>
       <div className="overflow-auto rounded border border-[var(--line)]">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr className="bg-[var(--bg-2)] text-[10px] uppercase tracking-wide text-[var(--fg-4)]">
-              {TEMPLATE_COLUMNS.map((c) => (
+              {(VISIBLE_COLUMNS as unknown as string[]).map((c) => (
                 <th key={c} className={`whitespace-nowrap px-2 py-1.5 text-left font-medium ${COMPUTED_COLS.has(c) ? "bg-[var(--line-2)] text-[var(--fg-4)]" : ""}`} title={c}>
                   {COLUMN_LABELS[c] ?? c}
                   {COMPUTED_COLS.has(c) ? " *" : ""}
@@ -554,7 +559,7 @@ function AccountingCopySection({
               ))}
             </tr>
             <tr className="bg-[var(--bg-2)] text-[9px] text-[var(--fg-4)]">
-              {TEMPLATE_COLUMNS.map((c) => (
+              {(VISIBLE_COLUMNS as unknown as string[]).map((c) => (
                 <th key={`${c}-key`} className="whitespace-nowrap px-2 pb-1 pt-0 text-left font-mono font-normal normal-case tracking-normal">
                   {c}
                 </th>
@@ -563,7 +568,7 @@ function AccountingCopySection({
           </thead>
           <tbody>
             <tr className="border-t border-[var(--line)] bg-[var(--surface)]">
-              {TEMPLATE_COLUMNS.map((c) => {
+              {(VISIBLE_COLUMNS as unknown as string[]).map((c) => {
                 const v = values[c];
                 const isComputed = COMPUTED_COLS.has(c);
                 const isEmpty = v === "";
@@ -572,7 +577,7 @@ function AccountingCopySection({
                     key={c}
                     className={`whitespace-nowrap px-2 py-1.5 font-mono tabular-nums ${isComputed ? "bg-[var(--bg-2)] text-[var(--fg-4)]" : isEmpty ? "text-[var(--fg-4)]" : "text-[var(--fg)] font-medium"}`}
                   >
-                    {isEmpty ? "—" : c === "date" ? v : v}
+                    {isEmpty ? "—" : v}
                   </td>
                 );
               })}
@@ -580,9 +585,6 @@ function AccountingCopySection({
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] leading-relaxed text-[var(--fg-4)]">
-        <span className="font-medium">Colonnes *</span> vides = formules Sheets. Colle la ligne avec <kbd className="rounded border border-[var(--line)] bg-[var(--bg-2)] px-1 py-0.5 font-mono text-[10px]">Ctrl+V</kbd> dans la ligne du jour. Ordre: <code className="font-mono text-[10px]">{TEMPLATE_COLUMNS.join(", ")}</code>. Ajuste si l&apos;ordre réel diffère.
-      </p>
     </div>
   );
 }
@@ -755,6 +757,15 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            <CollapsibleSection title="Comptabilité — ligne à copier" icon={<TableIcon className="size-3.5" />} defaultOpen>
+              <AccountingCopySection
+                shiftRows={shiftForStore}
+                snapshotRows={snapshotForStore}
+                salesRows={salesForStore}
+                date={date}
+                paymentMap={paymentMap}
+              />
+            </CollapsibleSection>
             <CollapsibleSection title="Shift — détail brut" icon={<ClockIcon className="size-3.5" />} defaultOpen>
               {shiftForStore.length === 0 ? (
                 <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
@@ -772,15 +783,6 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                       }),
                 )
               )}
-            </CollapsibleSection>
-            <CollapsibleSection title="Comptabilité — ligne à copier" icon={<TableIcon className="size-3.5" />} defaultOpen>
-              <AccountingCopySection
-                shiftRows={shiftForStore}
-                snapshotRows={snapshotForStore}
-                salesRows={salesForStore}
-                date={date}
-                paymentMap={paymentMap}
-              />
             </CollapsibleSection>
             <CollapsibleSection title="Sales by category" icon={<TagIcon className="size-3.5" />} defaultOpen>
               <SalesCategoryBlock rows={salesForStore} />
