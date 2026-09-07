@@ -118,6 +118,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const isDirection = permissions.global_role === "direction";
 
   const [cmdOpen, setCmdOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -142,9 +143,18 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
     setMobileNavOpen(false);
   }, [pathname]);
 
+  /* Direction: force stay on /direction, no nav */
+  useEffect(() => {
+    if (isDirection && pathname !== "/direction" && !pathname.startsWith("/direction")) {
+      router.replace("/direction");
+    }
+  }, [isDirection, pathname, router]);
+
   /* ── Global keyboard shortcuts ── */
   const gKeyRef = useRef(false);
   useEffect(() => {
+    // Direction: no nav shortcuts
+    if (isDirection) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       const inInput = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
@@ -200,7 +210,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           const role = permissions.global_role;
           const allowed =
             role === "reviewer" ? (dest === "/loyverse" || dest === "/reviews" ? dest : null)
-            : role === "direction" ? (dest === "/loyverse" || dest === "/reports" ? dest : null)
+            : role === "direction" ? (dest === "/direction" ? dest : null)
             : dest;
           if (allowed) {
             gKeyRef.current = false;
@@ -212,9 +222,10 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [theme, setTheme, router, permissions.global_role]);
+  }, [theme, setTheme, router, permissions.global_role, isDirection]);
 
   function isActive(href: string): boolean {
+    if (href === "/direction") return pathname === "/direction" || pathname.startsWith("/direction");
     if (href === "/loyverse") return pathname === "/loyverse";
     if (href === "/shift-sales") return pathname.startsWith("/shift-sales") || pathname.startsWith("/loyverse-preview");
     if (href === "/overview") return pathname === "/overview";
@@ -233,14 +244,16 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       }}
     >
       {/* ── Mobile drawer backdrop ── */}
-      <div
-        className={`app-mobile-backdrop${mobileNavOpen ? " is-open" : ""}`}
-        onClick={() => setMobileNavOpen(false)}
-        aria-hidden
-      />
+      {!isDirection && (
+        <div
+          className={`app-mobile-backdrop${mobileNavOpen ? " is-open" : ""}`}
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden
+        />
+      )}
 
-      {/* ── Sidebar ── */}
-      <aside
+      {/* ── Sidebar — hidden for direction ── */}
+      {!isDirection && <aside
         className={`app-sidebar${mobileNavOpen ? " is-open" : ""}${sidebarCollapsed ? " is-collapsed" : ""}`}
         style={{
           width: sidebarCollapsed ? "56px" : "var(--sidebar-w)",
@@ -342,10 +355,10 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
-              // Direction — visible only to owner/admin/direction while iterating
+              if (permissions.global_role === "direction") return item.id === "direction";
+              // Direction — visible to owner/admin/direction; for direction, only Direction (handled above)
               if (item.id === "direction") return ["owner", "admin", "direction"].includes(permissions.global_role);
               if (permissions.global_role === "reviewer") return item.id === "loyverse" || item.id === "reviews";
-              if (permissions.global_role === "direction") return item.id === "loyverse" || item.id === "reports";
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
               if (!item.module && item.id !== "loyverse" && item.id !== "direction" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
@@ -512,7 +525,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             <LogOutIcon size={15} strokeWidth={1.5} />
           </button>
         </div>
-      </aside>
+      </aside>}
 
       {/* ── Right column ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -532,101 +545,129 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             flexShrink: 0,
           }}
         >
-          {/* Mobile nav trigger */}
-          <button
-            onClick={() => setMobileNavOpen(true)}
-            aria-label="Open navigation"
-            className="app-mobile-menu-btn hover:!bg-[var(--row-hover)]"
-            style={{
-              width: 34,
-              height: 34,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "var(--r-md)",
-              color: "var(--fg-3)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            <MenuIcon size={18} strokeWidth={1.5} />
-          </button>
-
-          {/* ⌘K search trigger */}
-          <button
-            onClick={() => setCmdOpen(true)}
-            className="app-search-btn hover:!border-[var(--line-strong)]"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              height: 32,
-              padding: "0 10px",
-              minWidth: 240,
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              borderRadius: "var(--r-sm)",
-              fontSize: 13,
-              color: "var(--fg-4)",
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "border-color var(--dur) var(--ease)",
-            }}
-          >
-            <SearchIcon size={14} style={{ flexShrink: 0 }} />
-            <span className="app-search-label" style={{ flex: 1 }}>Jump to…</span>
-            <kbd
+          {/* Mobile nav trigger — hidden for direction */}
+          {!isDirection && (
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation"
+              className="app-mobile-menu-btn hover:!bg-[var(--row-hover)]"
               style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                color: "var(--fg-mute)",
-                background: "var(--surface-2)",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--r-sm)",
-                padding: "1px 5px",
+                width: 34,
+                height: 34,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--r-md)",
+                color: "var(--fg-3)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                flexShrink: 0,
               }}
             >
-              ⌘K
-            </kbd>
-          </button>
+              <MenuIcon size={18} strokeWidth={1.5} />
+            </button>
+          )}
+
+          {/* ⌘K search trigger — hidden for direction */}
+          {!isDirection && (
+            <button
+              onClick={() => setCmdOpen(true)}
+              className="app-search-btn hover:!border-[var(--line-strong)]"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                height: 32,
+                padding: "0 10px",
+                minWidth: 240,
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-sm)",
+                fontSize: 13,
+                color: "var(--fg-4)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "border-color var(--dur) var(--ease)",
+              }}
+            >
+              <SearchIcon size={14} style={{ flexShrink: 0 }} />
+              <span className="app-search-label" style={{ flex: 1 }}>Jump to…</span>
+              <kbd
+                style={{
+                  fontSize: 10,
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--fg-mute)",
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "var(--r-sm)",
+                  padding: "1px 5px",
+                }}
+              >
+                ⌘K
+              </kbd>
+            </button>
+          )}
 
           <div style={{ flex: 1 }} />
 
-          {/* Shortcuts hint */}
-          <button
-            onClick={() => setShortcutsOpen(true)}
-            title="Keyboard shortcuts"
-            style={{
-              width: 34,
-              height: 34,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "var(--r-md)",
-              color: "var(--fg-3)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              transition: "background var(--dur) var(--ease)",
-            }}
-            className="hover:!bg-[var(--row-hover)]"
-          >
-            <kbd
+          {/* Shortcuts hint — replaced by logout for direction */}
+          {isDirection ? (
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              title="Se déconnecter"
+              aria-label="Se déconnecter"
               style={{
-                fontSize: 12,
-                fontFamily: "var(--font-mono)",
+                width: 34,
+                height: 34,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--r-md)",
                 color: "var(--fg-3)",
-                background: "var(--bg-2)",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--r-sm)",
-                padding: "2px 7px",
+                background: "transparent",
+                border: "none",
                 cursor: "pointer",
+                transition: "background var(--dur) var(--ease)",
               }}
+              className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg)]"
             >
-              ?
-            </kbd>
-          </button>
+              <LogOutIcon size={16} strokeWidth={1.5} />
+            </button>
+          ) : (
+            <button
+              onClick={() => setShortcutsOpen(true)}
+              title="Keyboard shortcuts"
+              style={{
+                width: 34,
+                height: 34,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--r-md)",
+                color: "var(--fg-3)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                transition: "background var(--dur) var(--ease)",
+              }}
+              className="hover:!bg-[var(--row-hover)]"
+            >
+              <kbd
+                style={{
+                  fontSize: 12,
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--fg-3)",
+                  background: "var(--bg-2)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "var(--r-sm)",
+                  padding: "2px 7px",
+                  cursor: "pointer",
+                }}
+              >
+                ?
+              </kbd>
+            </button>
+          )}
 
           {/* Theme toggle */}
           <button
@@ -675,9 +716,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         </main>
       </div>
 
-      {/* ── Overlays ── */}
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />
-      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {/* ── Overlays — hidden for direction ── */}
+      {!isDirection && <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />}
+      {!isDirection && <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }

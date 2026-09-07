@@ -55,8 +55,8 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const items = useMemo(() => {
     const nav = NAV_ITEMS
       .filter((n) => {
+        if (permissions.global_role === "direction") return n.id === "direction";
         if (n.id === "direction") return ["owner", "admin", "direction"].includes(permissions.global_role);
-        if (permissions.global_role === "direction") return n.id === "loyverse" || n.id === "reports";
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
         return !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]);
