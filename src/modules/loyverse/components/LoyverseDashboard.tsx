@@ -764,10 +764,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             const failingAccount = lastRun?.per_account?.find((a) => a.account_key === store.account_key && a.error);
             const isDegraded = Boolean(failingAccount || store.unmapped.line_items > 0 || store.unmapped.payments > 0);
             const bucketEntries = [
-              { label: "Drinks", value: store.buckets.drinks, color: "var(--bronze)" },
-              { label: "Tickets", value: store.buckets.ticket, color: "var(--info)" },
+              { label: "Drinks", value: store.buckets.drinks, color: "var(--chart-1)" },
+              { label: "Tickets", value: store.buckets.ticket, color: "var(--cyan)" },
               { label: "Snacks", value: store.buckets.snack, color: "var(--good)" },
-              { label: "Goodies", value: store.buckets.goodies, color: "var(--warn)" },
+              { label: "Goodies", value: store.buckets.goodies, color: "var(--amber)" },
             ]
               .filter((b) => b.value > 0)
               .sort((a, b) => b.value - a.value);
