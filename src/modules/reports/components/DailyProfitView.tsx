@@ -162,10 +162,6 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <PillButton active={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])}>All shops</PillButton>
-            {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <PillButton key={option.id} active={active} onClick={() => toggleLocation(option.id)}>{option.name}</PillButton>; })}
-          </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <DateRangePicker
             value={{ from, to }}
@@ -173,9 +169,13 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
             today={bangkokToday()}
           />
           <div style={{ flex: 1 }} />
-          {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Refresh Sheets</Button>}
-          {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Manage P&L</Button>}
+          {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>}
+          {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>}
         </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <PillButton active={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])}>Toutes les boutiques</PillButton>
+            {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <PillButton key={option.id} active={active} onClick={() => toggleLocation(option.id)}>{option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}</PillButton>; })}
+          </div>
       </div>
 
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>

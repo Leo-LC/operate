@@ -70,7 +70,7 @@ interface MonthlyExpensesData {
   entered: boolean;
 }
 
-interface AccountingData {
+export interface AccountingData {
   period: { from: string; to: string };
   locations: { id: string; name: string }[];
   overview: ShopAgg;
@@ -225,7 +225,6 @@ function KpiCard({
   hint,
   icon,
   iconColor = "var(--bronze)",
-  sparklineData,
   footer,
 }: {
   label: string;
@@ -235,7 +234,6 @@ function KpiCard({
   hint?: string;
   icon?: React.ReactNode;
   iconColor?: string;
-  sparklineData?: number[];
   footer?: React.ReactNode;
 }) {
   return (
@@ -243,14 +241,11 @@ function KpiCard({
       style={{
         borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
         background: "transparent", padding: 16,
-        display: "flex", flexDirection: "column", gap: 6,
+        display: "flex", flexDirection: "column", gap: 6, height: "100%",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <Stat label={label} value={value} delta={delta} deltaDir={deltaDir} hint={hint} icon={icon} iconColor={iconColor} />
-        {sparklineData && sparklineData.length >= 2 && <Sparkline data={sparklineData} color={iconColor} />}
-      </div>
-      {footer}
+      <Stat label={label} value={value} delta={delta} deltaDir={deltaDir} hint={hint} icon={icon} iconColor={iconColor} />
+      {footer && <div style={{ marginTop: 8 }}>{footer}</div>}
     </div>
   );
 }
@@ -522,8 +517,8 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
 
 // ── Operations Tab ────────────────────────────────────────────────────────────
 
-function OperationsView({ data }: { data: AccountingData }) {
-  const { overview: o, byShop, completeness, previousPeriod, dailyTotals, monthlyExpenses } = data;
+export function OperationsView({ data }: { data: AccountingData }) {
+  const { overview: o, byShop, previousPeriod, dailyTotals, monthlyExpenses } = data;
   const p = previousPeriod.overview;
   const prevMonthName = monthShortLabel(previousPeriod.period.to);
 
@@ -544,13 +539,7 @@ function OperationsView({ data }: { data: AccountingData }) {
   const netAfterExpDelta = pctChangeParts(netAfterExpenses, prevNetAfterExpenses);
   const netAfterHrDelta = pctChangeParts(o.netProfit, p.netProfit);
   const hrPctDelta = ppChangeParts(hrPctOfSales, prevHrPctOfSales);
-
-  const dailySeries = dailyTotals.map((d) => d.revenue);
-
-  // ── Needs action / management notes ─────────────────────────────────────────
-  const needsAction = computeNeedsAction(o, monthlyExpenses, completeness);
-  const managementNotes = computeManagementNotes(o);
-  const allGood = needsAction.length === 0 && (!completeness || completeness.percent >= 100);
+  const vatDelta = pctChangeParts(o.vat, p.vat);
 
   // ── Daily rhythm ─────────────────────────────────────────────────────────────
   const activeDays = dailyTotals.filter((d) => d.revenue > 0);
@@ -602,7 +591,6 @@ function OperationsView({ data }: { data: AccountingData }) {
           hint={`vs ${prevMonthName}`}
           icon={<WalletIcon style={{ width: 17, height: 17 }} />}
           iconColor="var(--good)"
-          sparklineData={dailySeries}
         />
         <KpiCard
           label="Net After Expenses"
@@ -612,7 +600,6 @@ function OperationsView({ data }: { data: AccountingData }) {
           hint={`vs ${prevMonthName}`}
           icon={<FileTextIcon style={{ width: 17, height: 17 }} />}
           iconColor="var(--info)"
-          sparklineData={dailySeries}
         />
         <KpiCard
           label="Net After HR"
@@ -622,7 +609,6 @@ function OperationsView({ data }: { data: AccountingData }) {
           hint={`vs ${prevMonthName}`}
           icon={<UsersIcon style={{ width: 17, height: 17 }} />}
           iconColor="var(--purple)"
-          sparklineData={dailySeries}
         />
         <KpiCard
           label="HR % of Sales"
@@ -634,15 +620,13 @@ function OperationsView({ data }: { data: AccountingData }) {
           iconColor="var(--warn)"
         />
         <KpiCard
-          label="Closing Cash Safe"
-          value={fmtMoney(o.closingCashSafe)}
-          icon={<LockIcon style={{ width: 17, height: 17 }} />}
-          iconColor={o.closingCashSafe < 0 ? "var(--bad)" : "var(--good)"}
-          footer={
-            <Pill tone={o.closingCashSafe < 0 ? "bad" : "good"} size="sm">
-              {o.closingCashSafe < 0 ? "Needs attention" : "Healthy"}
-            </Pill>
-          }
+          label="TVA encaissée"
+          value={`฿${fmtN(o.vat)}`}
+          delta={vatDelta.delta}
+          deltaDir={vatDelta.dir}
+          hint={`vs ${prevMonthName}`}
+          icon={<ReceiptIcon style={{ width: 17, height: 17 }} />}
+          iconColor="var(--bronze)"
         />
       </div>
 
@@ -677,102 +661,52 @@ function OperationsView({ data }: { data: AccountingData }) {
         </Card>
       </div>
 
-      {/* HR Breakdown + Needs Action */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Card>
-          <SectionHeader label="HR Breakdown" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
-          <div style={{ padding: "var(--s-4) var(--s-5)" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
-              <span />
-              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Item</span>
-              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
-              <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of HR</span>
-            </div>
-            {hrRows.map((r, i) => (
-              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--purple)" />
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--purple)" }}>Total HR Cost</span>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>฿{fmtN(o.hrCosts)}</span>
-            </div>
+      {/* HR Breakdown */}
+      <Card>
+        <SectionHeader label="HR Breakdown" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
+        <div style={{ padding: "var(--s-4) var(--s-5)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+            <span />
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Item</span>
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
+            <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of HR</span>
           </div>
-        </Card>
+          {hrRows.map((r, i) => (
+            <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--purple)" />
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--purple)" }}>Total HR Cost</span>
+            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>฿{fmtN(o.hrCosts)}</span>
+          </div>
+        </div>
+      </Card>
 
-        <Card>
-          <SectionHeader label="Needs Action" bg="var(--bad-soft)" color="var(--bad)" icon={<AlertTriangleIcon style={{ width: 14, height: 14 }} />} />
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {needsAction.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--fg-4)", padding: "var(--s-4) var(--s-5)" }}>Nothing needs attention right now.</p>
-            ) : (
-              needsAction.map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                    padding: "10px var(--s-5)", borderTop: i === 0 ? "none" : "1px solid var(--line)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span
-                      style={{
-                        width: 6, height: 6, borderRadius: "var(--r-pill)", flexShrink: 0,
-                        background: item.tone === "bad" ? "var(--bad)" : item.tone === "warn" ? "var(--warn)" : "var(--info)",
-                      }}
-                    />
-                    <span style={{ fontSize: 13, color: "var(--fg-2)" }}>{item.label}</span>
-                  </div>
-                  <ChevronRightIcon style={{ width: 14, height: 14, color: "var(--fg-4)", flexShrink: 0 }} />
-                </div>
-              ))
-            )}
+      {/* Daily Rhythm */}
+      <Card>
+        <SectionHeader label="Daily Rhythm" bg="var(--bg-2)" color="var(--fg-3)" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ padding: "var(--s-4) var(--s-5)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Avg / Day</span>
+            <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>฿{fmtN(avgPerDay)}</span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs {prevMonthName} ฿{fmtN(elapsedDays > 0 ? p.revenue / Math.max(1, countDaysInRange(previousPeriod.period.from, previousPeriod.period.to)) : 0)}</span>
           </div>
-        </Card>
-      </div>
-
-      {/* Daily Rhythm + Management Notes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Card>
-          <SectionHeader label="Daily Rhythm" bg="var(--bg-2)" color="var(--fg-3)" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ padding: "var(--s-4) var(--s-5)" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Avg / Day</span>
-              <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>฿{fmtN(avgPerDay)}</span>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs {prevMonthName} ฿{fmtN(elapsedDays > 0 ? p.revenue / Math.max(1, countDaysInRange(previousPeriod.period.from, previousPeriod.period.to)) : 0)}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Best Day</span>
-              <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--good)" }}>{bestDay ? `฿${fmtN(bestDay.revenue)}` : "—"}</span>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{bestDay ? dayLabel(bestDay.date) : ""}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Worst Day</span>
-              <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--bad)" }}>{worstDay ? `฿${fmtN(worstDay.revenue)}` : "—"}</span>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{worstDay ? dayLabel(worstDay.date) : ""}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Month Pace</span>
-              <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{monthPace !== null ? `${monthPace.toFixed(0)}%` : "—"}</span>
-              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs {prevMonthName}</span>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Best Day</span>
+            <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--good)" }}>{bestDay ? `฿${fmtN(bestDay.revenue)}` : "—"}</span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{bestDay ? dayLabel(bestDay.date) : ""}</span>
           </div>
-        </Card>
-
-        <Card>
-          <SectionHeader label="Management Notes" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<LightbulbIcon style={{ width: 14, height: 14 }} />} />
-          <div style={{ padding: "var(--s-4) var(--s-5)", display: "flex", flexDirection: "column", gap: 8 }}>
-            {managementNotes.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--fg-4)" }}>Not enough data yet to generate notes.</p>
-            ) : (
-              managementNotes.map((note, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                  <span style={{ color: "var(--bronze)", flexShrink: 0, lineHeight: "20px" }}>○</span>
-                  <span style={{ fontSize: 13, color: "var(--fg-2)", lineHeight: "20px" }}>{note}</span>
-                </div>
-              ))
-            )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Worst Day</span>
+            <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--bad)" }}>{worstDay ? `฿${fmtN(worstDay.revenue)}` : "—"}</span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{worstDay ? dayLabel(worstDay.date) : ""}</span>
           </div>
-        </Card>
-      </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Month Pace</span>
+            <span className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{monthPace !== null ? `${monthPace.toFixed(0)}%` : "—"}</span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs {prevMonthName}</span>
+          </div>
+        </div>
+      </Card>
 
       {/* Payment Methods */}
       <Card>
