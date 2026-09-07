@@ -79,22 +79,26 @@ export function DirectionTrends() {
         </div>
       )}
 
-      {/* Cartes résumé — même style que Vue d'ensemble */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Période affichée bien visible */}
+      <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm">
+        <span className="font-medium">Période affichée : </span>
+        <span className="font-mono">Août 2026 vs Août 2025</span>
+        <span className="ml-2 text-xs text-[var(--fg-4)]">(placeholder — sera branché sur la vraie période sélectionnée)</span>
+      </div>
+
+      {/* Cartes résumé — Ventes / Dépenses seulement, vs montant sous le % */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-4)]">Ventes</p>
-          <p className="mt-1 font-mono text-xl font-bold tabular-nums">฿{fmtM(aug.sales26)} <span className="text-xs font-normal text-[var(--fg-4)]">vs ฿{fmtM(aug.sales25)}</span></p>
+          <p className="mt-1 font-mono text-xl font-bold tabular-nums">฿{fmtM(aug.sales26)}</p>
           <p className="mt-1 text-xs font-medium" style={{ color: salesPct !== null && salesPct > 0 ? "var(--good)" : "var(--bad)" }}>{salesPct !== null ? `${salesPct > 0 ? "+" : ""}${salesPct.toFixed(1)}% vs N-1` : "— vs N-1"}</p>
+          <p className="text-xs text-[var(--fg-4)]">vs ฿{fmtM(aug.sales25)} en N-1</p>
         </div>
         <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-4)]">Dépenses</p>
-          <p className="mt-1 font-mono text-xl font-bold tabular-nums">฿{fmtM(aug.exp26)} <span className="text-xs font-normal text-[var(--fg-4)]">vs ฿{fmtM(aug.exp25)}</span></p>
+          <p className="mt-1 font-mono text-xl font-bold tabular-nums">฿{fmtM(aug.exp26)}</p>
           <p className="mt-1 text-xs font-medium" style={{ color: "var(--warn)" }}>{expPct !== null ? `${expPct > 0 ? "+" : ""}${expPct.toFixed(1)}% vs N-1` : "— vs N-1"}</p>
-        </div>
-        <div className="rounded-[var(--r-lg)] border border-[var(--accent)] bg-[var(--accent)] p-4 text-white">
-          <p className="text-xs font-medium uppercase tracking-wide text-white/70">Bénéfice</p>
-          <p className="mt-1 font-mono text-xl font-bold tabular-nums">฿{fmtM(aug.profit26)} <span className="text-xs font-normal text-white/60">vs ฿{fmtM(aug.profit25)}</span></p>
-          <p className="mt-1 text-xs font-medium text-white/80">{profitPct !== null ? `${profitPct > 0 ? "+" : ""}${profitPct.toFixed(1)}% vs N-1` : "— vs N-1"}</p>
+          <p className="text-xs text-[var(--fg-4)]">vs ฿{fmtM(aug.exp25)} en N-1</p>
         </div>
       </div>
 
@@ -138,9 +142,9 @@ export function DirectionTrends() {
         </div>
       </div>
 
-      {/* Tableau annuel */}
+      {/* Tableau annuel — Ventes seulement */}
       <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Tableau annuel</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Tableau annuel — Ventes</h3>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -149,8 +153,6 @@ export function DirectionTrends() {
                 <th className="py-2 text-right font-medium">Ventes 26</th>
                 <th className="py-2 text-right font-medium">Ventes 25</th>
                 <th className="py-2 text-right font-medium">Évolution</th>
-                <th className="py-2 text-right font-medium">Bénéfice 26</th>
-                <th className="py-2 text-right font-medium">Bénéfice 25</th>
               </tr>
             </thead>
             <tbody>
@@ -162,8 +164,6 @@ export function DirectionTrends() {
                     <td className="py-2 text-right font-mono tabular-nums">{p.sales26 ? `฿${fmtM(p.sales26)}` : "—"}</td>
                     <td className="py-2 text-right font-mono tabular-nums text-[var(--fg-4)]">฿{fmtM(p.sales25)}</td>
                     <td className="py-2 text-right font-mono tabular-nums" style={{ color: ch !== null && ch > 0 ? "var(--good)" : ch !== null && ch < 0 ? "var(--bad)" : "var(--fg-4)" }}>{ch !== null ? `${ch > 0 ? "+" : ""}${ch.toFixed(1)}%` : "—"}</td>
-                    <td className="py-2 text-right font-mono tabular-nums">{p.profit26 ? `฿${fmtM(p.profit26)}` : "—"}</td>
-                    <td className="py-2 text-right font-mono tabular-nums text-[var(--fg-4)]">฿{fmtM(p.profit25)}</td>
                   </tr>
                 );
               })}

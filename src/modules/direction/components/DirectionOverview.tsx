@@ -127,7 +127,7 @@ export function DirectionOverview() {
   const [data, setData] = useState<AccountingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMoneyOutBreakdown, setShowMoneyOutBreakdown] = useState(false);
-  const [shopSort, setShopSort] = useState<"profit" | "sales" | "margin">("profit");
+  const [shopSort, setShopSort] = useState<"sales" | "expenses">("sales");
 
   // date range derived from period
   const base = useMemo(() => parseDay(bangkokToday()), []);
@@ -196,16 +196,36 @@ export function DirectionOverview() {
   const o = data.overview;
   const prev = data.previousPeriod.overview;
 
-  // Boss Expenses = operating + HR (spec aggregates aggressively)
+  // KPIs alignés sur Détails (5 cartes)
+  const netAfterExpenses = o.revenue - o.expenses;
+  const prevNetAfterExpenses = prev.revenue - prev.expenses;
+  const hrPct = o.revenue > 0 ? (o.hrCosts / o.revenue) * 100 : 0;
+  const prevHrPct = prev.revenue > 0 ? (prev.hrCosts / prev.revenue) * 100 : 0;
   const bossExpenses = o.expenses + o.hrCosts;
   const prevExpenses = prev.expenses + prev.hrCosts;
-  const bossProfit = o.revenue - bossExpenses;
-  const prevProfit = prev.revenue - prevExpenses;
-  const bossMargin = o.revenue > 0 ? (bossProfit / o.revenue) * 100 : 0;
 
-  const salesDelta = pctChange(o.revenue, prev.revenue);
-  const expDelta = pctChange(bossExpenses, prevExpenses);
-  const profitDelta = pctChange(bossProfit, prevProfit);
+  function pctChangeParts(curr: number, prevVal: number): { delta: string; dir: "up" | "down" | "neutral" } {
+    if (!prevVal) return { delta: "—", dir: "neutral" as const };
+    const ch = ((curr - prevVal) / Math.abs(prevVal)) * 100;
+    const dir = ch > 0.05 ? "up" as const : ch < -0.05 ? "down" as const : "neutral" as const;
+    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "–";
+    return { delta: `${arrow} ${Math.abs(ch).toFixed(1)}%`, dir };
+  }
+  function ppChangeParts(curr: number, prevVal: number): { delta: string; dir: "up" | "down" | "neutral" } {
+    const diff = curr - prevVal;
+    const dir = diff > 0.05 ? "up" as const : diff < -0.05 ? "down" as const : "neutral" as const;
+    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "–";
+    return { delta: `${arrow} ${Math.abs(diff).toFixed(1)}pp`, dir };
+  }
+  function monthShortLabel(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString("fr-FR", { month: "short" });
+  }
+  const prevMonthName = monthShortLabel(data.previousPeriod.period.to);
+  const revenueDelta = pctChangeParts(o.revenue, prev.revenue);
+  const netAfterExpDelta = pctChangeParts(netAfterExpenses, prevNetAfterExpenses);
+  const netAfterHrDelta = pctChangeParts(o.netProfit, prev.netProfit);
+  const hrPctDelta = ppChangeParts(hrPct, prevHrPct);
+  const vatDelta = pctChangeParts(o.vat, prev.vat);
 
   // Money in breakdown — 5 bars
   const moneyInRows = [
@@ -254,11 +274,10 @@ export function DirectionOverview() {
     ? shopsAll
     : shopsAll.filter((s) => selectedShops.includes(s.locationId));
   const sortedShops = [...shops].sort((a, b) => {
-    if (shopSort === "profit") return b._profit - a._profit;
     if (shopSort === "sales") return b.revenue - a.revenue;
-    return b._margin - a._margin;
+    return b._exp - a._exp;
   });
-  const shopProfitMax = Math.max(...sortedShops.map((s) => s._profit), 1);
+  const shopMax = Math.max(...sortedShops.map((s) => Math.max(s.revenue, s._exp)), 1);
 
   return (
     <div className="flex flex-col gap-5">
@@ -281,6 +300,12 @@ export function DirectionOverview() {
             }}
             today={bangkokToday()}
           />
+          <button
+            onClick={() => void fetchData(from, to, selectedShops, locations)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-2)]"
+          >
+            ↻ Actualiser
+          </button>
         </div>
         {locations.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -309,18 +334,13 @@ export function DirectionOverview() {
         )}
       </div>
 
-      {/* KPI — 4 chiffres clés */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard label="Ventes" value={fmtMoney(o.revenue)} delta={salesDelta} sub={`${data.dailyTotals.length} jours`} />
-        <KpiCard label="Dépenses" value={fmtMoney(bossExpenses)} delta={expDelta} sub="Exploitation + Personnel" tone={expDelta.dir === "down" ? "good" : expDelta.dir === "up" ? "bad" : "neutral"} />
-        <KpiCard
-          label="Bénéfice net"
-          value={fmtMoney(bossProfit)}
-          delta={profitDelta}
-          sub={`${bossMargin.toFixed(1)}% de marge`}
-          hero
-        />
-        <KpiCard label="Marge" value={`${bossMargin.toFixed(1)}%`} delta={pctChange(bossMargin, prev.revenue > 0 ? (prevProfit / prev.revenue) * 100 : 0)} sub="vs préc." />
+      {/* KPI — repris de Détails (5 cartes, chiffres grossis, vs en bas) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KpiCard label="Chiffre d'affaires" value={`฿${fmtN(o.revenue)}`} delta={revenueDelta.delta} deltaDir={revenueDelta.dir} hint={`vs ${prevMonthName}`} />
+        <KpiCard label="Après charges" value={`฿${fmtN(netAfterExpenses)}`} delta={netAfterExpDelta.delta} deltaDir={netAfterExpDelta.dir} hint={`vs ${prevMonthName}`} />
+        <KpiCard label="Après RH" value={`฿${fmtN(o.netProfit)}`} delta={netAfterHrDelta.delta} deltaDir={netAfterHrDelta.dir} hint={`vs ${prevMonthName}`} />
+        <KpiCard label="Part RH / Ventes" value={`${hrPct.toFixed(1)}%`} delta={hrPctDelta.delta} deltaDir={hrPctDelta.dir} hint={`vs ${prevMonthName}`} />
+        <KpiCard label="TVA encaissée" value={`฿${fmtN(o.vat)}`} delta={vatDelta.delta} deltaDir={vatDelta.dir} hint={`vs ${prevMonthName}`} />
       </div>
 
       {/* Money in / Money out */}
@@ -395,14 +415,14 @@ export function DirectionOverview() {
         </div>
       </div>
 
-      {/* Boutiques — classement */}
+      {/* Boutiques — Ventes / Dépenses seulement */}
       <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Boutiques</h3>
           <div className="flex gap-1">
-            {(["profit", "sales", "margin"] as const).map((k) => (
-              <PillButton key={k} active={shopSort === k} onClick={() => setShopSort(k)} className="capitalize">
-                {k === "profit" ? "Bénéfice" : k === "sales" ? "Ventes" : "Marge"}
+            {(["sales", "expenses"] as const).map((k) => (
+              <PillButton key={k} active={shopSort === k} onClick={() => setShopSort(k)}>
+                {k === "sales" ? "Ventes" : "Dépenses"}
               </PillButton>
             ))}
           </div>
@@ -413,8 +433,7 @@ export function DirectionOverview() {
               <tr className="border-b border-[var(--line)] text-left text-xs text-[var(--fg-4)]">
                 <th className="py-2 font-medium">Boutique</th>
                 <th className="py-2 text-right font-medium">Ventes</th>
-                <th className="py-2 text-right font-medium">Bénéfice</th>
-                <th className="py-2 text-right font-medium">Marge</th>
+                <th className="py-2 text-right font-medium">Dépenses</th>
                 <th className="py-2 w-24 font-medium"> </th>
               </tr>
             </thead>
@@ -423,13 +442,10 @@ export function DirectionOverview() {
                 <tr key={s.locationId} className="border-b border-[var(--line-2)] last:border-0">
                   <td className="py-2.5 font-medium">{shortShopName(s.locationName)}</td>
                   <td className="py-2.5 text-right font-mono tabular-nums">{fmtMoney(s.revenue)}</td>
-                  <td className="py-2.5 text-right font-mono tabular-nums" style={{ color: s._profit < 0 ? "var(--bad)" : "var(--good)" }}>
-                    {fmtMoney(s._profit)}
-                  </td>
-                  <td className="py-2.5 text-right font-mono tabular-nums">{s._margin.toFixed(1)}%</td>
+                  <td className="py-2.5 text-right font-mono tabular-nums" style={{ color: "var(--warn)" }}>{fmtMoney(s._exp)}</td>
                   <td className="py-2.5">
                     <div className="h-1.5 w-full rounded-full bg-[var(--line-2)]">
-                      <div className="h-full rounded-full bg-[var(--good)]" style={{ width: `${shopProfitMax > 0 ? (Math.max(0, s._profit) / shopProfitMax) * 100 : 0}%` }} />
+                      <div className="h-full rounded-full bg-[var(--good)]" style={{ width: `${shopMax > 0 ? (s.revenue / shopMax) * 100 : 0}%` }} />
                     </div>
                   </td>
                 </tr>
@@ -443,28 +459,16 @@ export function DirectionOverview() {
   );
 }
 
-function KpiCard({ label, value, delta, sub, hero, tone }: { label: string; value: string; delta: { pct: number | null; dir: "up" | "down" | "neutral" }; sub?: string; hero?: boolean; tone?: "good" | "bad" | "neutral" }) {
-  const deltaTone = tone ?? delta.dir;
+function KpiCard({ label, value, delta, deltaDir = "neutral", hint }: { label: string; value: string; delta?: string; deltaDir?: "up" | "down" | "neutral"; hint?: string }) {
+  const deltaColor = deltaDir === "up" ? "var(--good)" : deltaDir === "down" ? "var(--bad)" : "var(--fg-4)";
   return (
     <div
-      className={`rounded-[var(--r-lg)] border p-4 ${hero ? "bg-[var(--accent)] text-white border-[var(--accent)] lg:col-span-1" : "bg-[var(--surface)] border-[var(--line)]"}`}
-      style={hero ? { background: "var(--accent)", color: "#fff" } : undefined}
+      style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16, display: "flex", flexDirection: "column", gap: 4, height: "100%" }}
     >
-      <p className={`text-xs font-medium uppercase tracking-wide ${hero ? "text-white/70" : "text-[var(--fg-4)]"}`}>{label}</p>
-      <p className="mt-1 font-mono text-xl font-bold tabular-nums">{value}</p>
-      <div className="mt-1 flex items-center gap-1">
-        <span className={`inline-flex items-center gap-1 text-xs font-medium ${hero ? "text-white/80" : ""}`} style={!hero ? { color: deltaTone === "up" ? "var(--good)" : deltaTone === "down" ? "var(--bad)" : "var(--fg-4)" } : undefined}>
-          {delta.pct === null ? (
-            "— vs préc."
-          ) : (
-            <>
-              {delta.dir === "up" ? <ArrowUpIcon size={11} /> : delta.dir === "down" ? <ArrowDownIcon size={11} /> : <MinusIcon size={11} />}
-              {Math.abs(delta.pct).toFixed(1)}% vs préc.
-            </>
-          )}
-        </span>
-      </div>
-      {sub && <p className={`mt-1 text-xs ${hero ? "text-white/60" : "text-[var(--fg-4)]"}`}>{sub}</p>}
+      <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-4)]">{label}</p>
+      <p className="mt-1 font-mono text-2xl font-bold tabular-nums" style={{ letterSpacing: "-0.02em" }}>{value}</p>
+      {delta && <p className="mono tabular-nums text-xs font-medium" style={{ color: deltaColor }}>{delta}</p>}
+      {hint && <p className="mt-auto pt-2 text-xs text-[var(--fg-4)]" style={{ borderTop: "1px solid transparent" }}>{hint}</p>}
     </div>
   );
 }

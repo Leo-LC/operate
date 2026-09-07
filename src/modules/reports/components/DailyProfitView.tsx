@@ -98,7 +98,6 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
   const [selectedDay, setSelectedDay] = useState<DailyProfitRow | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [contentTab, setContentTab] = useState<"result" | "methodology">("result");
 
   useEffect(() => {
     try {
@@ -178,42 +177,35 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
           </div>
       </div>
 
-      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)" }}>
-        <button type="button" onClick={() => setContentTab("result")} style={tabStyle(contentTab === "result")}><CalculatorIcon size={14} />Result</button>
-        <button type="button" onClick={() => setContentTab("methodology")} style={tabStyle(contentTab === "methodology")}><BookOpenIcon size={14} />{"How it's calculated"}</button>
-      </div>
+      {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calcul du résultat quotidien…</Card>}
+      {!loading && error && <Card style={{ borderColor: "var(--bad)", background: "var(--bad-soft)", gap: 8 }}><strong>Résultat quotidien non disponible</strong><span style={{ color: "var(--fg-3)" }}>{error}</span></Card>}
 
-      {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calculating the daily result…</Card>}
-      {!loading && error && <Card style={{ borderColor: "var(--bad)", background: "var(--bad-soft)", gap: 8 }}><strong>Daily P&L is not ready</strong><span style={{ color: "var(--fg-3)" }}>{error}</span><span style={{ fontSize: 12, color: "var(--fg-4)" }}>Apply the finance alpha migration, then reload this tab. Existing modules are unaffected.</span></Card>}
-
-      {!loading && data && contentTab === "methodology" && <MethodologyPanel data={data} />}
-
-      {!loading && data && contentTab === "result" && (
+      {!loading && data && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "var(--s-3)" }}>
-            <Metric label="Result" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} margin · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
-            <Metric label="Revenue" value={money(data.summary.revenue)} hint={`${data.daily.length} calendar days`} />
-            <Metric label="Sheet expenses excl. HR" value={money(data.summary.directExpenses)} hint="Daily Accounting data" tone="bad" />
-            <Metric label="Added costs" value={money(data.summary.payroll + data.summary.recurringCosts + data.summary.serviceCharge + (data.summary.bonus ?? 0))} hint="Salaries + fixed + service charge + bonus" tone="bad" />
+            <Metric label="Chiffre d'affaires" value={money(data.summary.revenue)} hint={`${data.daily.length} jours`} />
+            <Metric label="Charges RH" value={money(data.summary.payroll)} hint="Salaires pondérés" tone="bad" />
+            <Metric label="Charges fixes" value={money(data.summary.recurringCosts + data.summary.serviceCharge)} hint="Frais fixes + service" tone="bad" />
+            <Metric label="Charges d'exploitation" value={money(data.summary.directExpenses)} hint="Données comptables" tone="bad" />
+            <Metric label="Résultat" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} marge · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
           </div>
 
           <Card style={{ gap: 8 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Daily profit ribbon</h2><p style={{ fontSize: 12, color: "var(--fg-4)", margin: "4px 0 0" }}>Revenue above the axis, costs below, profit traced across the period. Select a day to inspect it.</p></div>
-              <Pill tone="info" size="sm">Simplified formula</Pill>
+              <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Évolution quotidienne</h2></div>
             </div>
-            {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>No financial days in this scope.</p>}
+            {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>Aucun jour financier sur cette période.</p>}
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(260px,.8fr)]" style={{ gap: "var(--s-4)", alignItems: "start" }}>
             <Card flush>
-              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Daily detail</strong></div>
-              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Revenue", "Expenses", "Salaries", "Fixed costs", "Service charge", "Bonus", "Result", "Margin"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td><td style={{ ...tdNumber, color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)", fontWeight: 650 }}>{money(row.economicProfit)}</td><td style={tdNumber}>{pct(row.margin)}</td></tr>)}</tbody></table></div>
+              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Détail quotidien</strong></div>
+              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Chiffre d'affaires", "Charges d'exploitation", "Salaires", "Charges fixes", "Service", "Prime"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-              <Card style={{ gap: 10 }}><strong>Cost composition</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label} {category.status === "estimated" && <em style={{ color: "var(--warn)" }}>est.</em>}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
-              <Card style={{ gap: 10 }}><strong>Shop contribution</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 4, fontSize: 12 }}><span>{row.name}</span><span className="mono" style={{ color: row.economicProfit >= 0 ? "var(--good)" : "var(--bad)" }}>{money(row.economicProfit)}</span><span style={{ color: "var(--fg-4)" }}>{pct(row.margin)} margin</span><span style={{ color: "var(--fg-4)", textAlign: "right" }}>{row.estimatedAmount > 0 ? "estimated" : "actual"}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>Répartition des coûts</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>Contribution par boutique</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 4, fontSize: 12 }}><span>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span className="mono">{money(row.revenue)}</span><span style={{ color: "var(--fg-4)", textAlign: "right" }}>{row.estimatedAmount > 0 ? "estimé" : "réel"}</span></div>)}</Card>
             </div>
           </div>
         </>
