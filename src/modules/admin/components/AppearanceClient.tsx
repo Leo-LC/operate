@@ -65,7 +65,7 @@ export function AppearanceClient({ currentTheme }: AppearanceClientProps) {
                 border: isActive ? "2px solid var(--bronze)" : "2px solid var(--line)",
                 padding: 16,
                 textAlign: "left",
-                background: "var(--surface)",
+                background: "transparent",
                 cursor: "pointer",
                 transition: "border-color 150ms, box-shadow 150ms",
                 boxShadow: isActive ? "var(--shadow-1)" : "none",

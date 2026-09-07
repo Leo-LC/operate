@@ -600,7 +600,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
           </div>
 
           {/* Vaccines */}
-          <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16 }}>
+          <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "transparent", padding: 16 }}>
             <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <ShieldCheckIcon className="size-4" style={{ color: "var(--fg-3)" }} />
               Vaccines
@@ -660,7 +660,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
           <div style={{
             width: "100%", maxWidth: 400,
             borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "var(--surface)", padding: 24,
+            background: "transparent", padding: 24,
             boxShadow: "var(--shadow-2)",
           }}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete {detail?.name ?? ""}?</h2>

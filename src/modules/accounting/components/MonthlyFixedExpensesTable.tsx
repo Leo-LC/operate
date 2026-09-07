@@ -133,7 +133,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
               position: "absolute", inset: 0,
               paddingInline: 8, height: "100%", width: "100%",
               border: "1px solid var(--focus-ring)",
-              background: "var(--surface)",
+              background: "transparent",
               fontSize: 12, textAlign: "right", outline: "none",
             }}
           />
@@ -204,7 +204,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
                   {m}
                 </th>
               ))}
-              <th style={{ padding: "10px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", borderRight: "1px solid var(--line)", minWidth: "5rem", fontStyle: "italic", background: "var(--surface-2)" }}>
+              <th style={{ padding: "10px 12px", textAlign: "center", fontSize: 11, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", borderRight: "1px solid var(--line)", minWidth: "5rem", fontStyle: "italic", background: "transparent" }}>
                 Year total
               </th>
             </tr>
@@ -215,7 +215,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
               const rowTotal = MONTH_NAMES.reduce((sum, _, i) => sum + valueFor(cost, i + 1), 0);
               return (
                 <tr key={cost.id} style={{ borderBottom: "1px solid var(--line)", transition: "background var(--dur) var(--ease)" }}>
-                  <td className="sticky left-0 z-10 whitespace-nowrap" style={{ padding: "8px 12px", borderRight: "1px solid var(--line)", width: "14rem", minWidth: "14rem", background: "var(--surface)" }}>
+                  <td className="sticky left-0 z-10 whitespace-nowrap" style={{ padding: "8px 12px", borderRight: "1px solid var(--line)", width: "14rem", minWidth: "14rem", background: "transparent" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>{cost.label}</span>
                       <span style={{ fontSize: 10, color: "var(--fg-4)", background: "var(--bg-2)", borderRadius: "var(--r-pill)", padding: "2px 8px", border: "1px solid var(--line)" }}>
@@ -224,7 +224,7 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
                     </div>
                   </td>
                   {MONTH_NAMES.map((m, i) => cell(cost, i + 1, m))}
-                  <td className="mono tabular-nums" style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", fontStyle: "italic", borderRight: "1px solid var(--line)", background: "var(--surface-2)" }}>
+                  <td className="mono tabular-nums" style={{ padding: "8px 12px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--bronze-2, var(--bronze))", fontStyle: "italic", borderRight: "1px solid var(--line)", background: "transparent" }}>
                     {fmt(rowTotal)}
                   </td>
                 </tr>
@@ -232,8 +232,8 @@ export function MonthlyFixedExpensesTable({ locationId, locations, year: yearPro
             })}
 
             {/* Totals row */}
-            <tr style={{ borderTop: "2px solid var(--line)", background: "var(--surface-2)" }}>
-              <td className="sticky left-0 z-10" style={{ padding: "8px 12px", fontSize: 12, fontWeight: 600, color: "var(--bronze)", borderRight: "1px solid var(--line)", background: "var(--surface-2)" }}>
+            <tr style={{ borderTop: "2px solid var(--line)", background: "transparent" }}>
+              <td className="sticky left-0 z-10" style={{ padding: "8px 12px", fontSize: 12, fontWeight: 600, color: "var(--bronze)", borderRight: "1px solid var(--line)", background: "transparent" }}>
                 Monthly total
               </td>
               {perMonthTotals.map((t, i) => (

@@ -98,7 +98,7 @@ export function AutomationsClient({ initialEnabled, lastRunAt, lastRunResult }: 
 
       {/* Card */}
       <div style={{
-        background: "var(--surface)",
+        background: "transparent",
         border: "1px solid var(--line)",
         borderRadius: "var(--r-lg)",
         padding: 20,
@@ -188,7 +188,7 @@ export function AutomationsClient({ initialEnabled, lastRunAt, lastRunResult }: 
               fontSize: 12, fontWeight: 500,
               borderRadius: "var(--r-md)",
               border: "1px solid var(--line)",
-              background: "var(--surface)",
+              background: "transparent",
               color: "var(--fg-2)",
               cursor: running ? "not-allowed" : "pointer",
               opacity: running ? 0.6 : 1,

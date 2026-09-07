@@ -101,10 +101,10 @@ function PriorityBadge({ p }: { p: Reserve["priority"] }) {
 
 function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", overflow: "hidden" }}>
+    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", overflow: "hidden" }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 16px", borderBottom: "1px solid var(--line)", background: "var(--surface-2)",
+        padding: "10px 16px", borderBottom: "1px solid var(--line)", background: "transparent",
       }}>
         <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "var(--fg-3)", letterSpacing: "-0.01em" }}>{title}</h3>
         {action}
@@ -236,7 +236,7 @@ function AddReserveForm({ onAdd }: { onAdd: (r: Partial<Reserve>) => Promise<voi
   );
 
   return (
-    <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", background: "var(--surface-2)" }}>
+    <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", background: "transparent" }}>
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
         <div>
           <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Label</label>
@@ -383,7 +383,7 @@ export function TreasuryClient() {
       {/* Free cash formula */}
       <div style={{
         display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
-        borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface-2)",
+        borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "transparent",
         fontSize: 13, color: "var(--fg-3)", flexWrap: "wrap",
       }}>
         <span className="mono tabular-nums">{thb(totalCash)} cash</span>
@@ -474,7 +474,7 @@ export function TreasuryClient() {
             {/* Summary row */}
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto",
-              padding: "8px 20px", background: "var(--surface-2)",
+              padding: "8px 20px", background: "transparent",
               fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-4)",
             }}>
               <span>Obligation</span>
@@ -522,7 +522,7 @@ export function TreasuryClient() {
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto",
               padding: "10px 20px", borderTop: "2px solid var(--line)",
-              background: "var(--surface-2)", alignItems: "center", gap: 12,
+              background: "transparent", alignItems: "center", gap: 12,
             }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Total</span>
               <span className="mono tabular-nums" style={{ textAlign: "right", fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{thb(totalReserved)}</span>

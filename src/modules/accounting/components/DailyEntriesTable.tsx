@@ -306,7 +306,7 @@ export function DailyEntriesTable({
 
   return (
     <>
-      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "var(--surface)" }}>
+      <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "transparent" }}>
         {/* Column header row with sparklines */}
         <div style={{
           display: "grid", gridTemplateColumns: GRID,

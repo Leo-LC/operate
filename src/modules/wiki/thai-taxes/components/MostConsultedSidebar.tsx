@@ -17,7 +17,7 @@ export function MostConsultedSidebar() {
   const items = MOST_CONSULTED_SLUGS.map((slug) => getArticle(slug)).filter((a): a is NonNullable<typeof a> => Boolean(a));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 14 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 14 }}>
       <p className="eyebrow" style={{ color: "var(--bronze)" }}>{t({ fr: "Articles les plus consultés", en: "Most consulted articles" })}</p>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {items.map((article, i) => (

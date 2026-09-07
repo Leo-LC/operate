@@ -69,7 +69,7 @@ export function EntryLedgerTable({ year, month, entries, onOpenDay }: Props) {
   };
 
   return (
-    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "auto", background: "var(--surface)" }}>
+    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "auto", background: "transparent" }}>
       <table style={{ borderCollapse: "collapse", tableLayout: "auto" }}>
         <thead>
           <tr>
@@ -134,7 +134,7 @@ export function EntryLedgerTable({ year, month, entries, onOpenDay }: Props) {
                 onMouseEnter={(ev) => (ev.currentTarget.style.background = "var(--row-hover)")}
                 onMouseLeave={(ev) => (ev.currentTarget.style.background = "transparent")}
               >
-                <td style={{ ...tdBase, textAlign: "left", position: "sticky", left: 0, zIndex: 2, background: "var(--surface)", fontWeight: 500 }}>
+                <td style={{ ...tdBase, textAlign: "left", position: "sticky", left: 0, zIndex: 2, background: "transparent", fontWeight: 500 }}>
                   <span style={{ fontSize: 11, color: "var(--fg-3)" }}>{weekdayShort(year, month, day)}</span>
                   <span style={{ color: "var(--fg-4)", marginLeft: 6, fontSize: 10 }}>{String(day).padStart(2, "0")}</span>
                 </td>

@@ -24,7 +24,7 @@ export function CategoryCard({ family }: { family: TaxFamily }) {
   if (filtersActive && articles.length === 0) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 16 }}>{family.icon}</span>
         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--fg)", flex: 1 }}>{t(family.label)}</p>

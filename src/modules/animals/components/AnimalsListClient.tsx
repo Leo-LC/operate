@@ -256,11 +256,11 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
 
           {/* Animal list */}
           {displayedAnimals.length === 0 ? (
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", background: "var(--surface)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
+            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", background: "transparent", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
               No animals found — add one to get started.
             </div>
           ) : (
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "var(--surface)" }}>
+            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "transparent" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
@@ -391,7 +391,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             </span>
           </div>
 
-          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "var(--surface)", padding: "var(--s-4)" }}>
+          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "transparent", padding: "var(--s-4)" }}>
             <VaccinationUrgencyList animals={displayedAnimals} locations={locations} onOpen={(a) => setModal({ animal: a })} />
           </div>
         </div>
@@ -410,7 +410,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           <div style={{
             width: "100%", maxWidth: 400,
             borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "var(--surface)", padding: 24,
+            background: "transparent", padding: 24,
             boxShadow: "var(--shadow-2)",
           }}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Supprimer {deleteTarget.name} ?</h2>
@@ -495,7 +495,7 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
                 padding: "10px 16px",
                 fontSize: 13,
                 borderTop: i === 0 ? "none" : "1px solid var(--line)",
-                background: "var(--surface)",
+                background: "transparent",
                 cursor: "pointer",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}

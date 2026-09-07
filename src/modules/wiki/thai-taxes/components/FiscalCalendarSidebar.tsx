@@ -6,7 +6,7 @@ import { useWikiLang } from "./LanguageProvider";
 export function FiscalCalendarSidebar() {
   const { lang, t } = useWikiLang();
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 14 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <p className="eyebrow" style={{ color: "var(--bronze)" }}>{t({ fr: "Calendrier des échéances", en: "Deadline calendar" })}</p>
         <Link href="/wiki/thai-taxes/fiscal-calendar" style={{ fontSize: 10, fontWeight: 600, color: "var(--bronze)", textDecoration: "none" }}>

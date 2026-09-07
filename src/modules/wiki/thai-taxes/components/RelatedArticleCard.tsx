@@ -23,7 +23,7 @@ export function RelatedArticleCard({ article }: { article: TaxArticle }) {
     gap: 8,
     borderRadius: "var(--r-md)",
     border: "1px solid var(--line)",
-    background: "var(--surface)",
+    background: "transparent",
     padding: "8px 12px",
     fontSize: 11,
     fontWeight: 600,

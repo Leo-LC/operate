@@ -395,7 +395,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 onClick={prevMonth}
                 style={{
                   width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
                   color: "var(--fg-3)", cursor: "pointer",
                 }}
               >
@@ -411,7 +411,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                 onClick={nextMonth}
                 style={{
                   width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--surface)",
+                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
                   color: "var(--fg-3)", cursor: "pointer",
                 }}
               >

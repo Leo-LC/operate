@@ -19,7 +19,7 @@ function SectionBlock({ entry, section }: { entry?: DailyEntry; section: (typeof
   const fields = section.fields;
 
   return (
-    <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-md)", overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-md)", overflow: "hidden", background: "transparent" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

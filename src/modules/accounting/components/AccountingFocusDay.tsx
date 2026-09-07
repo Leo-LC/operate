@@ -352,7 +352,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {/* Left: Net hero + breakdown bars */}
         <div style={{
-          background: "var(--surface)", border: "1px solid var(--line)",
+          background: "transparent", border: "1px solid var(--line)",
           borderRadius: "var(--r-lg)", padding: "var(--s-5)",
           position: "relative",
         }}>
@@ -398,7 +398,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
 
         {/* Right: Breakdown detail */}
         <div style={{
-          background: "var(--surface)", border: "1px solid var(--line)",
+          background: "transparent", border: "1px solid var(--line)",
           borderRadius: "var(--r-lg)", overflow: "hidden",
         }}>
           <div style={{ padding: "14px var(--s-5)", borderBottom: "1px solid var(--line)" }}>
@@ -520,7 +520,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
           />
           <div style={{
             position: "fixed", top: 0, right: 0, bottom: 0, width: 380,
-            background: "var(--surface)", borderLeft: "1px solid var(--line)",
+            background: "transparent", borderLeft: "1px solid var(--line)",
             zIndex: 41, display: "flex", flexDirection: "column", boxShadow: "-4px 0 24px rgba(0,0,0,0.1)",
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>

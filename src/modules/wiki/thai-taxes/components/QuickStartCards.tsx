@@ -35,7 +35,7 @@ const STEPS = [
 export function QuickStartCards() {
   const { t } = useWikiLang();
   return (
-    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 18 }}>
+    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 18 }}>
       <p className="eyebrow" style={{ color: "var(--bronze)", marginBottom: 12 }}>
         {t({ fr: "Par où commencer ?", en: "Where to start?" })}
       </p>

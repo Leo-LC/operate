@@ -44,7 +44,7 @@ export function DaySummaryCards({ entry, cashSafe }: Props) {
         <div
           key={label}
           style={{
-            background: "var(--surface)",
+            background: "transparent",
             border: "1px solid var(--line)",
             borderRadius: "var(--r-lg)",
             padding: "var(--s-4)",

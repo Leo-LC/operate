@@ -16,7 +16,7 @@ const CADENCE_LABEL: Record<string, Record<"fr" | "en", string>> = {
 
 function SidebarBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 14 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 14 }}>
       <p className="eyebrow" style={{ color: "var(--bronze)" }}>{title}</p>
       {children}
     </div>

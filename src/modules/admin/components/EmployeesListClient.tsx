@@ -27,7 +27,7 @@ const MODAL_BACKDROP: React.CSSProperties = {
 const MODAL_PANEL: React.CSSProperties = {
   width: "100%", maxWidth: 520,
   borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-  background: "var(--surface)", padding: 24,
+  background: "transparent", padding: 24,
   boxShadow: "var(--shadow-2)",
 };
 
@@ -521,7 +521,7 @@ export function EmployeesListClient({ locations }: Props) {
             style={{
               height: 32, paddingLeft: 28, paddingRight: searchQuery ? 28 : 10,
               borderRadius: "var(--r-md)", border: "1px solid var(--line)",
-              background: "var(--surface)", color: "var(--fg)", fontSize: 13,
+              background: "transparent", color: "var(--fg)", fontSize: 13,
               width: 220, outline: "none",
             }}
           />

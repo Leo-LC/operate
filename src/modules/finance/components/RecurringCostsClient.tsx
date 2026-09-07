@@ -264,7 +264,7 @@ export function RecurringCostsClient() {
       {locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}
     </div>
 
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "var(--r-md)", background: "transparent", border: "1px solid var(--line)" }}>
       <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--fg-4)" }}>Month</span>
       <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
     </div>
@@ -314,7 +314,7 @@ export function RecurringCostsClient() {
     {isAll ? (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12 }}>
-          <div style={{ padding: "12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ padding: "12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "transparent", display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".06em" }}>Recurring costs</span>
             <span className="mono" style={{ fontSize: 22, fontWeight: 700 }}>฿{monthTotals.recurring.toLocaleString()}</span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{selectedMonth} • {locations.length} shops</span>
@@ -356,7 +356,7 @@ export function RecurringCostsClient() {
           {costsByCategory.length === 0 ? <span style={{ fontSize: 12, color: "var(--fg-4)" }}>No costs yet.</span> : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
               {costsByCategory.map(({ category, label, amount }) => (
-                <div key={category} style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
+                <div key={category} style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "transparent" }}>
                   <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{label}</span>
                   <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{amount.toLocaleString()}</span>
                 </div>
@@ -367,7 +367,7 @@ export function RecurringCostsClient() {
         <Card style={{ gap: 10 }}><strong style={{ fontSize: 13 }}>By shop (all shops)</strong>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
             {costsByLocation.map(({ location, amount }) => (
-              <div key={location.id} style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)" }}>
+              <div key={location.id} style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "transparent" }}>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{location.name}</span>
                 <span className="mono" style={{ display: "block", fontSize: 16, fontWeight: 650 }}>฿{amount.toLocaleString()}</span>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>＋ ฿{Number(salaries[location.id] ?? 0).toLocaleString()} payroll</span>
@@ -379,7 +379,7 @@ export function RecurringCostsClient() {
     ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12 }}>
-          <div style={{ padding: "12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "var(--surface)", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ padding: "12px", border: "1px solid var(--line)", borderRadius: "var(--r-md)", background: "transparent", display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: ".06em" }}>Recurring costs</span>
             <span className="mono" style={{ fontSize: 22, fontWeight: 700 }}>฿{monthTotals.recurring.toLocaleString()}</span>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{selectedMonth} • {locationName}</span>
@@ -445,7 +445,7 @@ export function RecurringCostsClient() {
               const raw = salaryDraft[employee.id] ?? String(employee.base_salary_monthly || "");
               const changed = (raw.trim() === "" ? 0 : Number(raw)) !== employee.base_salary_monthly;
               return (
-                <div key={employee.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--surface)" }}>
+                <div key={employee.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "transparent" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <strong style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{employee.name}</strong>
                     <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{employee.position ?? "Employee"}</span>
