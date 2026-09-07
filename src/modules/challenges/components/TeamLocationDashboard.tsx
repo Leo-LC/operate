@@ -184,7 +184,7 @@ export function TeamLocationDashboard({
   const barColor = unlocked ? "var(--good)" : targetStatus.tone === "warn" ? "var(--warn)" : "var(--bronze)";
 
   return (
-    <article className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4 md:p-5">
+    <article className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4 md:p-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -200,7 +200,7 @@ export function TeamLocationDashboard({
 
       {/* KPI row — sales (combined) + bonus */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-        <div className="rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+        <div className="rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent px-4 py-3">
           <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
             <div>
               <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--fg-4)]">Sales this month</p>
@@ -265,7 +265,7 @@ export function TeamLocationDashboard({
         <div className="overflow-x-auto rounded-[var(--r-sm)] border border-[var(--line)]">
           <table className="w-full min-w-[560px]">
             <thead>
-              <tr className="border-b border-[var(--line)] bg-[var(--bg-2)]">
+              <tr className="border-b border-[var(--line)] bg-transparent">
                 <th className="py-2 pl-3 pr-3 text-left text-[8px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">
                   Metric
                 </th>

@@ -16,6 +16,7 @@ function escHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   type AttendanceRecord,
   type HrSettings,
@@ -532,15 +533,11 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
         subtitle="Click any day cell to log overtime or leave."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <select
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", padding: "0 var(--s-3)", fontSize: 13, color: "var(--fg)", outline: "none" }}
-            >
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {initialLocations.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
+                <PillButton key={l.id} active={locationId === l.id} onClick={() => setLocationId(l.id)}>{l.name}</PillButton>
               ))}
-            </select>
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Button variant="ghost" size="sm" onClick={prevMonth}>
                 <ChevronLeftIcon style={{ width: 14, height: 14 }} />
@@ -569,7 +566,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
           onSubmit={(e) => void saveSettings(e)}
           style={{
             borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "var(--bg-2)", padding: "var(--s-5)",
+            background: "transparent", padding: "var(--s-5)",
             display: "flex", flexWrap: "wrap", gap: "var(--s-4)", alignItems: "flex-end",
           }}
         >
@@ -633,7 +630,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
             if (withAbsence.length === 0 && withOt.length === 0 && withUnpaid.length === 0) return null;
             return (
               <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
-                <div style={{ padding: "8px var(--s-5)", background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
+                <div style={{ padding: "8px var(--s-5)", background: "transparent", borderBottom: "1px solid var(--line)" }}>
                   <span className="eyebrow" style={{ color: "var(--fg-4)" }}>Attendance issues this month</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -692,7 +689,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
             <div style={{ overflowX: "auto", borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
               <div style={{ minWidth: "max-content" }}>
                 {/* Day header */}
-                <div style={{ display: "flex", borderBottom: "1px solid var(--line)", background: "var(--bg-2)" }}>
+                <div style={{ display: "flex", borderBottom: "1px solid var(--line)", background: "transparent" }}>
                   <div style={{ width: 128, flexShrink: 0, borderRight: "1px solid var(--line)" }} />
                   {dayNumbers.map((d) => {
                     const dow = dayOfWeek(year, month, d);
@@ -774,7 +771,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
             <div style={{ overflowX: "auto", borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 580 }}>
                 <thead>
-                  <tr style={{ background: "var(--bg-2)" }}>
+                  <tr style={{ background: "transparent" }}>
                     {["Employee", "Scheduled", "OT hours", "OT pay", "Unpaid leave", "Deduction", "Delta"].map((h, i) => (
                       <th
                         key={h}

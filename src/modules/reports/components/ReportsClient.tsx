@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  ChevronDownIcon,
   ChevronRightIcon,
   WalletIcon,
   FileTextIcon,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
+import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
 import { DailyProfitView } from "@/modules/reports/components/DailyProfitView";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
@@ -145,95 +145,48 @@ function daysInMonth(dateStr: string): number {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 }
 
-// ── Shop Selector ────────────────────────────────────────────────────────────
-
-function ShopSelector({
+function Controls({
+  from,
+  to,
+  onFromChange,
+  onToChange,
   locations,
-  selected,
-  onChange,
+  selectedShops,
+  onShopsChange,
 }: {
+  from: string;
+  to: string;
+  onFromChange: (v: string) => void;
+  onToChange: (v: string) => void;
   locations: { id: string; name: string }[];
-  selected: string[];
-  onChange: (ids: string[]) => void;
+  selectedShops: string[];
+  onShopsChange: (ids: string[]) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const allSelected = selected.length === locations.length;
-
-  function toggle(id: string) {
-    onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
-  }
-
-  function toggleAll() {
-    onChange(allSelected ? [] : locations.map((l) => l.id));
-  }
-
-  const label = allSelected
-    ? "All shops"
-    : selected.length === 0
-    ? "No shops"
-    : selected.length === 1
-    ? locations.find((l) => l.id === selected[0])?.name ?? "1 shop"
-    : `${selected.length} shops`;
-
   return (
-    <div style={{ position: "relative" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          height: 32, minWidth: 120, padding: "0 var(--s-3)",
-          borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-          background: "var(--bg)", fontSize: 13, color: "var(--fg)",
-          cursor: "pointer", transition: "background var(--dur) var(--ease)",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg)")}
-      >
-        <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
-        <ChevronDownIcon style={{ width: 13, height: 13, color: "var(--fg-4)", flexShrink: 0 }} />
-      </button>
-      {open && (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
-          <div
-            style={{
-              position: "absolute", left: 0, top: 36, zIndex: 20,
-              minWidth: 160, borderRadius: "var(--r-md)", border: "1px solid var(--line)",
-              background: "var(--surface)", boxShadow: "var(--shadow-2)",
-              padding: "var(--s-1)", display: "flex", flexDirection: "column", gap: 2,
-            }}
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
+      <DateRangePicker
+        value={{ from, to }}
+        onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+        today={bangkokToday()}
+      />
+      {locations.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <PillButton
+            active={selectedShops.length === locations.length}
+            onClick={() => onShopsChange(selectedShops.length === locations.length ? [] : locations.map((l) => l.id))}
           >
-            <label
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "6px var(--s-3)", borderRadius: "var(--r-sm)",
-                fontSize: 13, fontWeight: 500, cursor: "pointer",
-              }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+            All shops
+          </PillButton>
+          {locations.map((loc) => (
+            <PillButton
+              key={loc.id}
+              active={selectedShops.includes(loc.id)}
+              onClick={() => onShopsChange(selectedShops.includes(loc.id) ? selectedShops.filter((s) => s !== loc.id) : [...selectedShops, loc.id])}
             >
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-              All shops
-            </label>
-            <div style={{ height: 1, background: "var(--line)", margin: "2px 0" }} />
-            {locations.map((loc) => (
-              <label
-                key={loc.id}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "6px var(--s-3)", borderRadius: "var(--r-sm)",
-                  fontSize: 13, cursor: "pointer",
-                }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--row-hover)")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
-              >
-                <input type="checkbox" checked={selected.includes(loc.id)} onChange={() => toggle(loc.id)} />
-                {loc.name}
-              </label>
-            ))}
-          </div>
-        </>
+              {loc.name}
+            </PillButton>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -455,39 +408,6 @@ function computeManagementNotes(o: ShopAgg): string[] {
   return notes.slice(0, 3);
 }
 
-// ── Controls bar ─────────────────────────────────────────────────────────────
-
-function Controls({
-  from,
-  to,
-  onFromChange,
-  onToChange,
-  locations,
-  selectedShops,
-  onShopsChange,
-}: {
-  from: string;
-  to: string;
-  onFromChange: (v: string) => void;
-  onToChange: (v: string) => void;
-  locations: { id: string; name: string }[];
-  selectedShops: string[];
-  onShopsChange: (ids: string[]) => void;
-}) {
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
-      <DateRangePicker
-        value={{ from, to }}
-        onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
-        today={bangkokToday()}
-      />
-      {locations.length > 0 && (
-        <ShopSelector locations={locations} selected={selectedShops} onChange={onShopsChange} />
-      )}
-    </div>
-  );
-}
-
 // ── Performance Metrics ───────────────────────────────────────────────────────
 
 interface MetricDef {
@@ -672,30 +592,6 @@ function OperationsView({ data }: { data: AccountingData }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      {/* Status banner */}
-      <div
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
-          gap: 12, padding: "10px 16px", borderRadius: "var(--r-md)",
-          border: `1px solid ${allGood ? "var(--good)" : "var(--warn)"}`,
-          background: allGood ? "var(--good-soft)" : "var(--warn-soft)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Pill tone={allGood ? "good" : "warn"} dot>{allGood ? "All data looks good" : "Needs attention"}</Pill>
-          <span style={{ fontSize: 13, color: allGood ? "var(--good)" : "var(--warn)" }}>
-            {allGood
-              ? `All key data has been entered for this period.`
-              : `${needsAction.length} item${needsAction.length === 1 ? "" : "s"} need${needsAction.length === 1 ? "s" : ""} attention.`}
-          </span>
-        </div>
-        {completeness && (
-          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
-            Data as of {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {completeness.percent}% complete
-          </span>
-        )}
-      </div>
-
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard
@@ -1715,39 +1611,6 @@ function TreasuryView({ data }: { data: AccountingData }) {
         </div>
       )}
 
-      {/* Top / bottom callouts */}
-      {sortedShops.length >= 2 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {top && (
-            <div
-              style={{
-                borderRadius: "var(--r-lg)", border: "1px solid var(--good)",
-                background: "var(--good-soft)", padding: "var(--s-5)",
-              }}
-            >
-              <p className="eyebrow" style={{ color: "var(--good)", marginBottom: 8, marginTop: 0 }}>Top performer</p>
-              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--good)", margin: 0 }}>{top.locationName}</p>
-              <p style={{ fontSize: 13, color: "var(--good)", opacity: 0.8, marginTop: 4, marginBottom: 0 }}>
-                {calloutDetail(top)}
-              </p>
-            </div>
-          )}
-          {bottom && bottom.locationId !== top?.locationId && (
-            <div
-              style={{
-                borderRadius: "var(--r-lg)", border: "1px solid var(--warn)",
-                background: "var(--warn-soft)", padding: "var(--s-5)",
-              }}
-            >
-              <p className="eyebrow" style={{ color: "var(--warn)", marginBottom: 8, marginTop: 0 }}>Needs attention</p>
-              <p style={{ fontSize: 20, fontWeight: 700, color: "var(--warn)", margin: 0 }}>{bottom.locationName}</p>
-              <p style={{ fontSize: 13, color: "var(--warn)", opacity: 0.8, marginTop: 4, marginBottom: 0 }}>
-                {calloutDetail(bottom)}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

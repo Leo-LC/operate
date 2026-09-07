@@ -168,7 +168,7 @@ export function RevenueComparisonView() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* Controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "var(--s-3)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", background: "var(--surface)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Year</span>
         <div style={selectorStyle}>
           <button type="button" onClick={() => setYear((v) => v - 1)} disabled={editing} aria-label="Previous year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>

@@ -315,7 +315,7 @@ function RecognitionCard({ recognition }: { recognition: MetricRecognition }) {
         : undefined;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+    <div className="flex flex-col overflow-hidden rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
       <div className="h-1" style={{ background: theme.accent }} />
       <div className="flex flex-1 flex-col gap-2.5 p-3.5">
         <div className="flex items-center gap-2.5">
@@ -379,7 +379,7 @@ function SpotlightHero({
 }) {
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+      <div className="overflow-hidden rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
         <div className="h-24 animate-pulse bg-[var(--bronze-soft)]/30" />
         <div className="space-y-4 p-5">
           <div className="h-8 w-48 animate-pulse rounded bg-[var(--bg-2)]" />
@@ -396,7 +396,7 @@ function SpotlightHero({
 
   if (!featured?.available) {
     return (
-      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-6 text-center">
+      <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-6 text-center">
         <p className="text-sm text-[var(--fg-3)]">{SPOTLIGHT_LABELS.insufficientData}</p>
       </div>
     );
@@ -407,7 +407,7 @@ function SpotlightHero({
   const scorePct = Math.round((score / total) * 100);
 
   return (
-    <article className="overflow-hidden rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+    <article className="overflow-hidden rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
       {/* Header band */}
       <div className="border-b border-[var(--line)] bg-gradient-to-r from-[var(--bronze-soft)]/60 via-[var(--paper-2)] to-[var(--surface)] px-5 py-5 md:px-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -421,7 +421,7 @@ function SpotlightHero({
             <p className="mt-1 text-sm text-[var(--fg-3)]">{SPOTLIGHT_LABELS.shopSpotlightSubtitle}</p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+          <div className="flex shrink-0 items-center gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-transparent px-4 py-3">
             <div
               className="relative flex size-16 items-center justify-center rounded-full"
               style={{
@@ -493,7 +493,7 @@ function SpotlightHero({
             {featured.tips.map((tip) => (
               <p
                 key={tip}
-                className="rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm leading-snug text-[var(--fg-2)]"
+                className="rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent px-3 py-2.5 text-sm leading-snug text-[var(--fg-2)]"
               >
                 {tip}
               </p>
@@ -597,7 +597,7 @@ export function ShopSpotlight() {
             ? Array.from({ length: 7 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-36 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]"
+                  className="h-36 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-transparent"
                 />
               ))
             : (data?.recognitions ?? []).map((recognition) => (

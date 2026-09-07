@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
@@ -255,16 +256,12 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             {locations.length > 1 && (
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                style={{ ...inputStyle, width: "auto", minWidth: 120 }}
-              >
-                <option value="">All shops</option>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <PillButton active={locationFilter === ""} onClick={() => setLocationFilter("")}>All shops</PillButton>
                 {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
+                  <PillButton key={l.id} active={locationFilter === l.id} onClick={() => setLocationFilter(l.id)}>{l.name}</PillButton>
                 ))}
-              </select>
+              </div>
             )}
             <Button size="sm" variant="primary" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }}>
               <PlusIcon style={{ width: 14, height: 14 }} />
@@ -280,7 +277,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
           onSubmit={(e) => void handleCreate(e)}
           style={{
             borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "var(--bg-2)", padding: "var(--s-4)",
+            background: "transparent", padding: "var(--s-4)",
             display: "flex", flexDirection: "column", gap: "var(--s-3)",
           }}
         >
@@ -347,12 +344,12 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
       <div
         style={{
           borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-          background: "var(--surface)", overflow: "hidden",
+          background: "transparent", overflow: "hidden",
         }}
       >
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ background: "var(--bg-2)" }}>
+            <tr style={{ background: "transparent" }}>
               {["Name", "Shop", "Week", ""].map((h, i) => (
                 <th
                   key={i}

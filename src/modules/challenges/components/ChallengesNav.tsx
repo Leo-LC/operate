@@ -27,7 +27,7 @@ export function ChallengesNav({ isOwner }: { isOwner?: boolean }) {
             href={tab.href}
             className={`rounded-[var(--r-sm)] px-3 py-1.5 text-sm transition-colors ${
               active
-                ? "bg-[var(--surface)] border border-[var(--line)] font-medium text-[var(--fg)]"
+                ? "bg-transparent border border-[var(--line)] font-medium text-[var(--fg)]"
                 : "text-[var(--fg-3)] hover:text-[var(--fg-2)] hover:bg-[var(--row-hover)]"
             }`}
           >

@@ -161,14 +161,11 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "var(--s-3)", border: "1px solid var(--line)", borderRadius: "var(--r-lg)", background: "var(--surface)" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Shops</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <PillButton active={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])}>All shops</PillButton>
             {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <PillButton key={option.id} active={active} onClick={() => toggleLocation(option.id)}>{option.name}</PillButton>; })}
           </div>
-        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <DateRangePicker
             value={{ from, to }}

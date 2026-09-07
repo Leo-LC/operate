@@ -232,10 +232,10 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
       {filtered.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No contacts found.</p>
       ) : (
-        <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "var(--surface)" }}>
+        <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "transparent" }}>
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg-2)" }}>
+              <tr style={{ borderBottom: "1px solid var(--line)", background: "transparent" }}>
                 {["Name", "Type", "Company", "Contact", "Locations", canWrite ? "" : null]
                   .filter(Boolean)
                   .map((h) => (

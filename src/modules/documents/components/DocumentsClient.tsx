@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import type { PillTone } from "@/components/ui/pill";
@@ -406,7 +407,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
               style={{
                 borderRadius: "var(--r-lg)",
                 border: `1px solid ${tone === "bad" && value > 0 ? "var(--bad)" : tone === "warn" && value > 0 ? "var(--warn)" : "var(--line)"}`,
-                background: tone === "bad" && value > 0 ? "var(--bad-soft)" : tone === "warn" && value > 0 ? "var(--warn-soft)" : "var(--surface)",
+                background: tone === "bad" && value > 0 ? "var(--bad-soft)" : tone === "warn" && value > 0 ? "var(--warn-soft)" : "transparent",
                 padding: "var(--s-3) var(--s-4)",
               }}
             >
@@ -437,10 +438,12 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)} style={{ ...inputStyle, width: "auto" }}>
           {STATUS_FILTERS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
-          <option value="">All locations</option>
-          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <PillButton active={locationFilter === ""} onClick={() => setLocationFilter("")}>All shops</PillButton>
+          {locations.map((l) => (
+            <PillButton key={l.id} active={locationFilter === l.id} onClick={() => setLocationFilter(l.id)}>{l.name}</PillButton>
+          ))}
+        </div>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
           <option value="">All categories</option>
           {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -491,7 +494,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                   <div
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
-                      background: "var(--bg-2)", padding: "8px var(--s-5)",
+                      background: "transparent", padding: "8px var(--s-5)",
                       borderBottom: "1px solid var(--line)",
                     }}
                   >
@@ -506,7 +509,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
                       <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
-                        <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
+                        <tr style={{ background: "transparent", borderBottom: "1px solid var(--line)" }}>
                           {["Code", "Document", "Location", "Has doc", "Status", "Expiry / due", ""].map((h, i) => (
                             <th
                               key={i}
@@ -645,7 +648,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
               <div
                 style={{
                   borderRadius: "var(--r-md)", border: "1px solid var(--line)",
-                  background: "var(--bg-2)", padding: "var(--s-4)",
+                  background: "transparent", padding: "var(--s-4)",
                   display: "flex", flexDirection: "column", gap: "var(--s-3)",
                 }}
               >

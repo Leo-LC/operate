@@ -13,7 +13,7 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-8 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-2 pr-7 text-sm text-[var(--fg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--bronze)] focus:ring-offset-0 hover:border-[var(--fg-4)]"
+      className="h-8 rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent px-2 pr-7 text-sm text-[var(--fg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--bronze)] focus:ring-offset-0 hover:border-[var(--fg-4)]"
     >
       <option value="all">All locations</option>
       {LOCATIONS.map(({ id, name }) => (

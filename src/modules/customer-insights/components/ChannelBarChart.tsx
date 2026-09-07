@@ -118,7 +118,7 @@ export function ChannelBarChart({ data, loading }: ChannelBarChartProps) {
 
 function ChartShell({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
       <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
         Discovery channels
       </p>

@@ -70,7 +70,7 @@ function TeamLocationFilter({
         className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
           value === "all"
             ? "border-[var(--bronze)] bg-[var(--bronze-soft)] text-[var(--fg)]"
-            : "border-[var(--line)] bg-[var(--surface)] text-[var(--fg-3)] hover:text-[var(--fg)]"
+            : "border-[var(--line)] bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
         }`}
       >
         All shops
@@ -83,7 +83,7 @@ function TeamLocationFilter({
           className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
             value === loc.locationId
               ? "border-[var(--bronze)] bg-[var(--bronze-soft)] text-[var(--fg)]"
-              : "border-[var(--line)] bg-[var(--surface)] text-[var(--fg-3)] hover:text-[var(--fg)]"
+              : "border-[var(--line)] bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
           }`}
         >
           {shortLocationName(loc.locationTitle)}
@@ -101,7 +101,7 @@ function ViewModeToggle({
   onChange: (mode: ViewMode) => void;
 }) {
   return (
-    <div className="inline-flex rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--bg-2)] p-0.5">
+    <div className="inline-flex rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent p-0.5">
       {(["internal", "team"] as const).map((mode) => (
         <button
           key={mode}
@@ -109,7 +109,7 @@ function ViewModeToggle({
           onClick={() => onChange(mode)}
           className={`rounded-[calc(var(--r-sm)-2px)] px-2.5 py-1 text-xs font-medium transition-colors ${
             value === mode
-              ? "bg-[var(--surface)] text-[var(--fg)] shadow-sm"
+              ? "bg-transparent text-[var(--fg)] shadow-sm"
               : "text-[var(--fg-4)] hover:text-[var(--fg-2)]"
           }`}
         >
@@ -586,7 +586,7 @@ function LocationCard({
     : 0;
 
   return (
-    <div className="flex h-full flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] overflow-hidden">
+    <div className="flex h-full flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-transparent overflow-hidden">
       {/* Card header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
         <p className="text-sm font-medium text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
@@ -707,7 +707,7 @@ function LocationCard({
       </div>
 
       {/* Manual inputs — pinned to card bottom when grid stretches row height */}
-      <div className="mt-auto flex flex-col gap-0 border-t border-[var(--line)] bg-[var(--bg-2)]">
+      <div className="mt-auto flex flex-col gap-0 border-t border-[var(--line)] bg-transparent">
         <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
           <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">
             {isTeam ? TEAM_CHALLENGE_LABELS.visitorCounts : CHALLENGE_LABELS.visitorCounts}
@@ -902,7 +902,7 @@ export function ChallengesOverview({
           {LEGEND_ITEMS.map((item) => (
             <div
               key={item.label}
-              className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+              className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent px-3 py-2"
             >
               <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{item.label}</span>
               <span className="font-mono text-sm font-semibold text-[var(--fg)]">{item.max}</span>
@@ -945,12 +945,12 @@ export function ChallengesOverview({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]" />
+              <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-transparent" />
             ))}
           </div>
         )
       ) : locations.length === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
           <span className="text-sm text-[var(--fg-4)]">No data yet for this month.</span>
         </div>
       ) : isTeamView ? (

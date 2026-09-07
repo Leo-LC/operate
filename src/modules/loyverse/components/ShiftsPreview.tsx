@@ -177,27 +177,37 @@ function RenderValue({ value }: { value: unknown }) {
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-xs text-[var(--fg-4)]">[]</span>;
     return (
-      <div className="flex flex-col gap-1">
-        {value.map((v, i) => (
-          <div key={i} className="rounded bg-[var(--bg-2)] px-2 py-1">
-            <RenderValue value={v} />
-          </div>
-        ))}
+      <div className="overflow-hidden rounded border border-[var(--line)]">
+        <table className="w-full text-xs">
+          <tbody>
+            {value.map((v, i) => (
+              <tr key={i} className="border-t border-[var(--line)] first:border-t-0">
+                <td className="px-2 py-1.5">
+                  <RenderValue value={v} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     return (
-      <div className="grid gap-1.5">
-        {Object.entries(obj).map(([k, v]) => (
-          <div key={k} className="flex gap-2 text-xs">
-            <span className="min-w-[120px] shrink-0 font-medium text-[var(--fg-3)]">{k}</span>
-            <span className="min-w-0 flex-1 text-[var(--fg-2)]">
-              {typeof v === "object" && v !== null ? <RenderValue value={v} /> : <span className="font-mono tabular-nums">{isMoneyKey(k) && typeof v === "number" ? fmtTHB(v) : String(v ?? "—")}</span>}
-            </span>
-          </div>
-        ))}
+      <div className="overflow-hidden rounded border border-[var(--line)]">
+        <table className="w-full text-xs">
+          <tbody>
+            {Object.entries(obj).map(([k, v]) => (
+              <tr key={k} className="border-t border-[var(--line)] first:border-t-0">
+                <td className="px-2 py-1.5 font-medium text-[var(--fg-3)] whitespace-nowrap">{k}</td>
+                <td className="px-2 py-1.5 text-[var(--fg-2)]">
+                  {typeof v === "object" && v !== null ? <RenderValue value={v} /> : <span className="font-mono tabular-nums">{isMoneyKey(k) && typeof v === "number" ? fmtTHB(v) : String(v ?? "—")}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }

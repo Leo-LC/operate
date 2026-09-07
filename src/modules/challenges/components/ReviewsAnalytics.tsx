@@ -88,7 +88,7 @@ function LocationCardTile({
       : "bad";
 
   return (
-    <div className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-5">
+    <div className="flex flex-col gap-4 rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-5">
       <p className="text-sm font-medium text-[var(--fg)]">{shortName(card.locationTitle)}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -173,7 +173,7 @@ export function ReviewsAnalytics() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex h-8 items-center gap-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--fg-2)] transition-colors hover:border-[var(--fg-4)] hover:text-[var(--fg)] disabled:pointer-events-none disabled:opacity-50"
+            className="flex h-8 items-center gap-1.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent px-3 text-sm text-[var(--fg-2)] transition-colors hover:border-[var(--fg-4)] hover:text-[var(--fg)] disabled:pointer-events-none disabled:opacity-50"
           >
             <RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />
             {syncing ? "Syncing…" : "Sync reviews"}
@@ -186,12 +186,12 @@ export function ReviewsAnalytics() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-48 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]"
+              className="h-48 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-transparent"
             />
           ))}
         </div>
       ) : cards.length === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)]">
+        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
           <span className="text-sm text-[var(--fg-4)]">No data yet — run a sync first.</span>
         </div>
       ) : (
