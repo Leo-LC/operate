@@ -21,9 +21,20 @@ async function handleCron(request: Request) {
     return Response.json({ error: "Loyverse not configured" }, { status: 503 });
   }
 
+  const url = new URL(request.url);
+  const force = url.searchParams.get("force") === "true";
+  const daysParam = url.searchParams.get("days");
+  const days = daysParam ? Math.min(30, Math.max(1, Number(daysParam))) : undefined;
+  const backfill = url.searchParams.get("backfill") !== "false";
+
   try {
-    // Cron backfills missing in last 30d + refresh J/J-1 (idempotent)
-    const result = await syncAllLoyverse({ triggeredBy: "cron", backfill: true });
+    // Default: backfills missing in last 30d + refresh J/J-1 (idempotent).
+    // With ?force=true&days=30 — rewrites last 30d with current mapping (retroactive fix).
+    const result = await syncAllLoyverse({
+      triggeredBy: "cron",
+      ...(force ? { force: true, days: days ?? 30 } : backfill ? { backfill: true } : {}),
+      ...(days && !force ? { days } : {}),
+    });
     return Response.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
