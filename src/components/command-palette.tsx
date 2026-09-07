@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon, CrownIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
 
 const NAV_ITEMS = [
+  { id: "boss",       label: "Boss",       href: "/boss",       icon: CrownIcon,        module: null },
   { id: "loyverse",   label: "Loyverse",   href: "/loyverse",   icon: PlugIcon,         module: null },
   { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
   { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
@@ -54,6 +55,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const items = useMemo(() => {
     const nav = NAV_ITEMS
       .filter((n) => {
+        if (n.id === "boss") return ["owner", "admin"].includes(permissions.global_role);
         if (permissions.global_role === "direction") return n.id === "loyverse" || n.id === "reports";
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;

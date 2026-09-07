@@ -9,7 +9,7 @@ import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon,
-  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, CrownIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -39,6 +39,12 @@ type NavGroup = {
 };
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Boss",
+    items: [
+      { id: "boss", label: "Boss", href: "/boss", icon: CrownIcon, module: null },
+    ],
+  },
   {
     label: "Performance",
     items: [
@@ -187,6 +193,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           w: "/wiki",
           b: "/brand",
           m: "/admin",
+          k: "/boss",
         };
         const dest = map[e.key.toLowerCase()];
         if (dest) {
@@ -335,11 +342,13 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
+              // Boss preview — visible only to owner/admin while iterating (hidden for direction/reviewer/member)
+              if (item.id === "boss") return ["owner", "admin"].includes(permissions.global_role);
               if (permissions.global_role === "reviewer") return item.id === "loyverse" || item.id === "reviews";
               if (permissions.global_role === "direction") return item.id === "loyverse" || item.id === "reports";
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "loyverse" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (!item.module && item.id !== "loyverse" && item.id !== "boss" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;
