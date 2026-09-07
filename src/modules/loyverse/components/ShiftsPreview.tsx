@@ -169,13 +169,24 @@ function cleanShift(shift: Record<string, unknown>, paymentMap: Map<string, stri
   return out;
 }
 
-function RenderValue({ value }: { value: unknown }) {
+function RenderValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   if (value === null || value === undefined) return <span className="text-[var(--fg-4)]">—</span>;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return <span className="font-mono text-xs tabular-nums">{String(value)}</span>;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="text-xs text-[var(--fg-4)]">[]</span>;
+    if (depth > 0) {
+      return (
+        <div className="flex flex-col divide-y divide-[var(--line)]">
+          {value.map((v, i) => (
+            <div key={i} className="py-1">
+              <RenderValue value={v} depth={depth + 1} />
+            </div>
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="overflow-hidden rounded border border-[var(--line)]">
         <table className="w-full text-xs">
@@ -183,7 +194,7 @@ function RenderValue({ value }: { value: unknown }) {
             {value.map((v, i) => (
               <tr key={i} className="border-t border-[var(--line)] first:border-t-0">
                 <td className="px-2 py-1.5">
-                  <RenderValue value={v} />
+                  <RenderValue value={v} depth={depth + 1} />
                 </td>
               </tr>
             ))}
@@ -194,6 +205,20 @@ function RenderValue({ value }: { value: unknown }) {
   }
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
+    if (depth > 0) {
+      return (
+        <div className="flex flex-col gap-1">
+          {Object.entries(obj).map(([k, v]) => (
+            <div key={k} className="flex gap-2 text-xs">
+              <span className="min-w-[100px] shrink-0 font-medium text-[var(--fg-3)]">{k}</span>
+              <span className="min-w-0 flex-1 text-[var(--fg-2)]">
+                {typeof v === "object" && v !== null ? <RenderValue value={v} depth={depth + 1} /> : <span className="font-mono tabular-nums">{isMoneyKey(k) && typeof v === "number" ? fmtTHB(v) : String(v ?? "—")}</span>}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="overflow-hidden rounded border border-[var(--line)]">
         <table className="w-full text-xs">
@@ -202,7 +227,7 @@ function RenderValue({ value }: { value: unknown }) {
               <tr key={k} className="border-t border-[var(--line)] first:border-t-0">
                 <td className="px-2 py-1.5 font-medium text-[var(--fg-3)] whitespace-nowrap">{k}</td>
                 <td className="px-2 py-1.5 text-[var(--fg-2)]">
-                  {typeof v === "object" && v !== null ? <RenderValue value={v} /> : <span className="font-mono tabular-nums">{isMoneyKey(k) && typeof v === "number" ? fmtTHB(v) : String(v ?? "—")}</span>}
+                  {typeof v === "object" && v !== null ? <RenderValue value={v} depth={depth + 1} /> : <span className="font-mono tabular-nums">{isMoneyKey(k) && typeof v === "number" ? fmtTHB(v) : String(v ?? "—")}</span>}
                 </td>
               </tr>
             ))}
@@ -786,7 +811,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                     : r.shifts.map((s, idx) => {
                         const cleaned = cleanShift(s as Record<string, unknown>, paymentMap);
                         return (
-                          <div key={(s.id as string) ?? `${r.date}-${idx}`} className="rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface)] p-3">
+                          <div key={(s.id as string) ?? `${r.date}-${idx}`}>
                             <RenderValue value={cleaned} />
                           </div>
                         );

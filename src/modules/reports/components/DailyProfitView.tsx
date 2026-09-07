@@ -190,9 +190,6 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
       {!loading && data && contentTab === "result" && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(110px,1fr) auto minmax(110px,1fr) auto minmax(110px,1fr)", gap: 10, alignItems: "center", padding: "16px 18px", borderRadius: "var(--r-lg)", color: "white", background: "linear-gradient(110deg, #173b31, #245a48)", overflowX: "auto" }}>
-            <FormulaValue label="Revenue" value={data.summary.revenue} /><strong style={operatorStyle}>−</strong><FormulaValue label="All costs" value={data.summary.totalCosts} /><strong style={operatorStyle}>=</strong><FormulaValue label="Result" value={data.summary.economicProfit} accent />
-          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "var(--s-3)" }}>
             <Metric label="Result" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} margin · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
             <Metric label="Revenue" value={money(data.summary.revenue)} hint={`${data.daily.length} calendar days`} />
