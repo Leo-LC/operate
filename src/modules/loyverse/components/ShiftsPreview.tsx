@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { StoreIcon, ClockIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChevronDownIcon } from "lucide-react";
+import { StoreIcon, ClockIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChevronDownIcon, CopyIcon, CheckIcon, TableIcon } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { startOfMonth } from "date-fns";
 import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay, toDay } from "@/lib/loyverse/dates";
+import { resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
 
 function fmtTHB(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -224,6 +225,97 @@ type SalesRow = {
   receipt_count: number;
   fetched_at: string;
 };
+type SnapshotRow = {
+  id: string;
+  account_key: string;
+  store_id: string;
+  location_id: string | null;
+  date: string;
+  sales_drinks_net: number;
+  sales_ticket_net: number;
+  sales_snack_net: number;
+  sales_goodies_net: number;
+  sales_card_surcharge: number;
+  vat_7: number;
+  payment_cash: number;
+  payment_scan: number;
+  payment_credit_card: number;
+  receipt_count: number;
+  fetched_at: string;
+};
+
+// ── Accounting copy-row config — same order as Google Sheets DAILY_ENTRIES ──
+const TEMPLATE_COLUMNS = [
+  "date",
+  "sales_drinks_net",
+  "sales_ticket_net",
+  "sales_snack_net",
+  "sales_goodies_net",
+  "sales_card_surcharge",
+  "sales_net_inc_vat",
+  "vat_7",
+  "payment_cash",
+  "payment_scan",
+  "payment_credit_card",
+  "payment_delta",
+  "exp_staff_food_cash",
+  "exp_drinks_cash",
+  "exp_goodies_cash",
+  "exp_animals_cash",
+  "exp_supply_cash",
+  "exp_boss_fees_cash",
+  "exp_other_cash",
+  "exp_cash_total",
+  "exp_makro_bank",
+  "exp_other_bank",
+  "exp_bank_total",
+  "exp_total",
+  "hr_salary_cash",
+  "hr_salary_bank",
+  "hr_challenge_cash",
+  "hr_service_charge_cash",
+  "hr_accompte_cash",
+  "hr_total",
+  "cash_end_day",
+  "cash_to_boss",
+  "cash_safe",
+] as const;
+const COMPUTED_COLS = new Set<string>(["sales_net_inc_vat", "payment_delta", "exp_cash_total", "exp_bank_total", "exp_total", "hr_total", "cash_end_day", "cash_safe"]);
+const COLUMN_LABELS: Record<string, string> = {
+  date: "date",
+  sales_drinks_net: "Drinks",
+  sales_ticket_net: "Ticket",
+  sales_snack_net: "Snack",
+  sales_goodies_net: "Goodies",
+  sales_card_surcharge: "Surcharge",
+  sales_net_inc_vat: "Sales total",
+  vat_7: "VAT 7%",
+  payment_cash: "Cash",
+  payment_scan: "Scan",
+  payment_credit_card: "CC",
+  payment_delta: "Δ Pay",
+  exp_staff_food_cash: "Staff food",
+  exp_drinks_cash: "Drinks",
+  exp_goodies_cash: "Goodies",
+  exp_animals_cash: "Animals",
+  exp_supply_cash: "Supply",
+  exp_boss_fees_cash: "Boss fees",
+  exp_other_cash: "Other cash",
+  exp_cash_total: "Cash tot",
+  exp_makro_bank: "Makro",
+  exp_other_bank: "Other bank",
+  exp_bank_total: "Bank tot",
+  exp_total: "Exp total",
+  hr_salary_cash: "Salary",
+  hr_salary_bank: "Sal. bank",
+  hr_challenge_cash: "Challenge",
+  hr_service_charge_cash: "Svc chg",
+  hr_accompte_cash: "Acompte",
+  hr_total: "HR",
+  cash_end_day: "EOD cash",
+  cash_to_boss: "→ Boss",
+  cash_safe: "Safe",
+};
 
 function SalesCategoryBlock({ rows }: { rows: SalesRow[] }) {
   const agg = React.useMemo(() => {
@@ -306,12 +398,202 @@ function CollapsibleSection({ title, icon, defaultOpen = true, children }: { tit
   );
 }
 
+// ── Accounting copy helpers ───────────────────────
+function n(v: unknown): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") { const p = parseFloat(v.replace(/,/g, "")); return Number.isFinite(p) ? p : 0; }
+  return 0;
+}
+function formatCopyNumber(v: number): string {
+  // raw number, no thousands sep, dot decimal — matches parseNumeric() in import-sheets/lib.ts
+  if (!Number.isFinite(v) || v === 0) return v === 0 ? "0" : "";
+  // keep 2 decimals if needed but strip trailing zeros
+  const s = String(v);
+  // ensure we don't produce exponential notation for large ints
+  return s;
+}
+function buildAccountingValues(
+  shift: Record<string, unknown> | null,
+  snapshot: SnapshotRow | null,
+  date: string,
+  paymentMap: Map<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const c of TEMPLATE_COLUMNS) out[c] = "";
+  out["date"] = date;
+
+  if (!shift && !snapshot) return out;
+
+  // Sales — prefer snapshot (correct bucket mapping), fallback 0
+  if (snapshot) {
+    out["sales_drinks_net"] = formatCopyNumber(n(snapshot.sales_drinks_net));
+    out["sales_ticket_net"] = formatCopyNumber(n(snapshot.sales_ticket_net));
+    out["sales_snack_net"] = formatCopyNumber(n(snapshot.sales_snack_net));
+    out["sales_goodies_net"] = formatCopyNumber(n(snapshot.sales_goodies_net));
+    // surcharge: prefer shift.surcharge, fallback snapshot
+    const shiftSurcharge = shift ? n((shift as Record<string, unknown>)["surcharge"]) : 0;
+    const val = shiftSurcharge !== 0 ? shiftSurcharge : n(snapshot.sales_card_surcharge);
+    out["sales_card_surcharge"] = formatCopyNumber(val);
+  } else if (shift) {
+    // No snapshot — try shift net_sales as fallback? Leave sales_* empty since shift has no breakdown
+    const s = n((shift as Record<string, unknown>)["surcharge"]);
+    if (s) out["sales_card_surcharge"] = formatCopyNumber(s);
+  }
+
+  // VAT — sum of shift.taxes[].money_amount, fallback snapshot vat_7
+  if (shift && Array.isArray(shift["taxes"])) {
+    const sum = (shift["taxes"] as Record<string, unknown>[]).reduce((acc, t) => acc + n(t["money_amount"] ?? t["amount"] ?? t["tax_amount"]), 0);
+    if (sum !== 0 || (shift["taxes"] as unknown[]).length > 0) out["vat_7"] = formatCopyNumber(sum);
+    else if (snapshot) out["vat_7"] = formatCopyNumber(n(snapshot.vat_7));
+  } else if (snapshot) {
+    out["vat_7"] = formatCopyNumber(n(snapshot.vat_7));
+  }
+
+  // Payments — from shift.payments bucketed, fallback snapshot
+  if (shift && Array.isArray(shift["payments"]) && (shift["payments"] as unknown[]).length > 0) {
+    const buckets: Record<string, number> = { cash: 0, scan: 0, credit_card: 0 };
+    for (const p of shift["payments"] as Record<string, unknown>[]) {
+      const pid = String(p["payment_type_id"] ?? "");
+      const name = paymentMap.get(pid) ?? pid;
+      const type = p["type"] as string | undefined;
+      const bucket = resolvePaymentBucket(type ?? null, name ?? null);
+      const amt = n(p["money_amount"]);
+      if (bucket === "cash") buckets.cash += amt;
+      else if (bucket === "scan") buckets.scan += amt;
+      else if (bucket === "credit_card") buckets.credit_card += amt;
+    }
+    out["payment_cash"] = formatCopyNumber(buckets.cash);
+    out["payment_scan"] = formatCopyNumber(buckets.scan);
+    out["payment_credit_card"] = formatCopyNumber(buckets.credit_card);
+  } else if (snapshot) {
+    out["payment_cash"] = formatCopyNumber(n(snapshot.payment_cash));
+    out["payment_scan"] = formatCopyNumber(n(snapshot.payment_scan));
+    out["payment_credit_card"] = formatCopyNumber(n(snapshot.payment_credit_card));
+  }
+
+  // computed + manual expense/HR/treasury stay "" (sheet formulas / manual input)
+  COMPUTED_COLS.forEach((c) => { out[c] = ""; });
+  // explicit empties for manual groups (already "")
+  return out;
+}
+
+function AccountingCopySection({
+  shiftRows,
+  snapshotRows,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  salesRows: _salesRows,
+  date,
+  paymentMap,
+}: {
+  shiftRows: ShiftRow[];
+  snapshotRows: SnapshotRow[];
+  salesRows: SalesRow[];
+  date: string;
+  paymentMap: Map<string, string>;
+}) {
+  const [copied, setCopied] = React.useState(false);
+  const snapshot = snapshotRows[0] ?? null;
+  // single shift per day assumption — take first
+  const rawShift = shiftRows[0]?.shifts?.[0] as Record<string, unknown> | undefined ?? null;
+
+  const values = React.useMemo(() => buildAccountingValues(rawShift, snapshot, date, paymentMap), [rawShift, snapshot, date, paymentMap]);
+  const hasAnyData = Boolean(rawShift || snapshot);
+
+  const handleCopy = async () => {
+    const line = TEMPLATE_COLUMNS.map((c) => values[c] ?? "").join("\t");
+    try {
+      await navigator.clipboard.writeText(line);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // fallback: create textarea
+      const ta = document.createElement("textarea");
+      ta.value = line;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    }
+  };
+
+  if (!hasAnyData) {
+    return (
+      <div className="rounded border border-dashed border-[var(--line)] bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">
+        Pas de shift/snapshot pour générer la ligne comptable. Synchronise le jour d&apos;abord.
+      </div>
+    );
+  }
+
+  const sourceLabel = rawShift ? "shift brut" : snapshot ? "snapshot (ventes Loyverse)" : "—";
+  const salesMissing = !snapshot && !rawShift;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" onClick={handleCopy} className="gap-1.5">
+          {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+          {copied ? "Copié !" : "Copier la ligne"}
+        </Button>
+        <span className="text-xs text-[var(--fg-4)]">
+          TSV prêt à coller dans Google Sheets · source: <span className="font-medium text-[var(--fg-3)]">{sourceLabel}</span> · {TEMPLATE_COLUMNS.length} colonnes · vides = calculs Sheets
+        </span>
+        {salesMissing && <Pill tone="warn" size="sm">ventes non mappées</Pill>}
+      </div>
+      <div className="overflow-auto rounded border border-[var(--line)]">
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr className="bg-[var(--bg-2)] text-[10px] uppercase tracking-wide text-[var(--fg-4)]">
+              {TEMPLATE_COLUMNS.map((c) => (
+                <th key={c} className={`whitespace-nowrap px-2 py-1.5 text-left font-medium ${COMPUTED_COLS.has(c) ? "bg-[var(--line-2)] text-[var(--fg-4)]" : ""}`} title={c}>
+                  {COLUMN_LABELS[c] ?? c}
+                  {COMPUTED_COLS.has(c) ? " *" : ""}
+                </th>
+              ))}
+            </tr>
+            <tr className="bg-[var(--bg-2)] text-[9px] text-[var(--fg-4)]">
+              {TEMPLATE_COLUMNS.map((c) => (
+                <th key={`${c}-key`} className="whitespace-nowrap px-2 pb-1 pt-0 text-left font-mono font-normal normal-case tracking-normal">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-[var(--line)] bg-[var(--surface)]">
+              {TEMPLATE_COLUMNS.map((c) => {
+                const v = values[c];
+                const isComputed = COMPUTED_COLS.has(c);
+                const isEmpty = v === "";
+                return (
+                  <td
+                    key={c}
+                    className={`whitespace-nowrap px-2 py-1.5 font-mono tabular-nums ${isComputed ? "bg-[var(--bg-2)] text-[var(--fg-4)]" : isEmpty ? "text-[var(--fg-4)]" : "text-[var(--fg)] font-medium"}`}
+                  >
+                    {isEmpty ? "—" : c === "date" ? v : v}
+                  </td>
+                );
+              })}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[11px] leading-relaxed text-[var(--fg-4)]">
+        <span className="font-medium">Colonnes *</span> vides = formules Sheets. Colle la ligne avec <kbd className="rounded border border-[var(--line)] bg-[var(--bg-2)] px-1 py-0.5 font-mono text-[10px]">Ctrl+V</kbd> dans la ligne du jour. Ordre: <code className="font-mono text-[10px]">{TEMPLATE_COLUMNS.join(", ")}</code>. Ajuste si l&apos;ordre réel diffère.
+      </p>
+    </div>
+  );
+}
+
 export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const [date, setDate] = React.useState<string>(() => initialDate ?? bangkokYesterday());
   const [selectedStore, setSelectedStore] = React.useState<string | null>(null);
   const [shops, setShops] = React.useState<{ store_id: string; account_key: string; location_id: string | null }[]>([]);
   const [shiftRows, setShiftRows] = React.useState<ShiftRow[]>([]);
   const [salesRows, setSalesRows] = React.useState<SalesRow[]>([]);
+  const [snapshotRows, setSnapshotRows] = React.useState<SnapshotRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -371,6 +653,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
       if (res.error) throw new Error(res.error);
       setShiftRows((res.shifts as ShiftRow[]) ?? []);
       setSalesRows((res.sales as SalesRow[]) ?? []);
+      setSnapshotRows((res.snapshots as SnapshotRow[]) ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -383,6 +666,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const todayStr = bangkokToday();
   const shiftForStore = React.useMemo(() => shiftRows.filter((r) => r.store_id === selectedStore), [shiftRows, selectedStore]);
   const salesForStore = React.useMemo(() => salesRows.filter((r) => r.store_id === selectedStore), [salesRows, selectedStore]);
+  const snapshotForStore = React.useMemo(() => snapshotRows.filter((r) => r.store_id === selectedStore), [snapshotRows, selectedStore]);
   const hasShift = shiftForStore.length > 0;
   const hasSales = salesForStore.length > 0;
   const isArchived = hasShift && hasSales;
@@ -488,6 +772,15 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                       }),
                 )
               )}
+            </CollapsibleSection>
+            <CollapsibleSection title="Comptabilité — ligne à copier" icon={<TableIcon className="size-3.5" />} defaultOpen>
+              <AccountingCopySection
+                shiftRows={shiftForStore}
+                snapshotRows={snapshotForStore}
+                salesRows={salesForStore}
+                date={date}
+                paymentMap={paymentMap}
+              />
             </CollapsibleSection>
             <CollapsibleSection title="Sales by category" icon={<TagIcon className="size-3.5" />} defaultOpen>
               <SalesCategoryBlock rows={salesForStore} />
