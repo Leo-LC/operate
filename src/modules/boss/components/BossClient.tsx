@@ -21,16 +21,17 @@ export function BossClient({ canSync }: { canSync: boolean }) {
       <Tabs
         value={active}
         onValueChange={(v) => setActive(v as "loyverse" | "reports")}
+        className="flex flex-col w-full"
       >
         <TabsList variant="line" className="w-full justify-start">
-          <TabsTrigger value="loyverse" className="gap-2">
+          <TabsTrigger value="loyverse" className="flex-none gap-2">
             <PlugIcon size={14} />
             Loyverse
             <span className="hidden text-[11px] font-normal text-[var(--fg-4)] sm:inline">
               · ventes & shops
             </span>
           </TabsTrigger>
-          <TabsTrigger value="reports" className="gap-2">
+          <TabsTrigger value="reports" className="flex-none gap-2">
             <TrendingUpIcon size={14} />
             Reports
             <span className="hidden text-[11px] font-normal text-[var(--fg-4)] sm:inline">
@@ -39,12 +40,12 @@ export function BossClient({ canSync }: { canSync: boolean }) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="loyverse" className="pt-4">
+        <TabsContent value="loyverse" className="w-full pt-4">
           {/* Fidelity 100% : même composant que /loyverse */}
           <LoyverseDashboard canSync={canSync} />
         </TabsContent>
 
-        <TabsContent value="reports" className="pt-4">
+        <TabsContent value="reports" className="w-full pt-4">
           {/* Fidelity 100% : même composant que /reports */}
           <ReportsClient />
         </TabsContent>
