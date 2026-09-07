@@ -220,31 +220,31 @@ export function RevenueComparisonView() {
 
       {!loading && !error && data && (
         <>
-          {/* Cards */}
+          {/* Cartes — termes simples */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--s-3)" }}>
             <Card style={{ gap: 6 }}>
               <Stat
-                label={`This month · ${MONTH_LONG[focusMonth - 1]} ${year}`}
+                label={`Ce mois · ${MONTH_LONG[focusMonth - 1]} ${year}`}
                 value={money(data.totals.currentMonth.current)}
                 delta={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).text}
                 deltaDir={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).dir}
-                hint={`${data.prevYear} same month: ${money(data.totals.currentMonth.prev)}`}
+                hint={`Même mois ${data.prevYear} : ${money(data.totals.currentMonth.prev)}`}
               />
             </Card>
             <Card style={{ gap: 6 }}>
               <Stat
-                label={`Year to date · ${year}`}
+                label={`Cumul à date · ${year}`}
                 value={money(data.totals.ytd.current)}
                 delta={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}
                 deltaDir={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).dir}
-                hint={`${data.prevYear} YTD: ${money(data.totals.ytd.prev)}`}
+                hint={`Cumul ${data.prevYear} : ${money(data.totals.ytd.prev)}`}
               />
             </Card>
             <Card style={{ gap: 6 }}>
               <Stat
-                label={`Full year · ${data.prevYear}`}
+                label={`Année complète · ${data.prevYear}`}
                 value={money(data.totals.prevYearTotal)}
-                hint={`${year} so far: ${money(data.totals.currentYearTotal)}`}
+                hint={`Année en cours ${year} : ${money(data.totals.currentYearTotal)}`}
               />
             </Card>
           </div>
@@ -260,21 +260,20 @@ export function RevenueComparisonView() {
 
           {!editing && (
             <>
-              {/* Company-wide 12-month table */}
+              {/* Tableau 12 mois — tous shops */}
               <Card flush>
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-                  <strong>Company-wide · {MONTHS[focusMonth - 1]} highlighted</strong>
-                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{year} from accounting · {data.prevYear} as entered</span>
+                  <strong>Ensemble · {MONTHS[focusMonth - 1]} en surbrillance</strong>
                 </div>
                 <div style={{ overflowX: "auto" }}>
                   <table style={tableStyle}>
                     <thead>
                       <tr>
-                        <th style={thLeft}>Month</th>
+                        <th style={thLeft}>Mois</th>
                         <th style={thStyle}>{year}</th>
                         <th style={thStyle}>{data.prevYear}</th>
-                        <th style={thStyle}>Δ</th>
-                        <th style={thStyle}>Δ%</th>
+                        <th style={thStyle}>Écart</th>
+                        <th style={thStyle}>Évol.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -295,21 +294,20 @@ export function RevenueComparisonView() {
                 </div>
               </Card>
 
-              {/* Per-shop table for focus month */}
+              {/* Par boutique — mois sélectionné */}
               <Card flush>
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-                  <strong>By shop · {MONTH_LONG[focusMonth - 1]} {year}</strong>
-                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>vs same month {data.prevYear}</span>
+                  <strong>Par boutique · {MONTH_LONG[focusMonth - 1]} {year}</strong>
                 </div>
                 <div style={{ overflowX: "auto" }}>
                   <table style={tableStyle}>
                     <thead>
                       <tr>
-                        <th style={thLeft}>Shop</th>
+                        <th style={thLeft}>Boutique</th>
                         <th style={thStyle}>{year}</th>
                         <th style={thStyle}>{data.prevYear}</th>
-                        <th style={thStyle}>Δ</th>
-                        <th style={thStyle}>Δ%</th>
+                        <th style={thStyle}>Écart</th>
+                        <th style={thStyle}>Évol.</th>
                       </tr>
                     </thead>
                     <tbody>

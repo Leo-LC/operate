@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
+import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 function fmtN(n: number) {
@@ -121,21 +121,12 @@ function MoneyBar({ value, max, color }: { value: number; max: number; color: st
 
 // ── Main Overview ─────────────────────────────────────────────────────
 export function DirectionOverview() {
-  const [period, setPeriod] = useState<PeriodKey | "custom">("this-month");
-  const [customRange, setCustomRange] = useState<{ from: string; to: string } | null>(null);
-  const [selectedShops, setSelectedShops] = useState<string[]>([]);
+  const { from, to, setRange } = useDirectionPeriod();
+  const { selectedShops, setSelectedShops } = useDirectionShops();
   const [data, setData] = useState<AccountingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMoneyOutBreakdown, setShowMoneyOutBreakdown] = useState(false);
   const [shopSort, setShopSort] = useState<"sales" | "expenses">("sales");
-
-  // date range derived from period
-  const base = useMemo(() => parseDay(bangkokToday()), []);
-  const range = useMemo(() => {
-    if (period === "custom" && customRange) return { ...customRange, label: "Custom" };
-    return periodRange(period as PeriodKey, base);
-  }, [period, customRange, base]);
-  const { from, to } = range;
 
   const fetchData = useCallback(async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
     setLoading(true);
@@ -286,18 +277,7 @@ export function DirectionOverview() {
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker
             value={{ from, to }}
-            onChange={({ from: f, to: t }) => {
-              const baseD = base;
-              const match = (["today", "yesterday", "this-week", "this-month", "last-month"] as PeriodKey[]).find((k) => {
-                const r = periodRange(k, baseD);
-                return r.from === f && r.to === t;
-              });
-              if (match) setPeriod(match);
-              else {
-                setCustomRange({ from: f, to: t });
-                setPeriod("custom" as PeriodKey);
-              }
-            }}
+            onChange={({ from: f, to: t }) => setRange(f, t)}
             today={bangkokToday()}
           />
           <button

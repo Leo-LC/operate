@@ -4,22 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { OperationsView, type AccountingData } from "@/modules/reports/components/ReportsClient";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
 import { PillButton } from "@/components/ui/pill-button";
+import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
 function bangkokToday(): string {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const o: Record<string, string> = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   return `${o.year}-${o.month}-${o.day}`;
 }
-function monthStart(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
 
 export function DirectionOperations() {
-  const [from, setFrom] = useState(() => monthStart());
-  const [to, setTo] = useState(() => bangkokToday());
+  const { from, to, setRange } = useDirectionPeriod();
+  const { selectedShops, setSelectedShops } = useDirectionShops();
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
-  const [selectedShops, setSelectedShops] = useState<string[]>([]);
   const [data, setData] = useState<AccountingData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +50,7 @@ export function DirectionOperations() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
-        <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => { setFrom(f); setTo(t); }} today={bangkokToday()} />
+        <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
         {locations.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <PillButton active={selectedShops.length === locations.length} onClick={() => setSelectedShops(locations.map((l) => l.id))}>Toutes les boutiques</PillButton>

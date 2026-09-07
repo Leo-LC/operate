@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PillButton } from "@/components/ui/pill-button";
+import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
 function fmtM(n: number) {
   return `${(n / 1_000_000).toFixed(2)}M`;
@@ -31,12 +32,12 @@ export function DirectionTrends() {
   const aug = PLACEHOLDER[7];
   const expPct = pct(aug.exp26, aug.exp25);
   const salesPct = pct(aug.sales26, aug.sales25);
-  const profitPct = pct(aug.profit26, aug.profit25);
   const maxSales = Math.max(...PLACEHOLDER.map((p) => Math.max(p.sales26, p.sales25)), 1);
+  const { from, to } = useDirectionPeriod();
 
-  // Boutiques — même sélecteur qu'ailleurs (placeholder, pas encore filtrant)
+  // Boutiques — persistant via hook
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
-  const [selectedShops, setSelectedShops] = useState<string[]>([]);
+  const { selectedShops, setSelectedShops } = useDirectionShops();
   const [hovered, setHovered] = useState<number | null>(null);
 
   useEffect(() => {
@@ -44,9 +45,10 @@ export function DirectionTrends() {
       .then((r) => r.json())
       .then((j: { locations: { id: string; name: string }[] }) => {
         setLocations(j.locations ?? []);
-        setSelectedShops((j.locations ?? []).map((l) => l.id));
+        if (selectedShops.length === 0) setSelectedShops((j.locations ?? []).map((l) => l.id));
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function shortName(name: string) {
@@ -79,11 +81,11 @@ export function DirectionTrends() {
         </div>
       )}
 
-      {/* Période affichée bien visible */}
+      {/* Période affichée bien visible — persistante */}
       <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm">
         <span className="font-medium">Période affichée : </span>
-        <span className="font-mono">Août 2026 vs Août 2025</span>
-        <span className="ml-2 text-xs text-[var(--fg-4)]">(placeholder — sera branché sur la vraie période sélectionnée)</span>
+        <span className="font-mono">{from} → {to}</span>
+        <span className="ml-2 text-xs text-[var(--fg-4)]">vs même période N-1 (placeholder)</span>
       </div>
 
       {/* Cartes résumé — Ventes / Dépenses seulement, vs montant sous le % */}

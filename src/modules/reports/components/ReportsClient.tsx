@@ -457,7 +457,7 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
 
   return (
     <Card>
-      <SectionHeader label="Performance metrics" bg="var(--bronze-soft)" color="var(--bronze-2)" />
+      <SectionHeader label="Indicateurs de performance" bg="var(--bronze-soft)" color="var(--bronze-2)" />
       <div style={{ overflowX: "auto" }}>
         <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -584,7 +584,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard
-          label="Total Sales Net"
+          label="Chiffre d'affaires"
           value={`฿${fmtN(o.revenue)}`}
           delta={revenueDelta.delta}
           deltaDir={revenueDelta.dir}
@@ -593,7 +593,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
           iconColor="var(--good)"
         />
         <KpiCard
-          label="Net After Expenses"
+          label="Après charges"
           value={`฿${fmtN(netAfterExpenses)}`}
           delta={netAfterExpDelta.delta}
           deltaDir={netAfterExpDelta.dir}
@@ -602,7 +602,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
           iconColor="var(--info)"
         />
         <KpiCard
-          label="Net After HR"
+          label="Après RH"
           value={`฿${fmtN(o.netProfit)}`}
           delta={netAfterHrDelta.delta}
           deltaDir={netAfterHrDelta.dir}
@@ -611,7 +611,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
           iconColor="var(--purple)"
         />
         <KpiCard
-          label="HR % of Sales"
+          label="Part RH / Ventes"
           value={fmtPct(hrPctOfSales)}
           delta={hrPctDelta.delta}
           deltaDir={hrPctDelta.dir}
@@ -633,7 +633,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Revenue Mix + Cost Drivers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Revenue Mix" bg="var(--good-soft)" color="var(--good)" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Répartition du CA" bg="var(--good-soft)" color="var(--good)" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {revenueRows.map((r, i) => (
@@ -647,7 +647,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
         </Card>
 
         <Card>
-          <SectionHeader label="Cost Drivers (Operating Expenses)" bg="var(--warn-soft)" color="var(--warn)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Charges d'exploitation" bg="var(--warn-soft)" color="var(--warn)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {costRows.map((r, i) => (
@@ -663,7 +663,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* HR Breakdown */}
       <Card>
-        <SectionHeader label="HR Breakdown" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="Détail RH" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
             <span />
@@ -710,7 +710,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Payment Methods */}
       <Card>
-        <SectionHeader label="Payment Methods" bg="var(--info-soft)" color="var(--info)" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="Moyens de paiement" bg="var(--info-soft)" color="var(--info)" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
             <span />
@@ -735,7 +735,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Monthly Expenses + HR Ratios & Pending */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Monthly Expenses" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Charges mensuelles" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ overflowX: "auto" }}>
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -777,7 +777,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
         </Card>
 
         <Card>
-          <SectionHeader label="HR Ratios & Pending" bg="var(--bg-2)" color="var(--fg-3)" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Ratios RH" bg="var(--bg-2)" color="var(--fg-3)" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ overflowX: "auto" }}>
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -809,7 +809,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* VAT & Total Costs */}
       <Card>
-        <SectionHeader label="VAT & Total Costs" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="TVA et coûts" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ overflowX: "auto" }}>
           <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -843,7 +843,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Per-shop comparison (kept from previous layout — not part of reference image but useful) */}
       {sortedShops.length > 1 && (
         <Card>
-          <SectionHeader label="Per-shop comparison" bg="var(--bg-2)" color="var(--fg-3)" />
+          <SectionHeader label="Comparaison par boutique" bg="var(--bg-2)" color="var(--fg-3)" />
           <div style={{ overflowX: "auto" }}>
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
