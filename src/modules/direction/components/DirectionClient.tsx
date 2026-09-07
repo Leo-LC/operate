@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboardIcon, TrendingUpIcon, LayersIcon, CalculatorIcon, BarChart3Icon } from "lucide-react";
+import { LayoutDashboardIcon, TrendingUpIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
 import { DirectionTrends } from "./DirectionTrends";
 import { DirectionDetails } from "./DirectionDetails";
 import { DirectionDaily } from "./DirectionDaily";
 import { DirectionRevenue } from "./DirectionRevenue";
 
-export function DirectionClient() {
-  const [active, setActive] = useState<"overview" | "trends" | "daily" | "revenue" | "details">("overview");
+export function DirectionClient({ canSync = true }: { canSync?: boolean }) {
+  const [active, setActive] = useState<"loyverse" | "overview" | "trends" | "daily" | "revenue" | "details">("loyverse");
 
   const TABS = [
+    { value: "loyverse" as const, label: "Loyverse", icon: PlugIcon },
     { value: "overview" as const, label: "Vue d'ensemble", icon: LayoutDashboardIcon },
     { value: "trends" as const, label: "Tendances", icon: TrendingUpIcon },
     { value: "daily" as const, label: "Résultat quotidien", icon: CalculatorIcon },
@@ -61,6 +63,7 @@ export function DirectionClient() {
       </div>
 
       <div className="pt-2">
+        {active === "loyverse" && <LoyverseDashboard canSync={canSync} />}
         {active === "overview" && <DirectionOverview />}
         {active === "trends" && <DirectionTrends />}
         {active === "daily" && <DirectionDaily />}

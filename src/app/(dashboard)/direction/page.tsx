@@ -7,5 +7,8 @@ export default async function DirectionPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
 
-  return <DirectionClient />;
+  const role = session.user.role ?? "";
+  const canSync = ["owner", "admin", "direction"].includes(role);
+
+  return <DirectionClient canSync={canSync} />;
 }
