@@ -578,8 +578,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <span className="text-xs font-medium text-[var(--fg-3)]">Period:</span>
           <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
-          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--fg-4)" }}>Shops</span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--surface-2)", border: "1px solid var(--line)" }}>
           <ShopPills locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
         </div>
       </div>
@@ -599,9 +598,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           ))}
         </div>
       ) : kpi ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <Card>
-            <CardContent>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Revenue"
                 value={fmtTHB(kpi.revenue_total)}
@@ -613,8 +612,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Customers"
                 value={fmtInt(kpi.ticket_count)}
@@ -626,8 +625,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Snacks"
                 value={fmtTHB(snackAmount)}
@@ -637,8 +636,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="Merch"
                 value={fmtTHB(merchAmount)}
@@ -650,8 +649,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               />
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
               <Stat
                 label="VAT collected"
                 value={fmtTHB(kpi.vat_7)}
@@ -786,13 +785,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 )}
               >
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex size-7 items-center justify-center rounded-full bg-[var(--surface-2)] text-[10px] font-semibold text-[var(--fg-3)] border border-[var(--line)]">
-                      {store.account_key.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
                   </div>
                   {isDegraded && (
                     <Pill tone="warn" size="sm" dot>

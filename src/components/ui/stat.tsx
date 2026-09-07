@@ -32,7 +32,7 @@ export function Stat({
         : "var(--fg-4)"
 
   return (
-    <div className={cn("flex flex-col gap-1", className)} {...props}>
+    <div className={cn("flex flex-col flex-1", className)} {...props} style={{ minHeight: 72, ...props.style }}>
       <div className="flex items-center gap-1.5">
         {icon && (
           <span
@@ -40,11 +40,9 @@ export function Stat({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 22,
-              height: 22,
-              borderRadius: "var(--r-sm)",
-              background: `color-mix(in srgb, ${iconColor} 14%, transparent)`,
-              color: iconColor,
+              width: 14,
+              height: 14,
+              color: "var(--fg-4)",
               flexShrink: 0,
             }}
           >
@@ -59,6 +57,7 @@ export function Stat({
             fontWeight: 500,
             color: "var(--fg-4)",
             fontFamily: "var(--font-sans)",
+            lineHeight: 1,
           }}
         >
           {label}
@@ -67,16 +66,17 @@ export function Stat({
       <span
         className="mono tabular-nums"
         style={{
-          fontSize: 16,
-          fontWeight: 600,
+          fontSize: 22,
+          fontWeight: 700,
           color: "var(--fg)",
           lineHeight: 1.1,
-          letterSpacing: "-0.015em",
+          letterSpacing: "-0.02em",
+          marginTop: 8,
         }}
       >
         {value}
       </span>
-      {delta && (
+      {delta ? (
         <span
           className="mono tabular-nums"
           style={{
@@ -84,13 +84,16 @@ export function Stat({
             fontWeight: 500,
             color: deltaColor,
             lineHeight: 1,
+            marginTop: 4,
           }}
         >
           {delta}
         </span>
+      ) : (
+        <span style={{ marginTop: 4, height: 11 }} aria-hidden />
       )}
-      {sparkline && <div className="mt-1">{sparkline}</div>}
-      {hint && <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{hint}</span>}
+      {sparkline && <div style={{ marginTop: 6 }}>{sparkline}</div>}
+      {hint && <span style={{ fontSize: 11, color: "var(--fg-4)", lineHeight: 1.3, marginTop: "auto", paddingTop: 8 }}>{hint}</span>}
     </div>
   )
 }

@@ -15,8 +15,8 @@ export function PillButton({ active = false, type = "button", className, ...prop
         "rounded-[var(--r-sm)] px-3 py-2 text-[12px] transition-colors outline-none",
         "focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]",
         active
-          ? "border border-[var(--accent)] bg-[var(--accent)] text-white"
-          : "border border-[var(--line)] bg-[var(--surface)] text-[var(--fg-3)] hover:border-[var(--line-strong)] hover:text-[var(--fg-2)]",
+          ? "border border-[var(--line-strong)] bg-[var(--line)] text-[var(--fg)]"
+          : "border border-[var(--line)] bg-transparent text-[var(--fg-3)] hover:border-[var(--line-strong)] hover:text-[var(--fg-2)]",
         className,
       )}
       {...props}
