@@ -80,50 +80,55 @@ export function DirectionOverview() {
   const [showMoneyOutBreakdown, setShowMoneyOutBreakdown] = useState(false);
   const [shopSort, setShopSort] = useState<"resultat" | "sales" | "expenses">("resultat");
 
+  // locations is derived from server response (already filtered to allowed shops)
+  const locations = data?.locations ?? [];
+
   const fetchData = useCallback(
-    async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
+    async (f: string, t: string, shops: string[]) => {
       setLoading(true);
       try {
-        const locParam = locs.length > 0 && shops.length !== locs.length && shops.length > 0 ? shops.join(",") : "all";
+        // Use derived locations (allowed) to decide param; empty means all
+        const locParam = locations.length > 0 && shops.length !== locations.length && shops.length > 0 ? shops.join(",") : "all";
         const res = await fetch(`/api/reports/accounting?from=${f}&to=${t}&locations=${locParam}`, { cache: "no-store" });
         if (!res.ok) return;
         const json = (await res.json()) as AccountingData;
         setData(json);
-        if (locs.length === 0 && json.locations.length > 0 && shops.length === 0) {
-          setSelectedShops(json.locations.map((l) => l.id));
-        }
       } finally {
         setLoading(false);
       }
     },
-    []
+    [locations]
   );
 
-  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+  // Initial + period change fetch
   useEffect(() => {
-    if (locations.length > 0) {
-      void fetchData(from, to, selectedShops, locations);
-    } else {
-      void (async () => {
-        setLoading(true);
-        const res = await fetch(`/api/reports/accounting?from=${from}&to=${to}&locations=all`, { cache: "no-store" });
+    void (async () => {
+      setLoading(true);
+      try {
+        // Use current selectedShops if any, otherwise all
+        const locParam = locations.length > 0 && selectedShops.length !== locations.length && selectedShops.length > 0 ? selectedShops.join(",") : "all";
+        const res = await fetch(`/api/reports/accounting?from=${from}&to=${to}&locations=${locParam}`, { cache: "no-store" });
+        if (!res.ok) return;
         const json = (await res.json()) as AccountingData;
         setData(json);
-        setLocations(json.locations);
-        setSelectedShops(json.locations.map((l) => l.id));
+        // If no shops selected (all) or stale, sync to allowed
+        if (selectedShops.length === 0 && json.locations.length > 0) {
+          // keep empty as all, don't auto-select
+        }
+      } finally {
         setLoading(false);
-      })();
-    }
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to]);
 
   useEffect(() => {
-    if (locations.length === 0) return;
-    void fetchData(from, to, selectedShops, locations);
+    if (!data) return;
+    void fetchData(from, to, selectedShops);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShops.join(",")]);
 
-  // Reconcile selectedShops when allowed locations shrink (admin restricts)
+  // Reconcile selectedShops when allowed locations shrink (admin restricts) — hide disallowed pills
   useEffect(() => {
     if (locations.length === 0) return;
     if (selectedShops.length === 0) return; // empty = all, keep as all
@@ -131,7 +136,6 @@ export function DirectionOverview() {
     const filtered = selectedShops.filter((id) => allowed.has(id));
     if (filtered.length !== selectedShops.length) {
       if (filtered.length === 0) {
-        // was all or now none match → reset to all allowed
         setSelectedShops(locations.map((l) => l.id));
       } else {
         setSelectedShops(filtered);
@@ -231,7 +235,7 @@ export function DirectionOverview() {
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
           <button
-            onClick={() => void fetchData(from, to, selectedShops, locations)}
+            onClick={() => void fetchData(from, to, selectedShops)}
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-2)]"
           >
             ↻ Actualiser
