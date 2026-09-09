@@ -58,7 +58,6 @@ const PRESETS: Preset[] = [
   { key: "yesterday", label: "Yesterday", range: (b) => { const d = addDays(b, -1); return { from: toDay(d), to: toDay(d) }; } },
   { key: "mtd", label: "MTD", range: (b) => ({ from: toDay(startOfMonth(b)), to: toDay(b) }) },
   { key: "7d", label: "Last 7 days", range: (b) => ({ from: toDay(addDays(b, -6)), to: toDay(b) }) },
-  { key: "this-month", label: "This month", range: (b) => ({ from: toDay(startOfMonth(b)), to: toDay(endOfMonth(b)) }) },
   { key: "last-month", label: "Last month", range: (b) => { const m = subMonths(b, 1); return { from: toDay(startOfMonth(m)), to: toDay(endOfMonth(m)) }; } },
 ];
 

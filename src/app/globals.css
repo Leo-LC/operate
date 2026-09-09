@@ -180,6 +180,7 @@
   --rdp-nav_button-width: 28px; --rdp-nav_button-height: 28px;
   --rdp-nav-height: 2rem; --rdp-months-gap: 10px; --rdp-outside-opacity: 0.4;
 }
+.recharts-wrapper:focus, .recharts-wrapper *:focus, .recharts-surface:focus { outline: none !important; }
 .nexus-dp .rdp-months { flex-wrap: nowrap; max-width: none; }
 .nexus-dp .rdp-month_caption { font-size: 13px; font-weight: 600; }
 .nexus-dp .rdp-selected .rdp-day_button { border-width: 1.5px; }
