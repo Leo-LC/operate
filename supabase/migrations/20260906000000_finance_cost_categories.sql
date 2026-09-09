@@ -16,7 +16,7 @@ GRANT ALL ON TABLE finance_cost_categories TO service_role;
 
 -- Seed existing hard-coded categories so they appear in the registry.
 INSERT INTO finance_cost_categories (organization_id, slug, label)
-SELECT id, slug, label FROM (
+SELECT organization_id, slug, label FROM (
   SELECT 'a1b2c3d4-0000-0000-0000-000000000001'::uuid AS organization_id, 'rent' AS slug, 'Rent' AS label
   UNION ALL SELECT 'a1b2c3d4-0000-0000-0000-000000000001', 'utilities', 'Utilities'
   UNION ALL SELECT 'a1b2c3d4-0000-0000-0000-000000000001', 'marketing', 'Marketing'
