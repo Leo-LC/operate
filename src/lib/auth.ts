@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getSupabaseServerClient } from "./supabase-server";
 import { saveGoogleTokensToOrg } from "./google-token";
+import { writeAuditLog } from "@/modules/admin/lib/audit";
 import type { GlobalRole, SessionRole } from "@/core/permissions/types";
 
 const secret = process.env.NEXTAUTH_SECRET;
@@ -193,6 +194,7 @@ export const authOptions: NextAuthOptions = {
         if (account.provider === "preview") {
           token.role = "owner";
           token.userId = undefined;
+          void writeAuditLog({ userId: null, action: "auth.login", moduleKey: "auth", entityType: "user", payload: { email: token.email ?? "preview@operate.local", provider: "preview" } }).catch(() => {});
           return token;
         }
 
@@ -201,6 +203,7 @@ export const authOptions: NextAuthOptions = {
           const dbUser = await getDbRoleForEmail(token.email as string ?? "");
           token.role = dbUser?.role ?? "staff";
           token.userId = dbUser?.userId;
+          void writeAuditLog({ userId: dbUser?.userId ?? null, action: "auth.login", moduleKey: "auth", entityType: "user", entityId: dbUser?.userId, payload: { email: token.email, provider: "credentials", role: dbUser?.role } }).catch(() => {});
           return token;
         }
 
@@ -223,6 +226,7 @@ export const authOptions: NextAuthOptions = {
         const dbUser = await getDbRoleForEmail(token.email as string ?? "");
         token.role = dbUser?.role ?? getRoleForEmail(token.email as string | undefined);
         token.userId = dbUser?.userId;
+        void writeAuditLog({ userId: dbUser?.userId ?? null, action: "auth.login", moduleKey: "auth", entityType: "user", entityId: dbUser?.userId, payload: { email: token.email, provider: account.provider, role: dbUser?.role } }).catch(() => {});
 
         return token;
       }

@@ -123,6 +123,22 @@ export function DirectionOverview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShops.join(",")]);
 
+  // Reconcile selectedShops when allowed locations shrink (admin restricts)
+  useEffect(() => {
+    if (locations.length === 0) return;
+    if (selectedShops.length === 0) return; // empty = all, keep as all
+    const allowed = new Set(locations.map((l) => l.id));
+    const filtered = selectedShops.filter((id) => allowed.has(id));
+    if (filtered.length !== selectedShops.length) {
+      if (filtered.length === 0) {
+        // was all or now none match → reset to all allowed
+        setSelectedShops(locations.map((l) => l.id));
+      } else {
+        setSelectedShops(filtered);
+      }
+    }
+  }, [locations.map((l) => l.id).join(",")]);
+
   if (loading && !data) {
     return (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { UsersListClient } from "@/modules/admin/components/UsersListClient";
+import { LoginLogsCard } from "@/modules/admin/components/LoginLogsCard";
 
 export default async function AdminUsersPage() {
   const session = await getServerSession(authOptions);
@@ -16,5 +17,10 @@ export default async function AdminUsersPage() {
     .eq("is_active", true)
     .order("name");
 
-  return <UsersListClient allLocations={locationsData ?? []} />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <UsersListClient allLocations={locationsData ?? []} />
+      <LoginLogsCard />
+    </div>
+  );
 }
