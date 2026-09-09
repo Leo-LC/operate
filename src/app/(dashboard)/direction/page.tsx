@@ -10,5 +10,5 @@ export default async function DirectionPage() {
   const role = session.user.role ?? "";
   const canSync = ["owner", "admin", "direction"].includes(role);
 
-  return <DirectionClient canSync={canSync} />;
+  return <DirectionClient canSync={canSync} userRole={role} />;
 }
