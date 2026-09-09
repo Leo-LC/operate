@@ -56,12 +56,12 @@ export function derivePermissionsFromRole(
   }
 
   if (role === "direction") {
-    // Configurable via user_module_access / user_location_access like member (no lock)
+    // Direction has implicit access to its own module + all shops by default; admin can restrict via DB grants
     return {
       global_role: "direction",
-      module_access: [],
+      module_access: [{ module_key: "direction", can_read: true, can_write: false }],
       location_access: [],
-      all_locations: false,
+      all_locations: true,
     };
   }
 

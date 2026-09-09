@@ -67,15 +67,21 @@ export async function getUserPermissionsFromDb(
         supabase.from("user_module_access").select("module_key, can_read, can_write").eq("user_id", userId),
         supabase.from("user_location_access").select("location_id").eq("user_id", userId),
       ]);
+      const hasExplicitLocations = (locationRows ?? []).length > 0;
+      let mapped: { module_key: ModuleKey; can_read: boolean; can_write: boolean }[] = (moduleRows ?? []).map((m) => ({
+        module_key: m.module_key as ModuleKey,
+        can_read: m.can_read as boolean,
+        can_write: m.can_write as boolean,
+      }));
+      if (!mapped.some((m) => m.module_key === "direction")) {
+        mapped = [...mapped, { module_key: "direction" as ModuleKey, can_read: true, can_write: false }];
+      }
+      // If no explicit location grants, direction sees all shops by default
       return {
         global_role: "direction",
-        module_access: (moduleRows ?? []).map((m) => ({
-          module_key: m.module_key as ModuleKey,
-          can_read: m.can_read as boolean,
-          can_write: m.can_write as boolean,
-        })),
+        module_access: mapped,
         location_access: (locationRows ?? []).map((l) => ({ location_id: l.location_id as string })),
-        all_locations: false,
+        all_locations: !hasExplicitLocations,
       };
     }
 

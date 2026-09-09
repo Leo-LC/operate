@@ -45,14 +45,13 @@ describe("global admin permissions", () => {
     expect(isOperationalAdmin("direction")).toBe(false);
   });
 
-  it("has no locked module or location access — everything is DB-driven", () => {
+  it("has implicit direction access and all shops — DB can restrict", () => {
     const permissions = derivePermissionsFromRole("direction");
     expect(permissions.global_role).toBe("direction");
-    // without DB grants, direction has no implicit access
-    expect(hasModuleAccess(permissions, "direction")).toBe(false);
+    expect(hasModuleAccess(permissions, "direction")).toBe(true);
     expect(hasModuleAccess(permissions, "reports")).toBe(false);
     expect(hasModuleAccess(permissions, "accounting")).toBe(false);
-    expect(hasAllLocationsAccess(permissions)).toBe(false);
-    expect(hasLocationAccess(permissions, "any-shop-id")).toBe(false);
+    expect(hasAllLocationsAccess(permissions)).toBe(true);
+    expect(hasLocationAccess(permissions, "any-shop-id")).toBe(true);
   });
 });

@@ -11,8 +11,8 @@ export default async function DirectionPage() {
 
   const role = session.user.role ?? "";
   const perms = await getUserPermissionsFromSession(session);
-  // Direction page is gated by the "direction" module (owner/admin bypass via hasModuleAccess)
-  if (!hasModuleAccess(perms, "direction")) redirect("/home");
+  // Direction page is gated by the "direction" module (owner/admin bypass, direction role has implicit access)
+  if (!hasModuleAccess(perms, "direction") && perms.global_role !== "direction") redirect("/home");
 
   const canSync = ["owner", "admin", "direction"].includes(role);
 
