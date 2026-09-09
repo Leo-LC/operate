@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
@@ -440,7 +439,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   if (status && !status.configured) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Loyverse" />
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-sm text-[var(--fg-3)]">Loyverse is not configured.</p>
@@ -483,10 +481,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Loyverse"
-        actions={
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
+          <div className="ml-auto flex items-center gap-2">
             {lastRun?.finished_at && (
               <span className="hidden text-xs text-[var(--fg-4)] sm:inline">
                 {lastRun.status === "completed" ? "✓" : "●"} {new Date(lastRun.finished_at).toLocaleDateString("en-GB")} {new Date(lastRun.finished_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
@@ -499,12 +497,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               </Button>
             )}
           </div>
-        }
-      />
-
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <ShopPills locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />

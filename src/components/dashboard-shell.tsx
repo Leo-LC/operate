@@ -429,15 +429,15 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                           background: active ? "var(--accent)" : "transparent",
                           border: `1px solid ${active ? "var(--accent)" : "transparent"}`,
                           textDecoration: "none",
-                          transition: "background var(--dur) var(--ease)",
+                          transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
                           justifyContent: sidebarCollapsed ? "center" : "flex-start",
                         }}
-                        className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg)] active:!bg-[var(--row-active)]"
+                        className="group hover:!bg-white hover:!text-[var(--fg)] hover:!border-[var(--accent)] active:!bg-[var(--row-active)]"
                       >
                         <Icon
                           size={15}
                           style={{
-                            color: active ? "#fff" : "var(--fg-3)",
+                            color: "currentColor",
                             flexShrink: 0,
                             strokeWidth: 1.75,
                           }}
