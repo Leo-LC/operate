@@ -91,15 +91,14 @@ function CredentialsLoginForm() {
       />
       <input
         type="password"
-        placeholder="Password"
+        placeholder="Password (leave empty if none)"
         value={password}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
         autoComplete="current-password"
-        required
         style={inputStyle}
       />
       {error && <p style={{ fontSize: 12, color: "var(--bad)", margin: 0 }}>{error}</p>}
-      <Button type="submit" size="lg" className="w-full" disabled={loading || !email || !password}>
+      <Button type="submit" size="lg" className="w-full" disabled={loading || !email}>
         {loading ? "Signing in…" : "Sign in"}
         <ArrowRightIcon className="size-4" />
       </Button>

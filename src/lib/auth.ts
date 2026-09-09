@@ -128,15 +128,22 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email) return null;
+        const email = credentials.email.toLowerCase().trim();
+        if (!email) return null;
         try {
           const supabase = getSupabaseServerClient();
           const { data: user } = await supabase
             .from("users")
             .select("id, email, name, password_hash")
-            .eq("email", credentials.email.toLowerCase().trim())
+            .eq("email", email)
             .single();
-          if (!user?.password_hash) return null;
+          if (!user) return null;
+          // Users without password (created without password in admin) can log in with email only
+          if (!user.password_hash) {
+            return { id: user.id as string, email: user.email as string, name: (user.name as string | null) ?? null };
+          }
+          if (!credentials.password) return null;
           const valid = await bcrypt.compare(credentials.password, user.password_hash as string);
           if (!valid) return null;
           return { id: user.id as string, email: user.email as string, name: (user.name as string | null) ?? null };
