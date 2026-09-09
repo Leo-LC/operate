@@ -368,15 +368,16 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
 
   const allStoresRaw = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
   const shopLocations = React.useMemo(() => {
+    // When we have data, derive strictly from per_store (already filtered to allowed shops)
+    // so direction with 2 allowed shops only sees 2 pills, not all 9 from status.accounts
+    if (allStoresRaw.length > 0) {
+      const map = new Map<string, string>();
+      for (const s of allStoresRaw) map.set(s.store_id, s.account_key);
+      return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+    }
+    // Fallback when no data yet: show accounts from status, but they will be filtered by API on next fetch
     const map = new Map<string, string>();
-    for (const s of allStoresRaw) {
-      const label = s.account_key;
-      map.set(s.store_id, label);
-    }
-    for (const a of status?.accounts ?? []) {
-      const hasStore = Array.from(map.keys()).some((k) => k === a.key || map.get(k)?.startsWith(a.key));
-      if (!hasStore) map.set(a.key, a.label);
-    }
+    for (const a of status?.accounts ?? []) map.set(a.key, a.label);
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [allStoresRaw, status]);
 
