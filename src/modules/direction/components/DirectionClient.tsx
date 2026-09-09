@@ -47,6 +47,23 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
   const [active, setActive] = useState<TabKey>("loyverse");
   const [visibility, setVisibility] = useState<Record<TabKey, boolean>>(() => loadVisibility());
 
+  // Load shared visibility from server (source of truth for Boss)
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/direction/tabs", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled) return;
+        if (json && typeof json === "object" && !json.error) {
+          const merged = { ...DEFAULT_VISIBILITY, ...json } as Record<TabKey, boolean>;
+          setVisibility(merged);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(visibility));
@@ -86,7 +103,16 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
   }, [visibility, isBoss]);
 
   function toggleTabVisibility(key: TabKey) {
-    setVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
+    const nextVisible = !visibility[key];
+    setVisibility((prev) => ({ ...prev, [key]: nextVisible }));
+    // Persist server-side so all Boss browsers see the change (owner/admin only)
+    if (isPrivileged) {
+      fetch("/api/direction/tabs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tab_key: key, visible: nextVisible }),
+      }).catch(() => {});
+    }
   }
 
   return (
