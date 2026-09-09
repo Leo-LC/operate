@@ -63,11 +63,19 @@ export async function getUserPermissionsFromDb(
     }
 
     if (global_role === "direction") {
+      const [{ data: moduleRows }, { data: locationRows }] = await Promise.all([
+        supabase.from("user_module_access").select("module_key, can_read, can_write").eq("user_id", userId),
+        supabase.from("user_location_access").select("location_id").eq("user_id", userId),
+      ]);
       return {
         global_role: "direction",
-        module_access: [{ module_key: "reports", can_read: true, can_write: false }],
-        location_access: [],
-        all_locations: true,
+        module_access: (moduleRows ?? []).map((m) => ({
+          module_key: m.module_key as ModuleKey,
+          can_read: m.can_read as boolean,
+          can_write: m.can_write as boolean,
+        })),
+        location_access: (locationRows ?? []).map((l) => ({ location_id: l.location_id as string })),
+        all_locations: false,
       };
     }
 

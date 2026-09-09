@@ -30,6 +30,7 @@ const ALL_MODULES = [
   { key: "wiki", label: "Wiki" },
   { key: "brand", label: "Brand" },
   { key: "admin", label: "Admin" },
+  { key: "direction", label: "Direction" },
 ] as const;
 
 const inputStyle: React.CSSProperties = {
@@ -188,7 +189,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
                   <option value="admin">Admin</option>
                   <option value="owner">Owner</option>
                   <option value="reviewer">Reviewer (Reviews only)</option>
-                  <option value="direction">Direction (Reports read-only)</option>
+                  <option value="direction">Direction</option>
                 </select>
               </div>
             </div>
@@ -198,8 +199,6 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
             <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 12 }}>Module access</p>
             {inviteRole === "reviewer" ? (
               <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>Reviewer role is locked to Reviews access only.</p>
-            ) : inviteRole === "direction" ? (
-              <p style={{ fontSize: 12, color: "var(--fg-4)", fontStyle: "italic" }}>Direction role is locked to Reports read-only access (all shops).</p>
             ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {ALL_MODULES.map((m) => {

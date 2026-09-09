@@ -42,7 +42,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Direction",
     items: [
-      { id: "direction", label: "Direction", href: "/direction", icon: CrownIcon, module: null },
+      { id: "direction", label: "Direction", href: "/direction", icon: CrownIcon, module: "direction" },
     ],
   },
   {
@@ -143,18 +143,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
     setMobileNavOpen(false);
   }, [pathname]);
 
-  /* Direction: force stay on /direction, no nav */
-  useEffect(() => {
-    if (isDirection && pathname !== "/direction" && !pathname.startsWith("/direction")) {
-      router.replace("/direction");
-    }
-  }, [isDirection, pathname, router]);
-
   /* ── Global keyboard shortcuts ── */
   const gKeyRef = useRef(false);
   useEffect(() => {
-    // Direction: no nav shortcuts
-    if (isDirection) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       const inInput = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
@@ -222,7 +213,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [theme, setTheme, router, permissions.global_role, isDirection]);
+  }, [theme, setTheme, router, permissions.global_role]);
 
   function isActive(href: string): boolean {
     if (href === "/direction") return pathname === "/direction" || pathname.startsWith("/direction");
@@ -244,16 +235,14 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       }}
     >
       {/* ── Mobile drawer backdrop ── */}
-      {!isDirection && (
-        <div
-          className={`app-mobile-backdrop${mobileNavOpen ? " is-open" : ""}`}
-          onClick={() => setMobileNavOpen(false)}
-          aria-hidden
-        />
-      )}
+      <div
+        className={`app-mobile-backdrop${mobileNavOpen ? " is-open" : ""}`}
+        onClick={() => setMobileNavOpen(false)}
+        aria-hidden
+      />
 
-      {/* ── Sidebar — hidden for direction ── */}
-      {!isDirection && <aside
+      {/* ── Sidebar ── */}
+      <aside
         className={`app-sidebar${mobileNavOpen ? " is-open" : ""}${sidebarCollapsed ? " is-collapsed" : ""}`}
         style={{
           width: sidebarCollapsed ? "56px" : "var(--sidebar-w)",
@@ -355,13 +344,10 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
-              if (permissions.global_role === "direction") return item.id === "direction";
-              // Direction — visible to owner/admin/direction; for direction, only Direction (handled above)
-              if (item.id === "direction") return ["owner", "admin", "direction"].includes(permissions.global_role);
               if (permissions.global_role === "reviewer") return item.id === "loyverse" || item.id === "reviews";
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "loyverse" && item.id !== "direction" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (!item.module && item.id !== "loyverse" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;
@@ -525,7 +511,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             <LogOutIcon size={15} strokeWidth={1.5} />
           </button>
         </div>
-      </aside>}
+      </aside>
 
       {/* ── Right column ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -545,129 +531,98 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             flexShrink: 0,
           }}
         >
-          {/* Mobile nav trigger — hidden for direction */}
-          {!isDirection && (
-            <button
-              onClick={() => setMobileNavOpen(true)}
-              aria-label="Open navigation"
-              className="app-mobile-menu-btn hover:!bg-[var(--row-hover)]"
-              style={{
-                width: 34,
-                height: 34,
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "var(--r-md)",
-                color: "var(--fg-3)",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            >
-              <MenuIcon size={18} strokeWidth={1.5} />
-            </button>
-          )}
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation"
+            className="app-mobile-menu-btn hover:!bg-[var(--row-hover)]"
+            style={{
+              width: 34,
+              height: 34,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-md)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <MenuIcon size={18} strokeWidth={1.5} />
+          </button>
 
-          {/* ⌘K search trigger — hidden for direction */}
-          {!isDirection && (
-            <button
-              onClick={() => setCmdOpen(true)}
-              className="app-search-btn hover:!border-[var(--line-strong)]"
+          <button
+            onClick={() => setCmdOpen(true)}
+            className="app-search-btn hover:!border-[var(--line-strong)]"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              height: 32,
+              padding: "0 10px",
+              minWidth: 240,
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--r-sm)",
+              fontSize: 13,
+              color: "var(--fg-4)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "border-color var(--dur) var(--ease)",
+            }}
+          >
+            <SearchIcon size={14} style={{ flexShrink: 0 }} />
+            <span className="app-search-label" style={{ flex: 1 }}>Jump to…</span>
+            <kbd
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                height: 32,
-                padding: "0 10px",
-                minWidth: 240,
-                background: "var(--surface)",
+                fontSize: 10,
+                fontFamily: "var(--font-mono)",
+                color: "var(--fg-mute)",
+                background: "var(--surface-2)",
                 border: "1px solid var(--line)",
                 borderRadius: "var(--r-sm)",
-                fontSize: 13,
-                color: "var(--fg-4)",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "border-color var(--dur) var(--ease)",
+                padding: "1px 5px",
               }}
             >
-              <SearchIcon size={14} style={{ flexShrink: 0 }} />
-              <span className="app-search-label" style={{ flex: 1 }}>Jump to…</span>
-              <kbd
-                style={{
-                  fontSize: 10,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--fg-mute)",
-                  background: "var(--surface-2)",
-                  border: "1px solid var(--line)",
-                  borderRadius: "var(--r-sm)",
-                  padding: "1px 5px",
-                }}
-              >
-                ⌘K
-              </kbd>
-            </button>
-          )}
+              ⌘K
+            </kbd>
+          </button>
 
           <div style={{ flex: 1 }} />
 
-          {/* Shortcuts hint — replaced by logout for direction */}
-          {isDirection ? (
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              title="Se déconnecter"
-              aria-label="Se déconnecter"
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            title="Keyboard shortcuts"
+            style={{
+              width: 34,
+              height: 34,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "var(--r-md)",
+              color: "var(--fg-3)",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              transition: "background var(--dur) var(--ease)",
+            }}
+            className="hover:!bg-[var(--row-hover)]"
+          >
+            <kbd
               style={{
-                width: 34,
-                height: 34,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "var(--r-md)",
+                fontSize: 12,
+                fontFamily: "var(--font-mono)",
                 color: "var(--fg-3)",
-                background: "transparent",
-                border: "none",
+                background: "var(--bg-2)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-sm)",
+                padding: "2px 7px",
                 cursor: "pointer",
-                transition: "background var(--dur) var(--ease)",
               }}
-              className="hover:!bg-[var(--row-hover)] hover:!text-[var(--fg)]"
             >
-              <LogOutIcon size={16} strokeWidth={1.5} />
-            </button>
-          ) : (
-            <button
-              onClick={() => setShortcutsOpen(true)}
-              title="Keyboard shortcuts"
-              style={{
-                width: 34,
-                height: 34,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "var(--r-md)",
-                color: "var(--fg-3)",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                transition: "background var(--dur) var(--ease)",
-              }}
-              className="hover:!bg-[var(--row-hover)]"
-            >
-              <kbd
-                style={{
-                  fontSize: 12,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--fg-3)",
-                  background: "var(--bg-2)",
-                  border: "1px solid var(--line)",
-                  borderRadius: "var(--r-sm)",
-                  padding: "2px 7px",
-                  cursor: "pointer",
-                }}
-              >
-                ?
-              </kbd>
-            </button>
-          )}
+              ?
+            </kbd>
+          </button>
 
           {/* Theme toggle */}
           <button
@@ -716,9 +671,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         </main>
       </div>
 
-      {/* ── Overlays — hidden for direction ── */}
-      {!isDirection && <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />}
-      {!isDirection && <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />}
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

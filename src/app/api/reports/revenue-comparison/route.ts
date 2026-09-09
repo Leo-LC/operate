@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { hasModuleAccess } from "@/core/permissions/guards";
+import { hasAllLocationsAccess, hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const permissions = await getUserPermissionsFromDb(session.user.userId, session.user.role || undefined);
-  if (!hasModuleAccess(permissions, "reports")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!hasModuleAccess(permissions, "reports") && !hasModuleAccess(permissions, "direction")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const now = new Date();
@@ -70,11 +70,18 @@ export async function GET(request: Request) {
       .eq("year", prevYear),
   ]);
 
-  const allLocations = (locsData ?? []) as { id: string; name: string }[];
-  const selectedIds =
+  const rawAllLocations = (locsData ?? []) as { id: string; name: string }[];
+  const allowedAllLocations = hasAllLocationsAccess(permissions)
+    ? rawAllLocations
+    : rawAllLocations.filter((l) => permissions.location_access.some((a) => a.location_id === l.id));
+  const requestedIds =
     locationsParam === "all"
-      ? allLocations.map((l) => l.id)
+      ? allowedAllLocations.map((l) => l.id)
       : locationsParam.split(",").filter(Boolean);
+  const selectedIds = hasAllLocationsAccess(permissions)
+    ? requestedIds
+    : requestedIds.filter((id) => permissions.location_access.some((a) => a.location_id === id));
+  const allLocations = allowedAllLocations;
   const locations = allLocations.filter((l) => selectedIds.includes(l.id));
 
   const currentMap = revenueByLocation(currentMonthly ?? []);
@@ -157,7 +164,7 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const permissions = await getUserPermissionsFromDb(session.user.userId, session.user.role || undefined);
-  if (!hasModuleAccess(permissions, "reports")) return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!hasModuleAccess(permissions, "reports") && !hasModuleAccess(permissions, "direction")) return Response.json({ error: "Forbidden" }, { status: 403 });
   if (permissions.global_role !== "owner" && permissions.global_role !== "admin") {
     return Response.json({ error: "Owner access required" }, { status: 403 });
   }

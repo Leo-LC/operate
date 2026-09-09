@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
-import { hasModuleAccess } from "@/core/permissions/guards";
+import { hasAllLocationsAccess, hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { salesNetTotal, expTotal, hrTotal, DAILY_ENTRY_SUMMARY_COLUMNS } from "@/modules/accounting/types";
 import type { DailyEntry, FixedExpenseCategory, MonthlyFixedExpense } from "@/modules/accounting/types";
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const perms = await getUserPermissionsFromSession(session);
-  if (!hasModuleAccess(perms, "accounting") && !hasModuleAccess(perms, "reports")) {
+  if (!hasModuleAccess(perms, "accounting") && !hasModuleAccess(perms, "reports") && !hasModuleAccess(perms, "direction")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -152,10 +152,18 @@ export async function GET(request: Request) {
       .order("sort_order"),
   ]);
 
-  const allLocations = (locsData ?? []) as { id: string; name: string }[];
-  const selectedIds = locationsParam === "all"
+  const rawAllLocations = (locsData ?? []) as { id: string; name: string }[];
+  // Enforce location access: if not all_locations, restrict to granted IDs
+  const allLocations = hasAllLocationsAccess(perms)
+    ? rawAllLocations
+    : rawAllLocations.filter((l) => perms.location_access.some((a) => a.location_id === l.id));
+  const requestedIds = locationsParam === "all"
     ? allLocations.map((l) => l.id)
     : locationsParam.split(",").filter(Boolean);
+  // Intersect requested with allowed (prevents escalation via ?locations=)
+  const selectedIds = hasAllLocationsAccess(perms)
+    ? requestedIds
+    : requestedIds.filter((id) => perms.location_access.some((a) => a.location_id === id));
 
   const allEntries = (entriesData ?? []) as unknown as DailyEntry[];
   const filtered = allEntries.filter((e) => selectedIds.includes(e.location_id));

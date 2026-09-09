@@ -74,18 +74,23 @@ describe("getUserPermissionsFromSession", () => {
     expect(hasModuleAccess(perms, "documents")).toBe(true);
   });
 
-  it("grants direction read-only Reports access with all shops", async () => {
+  it("loads direction grants from DB like member", async () => {
     fromTable.mockImplementation((table: string) => {
       if (table === "users") return chainSingle({ global_role: "direction" });
+      if (table === "user_module_access") {
+        return chainRows([{ module_key: "direction", can_read: true, can_write: false }]);
+      }
+      if (table === "user_location_access") {
+        return chainRows([{ location_id: "loc-1" }]);
+      }
       return chainRows([]);
     });
 
     const perms = await getUserPermissionsFromSession({ user: { userId: "u-1", role: "direction" } });
     expect(perms.global_role).toBe("direction");
-    expect(hasModuleAccess(perms, "reports")).toBe(true);
-    expect(hasModuleAccess(perms, "reports", true)).toBe(false);
-    expect(hasModuleAccess(perms, "accounting")).toBe(false);
-    expect(hasAllLocationsAccess(perms)).toBe(true);
-    expect(fromTable.mock.calls.map((c) => c[0])).toEqual(["users"]);
+    expect(hasModuleAccess(perms, "direction")).toBe(true);
+    expect(hasModuleAccess(perms, "reports")).toBe(false);
+    expect(hasAllLocationsAccess(perms)).toBe(false);
+    expect(fromTable.mock.calls.map((c) => c[0])).toEqual(["users", "user_module_access", "user_location_access"]);
   });
 });

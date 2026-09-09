@@ -56,11 +56,12 @@ export function derivePermissionsFromRole(
   }
 
   if (role === "direction") {
+    // Configurable via user_module_access / user_location_access like member (no lock)
     return {
       global_role: "direction",
-      module_access: [{ module_key: "reports", can_read: true, can_write: false }],
+      module_access: [],
       location_access: [],
-      all_locations: true,
+      all_locations: false,
     };
   }
 

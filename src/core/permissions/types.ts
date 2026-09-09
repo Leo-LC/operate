@@ -13,7 +13,8 @@ export type ModuleKey =
   | "wiki"
   | "brand"
   | "loyverse"
-  | "loyverse_preview";
+  | "loyverse_preview"
+  | "direction";
 
 export type GlobalRole = "owner" | "admin" | "member" | "reviewer" | "direction";
 export type SessionRole = GlobalRole | "staff";
