@@ -16,6 +16,9 @@ import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface DashboardShellProps {
   email: string;
@@ -71,7 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
       { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
       { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon, module: "accounting" },
-      { id: "treasury", label: "Treasury", href: "/treasury", icon: VaultIcon, module: null },
+      { id: "treasury", label: "Treasury", href: "/treasury", icon: VaultIcon, module: "treasury" },
     ],
   },
   {
@@ -125,6 +128,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [pwd, setPwd] = useState("");
+  const [pwdSaving, setPwdSaving] = useState(false);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     try {
@@ -201,7 +207,6 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           const role = permissions.global_role;
           const allowed =
             role === "reviewer" ? (dest === "/loyverse" || dest === "/reviews" ? dest : null)
-            : role === "direction" ? (dest === "/direction" ? dest : null)
             : dest;
           if (allowed) {
             gKeyRef.current = false;
@@ -224,6 +229,20 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   }
 
   const displayName = email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+  async function handleSavePwd() {
+    if (!pwd || pwd.length < 6) { toast.error("6 caractères minimum"); return; }
+    setPwdSaving(true);
+    try {
+      const res = await fetch("/api/me/password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pwd }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((j as { error?: string }).error || "Erreur");
+      toast.success("Mot de passe mis à jour");
+      setPwdOpen(false);
+      setPwd("");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    finally { setPwdSaving(false); }
+  }
 
   return (
     <div
@@ -345,9 +364,10 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
               if (permissions.global_role === "reviewer") return item.id === "loyverse" || item.id === "reviews";
+              if (permissions.global_role === "direction" && item.id === "loyverse") return false;
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "loyverse" && item.id !== "treasury" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (!item.module && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;
@@ -449,43 +469,57 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             flexShrink: 0,
           }}
         >
-          {/* Avatar */}
+          {/* Avatar + profile (direction: click to change password) */}
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
+            onClick={() => { if (isDirection) setPwdOpen(true); }}
+            title={isDirection ? "Changer mon mot de passe" : undefined}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: "var(--r-pill)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.02em",
-              color: "#fff",
-              background: avatarColor(email),
-              flexShrink: 0,
-              userSelect: "none",
+              display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0,
+              cursor: isDirection ? "pointer" : "default",
+              borderRadius: "var(--r-sm)",
+              padding: isDirection ? "2px 4px" : 0,
+              margin: isDirection ? "-2px -4px" : 0,
             }}
+            className={isDirection ? "hover:!bg-[var(--row-hover)]" : undefined}
           >
-            {initials(displayName || email)}
-          </div>
-
-          <div className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-            <span
+            <div
               style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--fg)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                width: 28,
+                height: 28,
+                borderRadius: "var(--r-pill)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                color: "#fff",
+                background: avatarColor(email),
+                flexShrink: 0,
+                userSelect: "none",
               }}
             >
-              {displayName}
-            </span>
-            <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
-              {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : permissions.global_role === "reviewer" ? "Reviewer" : permissions.global_role === "direction" ? "Direction" : "Staff"}
-            </span>
+              {initials(displayName || email)}
+            </div>
+
+            <div className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "var(--fg)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {displayName}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
+                {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : permissions.global_role === "reviewer" ? "Reviewer" : permissions.global_role === "direction" ? "Direction" : "Staff"}
+              </span>
+            </div>
           </div>
 
           {/* Sign out */}
@@ -673,6 +707,26 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {isDirection && (
+        <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="Mon mot de passe" description="Définir ou changer votre mot de passe.">
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-3)" }}>Nouveau mot de passe</label>
+            <input
+              type="password"
+              value={pwd}
+              onChange={(e) => setPwd(e.target.value)}
+              placeholder="6 caractères minimum"
+              autoFocus
+              style={{ height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, outline: "none" }}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleSavePwd(); }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+              <Button variant="secondary" size="sm" onClick={() => setPwdOpen(false)} disabled={pwdSaving}>Annuler</Button>
+              <Button size="sm" onClick={() => void handleSavePwd()} disabled={pwdSaving || pwd.length < 6}>{pwdSaving ? "Enregistrement…" : "Enregistrer"}</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

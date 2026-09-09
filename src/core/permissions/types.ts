@@ -14,7 +14,10 @@ export type ModuleKey =
   | "brand"
   | "loyverse"
   | "loyverse_preview"
-  | "direction";
+  | "direction"
+  | "treasury"
+  | "loyverse-sandbox"
+  | "customer-insights";
 
 export type GlobalRole = "owner" | "admin" | "member" | "reviewer" | "direction";
 export type SessionRole = GlobalRole | "staff";
