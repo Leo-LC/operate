@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { InfoIcon } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
 import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
 import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
@@ -16,48 +17,6 @@ function bangkokToday(): string {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const o: Record<string, string> = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   return `${o.year}-${o.month}-${o.day}`;
-}
-function toDay(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function parseDay(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-function startOfWeek(d: Date): Date {
-  const day = d.getDay(); // 0 Sun
-  const diff = day === 0 ? -6 : 1 - day; // Monday start
-  const r = new Date(d);
-  r.setDate(d.getDate() + diff);
-  return r;
-}
-function endOfWeek(d: Date): Date {
-  const s = startOfWeek(d);
-  const e = new Date(s);
-  e.setDate(s.getDate() + 6);
-  return e;
-}
-function startOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-function endOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
-}
-
-type PeriodKey = "today" | "yesterday" | "this-week" | "this-month" | "last-month";
-function periodRange(key: PeriodKey, base: Date): { from: string; to: string; label: string } {
-  if (key === "today") return { from: toDay(base), to: toDay(base), label: "Today" };
-  if (key === "yesterday") {
-    const d = new Date(base); d.setDate(base.getDate() - 1);
-    return { from: toDay(d), to: toDay(d), label: "Yesterday" };
-  }
-  if (key === "this-week") return { from: toDay(startOfWeek(base)), to: toDay(endOfWeek(base)), label: "This week" };
-  if (key === "this-month") return { from: toDay(startOfMonth(base)), to: toDay(base), label: "This month" };
-  if (key === "last-month") {
-    const m = new Date(base.getFullYear(), base.getMonth() - 1, 1);
-    return { from: toDay(startOfMonth(m)), to: toDay(endOfMonth(m)), label: "Last month" };
-  }
-  return { from: toDay(base), to: toDay(base), label: "Today" };
 }
 
 // ── Types mirroring /api/reports/accounting ───────────────────────────
@@ -103,13 +62,6 @@ interface AccountingData {
   completeness: { totalExpected: number; totalFilled: number; percent: number; shopsIncomplete: string[] };
 }
 
-function pctChange(curr: number, prev: number): { pct: number | null; dir: "up" | "down" | "neutral" } {
-  if (!prev) return { pct: null, dir: "neutral" };
-  const v = ((curr - prev) / Math.abs(prev)) * 100;
-  const dir = v > 0.05 ? "up" : v < -0.05 ? "down" : "neutral";
-  return { pct: v, dir };
-}
-
 function MoneyBar({ value, max, color }: { value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
@@ -126,29 +78,29 @@ export function DirectionOverview() {
   const [data, setData] = useState<AccountingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMoneyOutBreakdown, setShowMoneyOutBreakdown] = useState(false);
-  const [shopSort, setShopSort] = useState<"sales" | "expenses">("sales");
+  const [shopSort, setShopSort] = useState<"resultat" | "sales" | "expenses">("resultat");
 
-  const fetchData = useCallback(async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
-    setLoading(true);
-    try {
-      const locParam = locs.length > 0 && shops.length !== locs.length && shops.length > 0 ? shops.join(",") : "all";
-      const res = await fetch(`/api/reports/accounting?from=${f}&to=${t}&locations=${locParam}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const json = (await res.json()) as AccountingData;
-      setData(json);
-      // init selectedShops on first load
-      if (locs.length === 0 && json.locations.length > 0 && shops.length === 0) {
-        setSelectedShops(json.locations.map((l) => l.id));
+  const fetchData = useCallback(
+    async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
+      setLoading(true);
+      try {
+        const locParam = locs.length > 0 && shops.length !== locs.length && shops.length > 0 ? shops.join(",") : "all";
+        const res = await fetch(`/api/reports/accounting?from=${f}&to=${t}&locations=${locParam}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json()) as AccountingData;
+        setData(json);
+        if (locs.length === 0 && json.locations.length > 0 && shops.length === 0) {
+          setSelectedShops(json.locations.map((l) => l.id));
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
-  // initial fetch when period changes — we need locations already fetched once
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
-    // if we have locations, refetch with current selection; otherwise fetch all
     if (locations.length > 0) {
       void fetchData(from, to, selectedShops, locations);
     } else {
@@ -165,18 +117,16 @@ export function DirectionOverview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to]);
 
-  // when shop pills change, refetch
   useEffect(() => {
     if (locations.length === 0) return;
-    // avoid double fetch on init already done
     void fetchData(from, to, selectedShops, locations);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShops.join(",")]);
 
   if (loading && !data) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-24 animate-pulse rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--line-2)]" />
         ))}
       </div>
@@ -185,50 +135,31 @@ export function DirectionOverview() {
   if (!data) return <div className="py-10 text-center text-sm text-[var(--fg-4)]">Pas de données</div>;
 
   const o = data.overview;
-  const prev = data.previousPeriod.overview;
 
-  // KPIs alignés sur Détails (5 cartes)
-  const netAfterExpenses = o.revenue - o.expenses;
-  const prevNetAfterExpenses = prev.revenue - prev.expenses;
-  const hrPct = o.revenue > 0 ? (o.hrCosts / o.revenue) * 100 : 0;
-  const prevHrPct = prev.revenue > 0 ? (prev.hrCosts / prev.revenue) * 100 : 0;
+  // ── Formules existantes — ne pas réinventer
+  // revenue = somme ventes net (drinks+ticket+snack+goodies+surcharge) -> o.revenue
+  // expenses = expTotal (opérationnel hors RH) -> o.expenses
+  // hrCosts = hrTotal -> o.hrCosts
+  // netProfit = revenue - expenses - hrCosts -> o.netProfit (Résultat)
+  // vat -> o.vat
+  const chargesFixes = o.expenses;
+  const chargesRH = o.hrCosts;
+  const resultat = o.netProfit;
   const bossExpenses = o.expenses + o.hrCosts;
-  const prevExpenses = prev.expenses + prev.hrCosts;
 
-  function pctChangeParts(curr: number, prevVal: number): { delta: string; dir: "up" | "down" | "neutral" } {
-    if (!prevVal) return { delta: "—", dir: "neutral" as const };
-    const ch = ((curr - prevVal) / Math.abs(prevVal)) * 100;
-    const dir = ch > 0.05 ? "up" as const : ch < -0.05 ? "down" as const : "neutral" as const;
-    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "–";
-    return { delta: `${arrow} ${Math.abs(ch).toFixed(1)}%`, dir };
-  }
-  function ppChangeParts(curr: number, prevVal: number): { delta: string; dir: "up" | "down" | "neutral" } {
-    const diff = curr - prevVal;
-    const dir = diff > 0.05 ? "up" as const : diff < -0.05 ? "down" as const : "neutral" as const;
-    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "–";
-    return { delta: `${arrow} ${Math.abs(diff).toFixed(1)}pp`, dir };
-  }
-  function monthShortLabel(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString("fr-FR", { month: "short" });
-  }
-  const prevMonthName = monthShortLabel(data.previousPeriod.period.to);
-  const revenueDelta = pctChangeParts(o.revenue, prev.revenue);
-  const netAfterExpDelta = pctChangeParts(netAfterExpenses, prevNetAfterExpenses);
-  const netAfterHrDelta = pctChangeParts(o.netProfit, prev.netProfit);
-  const hrPctDelta = ppChangeParts(hrPct, prevHrPct);
-  const vatDelta = pctChangeParts(o.vat, prev.vat);
-
-  // Money in breakdown — 5 bars
+  // Money in
   const moneyInRows = [
     { label: "Tickets", value: o.tickets, color: "var(--info)" },
     { label: "Drinks", value: o.drinks, color: "var(--bronze)" },
     { label: "Snacks", value: o.snacks, color: "var(--good)" },
     { label: "Goods", value: o.goodies, color: "var(--warn)" },
     { label: "Other", value: o.surcharge, color: "var(--fg-4)" },
-  ].filter((r) => r.value !== 0).sort((a, b) => b.value - a.value);
+  ]
+    .filter((r) => r.value !== 0)
+    .sort((a, b) => b.value - a.value);
   const moneyInMax = Math.max(...moneyInRows.map((r) => r.value), 1);
 
-  // Money out — aggressive grouping per spec
+  // Money out — keep existing grouping
   const operating = o.expStaffFoodCash + o.expDrinksCash + o.expGoodiesCash + o.expAnimalsCash + o.expSupplyCash + o.expOtherCash + o.expMakroBank + o.expOtherBank;
   const salaries = o.hrSalaryCash;
   const serviceBonus = o.hrServiceChargeCash + o.hrChallengeCash;
@@ -238,10 +169,11 @@ export function DirectionOverview() {
     { label: "Operations", value: operating, color: "var(--warn)" },
     { label: "Fixed costs", value: fixedTotal, color: "var(--fg-3)" },
     { label: "Service / Bonus", value: serviceBonus, color: "var(--info)" },
-  ].filter((r) => r.value > 0).sort((a, b) => b.value - a.value);
+  ]
+    .filter((r) => r.value > 0)
+    .sort((a, b) => b.value - a.value);
   const moneyOutMax = Math.max(...moneyOutRows.map((r) => r.value), 1);
 
-  // Detailed breakdown for "View breakdown"
   const detailedOutRows = [
     { label: "Staff food", value: o.expStaffFoodCash },
     { label: "Drinks cash", value: o.expDrinksCash },
@@ -253,33 +185,35 @@ export function DirectionOverview() {
     { label: "Other bank", value: o.expOtherBank },
   ].filter((r) => r.value > 0);
 
-  // Shops ranking
+  // Shops
   const shopsAll = data.byShop.map((s) => {
     const sExp = s.expenses + s.hrCosts;
-    const sProfit = s.revenue - sExp;
-    const sMargin = s.revenue > 0 ? (sProfit / s.revenue) * 100 : 0;
-    return { ...s, _exp: sExp, _profit: sProfit, _margin: sMargin };
+    const sProfit = s.netProfit; // revenue - expenses - hrCosts (formule existante)
+    return { ...s, _exp: sExp, _profit: sProfit };
   });
-  // filter by selectedShops
-  const shops = selectedShops.length === 0 || selectedShops.length === locations.length
-    ? shopsAll
-    : shopsAll.filter((s) => selectedShops.includes(s.locationId));
+  const shops =
+    selectedShops.length === 0 || selectedShops.length === locations.length
+      ? shopsAll
+      : shopsAll.filter((s) => selectedShops.includes(s.locationId));
   const sortedShops = [...shops].sort((a, b) => {
+    if (shopSort === "resultat") return b._profit - a._profit;
     if (shopSort === "sales") return b.revenue - a.revenue;
     return b._exp - a._exp;
   });
-  const shopMax = Math.max(...sortedShops.map((s) => Math.max(s.revenue, s._exp)), 1);
+  // For bar max, use relevant metric
+  const shopMax =
+    shopSort === "resultat"
+      ? Math.max(...sortedShops.map((s) => Math.abs(s._profit)), 1)
+      : shopSort === "sales"
+        ? Math.max(...sortedShops.map((s) => s.revenue), 1)
+        : Math.max(...sortedShops.map((s) => s._exp), 1);
 
   return (
     <div className="flex flex-col gap-5">
       {/* Période + Boutiques */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker
-            value={{ from, to }}
-            onChange={({ from: f, to: t }) => setRange(f, t)}
-            today={bangkokToday()}
-          />
+          <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
           <button
             onClick={() => void fetchData(from, to, selectedShops, locations)}
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-2)]"
@@ -297,14 +231,11 @@ export function DirectionOverview() {
                 key={loc.id}
                 active={selectedShops.includes(loc.id)}
                 onClick={() => {
-                  // When "All shops" is active, clicking a shop selects ONLY that shop (deselects all others)
                   if (selectedShops.length === locations.length) {
                     setSelectedShops([loc.id]);
                     return;
                   }
-                  setSelectedShops((prev) =>
-                    prev.includes(loc.id) ? prev.filter((s) => s !== loc.id) : [...prev, loc.id]
-                  );
+                  setSelectedShops((prev) => (prev.includes(loc.id) ? prev.filter((s) => s !== loc.id) : [...prev, loc.id]));
                 }}
               >
                 {shortShopName(loc.name)}
@@ -314,16 +245,27 @@ export function DirectionOverview() {
         )}
       </div>
 
-      {/* KPI — repris de Détails (5 cartes, chiffres grossis, vs en bas) */}
+      {/* Hiérarchie subtile */}
+      <p className="text-xs text-[var(--fg-4)] hidden lg:block" style={{ margin: "-4px 0 0" }}>
+        Chiffre d’affaires <span style={{ color: "var(--fg-3)" }}> − </span> Charges fixes / opérationnelles <span style={{ color: "var(--fg-3)" }}> − </span> Charges RH <span style={{ color: "var(--fg-3)" }}> = </span> <strong style={{ color: "var(--fg)" }}>Résultat</strong>
+        <span style={{ color: "var(--fg-4)", marginLeft: 12 }}>·</span> <span style={{ marginLeft: 12 }}>TVA encaissée informative</span>
+      </p>
+
+      {/* KPI — exactement 5, sans variations */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard label="Chiffre d'affaires" value={`฿${fmtN(o.revenue)}`} delta={revenueDelta.delta} deltaDir={revenueDelta.dir} hint={`vs ${prevMonthName}`} />
-        <KpiCard label="Après charges" value={`฿${fmtN(netAfterExpenses)}`} delta={netAfterExpDelta.delta} deltaDir={netAfterExpDelta.dir} hint={`vs ${prevMonthName}`} />
-        <KpiCard label="Après RH" value={`฿${fmtN(o.netProfit)}`} delta={netAfterHrDelta.delta} deltaDir={netAfterHrDelta.dir} hint={`vs ${prevMonthName}`} />
-        <KpiCard label="Part RH / Ventes" value={`${hrPct.toFixed(1)}%`} delta={hrPctDelta.delta} deltaDir={hrPctDelta.dir} hint={`vs ${prevMonthName}`} />
-        <KpiCard label="TVA encaissée" value={`฿${fmtN(o.vat)}`} delta={vatDelta.delta} deltaDir={vatDelta.dir} hint={`vs ${prevMonthName}`} />
+        <KpiCard label="Chiffre d'affaires" value={`฿${fmtN(o.revenue)}`} />
+        <KpiCard label="Charges fixes / opérationnelles" value={`฿${fmtN(chargesFixes)}`} />
+        <KpiCard label="Charges RH" value={`฿${fmtN(chargesRH)}`} />
+        <KpiCard
+          label="Résultat"
+          value={`฿${fmtN(resultat)}`}
+          accent
+          tooltip="Chiffre d’affaires moins charges opérationnelles et RH enregistrées. TVA à reverser et impôt sur les sociétés non inclus."
+        />
+        <KpiCard label="TVA encaissée" value={`฿${fmtN(o.vat)}`} />
       </div>
 
-      {/* Money in / Money out */}
+      {/* Money in / Money out — inchangé */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Entrées — Répartition</h3>
@@ -395,14 +337,22 @@ export function DirectionOverview() {
         </div>
       </div>
 
-      {/* Boutiques — Ventes / Dépenses seulement */}
+      {/* Boutiques — Résultat (défaut) / Ventes / Dépenses */}
       <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Boutiques</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Boutiques</h3>
+            <span className="group relative inline-flex">
+              <InfoIcon size={13} className="text-[var(--fg-4)] cursor-help" />
+              <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--fg-3)] shadow-lg group-hover:block" style={{ marginTop: 6, maxWidth: 260, whiteSpace: "normal" }}>
+                Chiffre d’affaires moins charges opérationnelles et RH enregistrées. TVA à reverser et impôt non inclus.
+              </span>
+            </span>
+          </div>
           <div className="flex gap-1">
-            {(["sales", "expenses"] as const).map((k) => (
+            {(["resultat", "sales", "expenses"] as const).map((k) => (
               <PillButton key={k} active={shopSort === k} onClick={() => setShopSort(k)}>
-                {k === "sales" ? "Ventes" : "Dépenses"}
+                {k === "resultat" ? "Résultat" : k === "sales" ? "Ventes" : "Dépenses"}
               </PillButton>
             ))}
           </div>
@@ -412,43 +362,71 @@ export function DirectionOverview() {
             <thead>
               <tr className="border-b border-[var(--line)] text-left text-xs text-[var(--fg-4)]">
                 <th className="py-2 font-medium">Boutique</th>
-                <th className="py-2 text-right font-medium">Ventes</th>
-                <th className="py-2 text-right font-medium">Dépenses</th>
+                <th className="py-2 text-right font-medium">{shopSort === "resultat" ? "Résultat" : shopSort === "sales" ? "Ventes" : "Dépenses"}</th>
                 <th className="py-2 w-24 font-medium"> </th>
               </tr>
             </thead>
             <tbody>
-              {sortedShops.map((s) => (
-                <tr key={s.locationId} className="border-b border-[var(--line-2)] last:border-0">
-                  <td className="py-2.5 font-medium">{shortShopName(s.locationName)}</td>
-                  <td className="py-2.5 text-right font-mono tabular-nums">{fmtMoney(s.revenue)}</td>
-                  <td className="py-2.5 text-right font-mono tabular-nums" style={{ color: "var(--warn)" }}>{fmtMoney(s._exp)}</td>
-                  <td className="py-2.5">
-                    <div className="h-1.5 w-full rounded-full bg-[var(--line-2)]">
-                      <div className="h-full rounded-full bg-[var(--good)]" style={{ width: `${shopMax > 0 ? (s.revenue / shopMax) * 100 : 0}%` }} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {sortedShops.map((s) => {
+                const value = shopSort === "resultat" ? s._profit : shopSort === "sales" ? s.revenue : s._exp;
+                const barColor = shopSort === "resultat" ? (value >= 0 ? "var(--good)" : "var(--bad)") : shopSort === "sales" ? "var(--good)" : "var(--warn)";
+                const pct = shopMax > 0 ? (Math.abs(value) / shopMax) * 100 : 0;
+                return (
+                  <tr key={s.locationId} className="border-b border-[var(--line-2)] last:border-0">
+                    <td className="py-2.5 font-medium">{shortShopName(s.locationName)}</td>
+                    <td className="py-2.5 text-right font-mono tabular-nums" style={{ color: shopSort === "resultat" ? (value >= 0 ? "var(--good)" : "var(--bad)") : undefined }}>{fmtMoney(value)}</td>
+                    <td className="py-2.5">
+                      <div className="h-1.5 w-full rounded-full bg-[var(--line-2)]">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 }
 
-function KpiCard({ label, value, delta, deltaDir = "neutral", hint }: { label: string; value: string; delta?: string; deltaDir?: "up" | "down" | "neutral"; hint?: string }) {
-  const deltaColor = deltaDir === "up" ? "var(--good)" : deltaDir === "down" ? "var(--bad)" : "var(--fg-4)";
+function KpiCard({
+  label,
+  value,
+  accent,
+  tooltip,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  tooltip?: string;
+}) {
   return (
     <div
-      style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16, display: "flex", flexDirection: "column", gap: 4, height: "100%" }}
+      style={{
+        borderRadius: "var(--r-lg)",
+        border: accent ? "1.5px solid var(--accent)" : "1px solid var(--line)",
+        background: accent ? "var(--accent-soft, var(--surface))" : "var(--surface)",
+        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        height: "100%",
+      }}
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-4)]">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-[var(--fg-4)]">
+        {label}
+        {tooltip && (
+          <span className="group relative inline-flex">
+            <InfoIcon size={12} className="cursor-help text-[var(--fg-4)]" />
+            <span className="pointer-events-none absolute left-1/2 top-full z-20 hidden -translate-x-1/2 whitespace-normal rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-[var(--fg-3)] shadow-lg group-hover:block" style={{ marginTop: 6, width: 200, lineHeight: "1.4" }}>
+              {tooltip}
+            </span>
+          </span>
+        )}
+      </p>
       <p className="mt-1 font-mono text-2xl font-bold tabular-nums" style={{ letterSpacing: "-0.02em" }}>{value}</p>
-      {delta && <p className="mono tabular-nums text-xs font-medium" style={{ color: deltaColor }}>{delta}</p>}
-      {hint && <p className="mt-auto pt-2 text-xs text-[var(--fg-4)]" style={{ borderTop: "1px solid transparent" }}>{hint}</p>}
     </div>
   );
 }
