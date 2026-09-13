@@ -12,7 +12,7 @@ import type { UserPermissions } from "@/core/permissions/types";
 
 const NAV_ITEMS = [
   { id: "direction",  label: "Direction",  href: "/direction",  icon: CrownIcon,        module: "direction" },
-  { id: "loyverse",   label: "Loyverse",   href: "/loyverse",   icon: PlugIcon,         module: null },
+  { id: "loyverse",   label: "Loyverse",   href: "/loyverse",   icon: PlugIcon,         module: "loyverse" },
   { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
   { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
   { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },

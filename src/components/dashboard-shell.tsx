@@ -51,7 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Performance",
     items: [
-      { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: null },
+      { id: "loyverse", label: "Loyverse", href: "/loyverse", icon: PlugIcon, module: "loyverse" },
       { id: "loyverse-preview", label: "Shifts & Sales", href: "/shift-sales", icon: ClockIcon, module: "loyverse_preview" },
       { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon, module: "reports" },
       { id: "challenges", label: "Challenges", href: "/challenges", icon: TrophyIcon,     module: "challenges" },
@@ -206,7 +206,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         if (dest) {
           const role = permissions.global_role;
           const allowed =
-            role === "reviewer" ? (dest === "/loyverse" || dest === "/reviews" ? dest : null)
+            role === "reviewer" ? (dest === "/reviews" ? dest : null)
             : dest;
           if (allowed) {
             gKeyRef.current = false;
@@ -363,11 +363,11 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         >
           {NAV_GROUPS.map((group, gi) => {
             const visibleItems = group.items.filter((item) => {
-              if (permissions.global_role === "reviewer") return item.id === "loyverse" || item.id === "reviews";
+              if (permissions.global_role === "reviewer") return item.id === "reviews";
               if (permissions.global_role === "direction" && item.id === "loyverse") return false;
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "loyverse" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (!item.module && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;

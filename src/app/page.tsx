@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
+import { hasModuleAccess } from "@/core/permissions/guards";
 import { LoginCard } from "@/components/login-card";
 
 export default async function Home() {
@@ -10,6 +11,7 @@ export default async function Home() {
     const permissions = await getUserPermissionsFromDb(session.user?.userId, session.user?.role);
     if (permissions.global_role === "direction") redirect("/direction");
     if (permissions.global_role === "reviewer") redirect("/reviews");
+    if (!hasModuleAccess(permissions, "loyverse")) redirect("/home");
     redirect("/loyverse");
   }
 
