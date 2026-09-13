@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
-import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, THAI_BANKS, type EmployeeFormState } from "./EmployeeForm";
+import { EmployeeDocumentsSection } from "./EmployeeDocumentsSection";
 
 interface Props {
   locations: AdminLocation[];
@@ -36,7 +37,7 @@ const SIMPLE_INPUT: React.CSSProperties = {
   background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%",
 };
 
-type SortKey = "first_name" | "nationality" | "shop" | "salary" | "thai_bank" | "service_charge";
+type SortKey = "first_name" | "nationality" | "shop" | "salary" | "thai_bank" | "has_id" | "service_charge";
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey | null; label: string }[] = [
@@ -45,6 +46,7 @@ const COLUMNS: { key: SortKey | null; label: string }[] = [
   { key: "shop", label: "Shop" },
   { key: "salary", label: "Salary" },
   { key: "thai_bank", label: "Thai bank" },
+  { key: "has_id", label: "ID" },
   { key: "service_charge", label: "Service charge" },
   { key: null, label: "" },
 ];
@@ -67,89 +69,118 @@ function primarySalary(emp: Employee): number | null {
   return perLoc[0]?.base_salary_monthly ?? emp.base_salary_monthly;
 }
 
-function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, locationEligible, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onEligibleChange, onSubmit, onCancel, submitLabel, activeShopId, readOnlyShops }: {
+function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, locationEligible, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onEligibleChange, onSubmit, onCancel, submitLabel, activeShopId, readOnlyShops, employeeId, documents, onDocumentsChange }: {
   form: FormState; locIds: Set<string>; primaryLoc: string; locations: AdminLocation[]; locationSalaries: Record<string, string>; locationEligible: Record<string, boolean>; submitting: boolean;
   onChange: (key: keyof FormState, value: string | boolean) => void; onToggleLoc: (id: string) => void;
   onSetPrimary: (id: string) => void; onSalaryChange: (id: string, value: string) => void; onEligibleChange: (id: string, value: boolean) => void; onSubmit: (event: React.FormEvent) => void; onCancel: () => void; submitLabel: string;
   activeShopId?: string | null; readOnlyShops?: boolean;
+  employeeId?: string; documents?: Employee["employee_documents"];
+  onDocumentsChange?: () => void;
 }) {
   const activeShopName = activeShopId ? locations.find((l) => l.id === activeShopId)?.name ?? null : null;
   const salaryLabel = activeShopName ? `Base salary at ${activeShopName} (฿)` : "Base salary / month (฿)";
   const salaryHint = activeShopName ? `Updates salary for ${activeShopName} only` : undefined;
-  return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>First name
-        <input autoFocus required value={form.first_name} onChange={(event) => onChange("first_name", event.target.value)} style={SIMPLE_INPUT} placeholder="First name" />
-      </label>
-      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Nationality
-        <select value={form.nationality} onChange={(event) => onChange("nationality", event.target.value)} style={{ ...SIMPLE_INPUT, cursor: "pointer" }}>
-          {NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality || "Select nationality"}</option>)}
-        </select>
-      </label>
-      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>{salaryLabel}
-        <input type="number" min="0" step="1" value={form.base_salary_monthly} onChange={(event) => onChange("base_salary_monthly", event.target.value)} style={SIMPLE_INPUT} placeholder="e.g. 15000" />
-        {salaryHint && <span style={{ fontSize: 10, color: "var(--fg-4)" }}>{salaryHint}</span>}
-      </label>
-      <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Service charge %
-        <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(event) => onChange("service_charge_pct", event.target.value)} style={SIMPLE_INPUT} placeholder="Shop default" />
-      </label>
-    </div>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg)", cursor: "pointer" }}>
-        <input type="checkbox" checked={form.has_thai_bank_account} onChange={(event) => onChange("has_thai_bank_account", event.target.checked)} />
-        Thai bank account
-      </label>
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg)", cursor: "pointer" }}>
-        <input type="checkbox" checked={form.service_charge_eligible ?? true} onChange={(event) => onChange("service_charge_eligible", event.target.checked)} />
-        Eligible for service charge
-      </label>
-    </div>
-    {form.has_thai_bank_account && (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Bank name
-          <select value={form.bank_name ?? ""} onChange={(e) => onChange("bank_name", e.target.value)} style={{ ...SIMPLE_INPUT, cursor: "pointer" }}>
-            {THAI_BANKS.map((b) => <option key={b} value={b}>{b || "— Select bank —"}</option>)}
+  const sectionStyle: React.CSSProperties = { borderBottom: "1px solid var(--line)", paddingBottom: 12 };
+  const lastSectionStyle: React.CSSProperties = { paddingTop: "var(--s-2)" };
+
+  return <form onSubmit={onSubmit} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={sectionStyle}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>First name
+          <input autoFocus required value={form.first_name} onChange={(event) => onChange("first_name", event.target.value)} style={SIMPLE_INPUT} placeholder="First name" />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Nationality
+          <select value={form.nationality} onChange={(event) => onChange("nationality", event.target.value)} style={{ ...SIMPLE_INPUT, cursor: "pointer" }}>
+            {NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality || "Select nationality"}</option>)}
           </select>
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Account number
-          <input value={form.bank_account_number ?? ""} onChange={(e) => onChange("bank_account_number", e.target.value.replace(/[^\d-]/g, ""))} style={SIMPLE_INPUT} placeholder="123-4-56789-0" />
+      </div>
+    </div>
+
+    <div style={sectionStyle}>
+      <span className="eyebrow">Compensation</span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: "var(--s-2)" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>{salaryLabel}
+          <input type="number" min="0" step="1" value={form.base_salary_monthly} onChange={(event) => onChange("base_salary_monthly", event.target.value)} style={SIMPLE_INPUT} placeholder="e.g. 15000" />
+          {salaryHint && <span style={{ fontSize: 10, color: "var(--fg-4)" }}>{salaryHint}</span>}
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Holder name
-          <input value={form.bank_account_name ?? ""} onChange={(e) => onChange("bank_account_name", e.target.value)} style={SIMPLE_INPUT} placeholder="As on bank book" />
+        <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Service charge %
+          <input type="number" min="0" step="0.1" value={form.service_charge_pct} onChange={(event) => onChange("service_charge_pct", event.target.value)} style={SIMPLE_INPUT} placeholder="Shop default" />
         </label>
       </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginTop: "var(--s-2)" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg)", cursor: "pointer" }}>
+          <input type="checkbox" checked={form.has_thai_bank_account} onChange={(event) => onChange("has_thai_bank_account", event.target.checked)} />
+          Thai bank account
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg)", cursor: "pointer" }}>
+          <input type="checkbox" checked={form.service_charge_eligible ?? true} onChange={(event) => onChange("service_charge_eligible", event.target.checked)} />
+          Eligible for service charge
+        </label>
+      </div>
+      {form.has_thai_bank_account && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginTop: "var(--s-2)", padding: "var(--s-3)", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", background: "var(--surface-2)" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Bank name
+            <select value={form.bank_name ?? ""} onChange={(e) => onChange("bank_name", e.target.value)} style={{ ...SIMPLE_INPUT, cursor: "pointer" }}>
+              {THAI_BANKS.map((b) => <option key={b} value={b}>{b || "— Select bank —"}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Account number
+            <input value={form.bank_account_number ?? ""} onChange={(e) => onChange("bank_account_number", e.target.value.replace(/[^\d-]/g, ""))} style={SIMPLE_INPUT} placeholder="123-4-56789-0" />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Holder name
+            <input value={form.bank_account_name ?? ""} onChange={(e) => onChange("bank_account_name", e.target.value)} style={SIMPLE_INPUT} placeholder="As on bank book" />
+          </label>
+        </div>
+      )}
+    </div>
+
+    {employeeId && (
+      <div style={sectionStyle}>
+        <EmployeeDocumentsSection
+          employeeId={employeeId}
+          documents={documents ?? []}
+          onRefresh={onDocumentsChange ?? (() => {})}
+        />
+      </div>
     )}
-    <div><span style={{ display: "block", marginBottom: 7, fontSize: 12, color: "var(--fg-3)" }}>Shops {readOnlyShops && <span style={{ fontSize: 10, color: "var(--fg-4)", fontWeight: 400 }}>(read-only)</span>}</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {locations.map((location) => {
-        const selected = locIds.has(location.id);
-        const isPrimary = primaryLoc === location.id && selected;
-        // Read-only: show only assigned shops as static pills
-        if (readOnlyShops) {
-          if (!selected) return null;
-          return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 12, color: "var(--fg-3)" }}>
-            <span style={{ fontWeight: 500, color: isPrimary ? "var(--bronze)" : "var(--fg-3)" }}>{location.name}{isPrimary ? " ★ primary" : ""}</span>
-            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{locationSalaries[location.id] ? `฿${Number(locationSalaries[location.id]).toLocaleString()}/mo` : ""}</span>
-            <span style={{ fontSize: 11, color: (locationEligible[location.id] ?? true) ? "var(--good)" : "var(--bad)" }}>{(locationEligible[location.id] ?? true) ? "SC" : "no SC"}</span>
+
+    <div style={lastSectionStyle}>
+      <span className="eyebrow">Shops {readOnlyShops && <span style={{ fontSize: 10, color: "var(--fg-4)", fontWeight: 400 }}>(read-only)</span>}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: "var(--s-2)" }}>
+        {locations.map((location) => {
+          const selected = locIds.has(location.id);
+          const isPrimary = primaryLoc === location.id && selected;
+          if (readOnlyShops) {
+            if (!selected) return null;
+            return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 12, color: "var(--fg-3)" }}>
+              <span style={{ fontWeight: 500, color: isPrimary ? "var(--bronze)" : "var(--fg-3)" }}>{location.name}{isPrimary ? " ★ primary" : ""}</span>
+              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{locationSalaries[location.id] ? `฿${Number(locationSalaries[location.id]).toLocaleString()}/mo` : ""}</span>
+              <span style={{ fontSize: 11, color: (locationEligible[location.id] ?? true) ? "var(--good)" : "var(--bad)" }}>{(locationEligible[location.id] ?? true) ? "SC" : "no SC"}</span>
+            </div>;
+          }
+          return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)" }}>
+            <button type="button" onClick={() => onToggleLoc(location.id)} aria-pressed={selected} style={{ padding: "3px 0", background: "transparent", border: "none", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}</button>
+            {selected && (
+              <>
+                <button type="button" onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(location.id); }} style={{ fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "2px 4px", background: isPrimary ? "var(--bronze)" : "transparent", color: isPrimary ? "#fff" : "var(--fg-4)", border: "none", cursor: "pointer" }} title={isPrimary ? "Primary location" : "Set as primary"}>{isPrimary ? "PRIMARY" : "set primary"}</button>
+                <input type="number" min="0" step="1" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
+                <label onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: "var(--fg-3)" }}>
+                  <input type="checkbox" checked={locationEligible[location.id] ?? true} onChange={(e) => onEligibleChange(location.id, e.target.checked)} />
+                  SC
+                </label>
+              </>
+            )}
           </div>;
-        }
-        return <div key={location.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: "var(--r-sm)", border: `1px solid ${selected ? "var(--bronze)" : "var(--line)"}`, background: selected ? "var(--bronze-soft)" : "var(--bg)" }}>
-          <button type="button" onClick={() => onToggleLoc(location.id)} aria-pressed={selected} style={{ padding: "3px 0", background: "transparent", border: "none", color: selected ? "var(--bronze)" : "var(--fg-3)", fontSize: 12, cursor: "pointer" }}>{location.name}</button>
-          {selected && (
-            <>
-              <button type="button" onClick={(e) => { e.preventDefault(); if (!isPrimary) onSetPrimary(location.id); }} style={{ fontSize: 9, fontWeight: 700, borderRadius: "var(--r-sm)", padding: "2px 4px", background: isPrimary ? "var(--bronze)" : "transparent", color: isPrimary ? "#fff" : "var(--fg-4)", border: "none", cursor: "pointer" }} title={isPrimary ? "Primary location" : "Set as primary"}>{isPrimary ? "PRIMARY" : "set primary"}</button>
-              <input type="number" min="0" step="1" value={locationSalaries[location.id] ?? ""} onChange={(e) => onSalaryChange(location.id, e.target.value)} placeholder="฿/mo" style={{ width: 84, height: 24, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 6px", fontSize: 11 }} />
-              <label onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, cursor: "pointer", color: "var(--fg-3)" }}>
-                <input type="checkbox" checked={locationEligible[location.id] ?? true} onChange={(e) => onEligibleChange(location.id, e.target.checked)} />
-                SC
-              </label>
-            </>
-          )}
-        </div>;
-      })}
+        })}
+      </div>
+      {readOnlyShops && locIds.size === 0 && <p style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 6 }}>No shop assigned.</p>}
     </div>
-    {readOnlyShops && locIds.size === 0 && <p style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 6 }}>No shop assigned.</p>}
+
+    <div style={{ display: "flex", gap: 8, paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)" }}>
+      <Button type="submit" size="sm" disabled={submitting}>{submitting ? "Saving…" : submitLabel}</Button>
+      <Button type="button" size="sm" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button>
     </div>
-    <div style={{ display: "flex", gap: 8 }}><Button type="submit" size="sm" disabled={submitting}>{submitting ? "Saving…" : submitLabel}</Button><Button type="button" size="sm" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button></div>
   </form>;
 }
 
@@ -245,6 +276,9 @@ export function EmployeesListClient({ locations }: Props) {
         case "thai_bank":
           cmp = Number(!!a.has_thai_bank_account) - Number(!!b.has_thai_bank_account);
           break;
+        case "has_id":
+          cmp = Number(!!(a.employee_documents && a.employee_documents.length > 0)) - Number(!!(b.employee_documents && b.employee_documents.length > 0));
+          break;
         case "service_charge":
           cmp = (a.service_charge_pct ?? -1) - (b.service_charge_pct ?? -1);
           break;
@@ -278,6 +312,19 @@ export function EmployeesListClient({ locations }: Props) {
   }, []);
 
   useEffect(() => { void fetchEmployees(); }, [fetchEmployees]);
+
+  // Quiet refresh (no loading flash) used after document upload/rename/delete
+  // so the expanded form stays open and the ID column checkmark updates.
+  const refreshEmployeesQuiet = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/employees", { cache: "no-store" });
+      if (!res.ok) return;
+      const data: unknown = await res.json();
+      if (Array.isArray(data)) setEmployees(data as Employee[]);
+    } catch {
+      // silent — the document toast already reported success
+    }
+  }, []);
 
   function resetAddForm() {
     setForm(EMPTY_FORM);
@@ -603,9 +650,23 @@ export function EmployeesListClient({ locations }: Props) {
             <tbody>
               {sorted.map((emp) =>
                 editingId === emp.id ? (
-                  <tr key={emp.id}>
-                    <td colSpan={7} style={{ padding: "12px 16px", borderTop: "1px solid var(--line)" }}>
-                      <SimpleEmployeeForm
+                  <React.Fragment key={emp.id}>
+                    <tr
+                      style={{ background: "var(--accent-soft)", borderTop: "1px solid var(--line)", cursor: "pointer" }}
+                      onClick={() => setEditingId(null)}
+                      title="Click to collapse"
+                    >
+                      <EmployeeCells
+                        emp={emp}
+                        open
+                        onEdit={() => startEdit(emp)}
+                        onArchive={() => setArchiveTarget({ id: emp.id, name: emp.first_name, isArchived: !!emp.archived_at })}
+                        onDelete={() => setDeleteTarget({ id: emp.id, name: emp.first_name })}
+                      />
+                    </tr>
+                    <tr>
+                      <td colSpan={8} style={{ padding: "0 16px 12px", background: "var(--accent-soft)" }}>
+                        <SimpleEmployeeForm
                         form={editForm}
                         locIds={editLocIds}
                         primaryLoc={editPrimaryLoc}
@@ -615,6 +676,9 @@ export function EmployeesListClient({ locations }: Props) {
                         submitting={submitting}
                         activeShopId={shopFilter}
                         readOnlyShops={false}
+                        employeeId={emp.id}
+                        documents={emp.employee_documents}
+                        onDocumentsChange={() => void refreshEmployeesQuiet()}
                         onChange={(key, val) => {
                           setEditForm((prev) => ({ ...prev, [key]: val }));
                           if (key === "base_salary_monthly") {
@@ -633,9 +697,10 @@ export function EmployeesListClient({ locations }: Props) {
                         onSubmit={(e) => void handleEdit(e)}
                         onCancel={() => setEditingId(null)}
                         submitLabel="Save"
-                      />
-                    </td>
-                  </tr>
+                        />
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ) : (
                   <EmployeeRow
                     key={emp.id}
@@ -702,32 +767,24 @@ export function EmployeesListClient({ locations }: Props) {
   );
 }
 
-function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
+function EmployeeCells({ emp, onEdit, onArchive, onDelete, open }: {
   emp: Employee;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  open?: boolean;
 }) {
-  const [hovered, setHovered] = useState(false);
   const isArchived = !!emp.archived_at;
 
   return (
-    <tr
-      style={{
-        background: hovered && !isArchived ? "var(--row-hover)" : "transparent",
-        opacity: isArchived ? 0.6 : 1,
-        borderTop: "1px solid var(--line)",
-        cursor: isArchived ? "default" : "pointer",
-        transition: "background 150ms",
-      }}
-      onClick={onEdit}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <>
       <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)" }}>
         {emp.first_name}
         {isArchived && (
           <Pill tone="neutral" size="sm" style={{ marginLeft: 8 }}>Archived</Pill>
+        )}
+        {open && (
+          <Pill tone="bronze" size="sm" style={{ marginLeft: 8 }}>Editing</Pill>
         )}
       </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
@@ -774,6 +831,13 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
           </span>
         ) : "No"}
       </td>
+      <td style={{ padding: "10px 16px", textAlign: "center" }}>
+        {(emp.employee_documents && emp.employee_documents.length > 0) ? (
+          <CheckIcon className="size-4" style={{ color: "var(--good)", margin: "0 auto" }} />
+        ) : (
+          <span style={{ color: "var(--fg-4)" }}>—</span>
+        )}
+      </td>
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
         {(() => {
           const pctLabel = emp.service_charge_pct != null ? `${emp.service_charge_pct}%` : "Shop default";
@@ -808,6 +872,33 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
           </Button>
         </div>
       </td>
+    </>
+  );
+}
+
+function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
+  emp: Employee;
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const isArchived = !!emp.archived_at;
+
+  return (
+    <tr
+      style={{
+        background: hovered && !isArchived ? "var(--row-hover)" : "transparent",
+        opacity: isArchived ? 0.6 : 1,
+        borderTop: "1px solid var(--line)",
+        cursor: isArchived ? "default" : "pointer",
+        transition: "background 150ms",
+      }}
+      onClick={onEdit}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <EmployeeCells emp={emp} onEdit={onEdit} onArchive={onArchive} onDelete={onDelete} />
     </tr>
   );
 }

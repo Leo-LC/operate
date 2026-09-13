@@ -438,7 +438,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                           transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
                           justifyContent: sidebarCollapsed ? "center" : "flex-start",
                         }}
-                        className="group hover:!bg-white hover:!text-[var(--fg)] hover:!border-[var(--accent)] active:!bg-[var(--row-active)]"
+                        className="group hover:!bg-[var(--row-hover)] hover:!text-[var(--fg)] hover:!border-[var(--line)] active:!bg-[var(--row-active)]"
                       >
                         <Icon
                           size={15}

@@ -59,6 +59,19 @@ export interface EmployeeLocationRow {
   service_charge_eligible: boolean;
 }
 
+export interface EmployeeDocument {
+  id: string;
+  employee_id: string;
+  doc_type: "id_card" | "passport" | "work_permit" | "contract" | "other";
+  file_name: string;
+  storage_path: string;
+  mime_type: string;
+  size_bytes: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Employee {
   id: string;
   organization_id: string;
@@ -90,6 +103,7 @@ export interface Employee {
   created_at: string;
   updated_at: string;
   employee_locations?: EmployeeLocationRow[];
+  employee_documents?: EmployeeDocument[];
 }
 
 export interface AuditLogEntry {

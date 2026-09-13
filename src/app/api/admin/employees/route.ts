@@ -24,7 +24,8 @@ export async function GET(request: Request) {
       credit_note, service_charge_pct, employment_start_date, employment_end_date, service_charge_eligible,
       user_id, archived_at, created_at, updated_at,
       locations ( name ),
-      employee_locations ( id, location_id, is_primary, base_salary_monthly, service_charge_eligible, locations ( name ) )
+      employee_locations ( id, location_id, is_primary, base_salary_monthly, service_charge_eligible, locations ( name ) ),
+      employee_documents ( id, doc_type, file_name, storage_path, mime_type, size_bytes, created_by, created_at, updated_at )
     `)
     .eq("organization_id", DEFAULT_ORG_ID)
     .is("deleted_at", null)
@@ -36,10 +37,11 @@ export async function GET(request: Request) {
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   type ELRow = { id: string; location_id: string; is_primary: boolean; base_salary_monthly: number | null; service_charge_eligible: boolean | null; locations: { name: string } | null };
+  type DocRow = { id: string; doc_type: string; file_name: string; storage_path: string; mime_type: string; size_bytes: number; created_by: string | null; created_at: string; updated_at: string };
   type EmpRow = typeof data extends (infer T)[] | null ? T : never;
 
   const mapped = (data ?? []).map((e) => {
-    const emp = e as unknown as EmpRow & { locations: { name: string } | null; employee_locations: ELRow[] | null };
+    const emp = e as unknown as EmpRow & { locations: { name: string } | null; employee_locations: ELRow[] | null; employee_documents: DocRow[] | null };
     return {
       id: emp.id,
       organization_id: emp.organization_id,
@@ -77,6 +79,18 @@ export async function GET(request: Request) {
         is_primary: el.is_primary,
         base_salary_monthly: el.base_salary_monthly ?? null,
         service_charge_eligible: el.service_charge_eligible ?? true,
+      })),
+      employee_documents: ((emp.employee_documents ?? []) as DocRow[]).map((d) => ({
+        id: d.id,
+        employee_id: emp.id,
+        doc_type: d.doc_type as "id_card" | "passport" | "work_permit" | "contract" | "other",
+        file_name: d.file_name,
+        storage_path: d.storage_path,
+        mime_type: d.mime_type,
+        size_bytes: d.size_bytes,
+        created_by: d.created_by,
+        created_at: d.created_at,
+        updated_at: d.updated_at,
       })),
     };
   });
