@@ -141,21 +141,12 @@ function Donut({ data, colors }: { data: { label: string; value: number; sublabe
       </g>
     );
   });
-  const hovered = hoverIdx !== null ? sorted[hoverIdx] : null;
   return (
     <div className="flex items-center gap-4">
-      <svg width={96} height={96} viewBox="0 0 80 80" className="shrink-0" role="img" aria-label={`Total ${fmtTHB(total)}`}>
+      <svg width={80} height={80} viewBox="0 0 80 80" className="shrink-0" role="img" aria-label={`Total ${fmtTHB(total)}`}>
         <circle cx={40} cy={40} r={36} fill="var(--line-2)" />
         {segments}
         <circle cx={40} cy={40} r={18} fill="var(--surface)" />
-        <text x={40} y={hovered ? 38 : 41} textAnchor="middle" dominantBaseline="central" fontSize={hovered ? 11 : 9.5} fontWeight={700} fill="var(--fg)">
-          {hovered ? fmtPct(hovered.value, total) : fmtPct(sorted[0].value, total)}
-        </text>
-        {hovered && (
-          <text x={40} y={48} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fill="var(--fg-4)">
-            {hovered.label.length > 14 ? `${hovered.label.slice(0, 13)}…` : hovered.label}
-          </text>
-        )}
       </svg>
       <div className="flex flex-1 flex-col gap-1.5 text-xs">
         {sorted.map((d, i) => (
