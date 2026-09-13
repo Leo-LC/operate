@@ -83,12 +83,21 @@ type StatusData = {
   error: string | null;
 };
 
+function fmtPct(part: number, total: number) {
+  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return "0%";
+  return `${((part / total) * 100).toFixed(1)}%`;
+}
+
 function Donut({ data, colors }: { data: { label: string; value: number; sublabel?: string }[]; colors: string[] }) {
+  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">No data</div>;
+  // Attach colors before sorting so each semantic item keeps its color, then sort desc.
+  const sorted = data
+    .map((d, i) => ({ ...d, color: colors[i % colors.length] }))
+    .sort((a, b) => b.value - a.value);
   let acc = 0;
-  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
-  const segments = data.map((d, i) => {
+  const segments = sorted.map((d, i) => {
     const start = (acc / total) * 360;
     acc += d.value;
     const end = (acc / total) * 360;
@@ -100,38 +109,73 @@ function Donut({ data, colors }: { data: { label: string; value: number; sublabe
     const y1 = cy + r * Math.sin(rad(start));
     const x2 = cx + r * Math.cos(rad(end));
     const y2 = cy + r * Math.sin(rad(end));
+    const pct = fmtPct(d.value, total);
+    // Full circle (single segment): render as circle instead of degenerate pie path
+    if (start === 0 && end >= 359.999) {
+      return (
+        <g key={d.label}>
+          <title>{`${d.label}: ${fmtTHB(d.value)} (${pct})`}</title>
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill={d.color}
+            style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
+            onMouseEnter={() => setHoverIdx(i)}
+            onMouseLeave={() => setHoverIdx(null)}
+          />
+        </g>
+      );
+    }
     const dAttr = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
     return (
-      <path
-        key={d.label}
-        d={dAttr}
-        fill={colors[i % colors.length]}
-        style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
-        onMouseEnter={() => setHoverIdx(i)}
-        onMouseLeave={() => setHoverIdx(null)}
-      />
+      <g key={d.label}>
+        <title>{`${d.label}: ${fmtTHB(d.value)} (${pct})`}</title>
+        <path
+          d={dAttr}
+          fill={d.color}
+          style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
+          onMouseEnter={() => setHoverIdx(i)}
+          onMouseLeave={() => setHoverIdx(null)}
+        />
+      </g>
     );
   });
+  const hovered = hoverIdx !== null ? sorted[hoverIdx] : null;
   return (
     <div className="flex items-center gap-4">
-      <svg width={80} height={80} viewBox="0 0 80 80" className="shrink-0">
+      <svg width={96} height={96} viewBox="0 0 80 80" className="shrink-0" role="img" aria-label={`Total ${fmtTHB(total)}`}>
         <circle cx={40} cy={40} r={36} fill="var(--line-2)" />
         {segments}
         <circle cx={40} cy={40} r={18} fill="var(--surface)" />
+        <text x={40} y={hovered ? 38 : 41} textAnchor="middle" dominantBaseline="central" fontSize={hovered ? 11 : 9.5} fontWeight={700} fill="var(--fg)">
+          {hovered ? fmtPct(hovered.value, total) : fmtPct(sorted[0].value, total)}
+        </text>
+        {hovered && (
+          <text x={40} y={48} textAnchor="middle" dominantBaseline="central" fontSize={6.5} fill="var(--fg-4)">
+            {hovered.label.length > 14 ? `${hovered.label.slice(0, 13)}…` : hovered.label}
+          </text>
+        )}
       </svg>
       <div className="flex flex-1 flex-col gap-1.5 text-xs">
-        {data.map((d, i) => (
+        {sorted.map((d, i) => (
           <div
             key={d.label}
             className="flex flex-col gap-0 rounded px-1 py-0.5 transition-colors"
             style={{ background: hoverIdx === i ? "var(--line-2)" : "transparent" }}
             onMouseEnter={() => setHoverIdx(i)}
             onMouseLeave={() => setHoverIdx(null)}
+            title={`${d.label}: ${fmtTHB(d.value)} (${fmtPct(d.value, total)})`}
           >
             <div className="flex items-center gap-2">
-              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: colors[i % colors.length] }} />
+              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: d.color }} />
               <span className="text-[var(--fg-3)]">{d.label}</span>
-              <span className="ml-auto font-mono tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
+              <span className="ml-auto flex items-center gap-1.5">
+                <span className="font-mono tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
+                <span className="min-w-[48px] rounded-full bg-[var(--line-2)] px-1.5 py-0.5 text-center font-mono text-[10px] font-semibold tabular-nums text-[var(--fg-2)]">
+                  {fmtPct(d.value, total)}
+                </span>
+              </span>
             </div>
             {d.sublabel && <span className="ml-[18px] text-[10px] leading-none text-[var(--fg-4)]">{d.sublabel}</span>}
           </div>
