@@ -367,7 +367,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               if (permissions.global_role === "direction" && item.id === "loyverse") return false;
               if (item.id === "admin" && !["owner", "admin"].includes(permissions.global_role)) return false;
               if (item.module && !hasModuleAccess(permissions, item.module as Parameters<typeof hasModuleAccess>[1])) return false;
-              if (!item.module && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
+              if (!item.module && item.id !== "loyverse" && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
               return true;
