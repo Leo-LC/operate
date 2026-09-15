@@ -1,12 +1,12 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
-import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, THAI_BANKS, type EmployeeFormState } from "./EmployeeForm";
 import { BankAccountDisplay, BankAccountInput } from "./BankAccountField";
@@ -69,6 +69,133 @@ function primaryShopName(emp: Employee): string | null {
 function primarySalary(emp: Employee): number | null {
   const perLoc = (emp.employee_locations ?? []).filter((el) => el.base_salary_monthly != null);
   return perLoc[0]?.base_salary_monthly ?? emp.base_salary_monthly;
+}
+
+// Auto-scroll the opened fiche to the top of the viewport so the user sees
+// the content right away. Desktop + tablet landscape only: on phones the
+// table is already edge-to-edge and a scroll jump feels disorienting.
+function shouldAutoScrollOnExpand(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.matchMedia("(min-width: 1024px)").matches) return true;
+    return window.matchMedia("(min-width: 768px) and (orientation: landscape)").matches;
+  } catch {
+    return false;
+  }
+}
+
+// Salary shown in the consultation panel: contextual to the shop filter when
+// the employee works there, otherwise the primary location's salary.
+function displaySalary(emp: Employee, shopFilter: string | null): { label: string; value: string } {
+  const locs = emp.employee_locations ?? [];
+  const match = shopFilter ? locs.find((el) => el.location_id === shopFilter) : undefined;
+  const target = match ?? locs.find((el) => el.is_primary) ?? locs[0];
+  const salary = target?.base_salary_monthly ?? emp.base_salary_monthly;
+  const label = match
+    ? `Base salary at ${match.location_name}`
+    : target
+      ? `Base salary${locs.length > 1 ? ` at ${target.location_name}` : ""}`
+      : "Base salary";
+  return { label, value: salary != null ? `฿${salary.toLocaleString()}/mo` : "—" };
+}
+
+function displayServiceCharge(emp: Employee): string {
+  const pct = emp.service_charge_pct != null ? `${emp.service_charge_pct}%` : "Shop default";
+  const locs = emp.employee_locations ?? [];
+  if (locs.length > 0) {
+    const off = locs.filter((el) => el.service_charge_eligible === false);
+    if (off.length === locs.length) return "Not eligible";
+    if (off.length > 0) return `${pct} · off at ${off.map((el) => el.location_name).join(", ")}`;
+    return `${pct} · eligible`;
+  }
+  return emp.service_charge_eligible === false ? "Not eligible" : `${pct} · eligible`;
+}
+
+function ViewField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 140 }}>
+      <span className="eyebrow" style={{ color: "var(--fg-3)" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--fg)" }}>{children}</span>
+    </div>
+  );
+}
+
+// Read-only consultation panel: no inputs, no layout jump. Editing happens
+// explicitly via the Edit button, which swaps this panel for the form.
+function EmployeeViewPanel({ emp, shopFilter, onEdit, onCollapse, onDocumentsChange }: {
+  emp: Employee;
+  shopFilter: string | null;
+  onEdit: () => void;
+  onCollapse: () => void;
+  onDocumentsChange: () => void;
+}) {
+  const isArchived = !!emp.archived_at;
+  const bankName = ((emp as unknown as { bank_name?: string | null }).bank_name ?? "").trim();
+  const bankNumber = (emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "";
+  const holderName = ((emp as unknown as { bank_account_name?: string | null }).bank_account_name ?? "").trim();
+  const salary = displaySalary(emp, shopFilter);
+  const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
+  const locs = emp.employee_locations ?? [];
+  const sectionStyle: React.CSSProperties = { borderBottom: "1px solid var(--line)", paddingBottom: 12 };
+
+  return (
+    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <ViewField label="Name">{fullName || "—"}</ViewField>
+          <ViewField label="Nationality">{emp.nationality || "—"}</ViewField>
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <span className="eyebrow">Compensation</span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: "var(--s-2)" }}>
+          <ViewField label={salary.label}>{salary.value}</ViewField>
+          <ViewField label="Service charge">{displayServiceCharge(emp)}</ViewField>
+          <ViewField label="Thai bank account">{emp.has_thai_bank_account ? "Yes" : "No"}</ViewField>
+        </div>
+        {emp.has_thai_bank_account && (bankName || bankNumber || holderName) && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: "var(--s-2)", padding: "var(--s-3)", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", background: "var(--surface-2)" }}>
+            {bankName && <ViewField label="Bank">{bankName}</ViewField>}
+            {bankNumber && <ViewField label="Account number"><BankAccountDisplay value={bankNumber} /></ViewField>}
+            {holderName && <ViewField label="Holder">{holderName}</ViewField>}
+          </div>
+        )}
+      </div>
+
+      <div style={sectionStyle}>
+        <EmployeeDocumentsSection
+          employeeId={emp.id}
+          documents={emp.employee_documents ?? []}
+          onRefresh={onDocumentsChange}
+        />
+      </div>
+
+      <div style={{ paddingTop: "var(--s-2)" }}>
+        <span className="eyebrow">Shops</span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: "var(--s-2)" }}>
+          {locs.length === 0 && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>No shop assigned.</span>}
+          {locs.map((el) => (
+            <div key={el.location_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 12, color: "var(--fg-3)" }}>
+              <span style={{ fontWeight: 500, color: el.is_primary ? "var(--bronze)" : "var(--fg-3)" }}>{el.location_name}{el.is_primary ? " ★ primary" : ""}</span>
+              {el.base_salary_monthly != null && <span style={{ fontSize: 11, color: "var(--fg-4)" }}>฿{el.base_salary_monthly.toLocaleString()}/mo</span>}
+              <span style={{ fontSize: 11, color: el.service_charge_eligible !== false ? "var(--good)" : "var(--bad)" }}>{el.service_charge_eligible !== false ? "SC" : "no SC"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, paddingTop: "var(--s-3)", borderTop: "1px solid var(--line)" }}>
+        {!isArchived && (
+          <Button size="sm" onClick={onEdit}>
+            <PencilIcon className="size-3.5" />
+            Edit
+          </Button>
+        )}
+        <Button size="sm" variant="secondary" onClick={onCollapse}>Close</Button>
+      </div>
+    </div>
+  );
 }
 
 function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalaries, locationEligible, submitting, onChange, onToggleLoc, onSetPrimary, onSalaryChange, onEligibleChange, onSubmit, onCancel, submitLabel, activeShopId, readOnlyShops, employeeId, documents, onDocumentsChange }: {
@@ -222,11 +349,18 @@ export function EmployeesListClient({ locations }: Props) {
   const [formSalaries, setFormSalaries] = useState<Record<string, string>>({});
   const [formEligible, setFormEligible] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);
-  const [editLocIds, setEditLocIds] = useState<Set<string>>(new Set());
+  const [editForm, setEditForm] = useState<FormState>(EMPTY_FORM);  const [editLocIds, setEditLocIds] = useState<Set<string>>(new Set());
   const [editPrimaryLoc, setEditPrimaryLoc] = useState("");
   const [editSalaries, setEditSalaries] = useState<Record<string, string>>({});
   const [editEligible, setEditEligible] = useState<Record<string, boolean>>({});
+  // Expand (consultation) vs edit are two separate states: opening a row shows
+  // the read-only panel, editing only starts via the Edit button.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // mountedId keeps the panel in the DOM during the close animation.
+  const [mountedId, setMountedId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement | null>());
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string; isArchived: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -315,6 +449,10 @@ export function EmployeesListClient({ locations }: Props) {
 
   useEffect(() => { void fetchEmployees(); }, [fetchEmployees]);
 
+  useEffect(() => () => {
+    if (collapseTimer.current) clearTimeout(collapseTimer.current);
+  }, []);
+
   // Quiet refresh (no loading flash) used after document upload/rename/delete
   // so the expanded form stays open and the ID column checkmark updates.
   const refreshEmployeesQuiet = useCallback(async () => {
@@ -335,6 +473,40 @@ export function EmployeesListClient({ locations }: Props) {
     setFormSalaries({});
     setFormEligible({});
     setShowAdd(false);
+  }
+
+  function expandEmployee(emp: Employee, opts?: { edit?: boolean }) {
+    if (opts?.edit && emp.archived_at) return;
+    if (collapseTimer.current) { clearTimeout(collapseTimer.current); collapseTimer.current = null; }
+    const alreadyExpanded = expandedId === emp.id;
+    setMountedId(emp.id);
+    setExpandedId(emp.id);
+    if (opts?.edit) startEdit(emp);
+    else setEditingId(null);
+    if (!alreadyExpanded || !panelOpen) {
+      // Next frame so the browser paints the collapsed state first (enter animation)
+      requestAnimationFrame(() => requestAnimationFrame(() => setPanelOpen(true)));
+    }
+    if (!alreadyExpanded && shouldAutoScrollOnExpand()) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.setTimeout(() => {
+        rowRefs.current.get(emp.id)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      }, 60);
+    }
+  }
+
+  function collapseEmployee() {
+    setPanelOpen(false);
+    setExpandedId(null);
+    setEditingId(null);
+    if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    // Unmount after the close animation finishes
+    collapseTimer.current = setTimeout(() => { setMountedId(null); collapseTimer.current = null; }, 260);
+  }
+
+  function toggleEmployee(emp: Employee) {
+    if (expandedId === emp.id) collapseEmployee();
+    else expandEmployee(emp);
   }
 
   function startEdit(emp: Employee) {
@@ -650,69 +822,79 @@ export function EmployeesListClient({ locations }: Props) {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((emp) =>
-                editingId === emp.id ? (
+              {sorted.map((emp) => {
+                const isExpanded = expandedId === emp.id;
+                const isMounted = mountedId === emp.id;
+                const isEditing = editingId === emp.id;
+                return (
                   <React.Fragment key={emp.id}>
-                    <tr
-                      style={{ background: "var(--accent-soft)", borderTop: "1px solid var(--line)", cursor: "pointer" }}
-                      onClick={() => setEditingId(null)}
-                      title="Click to collapse"
-                    >
-                      <EmployeeCells
-                        emp={emp}
-                        open
-                        onEdit={() => startEdit(emp)}
-                        onArchive={() => setArchiveTarget({ id: emp.id, name: emp.first_name, isArchived: !!emp.archived_at })}
-                        onDelete={() => setDeleteTarget({ id: emp.id, name: emp.first_name })}
-                      />
-                    </tr>
-                    <tr>
-                      <td colSpan={8} style={{ padding: "0 16px 12px", background: "var(--accent-soft)" }}>
-                        <SimpleEmployeeForm
-                        form={editForm}
-                        locIds={editLocIds}
-                        primaryLoc={editPrimaryLoc}
-                        locations={locations}
-                        locationSalaries={editSalaries}
-                        locationEligible={editEligible}
-                        submitting={submitting}
-                        activeShopId={shopFilter}
-                        readOnlyShops={false}
-                        employeeId={emp.id}
-                        documents={emp.employee_documents}
-                        onDocumentsChange={() => void refreshEmployeesQuiet()}
-                        onChange={(key, val) => {
-                          setEditForm((prev) => ({ ...prev, [key]: val }));
-                          if (key === "base_salary_monthly") {
-                            const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
-                            if (target) setEditSalaries((prev) => ({ ...prev, [target]: val as string }));
-                          }
-                          if (key === "service_charge_eligible") {
-                            const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
-                            if (target) setEditEligible((prev) => ({ ...prev, [target]: val as boolean }));
-                          }
-                        }}
-                        onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, editPrimaryLoc, setEditPrimaryLoc, id)}
-                        onSetPrimary={setEditPrimaryLoc}
-                        onSalaryChange={(id, val) => setEditSalaries((prev) => ({ ...prev, [id]: val }))}
-                        onEligibleChange={(id, val) => setEditEligible((prev) => ({ ...prev, [id]: val }))}
-                        onSubmit={(e) => void handleEdit(e)}
-                        onCancel={() => setEditingId(null)}
-                        submitLabel="Save"
-                        />
-                      </td>
-                    </tr>
+                    <EmployeeRow
+                      emp={emp}
+                      open={isExpanded}
+                      editing={isEditing}
+                      rowRef={(el) => { rowRefs.current.set(emp.id, el); }}
+                      onToggle={() => toggleEmployee(emp)}
+                      onEdit={() => { if (!emp.archived_at) expandEmployee(emp, { edit: true }); }}
+                      onArchive={() => setArchiveTarget({ id: emp.id, name: emp.first_name, isArchived: !!emp.archived_at })}
+                      onDelete={() => setDeleteTarget({ id: emp.id, name: emp.first_name })}
+                    />
+                    {isMounted && (
+                      <tr>
+                        <td colSpan={8} style={{ padding: 0, border: 0 }}>
+                          <div className="emp-accordion" data-open={isExpanded && panelOpen ? "true" : "false"}>
+                            <div className="emp-accordion-inner">
+                              <div style={{ padding: "0 16px 12px", background: "var(--accent-soft)" }}>
+                                {isEditing ? (
+                                  <SimpleEmployeeForm
+                                  form={editForm}
+                                  locIds={editLocIds}
+                                  primaryLoc={editPrimaryLoc}
+                                  locations={locations}
+                                  locationSalaries={editSalaries}
+                                  locationEligible={editEligible}
+                                  submitting={submitting}
+                                  activeShopId={shopFilter}
+                                  readOnlyShops={false}
+                                  employeeId={emp.id}
+                                  documents={emp.employee_documents}
+                                  onDocumentsChange={() => void refreshEmployeesQuiet()}
+                                  onChange={(key, val) => {
+                                    setEditForm((prev) => ({ ...prev, [key]: val }));
+                                    if (key === "base_salary_monthly") {
+                                      const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
+                                      if (target) setEditSalaries((prev) => ({ ...prev, [target]: val as string }));
+                                    }
+                                    if (key === "service_charge_eligible") {
+                                      const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
+                                      if (target) setEditEligible((prev) => ({ ...prev, [target]: val as boolean }));
+                                    }
+                                  }}
+                                  onToggleLoc={(id) => toggleLoc(editLocIds, setEditLocIds, editPrimaryLoc, setEditPrimaryLoc, id)}
+                                  onSetPrimary={setEditPrimaryLoc}
+                                  onSalaryChange={(id, val) => setEditSalaries((prev) => ({ ...prev, [id]: val }))}
+                                  onEligibleChange={(id, val) => setEditEligible((prev) => ({ ...prev, [id]: val }))}
+                                  onSubmit={(e) => void handleEdit(e)}
+                                  onCancel={() => setEditingId(null)}
+                                  submitLabel="Save"
+                                  />
+                                ) : (
+                                  <EmployeeViewPanel
+                                    emp={emp}
+                                    shopFilter={shopFilter}
+                                    onEdit={() => startEdit(emp)}
+                                    onCollapse={collapseEmployee}
+                                    onDocumentsChange={() => void refreshEmployeesQuiet()}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </React.Fragment>
-                ) : (
-                  <EmployeeRow
-                    key={emp.id}
-                    emp={emp}
-                    onEdit={() => { if (!emp.archived_at) startEdit(emp); }}
-                    onArchive={() => setArchiveTarget({ id: emp.id, name: emp.first_name, isArchived: !!emp.archived_at })}
-                    onDelete={() => setDeleteTarget({ id: emp.id, name: emp.first_name })}
-                  />
-                )
-              )}
+                );
+              })}
             </tbody>
           </table>
           {employees.length === 0 && (
@@ -769,23 +951,30 @@ export function EmployeesListClient({ locations }: Props) {
   );
 }
 
-function EmployeeCells({ emp, onEdit, onArchive, onDelete, open }: {
+function EmployeeCells({ emp, onEdit, onArchive, onDelete, open, editing }: {
   emp: Employee;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
   open?: boolean;
+  editing?: boolean;
 }) {
   const isArchived = !!emp.archived_at;
 
   return (
     <>
       <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)" }}>
-        {emp.first_name}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <ChevronDownIcon size={14} style={{ color: "var(--fg-4)", flexShrink: 0, transition: "transform 200ms var(--ease)", transform: open ? "rotate(180deg)" : "none" }} />
+          {emp.first_name}
+        </span>
         {isArchived && (
           <Pill tone="neutral" size="sm" style={{ marginLeft: 8 }}>Archived</Pill>
         )}
-        {open && (
+        {open && !editing && (
+          <Pill tone="neutral" size="sm" style={{ marginLeft: 8 }}>Viewing</Pill>
+        )}
+        {editing && (
           <Pill tone="bronze" size="sm" style={{ marginLeft: 8 }}>Editing</Pill>
         )}
       </td>
@@ -882,8 +1071,12 @@ function EmployeeCells({ emp, onEdit, onArchive, onDelete, open }: {
   );
 }
 
-function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
+function EmployeeRow({ emp, open, editing, rowRef, onToggle, onEdit, onArchive, onDelete }: {
   emp: Employee;
+  open: boolean;
+  editing: boolean;
+  rowRef: (el: HTMLTableRowElement | null) => void;
+  onToggle: () => void;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
@@ -893,18 +1086,21 @@ function EmployeeRow({ emp, onEdit, onArchive, onDelete }: {
 
   return (
     <tr
+      ref={rowRef}
       style={{
-        background: hovered && !isArchived ? "var(--row-hover)" : "transparent",
-        opacity: isArchived ? 0.6 : 1,
+        background: open ? "var(--accent-soft)" : hovered ? "var(--row-hover)" : "transparent",
+        opacity: isArchived && !open ? 0.6 : 1,
         borderTop: "1px solid var(--line)",
-        cursor: isArchived ? "default" : "pointer",
+        cursor: "pointer",
         transition: "background 150ms",
+        scrollMarginTop: "calc(var(--topbar-h) + 12px)",
       }}
-      onClick={onEdit}
+      onClick={onToggle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      title={open ? "Click to collapse" : "Click to view"}
     >
-      <EmployeeCells emp={emp} onEdit={onEdit} onArchive={onArchive} onDelete={onDelete} />
+      <EmployeeCells emp={emp} open={open} editing={editing} onEdit={onEdit} onArchive={onArchive} onDelete={onDelete} />
     </tr>
   );
 }

@@ -20,6 +20,27 @@
     font-weight: 600;
     font-family: var(--font-sans);
   }
+
+  /* Expandable table rows (e.g. employees) — smooth accordion via grid rows.
+     Animates open AND close; content stays mounted during collapse. */
+  .emp-accordion {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--dur-2) var(--ease);
+  }
+  .emp-accordion[data-open="true"] { grid-template-rows: 1fr; }
+  .emp-accordion-inner { overflow: hidden; min-height: 0; }
+  .emp-accordion[data-open="true"] .emp-accordion-inner {
+    animation: emp-panel-in var(--dur-2) var(--ease);
+  }
+  @keyframes emp-panel-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .emp-accordion { transition: none; }
+    .emp-accordion[data-open="true"] .emp-accordion-inner { animation: none; }
+  }
 }
 
 @layer base {
