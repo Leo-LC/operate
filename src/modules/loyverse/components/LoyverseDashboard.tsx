@@ -522,7 +522,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
           <div className="ml-auto flex items-center gap-2">
             {lastRun?.finished_at && (
-              <span className="hidden text-xs text-[var(--fg-4)] sm:inline">
+              <span className="whitespace-nowrap text-xs text-[var(--fg-4)]">
                 {lastRun.status === "completed" ? "✓" : "●"} {new Date(lastRun.finished_at).toLocaleDateString("en-GB")} {new Date(lastRun.finished_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}

@@ -745,7 +745,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
             </Button>
             <span className="ml-auto flex items-center gap-2 text-xs">
               {isArchived ? <Pill tone="good" size="sm" dot>Archivé</Pill> : date === todayStr ? <Pill tone="neutral" size="sm" dot>Ouvert</Pill> : <Pill tone="warn" size="sm" dot>À synchroniser</Pill>}
-              <span className="hidden text-[var(--fg-4)] sm:inline">{selectedShop ? capitalizeShop(selectedShop.account_key) : "—"} · {date}</span>
+              <span className="text-[var(--fg-4)]">{selectedShop ? capitalizeShop(selectedShop.account_key) : "—"} · {date}</span>
             </span>
           </div>
 
