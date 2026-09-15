@@ -9,6 +9,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, THAI_BANKS, type EmployeeFormState } from "./EmployeeForm";
+import { BankAccountDisplay, BankAccountInput } from "./BankAccountField";
+import { formatThaiBankAccount } from "@/modules/admin/lib/thai-bank-account";
 import { EmployeeDocumentsSection } from "./EmployeeDocumentsSection";
 
 interface Props {
@@ -126,7 +128,7 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
             </select>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Account number
-            <input value={form.bank_account_number ?? ""} onChange={(e) => onChange("bank_account_number", e.target.value.replace(/[^\d-]/g, ""))} style={SIMPLE_INPUT} placeholder="123-4-56789-0" />
+            <BankAccountInput value={form.bank_account_number ?? ""} onChange={(v) => onChange("bank_account_number", v)} inputStyle={SIMPLE_INPUT} />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Holder name
             <input value={form.bank_account_name ?? ""} onChange={(e) => onChange("bank_account_name", e.target.value)} style={SIMPLE_INPUT} placeholder="As on bank book" />
@@ -199,7 +201,7 @@ function empToForm(emp: Employee): FormState {
     base_salary_monthly: emp.base_salary_monthly != null ? String(emp.base_salary_monthly) : "",
     has_thai_bank_account: emp.has_thai_bank_account ?? false,
     bank_name: (emp as unknown as { bank_name?: string | null }).bank_name ?? "",
-    bank_account_number: (emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "",
+    bank_account_number: formatThaiBankAccount((emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? ""),
     bank_account_name: (emp as unknown as { bank_account_name?: string | null }).bank_account_name ?? "",
     credit_note: emp.credit_note ?? "",
     service_charge_pct: emp.service_charge_pct != null ? String(emp.service_charge_pct) : "",
@@ -822,7 +824,11 @@ function EmployeeCells({ emp, onEdit, onArchive, onDelete, open }: {
               <span style={{ display: "block", fontSize: 10, color: "var(--fg-4)" }}>
                 {((emp as unknown as { bank_name?: string | null }).bank_name ?? "").trim()}
                 {(emp as unknown as { bank_name?: string | null }).bank_name && (emp as unknown as { bank_account_number?: string | null }).bank_account_number ? " · " : ""}
-                {((emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "").replace(/\d(?=\d{4})/g, "•")}
+              </span>
+            )}
+            {((emp as unknown as { bank_account_number?: string | null }).bank_account_number) && (
+              <span style={{ display: "block", fontSize: 11 }}>
+                <BankAccountDisplay value={(emp as unknown as { bank_account_number?: string | null }).bank_account_number} />
               </span>
             )}
             {((emp as unknown as { bank_account_name?: string | null }).bank_account_name) && (

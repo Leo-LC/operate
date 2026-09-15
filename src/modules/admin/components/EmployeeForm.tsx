@@ -3,6 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
+import { BankAccountInput } from "./BankAccountField";
 import type { AdminLocation } from "@/modules/admin/types";
 
 export const POSITIONS = ["", "All-rounder", "Bartender", "Cashier", "Manager", "Director"] as const;
@@ -181,10 +182,9 @@ export function EmployeeForm({
                   {THAI_BANKS.map((b) => <option key={b} value={b}>{b || "— Select bank —"}</option>)}
                 </select>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 160 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Account number</label>
-                <input type="text" inputMode="numeric" value={form.bank_account_number} onChange={(e) => onChange("bank_account_number", e.target.value.replace(/[^\d-]/g, ""))} style={inputStyle} placeholder="123-4-56789-0" />
-                <span style={{ fontSize: 10, color: "var(--fg-4)" }}>5–16 digits (hyphens allowed)</span>
+                <BankAccountInput id="bank-account-number" value={form.bank_account_number} onChange={(v) => onChange("bank_account_number", v)} inputStyle={inputStyle} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 180 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Account holder name</label>
