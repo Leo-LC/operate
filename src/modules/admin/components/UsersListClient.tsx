@@ -262,7 +262,7 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead style={{ background: "var(--bg-2)" }}>
               <tr>
-                {["Email", "Name", "Role", "Modules", "Locations", ""].map((h) => (
+                {["Name", "Role", "Modules", "Locations", "Email", ""].map((h) => (
                   <th key={h} className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>{h}</th>
                 ))}
               </tr>
@@ -291,7 +291,6 @@ function UserRow({ user, onClick }: { user: AdminUser; onClick: () => void }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <td style={{ padding: "10px 16px", color: "var(--fg)" }}>{user.email}</td>
       <td style={{ padding: "10px 16px", color: "var(--fg-3)" }}>{user.name ?? "—"}</td>
       <td style={{ padding: "10px 16px" }}>
         <Pill tone="neutral" size="sm">{ROLE_LABELS[user.global_role] ?? user.global_role}</Pill>
@@ -302,6 +301,7 @@ function UserRow({ user, onClick }: { user: AdminUser; onClick: () => void }) {
       <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)" }}>
         {user.location_access.length > 0 ? `${user.location_access.length} location${user.location_access.length === 1 ? "" : "s"}` : <span style={{ color: "var(--fg-4)" }}>none</span>}
       </td>
+      <td style={{ padding: "10px 16px", color: "var(--fg)" }}>{user.email}</td>
       <td style={{ padding: "10px 16px", textAlign: "right" }}>
         <ChevronRightIcon className="size-4 inline" style={{ color: "var(--fg-4)" }} />
       </td>
