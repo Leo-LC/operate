@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { SearchIcon, StoreIcon, UsersIcon } from "lucide-react";
-import { ContactsClient, type ProviderMeta } from "@/modules/contacts/components/ContactsClient";
+import { ContactsClient } from "@/modules/contacts/components/ContactsClient";
 import type { Contact } from "@/modules/contacts/types";
-import { ShopCard } from "@/modules/directory/components/ShopCard";
-import { SupplierDrawer } from "@/modules/directory/components/SupplierDrawer";
+import { ShopTable } from "@/modules/directory/components/ShopTable";
+import { SupplierDossier } from "@/modules/directory/components/SupplierDossier";
 import type {
   DirectoryShop,
   DirectorySupplier,
@@ -55,7 +55,6 @@ export function DirectoryClient({
   const [contactsKey, setContactsKey] = useState(0);
   const [tab, setTab] = useState<DirectoryTab>(initialTab);
   const [query, setQuery] = useState(initialQuery);
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelect || null);
 
   const filteredShops = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -63,15 +62,10 @@ export function DirectoryClient({
     return shops.filter((s) => matchesShop(s, q));
   }, [shops, query]);
 
-  const providerMeta: Record<string, ProviderMeta> = useMemo(() => {
-    const meta: Record<string, ProviderMeta> = {};
-    for (const s of suppliers) {
-      meta[s.id] = {
-        products: s.products.map((p) => ({ id: p.id, product_name: p.product_name, unit: p.unit })),
-        lastOrderedAt: s.lastOrderedAt,
-      };
-    }
-    return meta;
+  const supplierById = useMemo(() => {
+    const map: Record<string, DirectorySupplier> = {};
+    for (const s of suppliers) map[s.id] = s;
+    return map;
   }, [suppliers]);
 
   async function refreshSuppliers() {
@@ -118,8 +112,6 @@ export function DirectoryClient({
     void refreshSuppliers();
     void refreshContacts();
   }
-
-  const selected = selectedId ? suppliers.find((s) => s.id === selectedId) ?? null : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
@@ -178,41 +170,31 @@ export function DirectoryClient({
       </div>
 
       {tab === "shops" ? (
-        filteredShops.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No shops found.</p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-            {filteredShops.map((shop) => (
-              <ShopCard
-                key={shop.id}
-                shop={shop}
-                canWrite={canWrite}
-                highlight={selectedId === shop.id}
-                onSaved={(saved) => {
-                  setShops((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-                  setSelectedId(null);
-                }}
-              />
-            ))}
-          </div>
-        )
+        <ShopTable
+          shops={filteredShops}
+          canWrite={canWrite}
+          initialExpandId={initialTab === "shops" ? initialSelect || null : null}
+          onSaved={(saved) => setShops((prev) => prev.map((s) => (s.id === saved.id ? saved : s)))}
+        />
       ) : (
         <ContactsClient
           key={contactsKey}
           initialContacts={contacts}
           locations={locations}
           canWrite={canWrite}
-          providerMeta={providerMeta}
-          onOpenProvider={(id) => setSelectedId(id)}
-        />
-      )}
-
-      {selected && (
-        <SupplierDrawer
-          supplier={selected}
-          canWrite={canWrite}
-          onClose={() => setSelectedId(null)}
-          onChanged={handleSupplierChanged}
+          initialExpandId={initialTab === "contacts" ? initialSelect || null : null}
+          renderDossier={(contactId) => {
+            const supplier = supplierById[contactId];
+            if (!supplier) return null;
+            return (
+              <SupplierDossier
+                contactId={contactId}
+                products={supplier.products}
+                canWrite={canWrite}
+                onChanged={handleSupplierChanged}
+              />
+            );
+          }}
         />
       )}
     </div>
