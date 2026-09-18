@@ -51,7 +51,7 @@ async function computePreview(supabase: ReturnType<typeof getSupabaseServerClien
   // Recurring costs totals per location
   let costRules: Array<{ location_id: string; estimated_amount: number | string } > | null = null;
   try {
-    const res = await supabase.from("finance_cost_rules").select("location_id,estimated_amount,is_active,category").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses");
+    const res = await supabase.from("recurring_costs").select("location_id,estimated_amount,is_active,category").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses");
     costRules = (res.data as unknown as typeof costRules) ?? [];
   } catch { costRules = []; }
   const costByLoc = new Map<string, number>();

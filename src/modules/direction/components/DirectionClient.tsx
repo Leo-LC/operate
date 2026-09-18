@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
+import { DirectionSourceBanner } from "./DirectionSourceBanner";
 import { DirectionComparaison } from "./DirectionComparaison";
 import { DirectionDetails } from "./DirectionDetails";
 import { DirectionDaily } from "./DirectionDaily";
@@ -117,6 +118,7 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
 
   return (
     <div className="flex flex-col gap-4">
+      {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
       {/* Tab bar with eye toggle per tab for privileged users */}
       <div style={{ display: "flex", borderBottom: "1px solid var(--line)", gap: 0, overflowX: "auto", scrollbarWidth: "none" }}>
         {visibleTabs.map((tab) => {

@@ -184,7 +184,7 @@ export async function getDailyProfitData(
   if (stillMissing.length > 0) {
     try {
       const [costRulesRes, employeesRes, shopSettingsRes] = await Promise.all([
-        supabase.from("finance_cost_rules").select("location_id,estimated_amount").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses"),
+        supabase.from("recurring_costs").select("location_id,estimated_amount").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses"),
         supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true),
         supabase.from("finance_shop_settings").select("location_id,service_charge_rate_pct").eq("organization_id", DEFAULT_ORG_ID),
       ]);

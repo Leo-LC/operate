@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   try {
     const [snapRes, entriesRes, locRes] = await Promise.all([
       supabase.from("loyverse_daily_snapshots").select("location_id, store_id, account_key, date, tickets_sold, snacks_sold").gte("date", monthStart).lt("date", nextMonth),
-      supabase.from("location_entries").select("location_id, period, entry_count, snacks_sold").eq("organization_id", DEFAULT_ORG_ID).eq("month", month),
+      supabase.from("challenge_counters").select("location_id, period, entry_count, snacks_sold").eq("organization_id", DEFAULT_ORG_ID).eq("month", month),
       supabase.from("locations").select("id, name, loyverse_store_id").eq("organization_id", DEFAULT_ORG_ID),
     ]);
     if (snapRes.error) throw snapRes.error;
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
       })
       .sort((a, b) => a.location_name.localeCompare(b.location_name) || a.period - b.period);
 
-    // Shops sans snapshot mais avec location_entries existante (pour voir les manuels)
+    // Shops sans snapshot mais avec challenge_counters existants (override owner éventuel)
     const loyverseKeys = new Set(preview.map((p) => `${p.location_id}|${p.period}`));
     for (const e of entriesRes.data ?? []) {
       const key = `${e.location_id}|${e.period as number}`;

@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { hasAllLocationsAccess, hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { salesNetTotal, expTotal, hrTotal, DAILY_ENTRY_SUMMARY_COLUMNS } from "@/modules/accounting/types";
-import type { DailyEntry, FixedExpenseCategory, MonthlyFixedExpense } from "@/modules/accounting/types";
+import type { DailyEntry } from "@/modules/accounting/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function agg(entries: DailyEntry[]) {
@@ -108,8 +108,10 @@ export async function GET(request: Request) {
     { data: locsData },
     { data: entriesData },
     { data: prevEntriesData },
-    { data: fixedExpenseRows },
-    { data: fixedExpenseCatsData },
+    // Source unique (F) : recurring_costs + overrides mensuels (remplace monthly_fixed_*).
+    { data: costRulesData },
+    { data: costOverridesData },
+    { data: costCatsData },
   ] = await Promise.all([
     supabase
       .from("locations")
@@ -140,16 +142,27 @@ export async function GET(request: Request) {
       .gte("entry_date", prev.from)
       .lte("entry_date", prev.to),
     supabase
-      .from("monthly_fixed_expenses")
-      .select("location_id, year, month, category_values")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .in("year", Array.from(new Set(monthKeys.map((m) => m.year)))),
-    supabase
-      .from("fixed_expense_categories")
-      .select("key, label")
+      .from("recurring_costs")
+      .select("id, location_id, category, label, estimated_amount, scope_type")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("is_active", true)
-      .order("sort_order"),
+      .neq("category", "legacy_fixed_expenses"),
+    supabase
+      .from("recurring_cost_overrides")
+      .select("cost_rule_id, service_from, amount")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .gte("service_from", `${monthKeys[0].year}-${String(monthKeys[0].month).padStart(2, "0")}-01`)
+      .lt("service_from", (() => {
+        const last = monthKeys[monthKeys.length - 1];
+        const nm = last.month === 12 ? 1 : last.month + 1;
+        const ny = last.month === 12 ? last.year + 1 : last.year;
+        return `${ny}-${String(nm).padStart(2, "0")}-01`;
+      })()),
+    supabase
+      .from("recurring_cost_categories")
+      .select("slug, label")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .order("label"),
   ]);
 
   const rawAllLocations = (locsData ?? []) as { id: string; name: string }[];
@@ -190,17 +203,45 @@ export async function GET(request: Request) {
     .map(([date, revenue]) => ({ date, revenue }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Monthly fixed expenses — sum by category across selected locations for months overlapping the range
-  const allFixedExpenseRows = (fixedExpenseRows ?? []) as MonthlyFixedExpense[];
-  const relevantFixedRows = allFixedExpenseRows.filter(
-    (r) => selectedIds.includes(r.location_id) && monthKeys.some((m) => m.year === r.year && m.month === r.month)
-  );
-  const fixedExpenseCategories = (fixedExpenseCatsData ?? []) as FixedExpenseCategory[];
-  const fixedExpenseTotals: Record<string, number> = {};
-  for (const cat of fixedExpenseCategories) {
-    fixedExpenseTotals[cat.key] = relevantFixedRows.reduce((s, r) => s + (r.category_values?.[cat.key] ?? 0), 0);
+  // Recurring costs — somme par catégorie sur les mois de la période (override mensuel
+  // prioritaire sur l'estimé). Scope location direct ; les règles multi-shops sont ventilées à parts égales.
+  type CostRule = { id: string; location_id: string | null; category: string; label: string; estimated_amount: number; scope_type: string };
+  const costRules = ((costRulesData ?? []) as CostRule[]).filter((r) => r.scope_type === "location" && selectedIds.includes(r.location_id as string));
+  const multiShopRules = ((costRulesData ?? []) as CostRule[]).filter((r) => r.scope_type !== "location");
+  const overrideByRuleMonth = new Map<string, number>();
+  for (const o of (costOverridesData ?? []) as Array<{ cost_rule_id: string; service_from: string; amount: number }>) {
+    overrideByRuleMonth.set(`${o.cost_rule_id}|${String(o.service_from).slice(0, 7)}`, Number(o.amount ?? 0));
   }
-  const monthlyExpensesEntered = relevantFixedRows.length > 0;
+  const catLabels = new Map<string, string>(((costCatsData ?? []) as Array<{ slug: string; label: string }>).map((c) => [c.slug, c.label]));
+  const fixedExpenseTotals: Record<string, number> = {};
+  const fixedExpenseCategories: { key: string; label: string }[] = [];
+  const seenCats = new Set<string>();
+  const pushCat = (key: string, label: string, amount: number) => {
+    if (!seenCats.has(key)) { seenCats.add(key); fixedExpenseCategories.push({ key, label }); }
+    fixedExpenseTotals[key] = (fixedExpenseTotals[key] ?? 0) + amount;
+  };
+  for (const r of costRules) {
+    const label = catLabels.get(r.category) ?? r.label ?? r.category;
+    let total = 0;
+    for (const m of monthKeys) {
+      const ym = `${m.year}-${String(m.month).padStart(2, "0")}`;
+      total += overrideByRuleMonth.get(`${r.id}|${ym}`) ?? Number(r.estimated_amount ?? 0);
+    }
+    pushCat(r.category, label, total);
+  }
+  // Règles multi-shops : ventilation à parts égales sur les shops sélectionnés (simple et lisible).
+  if (multiShopRules.length > 0 && selectedIds.length > 0) {
+    for (const r of multiShopRules) {
+      const label = catLabels.get(r.category) ?? r.label ?? r.category;
+      let total = 0;
+      for (const m of monthKeys) {
+        const ym = `${m.year}-${String(m.month).padStart(2, "0")}`;
+        total += overrideByRuleMonth.get(`${r.id}|${ym}`) ?? Number(r.estimated_amount ?? 0);
+      }
+      pushCat(r.category, label, total / selectedIds.length);
+    }
+  }
+  const monthlyExpensesEntered = costRules.length > 0 || multiShopRules.length > 0;
 
   // Data completeness: how many calendar days in range vs. how many have entries
   const totalDaysInRange = countDaysInRange(from, to);

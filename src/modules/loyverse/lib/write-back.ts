@@ -14,7 +14,9 @@ const AUTO_FILLABLE_FIELDS = [
 ] as const;
 
 export function isWriteBackEnabled(): boolean {
-  return process.env.LOYVERSE_WRITE_ENABLED === "true";
+  // Source de vérité décidée : Loyverse = ventes/paiements/TVA.
+  // ON par défaut — passer LOYVERSE_WRITE_ENABLED=false pour couper explicitement.
+  return process.env.LOYVERSE_WRITE_ENABLED !== "false";
 }
 
 function periodForDay(day: number): 1 | 2 | 3 {
@@ -82,7 +84,7 @@ export async function writeBackForDate(
     return result;
   }
 
-  // Group snapshots by location for location_entries aggregation per month/period
+  // Group snapshots by location for challenge_counters aggregation per month/period
   const byLocationPeriod = new Map<string, { location_id: string; month: string; period: 1 | 2 | 3; entry_count: number; snacks_sold: number }>();
 
   for (const snap of rows) {
@@ -196,12 +198,12 @@ export async function writeBackForDate(
     }
   }
 
-  // Write location_entries per period (aggregated)
+  // Write challenge_counters per period (aggregated)
   for (const [, agg] of Array.from(byLocationPeriod.entries())) {
     try {
-      // Fetch existing location_entries for idempotency check
+      // Fetch existing challenge_counters for idempotency check
       const { data: existing } = await supabase
-        .from("location_entries")
+        .from("challenge_counters")
         .select("entry_count, snacks_sold")
         .eq("location_id", agg.location_id)
         .eq("organization_id", DEFAULT_ORG_ID)
@@ -212,7 +214,7 @@ export async function writeBackForDate(
       if (existing) {
         const existingEc = Number((existing as { entry_count: number }).entry_count ?? 0);
         const existingSs = Number((existing as { snacks_sold: number }).snacks_sold ?? 0);
-        // For location_entries, we sum across days in period — but our agg is only for single date
+        // For challenge_counters, we sum across days in period — but our agg is only for single date
         // So we need to fetch all snapshots for that month/period to compute total, not just this date
         // For Phase 4 simplicity: overwrite with single-day agg if dryRun false, but better to sum
         // Let's compute total for period from all snapshots in that month/period
@@ -240,7 +242,7 @@ export async function writeBackForDate(
         }
 
         if (!dryRun) {
-          const { error: upsertErr } = await supabase.from("location_entries").upsert(
+          const { error: upsertErr } = await supabase.from("challenge_counters").upsert(
             {
               location_id: agg.location_id,
               organization_id: DEFAULT_ORG_ID,
@@ -274,7 +276,7 @@ export async function writeBackForDate(
         }
 
         if (!dryRun) {
-          const { error: upsertErr } = await supabase.from("location_entries").upsert(
+          const { error: upsertErr } = await supabase.from("challenge_counters").upsert(
             {
               location_id: agg.location_id,
               organization_id: DEFAULT_ORG_ID,
@@ -292,7 +294,7 @@ export async function writeBackForDate(
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      result.errors.push(`location_entries ${agg.location_id} ${agg.month} p${agg.period}: ${msg}`);
+      result.errors.push(`challenge_counters ${agg.location_id} ${agg.month} p${agg.period}: ${msg}`);
     }
   }
 

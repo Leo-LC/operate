@@ -19,9 +19,9 @@ export async function POST(request: Request) {
   if (!force && !isWriteBackEnabled()) {
     return Response.json(
       {
-        error: "LOYVERSE_WRITE_ENABLED is false — Phase 4 est OFF. Utilise le bouton Admin avec double confirmation (force=true) pour activer manuellement.",
+        error: "LOYVERSE_WRITE_ENABLED=false — write-back coupé. Retire la variable ou utilise force=true via l'Admin.",
         enabled: false,
-        hint: "Ajoute LOYVERSE_WRITE_ENABLED=true dans Vercel env pour activer globalement, ou passe force=true via l'Admin.",
+        hint: "Retire LOYVERSE_WRITE_ENABLED=false dans Vercel env pour réactiver, ou passe force=true via l'Admin.",
       },
       { status: 403 },
     );
@@ -56,8 +56,8 @@ export async function GET(request: Request) {
     enabled,
     date,
     message: enabled
-      ? "LOYVERSE_WRITE_ENABLED=true — write-back actif (Phase 4 ON)."
-      : "LOYVERSE_WRITE_ENABLED != true — Phase 4 OFF. Écriture désactivée sauf via Admin force.",
+      ? "Write-back actif — Loyverse = vérité ventes/paiements/TVA."
+      : "Write-back désactivé (LOYVERSE_WRITE_ENABLED=false).",
     hint: "POST /api/loyverse/write-back { date, dryRun, force, confirmText:'ACTIVER' } (owner only)",
   });
 }

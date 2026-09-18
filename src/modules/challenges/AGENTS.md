@@ -11,7 +11,7 @@ Source of truth for numbers:
 
 - `constants.ts` — every threshold and bonus (merch tiers, snacks 0.45, panier 190,
   opex 9.5%, review volume 4%, review min count 10, revenue thresholds per shop).
-- `overview-data.ts` — the real computation (reads `daily_entries`, `location_entries`,
+- `overview-data.ts` — the real computation (reads `daily_entries`, `challenge_counters`,
   `reviews_cache`, `location_gbp_ratings`, `locations`).
 - `settings.ts` — revenue threshold overrides editable on the Overview page.
 
@@ -27,8 +27,9 @@ Rules to keep accurate:
 - Merch % (`sales_goodies_net / revenue`) is the only metric NOT gated by the sales target.
   Snacks, Spend per visit, Running costs, Review count and Review rating are only awarded
   when the shop clears its sales target.
-- `entry_count` / `snacks_sold` come from manual `location_entries` in three periods per
-  month (1–10, 11–20, 21–end), combined.
+- `entry_count` / `snacks_sold` come from `challenge_counters` (100% Loyverse sync,
+  force=true) in three periods per month (1–10, 11–20, 21–end), combined.
+  Manual override = owner only (PUT /api/challenges/entries, red button, audited).
 - Review rating target = `MIN(4.5, ROUND(currentGBPRating + 0.1, 1))`, needs ≥ 10 reviews
   in the month, using the monthly average star rating vs the live Google rating snapshot.
 - Location IDs: `daily_entries.location_id` (UUID) ↔ GBP path via `locations.external_id`;

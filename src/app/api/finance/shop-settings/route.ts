@@ -9,7 +9,7 @@ export async function GET() {
     supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_shop_settings").select("*").eq("organization_id", DEFAULT_ORG_ID),
     supabase.from("employees").select("location_id").eq("organization_id", DEFAULT_ORG_ID).eq("active", true).is("deleted_at", null),
-    supabase.from("finance_cost_rules").select("location_id,estimated_amount,custom_allocations").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses"),
+    supabase.from("recurring_costs").select("location_id,estimated_amount,custom_allocations").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses"),
   ]);
   const error = locations.error ?? settings.error ?? employees.error ?? costs.error; if (error) return Response.json({ error: error.message }, { status: 500 });
   const summaries = Object.fromEntries((locations.data ?? []).map((location) => [location.id, {

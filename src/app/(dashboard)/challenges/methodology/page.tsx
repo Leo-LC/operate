@@ -113,7 +113,7 @@ export default async function MethodologyPage() {
         </MetricCard>
 
         <MetricCard title={CHALLENGE_LABELS.snacks} gated bonus="1,250 ฿">
-          <Field label="DB table"><Code>location_entries</Code> (manual input)</Field>
+          <Field label="DB table"><Code>challenge_counters</Code> (auto Loyverse)</Field>
           <Field label="Formula">
             <Code>snacks_sold / entry_count ≥ 0.45</Code>
           </Field>
@@ -122,13 +122,14 @@ export default async function MethodologyPage() {
             The ratio uses the combined total across all three periods.
           </Field>
           <Field label="Input">
-            Entered manually via the Overview page inputs; stored in{" "}
-            <Code>location_entries(location_id, month, period, entry_count, snacks_sold)</Code>.
+            Synchronisés depuis Loyverse chaque soir (cron, tickets → entrées) ; stockés dans{" "}
+            <Code>challenge_counters(location_id, month, period, entry_count, snacks_sold)</Code>.
+            Override manuel réservé au owner (bouton rouge, cas de mauvais paramétrage Loyverse).
           </Field>
         </MetricCard>
 
         <MetricCard title={CHALLENGE_LABELS.spendPerVisit} gated bonus="1,250 ฿">
-          <Field label="DB tables"><Code>daily_entries</Code> + <Code>location_entries</Code></Field>
+          <Field label="DB tables"><Code>daily_entries</Code> + <Code>challenge_counters</Code></Field>
           <Field label="Formula">
             <Code>(salesNetIncVat − salesTicketNet) / entry_count ≥ 190 ฿</Code>
           </Field>
@@ -137,7 +138,7 @@ export default async function MethodologyPage() {
             Ticket sales are excluded from the basket to focus on product revenue.
           </Field>
           <Field label="entry_count">
-            Combined total from <Code>location_entries</Code> (manual input, same as Snacks).
+            Combined total from <Code>challenge_counters</Code> (auto Loyverse, same as Snacks).
           </Field>
         </MetricCard>
 
@@ -152,7 +153,7 @@ export default async function MethodologyPage() {
         </MetricCard>
 
         <MetricCard title={CHALLENGE_LABELS.reviewCount} gated bonus="625 ฿">
-          <Field label="DB tables"><Code>reviews_cache</Code> + <Code>location_entries</Code></Field>
+          <Field label="DB tables"><Code>reviews_cache</Code> + <Code>challenge_counters</Code></Field>
           <Field label="Formula">
             <Code>review_count_this_month / entry_count ≥ 4%</Code>
           </Field>
@@ -161,7 +162,7 @@ export default async function MethodologyPage() {
             selected month. Each row is one Google review.
           </Field>
           <Field label="entry_count">
-            Combined total from <Code>location_entries</Code> (manual input). Must be {">"} 0.
+            Combined total from <Code>challenge_counters</Code> (auto Loyverse). Must be {">"} 0.
           </Field>
         </MetricCard>
 

@@ -97,9 +97,10 @@ export function AdminLoyversePanel() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Phase 4 — Write-back (OFF par défaut)</CardTitle>
+          <CardTitle>Write-back — Loyverse = vérité ventes (ON par défaut)</CardTitle>
           <p className="text-sm text-[var(--fg-3)]">
-            Prépare l&apos;écriture dans <code>daily_entries</code> / <code>location_entries</code>. Désactivé tant que <code>LOYVERSE_WRITE_ENABLED</code> != <code>true</code>. Le bouton ci-dessous force l&apos;écriture pour la date choisie (owner uniquement).
+            Écrit les snapshots dans <code>daily_entries</code> / <code>challenge_counters</code> (cron quotidien J+J-1).
+            Coupé uniquement si <code>LOYVERSE_WRITE_ENABLED=false</code>. Le bouton ci-dessous force l&apos;écriture pour la date choisie (owner uniquement).
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -111,11 +112,11 @@ export function AdminLoyversePanel() {
               </Pill>
             ) : enabled ? (
               <Pill tone="good" dot size="sm">
-                ON — LOYVERSE_WRITE_ENABLED=true
+                ON — write-back actif
               </Pill>
             ) : (
               <Pill tone="bad" dot size="sm">
-                OFF — désactivé
+                OFF — LOYVERSE_WRITE_ENABLED=false
               </Pill>
             )}
             <span className="text-xs text-[var(--fg-4)]">Env Vercel • redéploiement requis pour changer le flag global</span>
@@ -175,7 +176,7 @@ export function AdminLoyversePanel() {
         open={step === "confirm1"}
         onClose={() => setStep("idle")}
         title="Are you sure you want to enable Loyverse write-back?"
-        description={`Cette action va écrire les snapshots Loyverse du ${date} dans daily_entries et location_entries. Les champs auto (ventes, paiements, TVA) seront écrasés, les champs manuels (dépenses, HR) restent. Aucun retour arrière automatique.`}
+        description={`Cette action va écrire les snapshots Loyverse du ${date} dans daily_entries et challenge_counters. Les champs auto (ventes, paiements, TVA) seront écrasés, les champs manuels (dépenses, HR) restent. Aucun retour arrière automatique.`}
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setStep("idle")}>

@@ -128,6 +128,21 @@ export const DAILY_ENTRY_SECTIONS: AccountingSection[] = [
 export const ALL_DAILY_FIELDS: AccountingField[] = DAILY_ENTRY_SECTIONS.flatMap((s) => s.fields);
 export const OVERVIEW_FIELDS: AccountingField[] = ALL_DAILY_FIELDS.filter((f) => f.visibleInOverview);
 
+// ── Ownership : Loyverse = vérité ventes/paiements/TVA ────────────────────────
+// Ces champs sont consolidés par le write-back quotidien, jamais saisis à la main.
+export const LOYVERSE_OWNED_FIELDS = [
+  "sales_drinks_net",
+  "sales_ticket_net",
+  "sales_snack_net",
+  "sales_goodies_net",
+  "sales_card_surcharge",
+  "vat_7",
+  "payment_cash",
+  "payment_scan",
+  "payment_credit_card",
+] as const;
+export type LoyverseOwnedField = (typeof LOYVERSE_OWNED_FIELDS)[number];
+
 // ── Monthly fixed expense category (loaded dynamically from DB) ───────────────
 
 export interface MonthlyExpenseCategory {

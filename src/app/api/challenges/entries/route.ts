@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 interface EntryBody {
@@ -15,6 +16,11 @@ export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Override manuel = owner uniquement (source de vérité = Loyverse, sync force=true).
+  // Le bouton rouge côté UI prévient : n'utiliser qu'en cas de mauvais paramétrage Loyverse.
+  if (session.user.role !== "owner") {
+    return Response.json({ error: "Forbidden — override manuel réservé au owner." }, { status: 403 });
   }
 
   const body = (await request.json()) as EntryBody;
@@ -44,13 +50,22 @@ export async function PUT(request: Request) {
   if (snacksSold !== undefined) patch.snacks_sold = Math.round(snacksSold);
 
   const supabase = getSupabaseServerClient();
-  const { error } = await supabase.from("location_entries").upsert(patch, {
+  const { error } = await supabase.from("challenge_counters").upsert(patch, {
     onConflict: "location_id,organization_id,month,period",
   });
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
+
+  await writeAuditLog({
+    userId: session.user.userId ?? null,
+    action: "challenges.counters.override",
+    moduleKey: "challenges",
+    entityType: "challenge_counters",
+    entityId: locationId,
+    payload: { location_id: locationId, month, period, entryCount, snacksSold },
+  });
 
   return Response.json({ ok: true });
 }

@@ -1,5 +1,16 @@
 import { isLoyverseConfigured } from "@/lib/loyverse/client";
 import { syncAllLoyverse } from "@/modules/loyverse/lib/sync";
+import { isWriteBackEnabled, writeBackForDates } from "@/modules/loyverse/lib/write-back";
+
+function bangkokDates(count: number): string[] {
+  const out: string[] = [];
+  const nowMs = Date.now() + 7 * 60 * 60 * 1000;
+  for (let i = 0; i < count; i++) {
+    const d = new Date(nowMs - i * 86400000);
+    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`);
+  }
+  return out;
+}
 
 function checkAuth(request: Request): Response | null {
   const cronSecret = process.env.CRON_SECRET;
@@ -35,7 +46,19 @@ async function handleCron(request: Request) {
       ...(force ? { force: true, days: days ?? 30 } : backfill ? { backfill: true } : {}),
       ...(days && !force ? { days } : {}),
     });
-    return Response.json(result);
+    // Write-back quotidien : Loyverse = vérité ventes/paiements/TVA → consolide daily_entries (J + J-1).
+    // Désactivable via LOYVERSE_WRITE_ENABLED=false. Erreurs non bloquantes (loggées dans la réponse).
+    let writeBack: unknown = null;
+    if (isWriteBackEnabled()) {
+      try {
+        writeBack = await writeBackForDates(bangkokDates(2), { dryRun: false });
+      } catch (e) {
+        writeBack = { error: e instanceof Error ? e.message : String(e) };
+      }
+    } else {
+      writeBack = { skipped: true, reason: "LOYVERSE_WRITE_ENABLED=false" };
+    }
+    return Response.json({ ...result, writeBack });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return Response.json({ error: message }, { status: 500 });

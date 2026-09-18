@@ -10,9 +10,8 @@ import {
   expTotal,
   hrTotal,
   paymentDelta,
-  fixedExpenseTotal,
 } from "@/modules/accounting/types";
-import type { DailyEntry, FixedExpenseCategory, MonthlyFixedExpense } from "@/modules/accounting/types";
+import type { DailyEntry } from "@/modules/accounting/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 
 function esc(v: string | number | null | undefined): string {
@@ -39,58 +38,82 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseServerClient();
 
-  // ── Fixed expenses export ─────────────────────────────────────────────────
+  // ── Fixed expenses export (source unique : recurring_costs + overrides) ──────
   if (type === "fixed") {
     const yearNum = parseInt(year ?? "", 10);
     if (!yearNum || isNaN(yearNum)) return Response.json({ error: "year required" }, { status: 400 });
 
-    // Fetch active categories for headers
-    const { data: cats } = await supabase
-      .from("fixed_expense_categories")
-      .select("*")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .eq("is_active", true)
-      .order("sort_order");
-    const categories: FixedExpenseCategory[] = cats ?? [];
+    const [rulesRes, catsRes, overridesRes, locsRes] = await Promise.all([
+      supabase
+        .from("recurring_costs")
+        .select("id, location_id, category, label, estimated_amount, scope_type")
+        .eq("organization_id", DEFAULT_ORG_ID)
+        .eq("is_active", true)
+        .neq("category", "legacy_fixed_expenses")
+        .order("category")
+        .order("label"),
+      supabase
+        .from("recurring_cost_categories")
+        .select("slug, label")
+        .eq("organization_id", DEFAULT_ORG_ID),
+      supabase
+        .from("recurring_cost_overrides")
+        .select("cost_rule_id, service_from, amount")
+        .eq("organization_id", DEFAULT_ORG_ID)
+        .gte("service_from", `${yearNum}-01-01`)
+        .lt("service_from", `${yearNum + 1}-01-01`),
+      supabase
+        .from("locations")
+        .select("id, name")
+        .eq("organization_id", DEFAULT_ORG_ID)
+        .eq("is_active", true)
+        .order("name"),
+    ]);
+    if (rulesRes.error) return Response.json({ error: rulesRes.error.message }, { status: 500 });
 
-    let q = supabase
-      .from("monthly_fixed_expenses")
-      .select("*, locations ( name )")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .eq("year", yearNum)
-      .order("month");
-
-    if (location_id) q = q.eq("location_id", location_id);
-
-    const { data, error } = await q;
-    if (error) return Response.json({ error: error.message }, { status: 500 });
+    type Rule = { id: string; location_id: string | null; category: string; label: string; estimated_amount: number; scope_type: string };
+    const rules = ((rulesRes.data ?? []) as Rule[]).filter((r) => !location_id || r.location_id === location_id || r.scope_type !== "location");
+    const locName = new Map<string, string>(((locsRes.data ?? []) as Array<{ id: string; name: string }>).map((l) => [l.id, l.name]));
+    const catLabel = new Map<string, string>(((catsRes.data ?? []) as Array<{ slug: string; label: string }>).map((c) => [c.slug, c.label]));
+    const overrideByKey = new Map<string, number>();
+    for (const o of (overridesRes.data ?? []) as Array<{ cost_rule_id: string; service_from: string; amount: number }>) {
+      overrideByKey.set(`${o.cost_rule_id}|${String(o.service_from).slice(0, 7)}`, Number(o.amount ?? 0));
+    }
 
     const MONTH_NAMES = [
       "January","February","March","April","May","June",
       "July","August","September","October","November","December",
     ];
+    const categories = Array.from(new Set(rules.map((r) => r.category)));
+    const catHeaderLabel = (c: string) => catLabel.get(c) ?? c;
+    const header = ["Year", "Month", "Location", ...categories.map(catHeaderLabel), "Total"].join(",");
 
-    type FixedRow = MonthlyFixedExpense & { locations: { name: string } | null };
-    const rows = data as unknown as FixedRow[];
-
-    const catHeaders = categories.map((c) => c.label);
-    const header = ["Year", "Month", "Location", ...catHeaders, "Total"].join(",");
-
-    const lines = rows.map((r) => {
-      const catVals = categories.map((c) =>
-        esc((r.category_values?.[c.key] ?? 0))
-      );
-      return [
-        esc(r.year),
-        esc(MONTH_NAMES[r.month - 1]),
-        esc((r as unknown as Record<string, unknown>).locations ? ((r as unknown as Record<string, unknown>).locations as { name: string }).name : ""),
-        ...catVals,
-        esc(fixedExpenseTotal(r)),
-      ].join(",");
-    });
+    const locIds = location_id
+      ? [location_id]
+      : Array.from(new Set(rules.map((r) => r.location_id).filter(Boolean) as string[]));
+    const lines: string[] = [];
+    for (const lid of locIds.length > 0 ? locIds : [""]) {
+      for (let m = 1; m <= 12; m++) {
+        const ym = `${yearNum}-${String(m).padStart(2, "0")}`;
+        const vals = categories.map((c) => {
+          let sum = 0;
+          for (const r of rules.filter((x) => x.category === c && (x.scope_type !== "location" || x.location_id === lid))) {
+            sum += overrideByKey.get(`${r.id}|${ym}`) ?? Number(r.estimated_amount ?? 0);
+          }
+          return sum;
+        });
+        lines.push([
+          esc(yearNum),
+          esc(MONTH_NAMES[m - 1]),
+          esc(lid ? (locName.get(lid) ?? lid) : "All shops (shared)"),
+          ...vals.map(esc),
+          esc(vals.reduce((s, v) => s + v, 0)),
+        ].join(","));
+      }
+    }
 
     const csv = [header, ...lines].join("\n");
-    const label = `fixed-expenses-${yearNum}`;
+    const label = `recurring-costs-${yearNum}`;
     return new Response(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
@@ -125,7 +148,7 @@ export async function GET(request: Request) {
     "Drinks", "Ticket", "Snack", "Goodies", "Card surcharge",
     "Sales total",
     // Payments
-    "VAT 7% (manual)", "Payment cash", "Payment scan", "Payment credit card", "Payment delta",
+    "VAT 7% (auto Loyverse)", "Payment cash", "Payment scan", "Payment credit card", "Payment delta",
     // Cash expenses
     "Staff food cash", "Drinks cash", "Goodies cash", "Animals cash",
     "Supply cash", "Boss fees cash", "Other cash", "Exp cash total",

@@ -98,9 +98,9 @@ export async function GET() {
           .in("location_id", locationIds)
       : Promise.resolve({ data: null }),
 
-    // Location entries for current month (both periods)
+    // Challenge counters for current month (both periods)
     supabase
-      .from("location_entries")
+      .from("challenge_counters")
       .select("location_id, period, entry_count")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("month", monthStr)

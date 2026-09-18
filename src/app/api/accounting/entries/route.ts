@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const monthStart = `${month}-01`;
   const monthEnd   = `${nextMonth}-01`;
 
-  const [{ data: entries }, { data: fixedCost }, { data: prevEntry }] = await Promise.all([
+  const [{ data: entries }, { data: prevEntry }] = await Promise.all([
     supabase
       .from("daily_entries")
       .select("*")
@@ -36,12 +36,8 @@ export async function GET(request: Request) {
       .gte("entry_date", monthStart)
       .lt("entry_date", monthEnd)
       .order("entry_date"),
-    supabase
-      .from("monthly_fixed_costs")
-      .select("*")
-      .eq("location_id", locationId)
-      .eq("month", month)
-      .maybeSingle(),
+    // NOTE (F) : monthly_fixed_costs est déprécié — les coûts fixes vivent dans
+    // recurring_costs (source unique). On garde fixed_cost: null pour compat UI.
     // Last day of the previous month — used to carry the cash-safe chain across months
     supabase
       .from("daily_entries")
@@ -54,7 +50,7 @@ export async function GET(request: Request) {
       .maybeSingle(),
   ]);
 
-  return Response.json({ entries: entries ?? [], fixed_cost: fixedCost ?? null, prev_month_safe: prevEntry?.cash_safe ?? null });
+  return Response.json({ entries: entries ?? [], fixed_cost: null, prev_month_safe: prevEntry?.cash_safe ?? null });
 }
 
 export async function POST(request: Request) {
@@ -83,9 +79,31 @@ export async function POST(request: Request) {
   }
 
   // Convert any string-number values and strip unknown keys
-  const fields = fromFormState(toFormState(body as Parameters<typeof toFormState>[0]));
+  const fields = fromFormState(toFormState(body as Parameters<typeof toFormState>[0])) as Record<string, unknown>;
 
   const supabase = getSupabaseServerClient();
+
+  // Ownership serveur : si un snapshot Loyverse existe pour (location, date),
+  // les champs ventes/paiements/TVA viennent du write-back — on ignore la saisie manuelle.
+  const LOYVERSE_OWNED = [
+    "sales_drinks_net", "sales_ticket_net", "sales_snack_net", "sales_goodies_net",
+    "sales_card_surcharge", "vat_7", "payment_cash", "payment_scan", "payment_credit_card",
+  ];
+  let loyverseLocked = false;
+  try {
+    const { data: snap } = await supabase
+      .from("loyverse_daily_snapshots")
+      .select("date")
+      .eq("location_id", body.location_id)
+      .eq("date", body.entry_date)
+      .limit(1)
+      .maybeSingle();
+    if (snap) {
+      loyverseLocked = true;
+      for (const f of LOYVERSE_OWNED) delete fields[f];
+    }
+  } catch { /* non bloquant : on laisse passer la saisie */ }
+
   const { data, error } = await supabase
     .from("daily_entries")
     .upsert({
@@ -111,7 +129,7 @@ export async function POST(request: Request) {
     payload: { location_id: body.location_id, entry_date: body.entry_date },
   });
 
-  return Response.json(data, { status: 201 });
+  return Response.json({ ...data, loyverseLocked }, { status: 201 });
 }
 
 export async function DELETE(request: Request) {

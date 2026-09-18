@@ -19,9 +19,9 @@ async function handleCron(request: Request) {
   const url = new URL(request.url);
   const month = url.searchParams.get("month") && /^\d{4}-\d{2}$/.test(url.searchParams.get("month")!) ? url.searchParams.get("month")! : bangkokMonth();
   try {
-    // Remplit les périodes du mois en cours depuis les snapshots déjà archivés (tickets/snacks)
-    // force=false : n'écrase pas les saisies manuelles déjà présentes
-    const result = await syncChallengesFromLoyverse(month, { dryRun: false, force: false });
+    // Source de vérité : 100% Loyverse (tickets/snacks). force=true écrase le manuel —
+    // l'override manuel reste possible via PUT /api/challenges/entries (owner uniquement, bouton rouge).
+    const result = await syncChallengesFromLoyverse(month, { dryRun: false, force: true });
     return Response.json({ ...result, triggered_by: "cron", month });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

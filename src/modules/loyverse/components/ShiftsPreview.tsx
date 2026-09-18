@@ -896,10 +896,10 @@ function ChallengesPreviewCard({ month }: { month: string }) {
           <Button variant="secondary" size="sm" onClick={() => handleFill(true)} disabled={syncing || loading}>
             Forcer (écrase)
           </Button>
-          <span className="text-xs text-[var(--fg-4)]">n&apos;écrase pas les saisies existantes sauf Forcer — CRON quotidien 05:30 (Bangkok) le fera auto</span>
+          <span className="text-xs text-[var(--fg-4)]">source 100% Loyverse — le CRON quotidien écrase (force=true), override owner via Challenges</span>
           {result && <span className="ml-auto text-xs font-medium text-[var(--good)]">{result}</span>}
         </div>
-        <p className="text-xs text-[var(--fg-4)]">Compare ce que donnerait Loyverse (tickets/snacks du mois) vs ce qui est déjà saisi dans <code>location_entries</code>.</p>
+        <p className="text-xs text-[var(--fg-4)]">Compare ce que donne Loyverse (tickets/snacks du mois) vs <code>challenge_counters</code> consolidés.</p>
         {loading ? (
           <div className="h-20 animate-pulse rounded bg-[var(--line-2)]" />
         ) : error ? (

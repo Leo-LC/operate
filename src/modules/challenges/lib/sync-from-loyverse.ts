@@ -64,7 +64,7 @@ export async function syncChallengesFromLoyverse(
   for (const [, a] of Array.from(agg.entries())) {
     try {
       const { data: existing } = await supabase
-        .from("location_entries")
+        .from("challenge_counters")
         .select("entry_count, snacks_sold")
         .eq("organization_id", DEFAULT_ORG_ID)
         .eq("location_id", a.location_id)
@@ -100,7 +100,7 @@ export async function syncChallengesFromLoyverse(
       }
 
       if (!dryRun) {
-        const { error } = await supabase.from("location_entries").upsert(
+        const { error } = await supabase.from("challenge_counters").upsert(
           {
             location_id: a.location_id,
             organization_id: DEFAULT_ORG_ID,

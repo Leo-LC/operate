@@ -50,7 +50,7 @@ export async function GET(request: Request) {
       .select("location_id, location_title, average_rating, total_review_count")
       .eq("organization_id", DEFAULT_ORG_ID),
     supabase
-      .from("location_entries")
+      .from("challenge_counters")
       .select("location_id, entry_count")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("month", month),

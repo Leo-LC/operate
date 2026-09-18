@@ -570,6 +570,7 @@ function LocationCard({
   onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
   onEditSalesTarget?: () => void;
 }) {
+  const [overrideOpen, setOverrideOpen] = useState(false);
   const isTeam = viewMode === "team";
   const totalBonus = loc.totalBonus;
   const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
@@ -706,14 +707,40 @@ function LocationCard({
         />
       </div>
 
-      {/* Manual inputs — pinned to card bottom when grid stretches row height */}
+      {/* Compteurs — source de vérité 100% Loyverse (sync auto force=true).
+          Override manuel = owner uniquement, derrière le bouton rouge (mauvais paramétrage Loyverse). */}
       <div className="mt-auto flex flex-col gap-0 border-t border-[var(--line)] bg-transparent">
         <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
           <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">
             {isTeam ? TEAM_CHALLENGE_LABELS.visitorCounts : CHALLENGE_LABELS.visitorCounts}
           </span>
-          <span className="text-[9px] text-[var(--fg-4)]">Type a value, then Tab/Enter to move on — saves on blur</span>
+          <span className="rounded bg-[var(--info-soft)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--info)]">
+            auto Loyverse
+          </span>
         </div>
+        {!isOwner && !isTeam ? (
+          <p className="px-4 py-2 text-[11px] text-[var(--fg-4)]">
+            Compteurs synchronisés depuis Loyverse — contacte le owner en cas d&apos;anomalie.
+          </p>
+        ) : isOwner && !overrideOpen ? (
+          <div className="px-4 py-2">
+            <button
+              type="button"
+              onClick={() => setOverrideOpen(true)}
+              className="rounded-[var(--r-sm)] border border-[var(--bad)] bg-[var(--bad-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--bad)]"
+              title="Override manuel — écrase les valeurs Loyverse. À n'utiliser qu'en cas de mauvais paramétrage Loyverse. Loggé en audit."
+            >
+              Override manuel (owner) — modifier les compteurs
+            </button>
+          </div>
+        ) : isOwner && overrideOpen ? (
+          <>
+            <p className="px-4 py-1 text-[11px] font-medium text-[var(--bad)]">
+              ⚠ Override actif — tu écrases les valeurs Loyverse. Referme après correction.
+              <button type="button" onClick={() => setOverrideOpen(false)} className="ml-2 underline">
+                refermer
+              </button>
+            </p>
         {([1, 2, 3] as const).map((p) => {
           const entryLabel  = PERIOD_LABELS.visitors[p - 1];
           const snacksLabel = PERIOD_LABELS.snacks[p - 1];
@@ -744,6 +771,8 @@ function LocationCard({
             </div>
           );
         })}
+          </>
+        ) : null}
       </div>
     </div>
   );

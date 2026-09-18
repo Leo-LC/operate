@@ -16,7 +16,7 @@ import {
   type DailyEntry,
   type EntryFormState,
 } from "@/modules/accounting/types";
-import { DAILY_ENTRY_SECTIONS } from "@/modules/accounting/config";
+import { DAILY_ENTRY_SECTIONS, LOYVERSE_OWNED_FIELDS } from "@/modules/accounting/config";
 
 type SectionId = "sales" | "payments" | "expenses" | "hr" | "treasury";
 
@@ -46,6 +46,8 @@ function NumInput({
   onChange,
   note,
   onNoteChange,
+  locked = false,
+  lockHint = "auto Loyverse",
 }: {
   label: string;
   field: keyof typeof EMPTY_ENTRY;
@@ -53,6 +55,8 @@ function NumInput({
   onChange: (field: keyof typeof EMPTY_ENTRY, val: string) => void;
   note?: string;
   onNoteChange?: (note: string) => void;
+  locked?: boolean;
+  lockHint?: string;
 }) {
   const [showNote, setShowNote] = useState(!!note);
   const hasValue = Number(form[field]) !== 0;
@@ -61,7 +65,21 @@ function NumInput({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>
+          {label}{" "}
+          {locked && (
+            <span
+              title="Vérité Loyverse — consolidé par le sync quotidien, non saisissable"
+              style={{
+                fontSize: 9, fontWeight: 600, color: "var(--info)",
+                background: "var(--info-soft)", borderRadius: 4, padding: "1px 5px",
+                letterSpacing: "0.04em", whiteSpace: "nowrap",
+              }}
+            >
+              {lockHint}
+            </span>
+          )}
+        </label>
         {(hasValue || hasNote) && onNoteChange && (
           <button
             type="button"
@@ -84,17 +102,22 @@ function NumInput({
         step="0.01"
         value={form[field] === "0" ? "" : form[field] as string}
         placeholder="0"
+        disabled={locked}
+        title={locked ? "Champ auto Loyverse — voir shift-sales / réconciliation" : undefined}
         onChange={(e) => onChange(field, e.target.value)}
         className="mono tabular-nums"
         style={{
           height: 32,
           borderRadius: "var(--r-sm)",
           border: `1px solid ${hasNote ? "var(--bronze)" : "var(--line)"}`,
-          background: "var(--bg-2)",
+          background: locked ? "var(--bg-1)" : "var(--bg-2)",
           padding: "0 var(--s-2)",
           fontSize: 13,
           textAlign: "right",
-          color: "var(--fg)",
+          color: locked ? "var(--fg-4)" : "var(--fg)",
+          fontStyle: locked ? "italic" : "normal",
+          cursor: locked ? "not-allowed" : "text",
+          opacity: locked ? 0.75 : 1,
           outline: "none",
           width: "100%",
         }}
@@ -441,17 +464,22 @@ export function DailyEntryModal({
 
             {/* Fields grid */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3) var(--s-4)" }}>
-              {s.id !== "treasury" && s.fields.filter((f) => !f.calculated).map((f) => (
-                <NumInput
-                  key={f.key as string}
-                  field={f.key as keyof typeof EMPTY_ENTRY}
-                  label={f.label}
-                  form={form}
-                  onChange={onChange}
-                  note={entryNotes[f.key as string]}
-                  onNoteChange={onNoteChange ? (note) => onNoteChange(f.key as string, note) : undefined}
-                />
-              ))}
+              {s.id !== "treasury" && s.fields.filter((f) => !f.calculated).map((f) => {
+                const key = f.key as string;
+                const locked = (LOYVERSE_OWNED_FIELDS as readonly string[]).includes(key);
+                return (
+                  <NumInput
+                    key={key}
+                    field={f.key as keyof typeof EMPTY_ENTRY}
+                    label={f.label}
+                    form={form}
+                    onChange={onChange}
+                    note={entryNotes[key]}
+                    onNoteChange={onNoteChange ? (note) => onNoteChange(key, note) : undefined}
+                    locked={locked}
+                  />
+                );
+              })}
               {s.id === "treasury" && (
                 <>
                   <ReadOnlyRow label="Cash end of day" value={computedCashEndDay ?? 0} hint="auto" />

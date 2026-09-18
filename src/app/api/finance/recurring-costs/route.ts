@@ -22,11 +22,11 @@ export async function GET(request: Request) {
   if (auth.error) return auth.error;
   const locationId = new URL(request.url).searchParams.get("location_id");
   const supabase = getSupabaseServerClient();
-  let query = supabase.from("finance_cost_rules").select("*").eq("organization_id", DEFAULT_ORG_ID).neq("category", "legacy_fixed_expenses").order("created_at", { ascending: false });
+  let query = supabase.from("recurring_costs").select("*").eq("organization_id", DEFAULT_ORG_ID).neq("category", "legacy_fixed_expenses").order("created_at", { ascending: false });
   if (locationId) query = query.eq("location_id", locationId);
   let categoriesResult: { data: { slug: string; label: string }[] | null; error: unknown } = { data: null, error: null };
   try {
-    const res = await supabase.from("finance_cost_categories").select("slug,label").eq("organization_id", DEFAULT_ORG_ID).order("label");
+    const res = await supabase.from("recurring_cost_categories").select("slug,label").eq("organization_id", DEFAULT_ORG_ID).order("label");
     categoriesResult = res as unknown as typeof categoriesResult;
   } catch { categoriesResult = { data: null, error: null }; }
   const [{ data: locations, error: locationsError }, { data, error }, { data: employees, error: employeesError }] = await Promise.all([
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     // Persist new category globally if not exists
     const supabaseCat = getSupabaseServerClient();
     const customLabel = String(body.custom_label ?? body.custom_category).trim() || labelForCategory(category);
-    await supabaseCat.from("finance_cost_categories").upsert({ organization_id: DEFAULT_ORG_ID, slug: category, label: customLabel }, { onConflict: "organization_id,slug" });
+    await supabaseCat.from("recurring_cost_categories").upsert({ organization_id: DEFAULT_ORG_ID, slug: category, label: customLabel }, { onConflict: "organization_id,slug" });
   } else {
     const normalized = normalizeCategory(category);
     if (!normalized) return Response.json({ error: "Choose a shop, category and valid amount" }, { status: 400 });
@@ -105,8 +105,8 @@ export async function POST(request: Request) {
   const effectiveFrom = `${new Date().toISOString().slice(0, 7)}-01`;
   const reason = "Saved from the simplified recurring costs register";
   const supabase = getSupabaseServerClient();
-  const result = await supabase.from("finance_cost_rules").insert({ organization_id: DEFAULT_ORG_ID, label, category, scope_type: "location", location_id: locationId, cadence: "monthly", estimated_amount: amount, effective_from: effectiveFrom, allocation_method: "direct", custom_allocations: { amount_mode: amountMode, support_type: supportType }, reason, created_by: auth.session.user.userId ?? null, updated_by: auth.session.user.userId ?? null }).select().single();
+  const result = await supabase.from("recurring_costs").insert({ organization_id: DEFAULT_ORG_ID, label, category, scope_type: "location", location_id: locationId, cadence: "monthly", estimated_amount: amount, effective_from: effectiveFrom, allocation_method: "direct", custom_allocations: { amount_mode: amountMode, support_type: supportType }, reason, created_by: auth.session.user.userId ?? null, updated_by: auth.session.user.userId ?? null }).select().single();
   if (result.error) return Response.json({ error: result.error.message }, { status: 500 });
-  await supabase.from("finance_audit_events").insert({ organization_id: DEFAULT_ORG_ID, user_id: auth.session.user.userId ?? null, action: "finance.recurring_cost.create", entity_type: "finance_cost_rule", entity_id: result.data.id, reason, payload: body });
+  await supabase.from("finance_audit_events").insert({ organization_id: DEFAULT_ORG_ID, user_id: auth.session.user.userId ?? null, action: "finance.recurring_cost.create", entity_type: "recurring_cost", entity_id: result.data.id, reason, payload: body });
   return Response.json(result.data, { status: 201 });
 }

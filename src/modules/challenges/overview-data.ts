@@ -96,7 +96,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
       .gte("entry_date", `${year}-${String(monthNum).padStart(2, "0")}-01`)
       .lt("entry_date", `${year}-${String(monthNum === 12 ? 1 : monthNum + 1).padStart(2, "0")}-01`),
     supabase
-      .from("location_entries")
+      .from("challenge_counters")
       .select("location_id, entry_count, snacks_sold, period")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("month", month),

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const to = `${year}-12-31`;
   const [rulesResult, actualsResult] = await Promise.all([
     supabase
-      .from("finance_cost_rules")
+      .from("recurring_costs")
       .select("id, label, category, cadence, estimated_amount, custom_allocations, is_active")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("scope_type", "location")
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       .order("category")
       .order("label"),
     supabase
-      .from("finance_cost_actuals")
+      .from("recurring_cost_overrides")
       .select("cost_rule_id, service_from, amount")
       .eq("organization_id", DEFAULT_ORG_ID)
       .gte("service_from", from)

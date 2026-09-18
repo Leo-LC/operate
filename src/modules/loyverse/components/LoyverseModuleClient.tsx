@@ -3,9 +3,10 @@
 import * as React from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalculatorIcon, TrophyIcon, AlertTriangleIcon, BeakerIcon, ClockIcon } from "lucide-react";
+import { CalculatorIcon, TrophyIcon, AlertTriangleIcon, BeakerIcon, ClockIcon, ScaleIcon } from "lucide-react";
 import { AccountingPreview } from "./AccountingPreview";
 import { ChallengesPreview } from "./ChallengesPreview";
+import { ReconciliationPanel } from "./ReconciliationPanel";
 import { UnmappedPanel } from "./UnmappedPanel";
 import { LoyverseSandboxClient } from "@/modules/loyverse-sandbox/components/LoyverseSandboxClient";
 import { ShiftsPreview } from "./ShiftsPreview";
@@ -50,6 +51,13 @@ export function LoyverseModuleClient() {
             Challenges
           </TabsTrigger>
           <TabsTrigger
+            value="reco"
+            className="inline-flex flex-none items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
+          >
+            <ScaleIcon className="size-3.5" />
+            Réconciliation (probation)
+          </TabsTrigger>
+          <TabsTrigger
             value="unmapped"
             className="inline-flex flex-none items-center gap-1.5 rounded-[var(--r-sm)] px-3 py-1.5 text-sm font-medium data-active:bg-[var(--surface)] data-active:shadow-sm data-active:text-[var(--fg)] text-[var(--fg-3)]"
           >
@@ -73,6 +81,9 @@ export function LoyverseModuleClient() {
         </TabsContent>
         <TabsContent value="challenges" className="w-full pt-4">
           <ChallengesPreview key={`chal-${date}-${refreshKey}`} date={date} />
+        </TabsContent>
+        <TabsContent value="reco" className="w-full pt-4">
+          <ReconciliationPanel />
         </TabsContent>
         <TabsContent value="unmapped" className="w-full pt-4">
           <UnmappedPanel key={`unm-${date}-${refreshKey}`} date={date} />
