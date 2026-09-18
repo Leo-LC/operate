@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CloudDownloadIcon, Lock, PencilIcon, PrinterIcon } from "lucide-react";
+import { CloudDownloadIcon, Lock, PencilIcon, PrinterIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { MonthSelector } from "./MonthSelector";
@@ -794,6 +794,7 @@ export function ChallengesOverview({
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
   const [sheetImportOpen, setSheetImportOpen] = useState(false);
   const [salesTargetOpen, setSalesTargetOpen] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   useEffect(() => {
     setViewMode(readStoredViewMode(!!isOwner));
@@ -831,6 +832,34 @@ export function ChallengesOverview({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleSnacksUpdated(_locationId: string, _period: 1 | 2 | 3, _val: number) {
     fetchData(month, { silent: true });
+  }
+
+  // Manual "Sync all" — same sequential pipeline as the nightly cron
+  // (sheets → loyverse → write-back → counters → reviews). Owner only.
+  async function handleSyncAll() {
+    setSyncingAll(true);
+    try {
+      const res = await fetch("/api/challenges/sync-all", { method: "POST" });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        steps?: Record<string, { ok: boolean; skipped?: boolean; error?: string }>;
+      };
+      if (!res.ok) throw new Error(json.error ?? "Sync all failed");
+      const failed = Object.entries(json.steps ?? {})
+        .filter(([, s]) => !s.ok && !s.skipped)
+        .map(([k, s]) => `${k}: ${s.error ?? "failed"}`);
+      if (failed.length > 0) {
+        toast.warning(`Sync terminé avec erreurs — ${failed.join(" · ")}`);
+      } else {
+        toast.success("Sync all terminé — sheets, Loyverse, compteurs, reviews");
+      }
+      await fetchData(month, { silent: true });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sync all failed");
+    } finally {
+      setSyncingAll(false);
+    }
   }
 
   const locations = data?.locations ?? [];
@@ -883,6 +912,18 @@ export function ChallengesOverview({
               <span className="font-mono font-semibold text-[var(--good)]">{totalEarned.toLocaleString()} ฿</span>
               <span>earned across all shops</span>
             </div>
+          )}
+          {canManage && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleSyncAll}
+              disabled={syncingAll || loading}
+              title="Sync all: sheets → Loyverse → compteurs → reviews (même pipeline que le cron du soir)"
+            >
+              <RefreshCwIcon size={13} className={syncingAll ? "animate-spin" : ""} />
+              {syncingAll ? "Syncing…" : "Sync all"}
+            </Button>
           )}
           {canManage && adminLocations.length > 0 && (
             <Button

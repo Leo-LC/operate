@@ -1,24 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/challenges/reviews/sync",
-      "schedule": "0 22 * * *"
+      "path": "/api/cron/sheet-sync",
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/sheet-sync",
-      "schedule": "0 22 * * *"
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/challenges-sync",
+      "schedule": "30 16 * * *"
     },
     {
       "path": "/api/reports/daily-profit/sync",
       "schedule": "0 22 * * *"
-    },
-    {
-      "path": "/api/cron/loyverse-sync",
-      "schedule": "0 22 * * *"
-    },
-    {
-      "path": "/api/cron/loyverse-challenges",
-      "schedule": "30 22 * * *"
     }
   ]
 }
