@@ -7,7 +7,8 @@ const TOLERANCE = 1; // ฿ — en dessous = match (arrondis)
 function bangkokDates(count: number): string[] {
   const out: string[] = [];
   const nowMs = Date.now() + 7 * 60 * 60 * 1000;
-  for (let i = 0; i < count; i++) {
+  // Jour en cours exclu (accounting pas encore rempli) : on part de J-1.
+  for (let i = 1; i <= count; i++) {
     const d = new Date(nowMs - i * 86400000);
     out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`);
   }
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Compteur "X jours sans différence" : jours consécutifs (depuis J) où tout est match.
+  // Compteur "X jours sans différence" : jours consécutifs (depuis J-1, jour en cours exclu) où tout est match.
   const byDate = new Map<string, Row[]>();
   for (const r of rows) {
     const arr = byDate.get(r.date) ?? [];
