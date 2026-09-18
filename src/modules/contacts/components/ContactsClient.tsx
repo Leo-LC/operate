@@ -24,6 +24,10 @@ type FormState = {
   company_name_th: string;
   email: string;
   phone: string;
+  line_id: string;
+  preferred_channel: string;
+  payment_terms: string;
+  lead_time_days: string;
   address: string;
   address_th: string;
   tax_id: string;
@@ -33,7 +37,8 @@ type FormState = {
 
 const EMPTY_FORM: FormState = {
   name: "", contact_type: "", company: "", company_name_th: "",
-  email: "", phone: "", address: "", address_th: "",
+  email: "", phone: "", line_id: "", preferred_channel: "", payment_terms: "", lead_time_days: "",
+  address: "", address_th: "",
   tax_id: "", branch: "", notes: "",
 };
 
@@ -42,6 +47,9 @@ function contactToForm(c: Contact): FormState {
     name: c.name, contact_type: c.contact_type,
     company: c.company ?? "", company_name_th: c.company_name_th ?? "",
     email: c.email ?? "", phone: c.phone ?? "",
+    line_id: c.line_id ?? "", preferred_channel: c.preferred_channel ?? "",
+    payment_terms: c.payment_terms ?? "",
+    lead_time_days: c.lead_time_days !== null && c.lead_time_days !== undefined ? String(c.lead_time_days) : "",
     address: c.address ?? "", address_th: c.address_th ?? "",
     tax_id: c.tax_id ?? "", branch: c.branch ?? "", notes: c.notes ?? "",
   };
@@ -87,7 +95,8 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
         c.name.toLowerCase().includes(q) ||
         (c.company ?? "").toLowerCase().includes(q) ||
         (c.email ?? "").toLowerCase().includes(q) ||
-        (c.phone ?? "").toLowerCase().includes(q)
+        (c.phone ?? "").toLowerCase().includes(q) ||
+        (c.line_id ?? "").toLowerCase().includes(q)
       );
     }
     return result;
@@ -118,6 +127,9 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
           name: form.name, contact_type: form.contact_type,
           company: form.company || undefined, company_name_th: form.company_name_th || undefined,
           email: form.email || undefined, phone: form.phone || undefined,
+          line_id: form.line_id || undefined, preferred_channel: form.preferred_channel || undefined,
+          payment_terms: form.payment_terms || undefined,
+          lead_time_days: form.lead_time_days.trim() ? Number(form.lead_time_days) : undefined,
           address: form.address || undefined, address_th: form.address_th || undefined,
           tax_id: form.tax_id || undefined, branch: form.branch || undefined,
           notes: form.notes || undefined, location_ids: Array.from(formLocIds),
@@ -147,6 +159,9 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
           name: form.name, contact_type: form.contact_type || undefined,
           company: form.company || null, company_name_th: form.company_name_th || null,
           email: form.email || null, phone: form.phone || null,
+          line_id: form.line_id || null, preferred_channel: form.preferred_channel || null,
+          payment_terms: form.payment_terms || null,
+          lead_time_days: form.lead_time_days.trim() ? Number(form.lead_time_days) : null,
           address: form.address || null, address_th: form.address_th || null,
           tax_id: form.tax_id || null, branch: form.branch || null,
           notes: form.notes || null, location_ids: Array.from(formLocIds),
@@ -272,7 +287,8 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
                   <td style={{ padding: "10px 16px", color: "var(--fg-3)", fontSize: 12 }}>
                     {c.email && <div>{c.email}</div>}
                     {c.phone && <div>{c.phone}</div>}
-                    {!c.email && !c.phone && <span style={{ color: "var(--fg-4)" }}>—</span>}
+                    {c.line_id && <div>Line: {c.line_id}</div>}
+                    {!c.email && !c.phone && !c.line_id && <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </td>
                   <td style={{ padding: "10px 16px", color: "var(--fg-3)", fontSize: 12 }}>
                     {(c.contact_locations && c.contact_locations.length > 0)
@@ -419,6 +435,8 @@ function ContactForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <Field label="Email" field="email" type="email" placeholder="contact@example.com" />
           <Field label="Phone" field="phone" placeholder="+66 xx xxx xxxx" />
+          <Field label="Line ID" field="line_id" placeholder="@supplier…" />
+          <Field label="Preferred channel" field="preferred_channel" placeholder="Line / Phone / Email" />
           <div style={{ gridColumn: "span 2" }}>
             <Field label="Address" field="address" placeholder="Street address" />
           </div>
@@ -434,6 +452,8 @@ function ContactForm({
           </div>
           <Field label="Tax ID" field="tax_id" placeholder="0000000000000" />
           <Field label="Branch" field="branch" placeholder="Head Office" />
+          <Field label="Payment terms" field="payment_terms" placeholder="Cash / 30 days…" />
+          <Field label="Lead time (days)" field="lead_time_days" placeholder="3" />
           <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 4 }}>
             <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Address (TH)</label>
             <textarea

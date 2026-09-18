@@ -35,6 +35,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     company_name_th: string | null;
     email: string | null;
     phone: string | null;
+    line_id: string | null;
+    preferred_channel: string | null;
+    payment_terms: string | null;
+    lead_time_days: number | null;
     address: string | null;
     address_th: string | null;
     tax_id: string | null;
@@ -55,6 +59,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if ("company_name_th" in body) updates.company_name_th = body.company_name_th?.trim() ?? null;
   if ("email" in body) updates.email = body.email?.trim().toLowerCase() ?? null;
   if ("phone" in body) updates.phone = body.phone?.trim() ?? null;
+  if ("line_id" in body) updates.line_id = body.line_id?.trim() ?? null;
+  if ("preferred_channel" in body) updates.preferred_channel = body.preferred_channel?.trim() ?? null;
+  if ("payment_terms" in body) updates.payment_terms = body.payment_terms?.trim() ?? null;
+  if ("lead_time_days" in body) updates.lead_time_days = body.lead_time_days ?? null;
   if ("address" in body) updates.address = body.address?.trim() ?? null;
   if ("address_th" in body) updates.address_th = body.address_th?.trim() ?? null;
   if ("tax_id" in body) updates.tax_id = body.tax_id?.trim() ?? null;

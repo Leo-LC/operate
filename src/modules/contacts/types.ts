@@ -33,6 +33,10 @@ export interface Contact {
   company_name_th: string | null;
   email: string | null;
   phone: string | null;
+  line_id: string | null;
+  preferred_channel: string | null;
+  payment_terms: string | null;
+  lead_time_days: number | null;
   address: string | null;
   address_th: string | null;
   tax_id: string | null;

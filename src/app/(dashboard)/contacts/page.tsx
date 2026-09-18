@@ -28,7 +28,8 @@ export default async function ContactsPage() {
     .from("contacts")
     .select(`
       id, organization_id, name, contact_type, company, company_name_th,
-      email, phone, address, address_th, tax_id, branch, notes,
+      email, phone, line_id, preferred_channel, payment_terms, lead_time_days,
+      address, address_th, tax_id, branch, notes,
       created_by, created_at, updated_at,
       contact_locations ( id, location_id, locations ( name ) )
     `)
@@ -52,6 +53,8 @@ export default async function ContactsPage() {
     id: string; organization_id: string; name: string; contact_type: string;
     company: string | null; company_name_th: string | null;
     email: string | null; phone: string | null;
+    line_id: string | null; preferred_channel: string | null;
+    payment_terms: string | null; lead_time_days: number | null;
     address: string | null; address_th: string | null;
     tax_id: string | null; branch: string | null;
     notes: string | null; created_by: string | null;
@@ -71,6 +74,10 @@ export default async function ContactsPage() {
       company_name_th: c.company_name_th,
       email: c.email,
       phone: c.phone,
+      line_id: c.line_id ?? null,
+      preferred_channel: c.preferred_channel ?? null,
+      payment_terms: c.payment_terms ?? null,
+      lead_time_days: c.lead_time_days ?? null,
       address: c.address,
       address_th: c.address_th,
       tax_id: c.tax_id,

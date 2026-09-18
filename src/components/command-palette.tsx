@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon, CrownIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon, CrownIcon, StoreIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
+import type { DirectorySearchItem } from "@/modules/directory/types";
 
 const NAV_ITEMS = [
   { id: "direction",  label: "Direction",  href: "/direction",  icon: CrownIcon,        module: "direction" },
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
   { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
   { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },
+  { id: "directory",  label: "Directory",  href: "/directory",  icon: StoreIcon,        module: "contacts" },
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
   { id: "admin",      label: "Admin",      href: "/admin",      icon: ShieldIcon,       module: "admin" },
@@ -41,16 +43,35 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
+  const [dirResults, setDirResults] = useState<DirectorySearchItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setQuery("");
       setSelected(0);
+      setDirResults([]);
       const t = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
   }, [open]);
+
+  /* Live directory search (shops, suppliers, products) for queries ≥ 2 chars */
+  useEffect(() => {
+    if (!open) return;
+    const q = query.trim();
+    if (q.length < 2) {
+      setDirResults([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      fetch(`/api/directory/search?q=${encodeURIComponent(q)}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : { items: [] }))
+        .then((j) => setDirResults((j as { items: DirectorySearchItem[] }).items ?? []))
+        .catch(() => setDirResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query, open]);
 
   const items = useMemo(() => {
     const nav = NAV_ITEMS
@@ -68,14 +89,33 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
       icon: n.icon,
       href: n.href,
     }));
+    const canSearchDirectory =
+      permissions.global_role === "owner" ||
+      permissions.global_role === "admin" ||
+      hasModuleAccess(permissions, "contacts");
+    const dir = canSearchDirectory
+      ? dirResults.map((d) => ({
+          kind: "directory" as const,
+          id: `${d.kind}-${d.id}-${d.label}`,
+          label: d.detail ? `${d.label} · ${d.detail}` : d.label,
+          hint: d.kind === "shop" ? "Shop in Directory" : d.kind === "product" ? "Product in Directory" : "Supplier in Directory",
+          icon: StoreIcon,
+          href: `/directory?tab=${d.tab}&q=${encodeURIComponent(query.trim())}&select=${encodeURIComponent(d.id)}`,
+        }))
+      : [];
     if (!query) return nav;
     const lc = query.toLowerCase();
-    return nav.filter(
+    const filteredNav = nav.filter(
       (x) =>
         x.label.toLowerCase().includes(lc) ||
         x.hint.toLowerCase().includes(lc),
     );
-  }, [query, permissions]);
+    return [...filteredNav, ...dir];
+  }, [query, permissions, dirResults]);
+
+  useEffect(() => {
+    setSelected((s) => Math.min(s, Math.max(0, items.length - 1)));
+  }, [items.length]);
 
   const choose = useCallback(
     (item: (typeof items)[number] | undefined) => {

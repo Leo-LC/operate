@@ -9,7 +9,7 @@ import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon,
-  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, CrownIcon,
+  SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, CrownIcon, StoreIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -87,6 +87,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Knowledge",
     items: [
+      { id: "directory", label: "Directory", href: "/directory", icon: StoreIcon, module: "contacts" },
       { id: "wiki",     label: "Wiki",     href: "/wiki",     icon: BookOpenIcon, module: "wiki" },
       { id: "brand",    label: "Brand",    href: "/brand",    icon: PaletteIcon,  module: "brand" },
       { id: "contacts", label: "Contacts", href: "/contacts", icon: UsersIcon,    module: "contacts" },
@@ -197,6 +198,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           c: "/accounting",
           e: "/reports",
           t: "/contacts",
+          y: "/directory",
           w: "/wiki",
           b: "/brand",
           m: "/admin",

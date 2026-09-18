@@ -48,6 +48,10 @@ export async function POST(request: Request) {
     company_name_th?: string;
     email?: string;
     phone?: string;
+    line_id?: string;
+    preferred_channel?: string;
+    payment_terms?: string;
+    lead_time_days?: number;
     address?: string;
     address_th?: string;
     tax_id?: string;
@@ -75,6 +79,10 @@ export async function POST(request: Request) {
       company_name_th: body.company_name_th?.trim() ?? null,
       email: body.email?.trim().toLowerCase() ?? null,
       phone: body.phone?.trim() ?? null,
+      line_id: body.line_id?.trim() ?? null,
+      preferred_channel: body.preferred_channel?.trim() ?? null,
+      payment_terms: body.payment_terms?.trim() ?? null,
+      lead_time_days: Number.isFinite(Number(body.lead_time_days)) && body.lead_time_days !== undefined ? Number(body.lead_time_days) : null,
       address: body.address?.trim() ?? null,
       address_th: body.address_th?.trim() ?? null,
       tax_id: body.tax_id?.trim() ?? null,
