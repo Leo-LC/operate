@@ -113,7 +113,7 @@ export default async function DirectoryPage({
   const contacts: Contact[] = contactRows.map(toContact);
 
   const suppliers: DirectorySupplier[] = contactRows
-    .filter((c) => c.contact_type === "provider")
+    .filter((c) => c.contact_type === "supplier")
     .map((c) => {
       const full = toContact(c);
       const cOrders = orderRows.filter((o) => o.contact_id === c.id);
@@ -143,7 +143,8 @@ export default async function DirectoryPage({
       }))}
       canWrite={session.user.role === "owner"}
       initialTab={tab}
-      initialQuery={searchParams?.q ?? ""}
+      // The search query only ever filters contacts — never shops
+      initialQuery={tab === "contacts" ? (searchParams?.q ?? "") : ""}
       initialSelect={searchParams?.select ?? ""}
     />
   );

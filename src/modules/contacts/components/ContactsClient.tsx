@@ -3,10 +3,10 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
-import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon, ChevronDownIcon } from "lucide-react";
-import type { Contact, ContactType } from "@/modules/contacts/types";
-import { CONTACT_TYPES, CONTACT_TYPE_LABELS } from "@/modules/contacts/types";
-import { CONTACT_TYPE_FIELDS } from "@/modules/contacts/contact-type-fields";
+import { PlusIcon, PencilIcon, Trash2Icon, ChevronDownIcon } from "lucide-react";
+import type { Contact } from "@/modules/contacts/types";
+import { CONTACT_TYPES, contactTypeLabel } from "@/modules/contacts/types";
+import { getContactTypeFields } from "@/modules/contacts/contact-type-fields";
 import { CopyButton } from "@/modules/directory/components/CopyButton";
 
 interface LocationOption { id: string; name: string }
@@ -16,57 +16,56 @@ interface Props {
   locations: LocationOption[];
   canWrite: boolean;
   initialExpandId?: string | null;
-  /** Supplier dossier (products + price history) rendered inside a provider row */
+  /** Live filter driven by the Directory searchbar */
+  filterQuery?: string;
+  /** Supplier dossier (products + price history) rendered inside a supplier row */
   renderDossier?: (contactId: string) => React.ReactNode;
 }
 
 type FormState = {
   name: string;
-  contact_type: ContactType | "";
-  company: string;
-  company_name_th: string;
+  contact_type: string;
   email: string;
   phone: string;
   line_id: string;
   preferred_channel: string;
-  payment_terms: string;
-  lead_time_days: string;
   address: string;
   address_th: string;
+  company_name_th: string;
   tax_id: string;
   branch: string;
-  notes: string;
 };
 
 const EMPTY_FORM: FormState = {
-  name: "", contact_type: "", company: "", company_name_th: "",
-  email: "", phone: "", line_id: "", preferred_channel: "", payment_terms: "", lead_time_days: "",
+  name: "", contact_type: "",
+  email: "", phone: "", line_id: "", preferred_channel: "",
   address: "", address_th: "",
-  tax_id: "", branch: "", notes: "",
+  company_name_th: "", tax_id: "", branch: "",
 };
+
+const NEW_TYPE_VALUE = "__new__";
 
 function contactToForm(c: Contact): FormState {
   return {
     name: c.name, contact_type: c.contact_type,
-    company: c.company ?? "", company_name_th: c.company_name_th ?? "",
     email: c.email ?? "", phone: c.phone ?? "",
     line_id: c.line_id ?? "", preferred_channel: c.preferred_channel ?? "",
-    payment_terms: c.payment_terms ?? "",
-    lead_time_days: c.lead_time_days !== null && c.lead_time_days !== undefined ? String(c.lead_time_days) : "",
     address: c.address ?? "", address_th: c.address_th ?? "",
-    tax_id: c.tax_id ?? "", branch: c.branch ?? "", notes: c.notes ?? "",
+    company_name_th: c.company_name_th ?? "",
+    tax_id: c.tax_id ?? "", branch: c.branch ?? "",
   };
 }
 
 type PillTone = "neutral" | "bronze" | "good" | "warn" | "bad" | "info" | "outline";
-const TYPE_TONE: Record<ContactType, PillTone> = {
-  employee:    "info",
-  provider:    "bronze",
-  bank:        "good",
-  owner:       "warn",
-  veterinarian:"neutral",
-  other:       "neutral",
+const TYPE_TONE: Record<string, PillTone> = {
+  supplier: "bronze",
+  bank: "good",
+  owner: "warn",
+  veterinarian: "neutral",
 };
+function typeTone(t: string): PillTone {
+  return TYPE_TONE[t] ?? "neutral";
+}
 
 /* Same expand/collapse system as the employees table */
 function useExpandable() {
@@ -96,12 +95,7 @@ function useExpandable() {
     collapseTimer.current = setTimeout(() => { setMountedId(null); collapseTimer.current = null; }, 260);
   }
 
-  function toggle(id: string) {
-    if (expandedId === id) collapse();
-    else expand(id);
-  }
-
-  return { expandedId, mountedId, panelOpen, expand, collapse, toggle };
+  return { expandedId, mountedId, panelOpen, expand, collapse };
 }
 
 function ViewField({ label, children }: { label: string; children: React.ReactNode }) {
@@ -113,12 +107,12 @@ function ViewField({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-export function ContactsClient({ initialContacts, locations, canWrite, initialExpandId, renderDossier }: Props) {
+export function ContactsClient({ initialContacts, locations, canWrite, initialExpandId, filterQuery, renderDossier }: Props) {
   const [contacts, setContacts] = useState(initialContacts);
-  const [typeFilter, setTypeFilter] = useState<ContactType | "">("");
-  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("");
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [customType, setCustomType] = useState("");
   const [formLocIds, setFormLocIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -126,6 +120,15 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
   const [deleting, setDeleting] = useState(false);
   const { expandedId, mountedId, panelOpen, expand, collapse } = useExpandable();
   const rowRefs = useRef(new Map<string, HTMLTableRowElement | null>());
+
+  /* Custom types already in use (legacy rows + user-created) */
+  const customTypes = useMemo(() => {
+    const seen = new Set<string>();
+    for (const c of contacts) {
+      if (!(CONTACT_TYPES as readonly string[]).includes(c.contact_type)) seen.add(c.contact_type);
+    }
+    return Array.from(seen).sort();
+  }, [contacts]);
 
   useEffect(() => {
     if (!deleteTarget) return;
@@ -150,24 +153,34 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
   const filtered = useMemo(() => {
     let result = contacts;
     if (typeFilter) result = result.filter((c) => c.contact_type === typeFilter);
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
+    const raw = (filterQuery ?? "").trim().toLowerCase();
+    if (raw) {
       result = result.filter((c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.company ?? "").toLowerCase().includes(q) ||
-        (c.email ?? "").toLowerCase().includes(q) ||
-        (c.phone ?? "").toLowerCase().includes(q) ||
-        (c.line_id ?? "").toLowerCase().includes(q)
+        c.name.toLowerCase().includes(raw) ||
+        (c.company_name_th ?? "").toLowerCase().includes(raw) ||
+        (c.email ?? "").toLowerCase().includes(raw) ||
+        (c.phone ?? "").toLowerCase().includes(raw) ||
+        (c.line_id ?? "").toLowerCase().includes(raw)
       );
     }
     return result;
-  }, [contacts, typeFilter, search]);
+  }, [contacts, typeFilter, filterQuery]);
+
+  /** Resolve the effective type (preset or newly typed) */
+  function resolveType(): string | null {
+    if (form.contact_type === NEW_TYPE_VALUE) {
+      const t = customType.trim().toLowerCase();
+      return t || null;
+    }
+    return form.contact_type || null;
+  }
 
   function openAdd() {
-    setForm(EMPTY_FORM); setFormLocIds(new Set()); setShowAdd(true);
+    setForm(EMPTY_FORM); setCustomType(""); setFormLocIds(new Set()); setShowAdd(true);
   }
   function startEdit(c: Contact) {
     setForm(contactToForm(c));
+    setCustomType("");
     setFormLocIds(new Set((c.contact_locations ?? []).map((cl) => cl.location_id)));
     setEditingId(c.id);
   }
@@ -190,21 +203,20 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.contact_type) { toast.error("Please select a contact type"); return; }
+    const contactType = resolveType();
+    if (!contactType) { toast.error("Please select or enter a contact type"); return; }
     setSubmitting(true);
     try {
       const res = await fetch("/api/contacts", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name, contact_type: form.contact_type,
-          company: form.company || undefined, company_name_th: form.company_name_th || undefined,
+          name: form.name, contact_type: contactType,
           email: form.email || undefined, phone: form.phone || undefined,
           line_id: form.line_id || undefined, preferred_channel: form.preferred_channel || undefined,
-          payment_terms: form.payment_terms || undefined,
-          lead_time_days: form.lead_time_days.trim() ? Number(form.lead_time_days) : undefined,
+          company_name_th: form.company_name_th || undefined,
           address: form.address || undefined, address_th: form.address_th || undefined,
           tax_id: form.tax_id || undefined, branch: form.branch || undefined,
-          notes: form.notes || undefined, location_ids: Array.from(formLocIds),
+          location_ids: Array.from(formLocIds),
         }),
       });
       if (!res.ok) {
@@ -215,7 +227,7 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
       const contactLocs = Array.from(formLocIds).map((lid) => ({
         id: "", location_id: lid, location_name: locations.find((l) => l.id === lid)?.name ?? lid,
       }));
-      setContacts((prev) => [...prev, { ...created, contact_type: form.contact_type as ContactType, contact_locations: contactLocs }].sort((a, b) => a.name.localeCompare(b.name)));
+      setContacts((prev) => [...prev, { ...created, contact_type: contactType, contact_locations: contactLocs }].sort((a, b) => a.name.localeCompare(b.name)));
       setShowAdd(false); toast.success("Contact added");
     } finally { setSubmitting(false); }
   }
@@ -223,20 +235,20 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editingId) return;
+    const contactType = resolveType();
+    if (!contactType) { toast.error("Please select or enter a contact type"); return; }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/contacts/${editingId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name, contact_type: form.contact_type || undefined,
-          company: form.company || null, company_name_th: form.company_name_th || null,
+          name: form.name, contact_type: contactType,
           email: form.email || null, phone: form.phone || null,
           line_id: form.line_id || null, preferred_channel: form.preferred_channel || null,
-          payment_terms: form.payment_terms || null,
-          lead_time_days: form.lead_time_days.trim() ? Number(form.lead_time_days) : null,
+          company_name_th: form.company_name_th || null,
           address: form.address || null, address_th: form.address_th || null,
           tax_id: form.tax_id || null, branch: form.branch || null,
-          notes: form.notes || null, location_ids: Array.from(formLocIds),
+          location_ids: Array.from(formLocIds),
         }),
       });
       if (!res.ok) {
@@ -247,7 +259,7 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
       const contactLocs = Array.from(formLocIds).map((lid) => ({
         id: "", location_id: lid, location_name: locations.find((l) => l.id === lid)?.name ?? lid,
       }));
-      setContacts((prev) => prev.map((c) => c.id === editingId ? { ...updated, contact_locations: contactLocs } : c).sort((a, b) => a.name.localeCompare(b.name)));
+      setContacts((prev) => prev.map((c) => c.id === editingId ? { ...updated, contact_type: contactType, contact_locations: contactLocs } : c).sort((a, b) => a.name.localeCompare(b.name)));
       setEditingId(null); toast.success("Contact updated");
     } finally { setSubmitting(false); }
   }
@@ -271,22 +283,9 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
         <span style={{ fontSize: 12, color: "var(--fg-4)", marginRight: "auto" }}>
           {filtered.length} of {contacts.length} contacts
         </span>
-        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-          <SearchIcon style={{ position: "absolute", left: 8, width: 13, height: 13, color: "var(--fg-4)", pointerEvents: "none" }} />
-          <input
-            type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, company…"
-            style={{
-              height: 34, paddingLeft: 28, paddingRight: "var(--s-3)",
-              borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-              background: "var(--surface)", color: "var(--fg)",
-              fontSize: 13, width: 220, outline: "none",
-            }}
-          />
-        </div>
         <select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as ContactType | "")}
+          onChange={(e) => setTypeFilter(e.target.value)}
           style={{
             height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
             background: "var(--surface)", color: "var(--fg)",
@@ -294,7 +293,8 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
           }}
         >
           <option value="">All types</option>
-          {CONTACT_TYPES.map((t) => <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>)}
+          {CONTACT_TYPES.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
+          {customTypes.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
         </select>
         {canWrite && (
           <Button size="sm" onClick={openAdd} style={{ gap: 6 }}>
@@ -305,12 +305,14 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
 
       {/* Inline add form (same system as employees) */}
       {showAdd && (
-        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--accent-soft)", padding: 16 }}>
+        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16 }}>
           <ContactForm
             form={form}
+            customType={customType}
             locIds={formLocIds}
             locations={locations}
             onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
+            onCustomTypeChange={setCustomType}
             onToggleLoc={toggleLoc}
             onSubmit={(e) => void handleAdd(e)}
           />
@@ -329,8 +331,8 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead style={{ background: "transparent" }}>
               <tr>
-                {["Name", "Type", "Company", "Contact", "Locations", ""].map((h, i) => (
-                  <th key={i} className="eyebrow" style={{ padding: "10px 16px", textAlign: i === 5 ? "right" : "left", color: "var(--fg-4)" }}>
+                {["Name", "Type", "Contact", "Locations", ""].map((h, i) => (
+                  <th key={i} className="eyebrow" style={{ padding: "10px 16px", textAlign: i === 4 ? "right" : "left", color: "var(--fg-4)" }}>
                     {h}
                   </th>
                 ))}
@@ -350,7 +352,7 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
                       onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = "transparent"; }}
                       title={isExpanded ? "Click to collapse" : "Click to view"}
                       style={{
-                        background: isExpanded ? "var(--accent-soft)" : "transparent",
+                        background: "transparent",
                         borderTop: "1px solid var(--line)",
                         cursor: "pointer",
                         transition: "background 150ms",
@@ -364,12 +366,7 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
                         </span>
                       </td>
                       <td style={{ padding: "10px 16px" }}>
-                        <Pill tone={TYPE_TONE[c.contact_type]} size="sm">{CONTACT_TYPE_LABELS[c.contact_type]}</Pill>
-                      </td>
-                      <td style={{ padding: "10px 16px", color: "var(--fg-3)", fontSize: 12 }}>
-                        {c.company && <div>{c.company}</div>}
-                        {c.tax_id && <div style={{ opacity: 0.6, fontSize: 11 }}>Tax: {c.tax_id}</div>}
-                        {!c.company && <span style={{ color: "var(--fg-4)" }}>—</span>}
+                        <Pill tone={typeTone(c.contact_type)} size="sm">{contactTypeLabel(c.contact_type)}</Pill>
                       </td>
                       <td style={{ padding: "10px 16px", color: "var(--fg-3)", fontSize: 12 }}>
                         {c.email && <div>{c.email}</div>}
@@ -409,17 +406,19 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
                     </tr>
                     {isMounted && (
                       <tr>
-                        <td colSpan={6} style={{ padding: 0, border: 0 }}>
+                        <td colSpan={5} style={{ padding: 0, border: 0 }}>
                           <div className="emp-accordion" data-open={isExpanded && panelOpen ? "true" : "false"}>
                             <div className="emp-accordion-inner">
-                              <div style={{ padding: "0 16px 12px", background: "var(--accent-soft)" }}>
+                              <div style={{ padding: "0 16px 12px" }}>
                                 {isEditing ? (
                                   <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16 }}>
                                     <ContactForm
                                       form={form}
+                                      customType={customType}
                                       locIds={formLocIds}
                                       locations={locations}
                                       onChange={(key, val) => setForm((prev) => ({ ...prev, [key]: val }))}
+                                      onCustomTypeChange={setCustomType}
                                       onToggleLoc={toggleLoc}
                                       onSubmit={(e) => void handleEdit(e)}
                                     />
@@ -432,7 +431,7 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
                                   <ContactViewPanel
                                     contact={c}
                                     canWrite={canWrite}
-                                    dossier={c.contact_type === "provider" && renderDossier ? renderDossier(c.id) : null}
+                                    dossier={c.contact_type === "supplier" && renderDossier ? renderDossier(c.id) : null}
                                     onEdit={() => startEdit(c)}
                                     onCollapse={() => { collapse(); setEditingId(null); }}
                                   />
@@ -501,8 +500,7 @@ function ContactViewPanel({
       <div style={sectionStyle}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
           <ViewField label="Name">{c.name}</ViewField>
-          {c.company && <ViewField label="Company">{c.company}</ViewField>}
-          <ViewField label="Type">{CONTACT_TYPE_LABELS[c.contact_type]}</ViewField>
+          <ViewField label="Type">{contactTypeLabel(c.contact_type)}</ViewField>
         </div>
       </div>
 
@@ -517,16 +515,14 @@ function ContactViewPanel({
         </div>
       </div>
 
-      {(c.company_name_th || c.tax_id || c.branch || c.payment_terms || c.lead_time_days !== null) && (
+      {(c.company_name_th || c.tax_id || c.branch || c.address_th) && (
         <div style={sectionStyle}>
           <span className="eyebrow">Business</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: "var(--s-2)" }}>
             {c.company_name_th && <ViewField label="Company (TH)">{c.company_name_th}</ViewField>}
             {c.tax_id && <ViewField label="Tax ID"><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{c.tax_id}<CopyButton value={c.tax_id} label="Tax ID" /></span></ViewField>}
             {c.branch && <ViewField label="Branch">{c.branch}</ViewField>}
-            {c.payment_terms && <ViewField label="Payment">{c.payment_terms}</ViewField>}
-            {c.lead_time_days !== null && c.lead_time_days !== undefined && <ViewField label="Lead time">{c.lead_time_days} day(s)</ViewField>}
-            {c.address_th && <ViewField label="Address (TH)">{c.address_th}</ViewField>}
+            {c.address_th && <ViewField label="Thai address">{c.address_th}</ViewField>}
           </div>
         </div>
       )}
@@ -535,13 +531,6 @@ function ContactViewPanel({
         <div style={sectionStyle}>
           <span className="eyebrow">Supplier dossier</span>
           <div style={{ marginTop: "var(--s-2)" }}>{dossier}</div>
-        </div>
-      )}
-
-      {c.notes && (
-        <div style={sectionStyle}>
-          <span className="eyebrow">Notes</span>
-          <p style={{ fontSize: 13, color: "var(--fg-3)", margin: "var(--s-2) 0 0", whiteSpace: "pre-wrap" }}>{c.notes}</p>
         </div>
       )}
 
@@ -582,15 +571,16 @@ function ContactField({
 }
 
 function ContactForm({
-  form, locIds, locations, onChange, onToggleLoc, onSubmit,
+  form, customType, locIds, locations, onChange, onCustomTypeChange, onToggleLoc, onSubmit,
 }: {
-  form: FormState; locIds: Set<string>; locations: LocationOption[];
+  form: FormState; customType: string; locIds: Set<string>; locations: LocationOption[];
   onChange: (key: keyof FormState, val: string) => void;
+  onCustomTypeChange: (val: string) => void;
   onToggleLoc: (id: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }) {
-  // Fields adapt to the contact type: a bank doesn't need purchasing info, etc.
-  const cfg = CONTACT_TYPE_FIELDS[form.contact_type || "other"];
+  // Fields adapt to the contact type: a bank doesn't need the same info as a vet.
+  const cfg = getContactTypeFields(form.contact_type === NEW_TYPE_VALUE ? "" : form.contact_type);
   const set = (field: keyof FormState) => (v: string) => onChange(field, v);
 
   return (
@@ -605,10 +595,15 @@ function ContactForm({
             <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Type <span style={{ color: "var(--bad)" }}>*</span></label>
             <select required value={form.contact_type} onChange={(e) => onChange("contact_type", e.target.value)} style={inputStyle}>
               <option value="">— Select type —</option>
-              {CONTACT_TYPES.map((t) => <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>)}
+              {CONTACT_TYPES.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
+              <option value={NEW_TYPE_VALUE}>＋ New type…</option>
             </select>
           </div>
-          <ContactField label="Company (EN)" value={form.company} placeholder="Company name" onChange={set("company")} />
+          {form.contact_type === NEW_TYPE_VALUE && (
+            <div style={{ gridColumn: "span 2" }}>
+              <ContactField label="New type name" value={customType} placeholder="e.g. landlord, insurer…" required onChange={onCustomTypeChange} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -640,14 +635,8 @@ function ContactForm({
           </div>
           <ContactField label="Tax ID" value={form.tax_id} placeholder="0000000000000" onChange={set("tax_id")} />
           <ContactField label="Branch" value={form.branch} placeholder="Head Office" onChange={set("branch")} />
-          {cfg.purchasing && (
-            <>
-              <ContactField label="Payment terms" value={form.payment_terms} placeholder="Cash / 30 days…" onChange={set("payment_terms")} />
-              <ContactField label="Lead time (days)" value={form.lead_time_days} placeholder="3" onChange={set("lead_time_days")} />
-            </>
-          )}
           <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 4 }}>
-            <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Address (TH)</label>
+            <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Thai address</label>
             <textarea
               value={form.address_th} rows={2}
               onChange={(e) => onChange("address_th", e.target.value)}
@@ -688,17 +677,6 @@ function ContactForm({
           </div>
         </div>
       )}
-
-      {/* Notes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Notes</label>
-        <textarea
-          value={form.notes} rows={2}
-          onChange={(e) => onChange("notes", e.target.value)}
-          placeholder="Internal notes…"
-          style={{ ...inputStyle, height: "auto", padding: "var(--s-2) var(--s-3)", resize: "none", fontFamily: "var(--font-sans)" }}
-        />
-      </div>
     </form>
   );
 }

@@ -23,7 +23,7 @@ export async function GET() {
       .from("contacts")
       .select(`*, contact_locations ( id, location_id, locations ( name ) )`)
       .eq("organization_id", DEFAULT_ORG_ID)
-      .eq("contact_type", "provider")
+      .eq("contact_type", "supplier")
       .is("deleted_at", null)
       .order("name", { ascending: true }),
     supabase.from("supplier_products").select("*").eq("organization_id", DEFAULT_ORG_ID),

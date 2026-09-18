@@ -1,22 +1,30 @@
 export const CONTACT_TYPES = [
-  "employee",
-  "provider",
+  "supplier",
   "bank",
   "owner",
   "veterinarian",
-  "other",
 ] as const;
 
-export type ContactType = typeof CONTACT_TYPES[number];
+export type PresetContactType = typeof CONTACT_TYPES[number];
 
-export const CONTACT_TYPE_LABELS: Record<ContactType, string> = {
-  employee: "Employee",
-  provider: "Provider",
+/**
+ * Contact types are free-form: the presets above plus custom types
+ * created inline in the form (stored as lowercase strings).
+ * Legacy rows (employee, provider, other) keep working as custom types.
+ */
+export type ContactType = string;
+
+export const CONTACT_TYPE_LABELS: Record<string, string> = {
+  supplier: "Supplier",
   bank: "Bank",
   owner: "Owner",
   veterinarian: "Veterinarian",
-  other: "Other",
 };
+
+export function contactTypeLabel(t: string): string {
+  if (!t) return "—";
+  return CONTACT_TYPE_LABELS[t] ?? t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 export interface ContactLocationRow {
   id: string;

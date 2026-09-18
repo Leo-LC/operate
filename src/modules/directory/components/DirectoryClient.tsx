@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SearchIcon, StoreIcon, UsersIcon } from "lucide-react";
+import { SearchIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
 import { ContactsClient } from "@/modules/contacts/components/ContactsClient";
 import type { Contact } from "@/modules/contacts/types";
 import { ShopTable } from "@/modules/directory/components/ShopTable";
@@ -33,12 +33,6 @@ const TABS: { value: DirectoryTab; label: string; icon: typeof StoreIcon }[] = [
   { value: "contacts", label: "Contacts", icon: UsersIcon },
 ];
 
-function matchesShop(s: DirectoryShop, q: string): boolean {
-  return [s.name, s.phone, s.address_en, s.address_th, s.tax_id, s.company_name_th]
-    .filter(Boolean)
-    .some((v) => (v as string).toLowerCase().includes(q));
-}
-
 export function DirectoryClient({
   initialShops,
   initialSuppliers,
@@ -52,21 +46,26 @@ export function DirectoryClient({
   const [shops, setShops] = useState(initialShops);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [contacts, setContacts] = useState(initialContacts);
-  const [contactsKey, setContactsKey] = useState(0);
   const [tab, setTab] = useState<DirectoryTab>(initialTab);
   const [query, setQuery] = useState(initialQuery);
 
-  const filteredShops = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return shops;
-    return shops.filter((s) => matchesShop(s, q));
-  }, [shops, query]);
+  /* Shops are always alphabetical and never filtered by the searchbar */
+  const sortedShops = useMemo(
+    () => [...shops].sort((a, b) => a.name.localeCompare(b.name)),
+    [shops],
+  );
 
   const supplierById = useMemo(() => {
     const map: Record<string, DirectorySupplier> = {};
     for (const s of suppliers) map[s.id] = s;
     return map;
   }, [suppliers]);
+
+  function switchTab(next: DirectoryTab) {
+    setTab(next);
+    // Switching tabs always clears the search — no stale filter
+    setQuery("");
+  }
 
   async function refreshSuppliers() {
     const res = await fetch("/api/directory/suppliers", { cache: "no-store" });
@@ -79,7 +78,7 @@ export function DirectoryClient({
     const res = await fetch("/api/contacts", { cache: "no-store" });
     if (!res.ok) return;
     const rows = (await res.json()) as {
-      id: string; organization_id: string; name: string; contact_type: Contact["contact_type"];
+      id: string; organization_id: string; name: string; contact_type: string;
       company: string | null; company_name_th: string | null;
       email: string | null; phone: string | null;
       line_id: string | null; preferred_channel: string | null;
@@ -104,8 +103,6 @@ export function DirectoryClient({
         })),
       })),
     );
-    // remount the contacts table so its internal state picks up the refresh
-    setContactsKey((k) => k + 1);
   }
 
   function handleSupplierChanged() {
@@ -115,7 +112,7 @@ export function DirectoryClient({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-      {/* Search only — no page header */}
+      {/* Search only — filters contacts, never shops */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
         <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
           <SearchIcon style={{ position: "absolute", left: 10, width: 14, height: 14, color: "var(--fg-4)", pointerEvents: "none" }} />
@@ -123,12 +120,13 @@ export function DirectoryClient({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search shop, contact, product…"
+            onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
+            placeholder="Search contacts…"
             autoFocus={query.length > 0}
             style={{
               height: 36,
               paddingLeft: 32,
-              paddingRight: "var(--s-3)",
+              paddingRight: query ? 32 : "var(--s-3)",
               borderRadius: "var(--r-sm)",
               border: "1px solid var(--line)",
               background: "var(--surface)",
@@ -138,6 +136,32 @@ export function DirectoryClient({
               outline: "none",
             }}
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              title="Clear search"
+              aria-label="Clear search"
+              style={{
+                position: "absolute",
+                right: 6,
+                width: 24,
+                height: 24,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "var(--r-sm)",
+                border: "none",
+                background: "transparent",
+                color: "var(--fg-4)",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+            >
+              <XIcon size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -146,12 +170,12 @@ export function DirectoryClient({
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.value;
-          const count = t.value === "shops" ? filteredShops.length : contacts.length;
+          const count = t.value === "shops" ? sortedShops.length : contacts.length;
           return (
             <div key={t.value} style={{ display: "inline-flex", alignItems: "center", borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent", marginBottom: -1 }}>
               <button
                 type="button"
-                onClick={() => setTab(t.value)}
+                onClick={() => switchTab(t.value)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6, padding: "0 var(--s-3)", height: 36, fontSize: 13, fontWeight: 500,
                   border: "none", background: "none", cursor: "pointer",
@@ -171,17 +195,17 @@ export function DirectoryClient({
 
       {tab === "shops" ? (
         <ShopTable
-          shops={filteredShops}
+          shops={sortedShops}
           canWrite={canWrite}
           initialExpandId={initialTab === "shops" ? initialSelect || null : null}
           onSaved={(saved) => setShops((prev) => prev.map((s) => (s.id === saved.id ? saved : s)))}
         />
       ) : (
         <ContactsClient
-          key={contactsKey}
           initialContacts={contacts}
           locations={locations}
           canWrite={canWrite}
+          filterQuery={query}
           initialExpandId={initialTab === "contacts" ? initialSelect || null : null}
           renderDossier={(contactId) => {
             const supplier = supplierById[contactId];
