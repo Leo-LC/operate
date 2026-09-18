@@ -90,7 +90,6 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "directory", label: "Directory", href: "/directory", icon: StoreIcon, module: "contacts" },
       { id: "wiki",     label: "Wiki",     href: "/wiki",     icon: BookOpenIcon, module: "wiki" },
       { id: "brand",    label: "Brand",    href: "/brand",    icon: PaletteIcon,  module: "brand" },
-      { id: "contacts", label: "Contacts", href: "/contacts", icon: UsersIcon,    module: "contacts" },
     ],
   },
   {
@@ -197,8 +196,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           d: "/documents",
           c: "/accounting",
           e: "/reports",
-          t: "/contacts",
-          y: "/directory",
+          t: "/directory",
           w: "/wiki",
           b: "/brand",
           m: "/admin",

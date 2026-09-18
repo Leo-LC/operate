@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       id: c.id as string,
       label: c.name as string,
       detail: (c.company as string | null) ?? (c.phone as string | null),
-      tab: "suppliers",
+      tab: "contacts",
     });
   }
   type PRow = {
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
       id: p.contact_id,
       label: p.product_name,
       detail: p.contacts?.name ?? null,
-      tab: "suppliers",
+      tab: "contacts",
     });
   }
   return Response.json({ items: items.slice(0, 15) });

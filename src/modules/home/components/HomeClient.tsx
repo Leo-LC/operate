@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   StarIcon, FileTextIcon, PawPrintIcon, CalculatorIcon,
   CalendarDaysIcon, BarChart2Icon, ShieldIcon, ArrowRightIcon,
-  UsersIcon, BookOpenIcon, AlertTriangleIcon,
+  BookOpenIcon, AlertTriangleIcon, StoreIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { ModuleKey, UserPermissions } from "@/core/permissions/types";
@@ -86,10 +86,10 @@ const ALL_MODULES: ModuleCard[] = [
   },
   {
     key: "contacts",
-    label: "Contacts",
-    description: "Suppliers, partners, and shop contacts with billing and delivery info.",
-    href: "/contacts",
-    icon: UsersIcon,
+    label: "Directory",
+    description: "Shops and suppliers — addresses, tax invoices, products, and last prices.",
+    href: "/directory",
+    icon: StoreIcon,
     accentBg: "oklch(0.60 0.13 30 / 0.15)",
     accentColor: "oklch(0.60 0.13 30)",
   },

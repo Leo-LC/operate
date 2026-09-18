@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { PencilIcon, PhoneIcon, MessageCircleIcon } from "lucide-react";
+import { PencilIcon, PhoneIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,30 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
 };
 
+function ShopField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+      <input
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        style={inputStyle}
+      />
+    </div>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, minWidth: 0 }}>
@@ -37,10 +61,12 @@ export function ShopCard({
   shop,
   canWrite,
   onSaved,
+  highlight,
 }: {
   shop: DirectoryShop;
   canWrite: boolean;
   onSaved: (shop: DirectoryShop) => void;
+  highlight?: boolean;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -49,14 +75,11 @@ export function ShopCard({
   function openEdit() {
     setForm({
       phone: shop.phone ?? "",
-      line_id: shop.line_id ?? "",
       address_en: shop.address_en ?? "",
       address_th: shop.address_th ?? "",
       company_name_th: shop.company_name_th ?? "",
       tax_id: shop.tax_id ?? "",
       branch: shop.branch ?? "",
-      opening_hours: shop.opening_hours ?? "",
-      manager_name: shop.manager_name ?? "",
       notes: shop.notes ?? "",
     });
     setEditOpen(true);
@@ -85,23 +108,30 @@ export function ShopCard({
     }
   }
 
-  function Field({ label, field, placeholder }: { label: string; field: string; placeholder?: string }) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
-        <input
-          value={form[field] ?? ""}
-          placeholder={placeholder}
-          onChange={(e) => setForm((p) => ({ ...p, [field]: e.target.value }))}
-          style={inputStyle}
-        />
-      </div>
-    );
+  function setField(field: string) {
+    return (v: string) => setForm((p) => ({ ...p, [field]: v }));
+  }
+
+  /** Full tax invoice block, copied in one tap */
+  function taxInvoiceText(): string {
+    const lines = [
+      shop.company_name_th,
+      shop.address_th,
+      shop.tax_id ? `Tax ID: ${shop.tax_id}` : null,
+      shop.branch ? `Branch: ${shop.branch}` : null,
+    ].filter(Boolean);
+    return lines.join("\n");
   }
 
   return (
     <>
-      <Card style={{ gap: 10, height: "100%" }}>
+      <Card
+        style={{
+          gap: 10,
+          height: "100%",
+          ...(highlight ? { borderColor: "var(--accent)", boxShadow: "0 0 0 1px var(--accent)" } : {}),
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <strong style={{ fontSize: 15, flex: 1 }}>{shop.name}</strong>
           {canWrite && (
@@ -116,47 +146,36 @@ export function ShopCard({
           )}
         </div>
 
-        {(shop.phone || shop.line_id) && (
+        {shop.phone && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {shop.phone && (
-              <a href={`tel:${shop.phone}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--fg)", textDecoration: "none" }}>
-                <PhoneIcon size={13} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
-                <span style={{ flex: 1 }}>{shop.phone}</span>
-                <CopyButton value={shop.phone} label="Phone" />
-              </a>
-            )}
-            {shop.line_id && <Row label="Line" value={shop.line_id} />}
+            <a href={`tel:${shop.phone}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--fg)", textDecoration: "none" }}>
+              <PhoneIcon size={13} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>{shop.phone}</span>
+              <CopyButton value={shop.phone} label="Phone" />
+            </a>
           </div>
         )}
 
         {(shop.address_en || shop.address_th) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6, borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-            {shop.address_en && <Row label="Address" value={shop.address_en} />}
-            {shop.address_th && (
-              <div style={{ fontSize: 12, color: "var(--fg-3)", display: "flex", gap: 6 }}>
-                <span style={{ flex: 1 }}>{shop.address_th}</span>
-                <CopyButton value={shop.address_th} label="Thai address" />
-              </div>
-            )}
+            <span className="eyebrow" style={{ color: "var(--fg-4)" }}>Address</span>
+            {shop.address_en && <Row label="EN" value={shop.address_en} />}
+            {shop.address_th && <Row label="TH" value={shop.address_th} />}
           </div>
         )}
 
         {(shop.company_name_th || shop.tax_id || shop.branch) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6, borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-            <span className="eyebrow" style={{ color: "var(--fg-4)" }}>Tax invoice</span>
-            {shop.company_name_th && <Row label="Company" value={shop.company_name_th} />}
-            {shop.tax_id && <Row label="Tax ID" value={shop.tax_id} />}
-            {shop.branch && <Row label="Branch" value={shop.branch} />}
-          </div>
-        )}
-
-        {(shop.opening_hours || shop.manager_name) && (
-          <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--fg-3)", borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-            {shop.opening_hours && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>🕒 {shop.opening_hours}</span>
-            )}
-            {shop.manager_name && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>👤 {shop.manager_name}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="eyebrow" style={{ color: "var(--fg-4)", flex: 1 }}>Tax invoice</span>
+              <CopyButton value={taxInvoiceText()} label="Full tax invoice" />
+            </div>
+            {shop.company_name_th && <div style={{ fontSize: 12.5, color: "var(--fg)" }}>{shop.company_name_th}</div>}
+            {shop.address_th && <div style={{ fontSize: 12, color: "var(--fg-3)" }}>{shop.address_th}</div>}
+            {(shop.tax_id || shop.branch) && (
+              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>
+                {[shop.tax_id ? `Tax ID: ${shop.tax_id}` : null, shop.branch ? `Branch: ${shop.branch}` : null].filter(Boolean).join(" · ")}
+              </div>
             )}
           </div>
         )}
@@ -181,26 +200,16 @@ export function ShopCard({
         }
       >
         <form id="shop-form" onSubmit={(e) => void save(e)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
-            <Field label="Phone" field="phone" placeholder="+66 …" />
-            <Field label="Line ID" field="line_id" placeholder="@shop…" />
-          </div>
-          <Field label="Address (EN)" field="address_en" placeholder="Street address" />
+          <ShopField label="Phone" value={form.phone ?? ""} placeholder="+66 …" onChange={setField("phone")} />
+          <ShopField label="Address (EN)" value={form.address_en ?? ""} placeholder="Street address" onChange={setField("address_en")} />
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Address (TH)</label>
             <textarea value={form.address_th ?? ""} rows={2} onChange={(e) => setForm((p) => ({ ...p, address_th: e.target.value }))} style={{ ...inputStyle, height: "auto", padding: "var(--s-2) var(--s-3)", resize: "none", fontFamily: "var(--font-sans)" }} />
           </div>
-          <Field label="Company name (TH) — tax invoice" field="company_name_th" placeholder="บริษัท … จำกัด" />
+          <ShopField label="Company name (TH) — tax invoice" value={form.company_name_th ?? ""} placeholder="บริษัท … จำกัด" onChange={setField("company_name_th")} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
-            <Field label="Tax ID" field="tax_id" placeholder="0000000000000" />
-            <Field label="Branch" field="branch" placeholder="Head Office" />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
-            <Field label="Opening hours" field="opening_hours" placeholder="9:00 – 22:00" />
-            <Field label="Manager" field="manager_name" placeholder="Name" />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--fg-4)" }}>
-            <MessageCircleIcon size={12} /> Tip: keep Line ID without extra spaces so staff can copy-paste it.
+            <ShopField label="Tax ID" value={form.tax_id ?? ""} placeholder="0000000000000" onChange={setField("tax_id")} />
+            <ShopField label="Branch" value={form.branch ?? ""} placeholder="Head Office" onChange={setField("branch")} />
           </div>
         </form>
       </Drawer>

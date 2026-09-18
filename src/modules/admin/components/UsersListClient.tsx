@@ -23,7 +23,7 @@ const ALL_MODULES = [
   { key: "schedules", label: "Scheduling" },
   { key: "accounting", label: "Accounting" },
   { key: "reports", label: "Reports" },
-  { key: "contacts", label: "Contacts" },
+  { key: "contacts", label: "Directory" },
   { key: "attendance", label: "Attendance" },
   { key: "payments", label: "Payments" },
   { key: "challenges", label: "Challenges" },

@@ -64,7 +64,7 @@ export interface DirectorySupplier {
   lastOrderedAt: string | null;
 }
 
-export type DirectoryTab = "shops" | "suppliers";
+export type DirectoryTab = "shops" | "contacts";
 
 export interface DirectorySearchItem {
   kind: "shop" | "supplier" | "product";

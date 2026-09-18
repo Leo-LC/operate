@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Trash2Icon } from "lucide-react";
+import { Trash2Icon, PencilIcon } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
@@ -47,6 +47,9 @@ export function SupplierDrawer({
   const [orderQty, setOrderQty] = useState("");
   const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [infoForm, setInfoForm] = useState<Record<string, string>>({});
+  const [savingInfo, setSavingInfo] = useState(false);
 
   useEffect(() => {
     if (!supplier) return;
@@ -56,6 +59,7 @@ export function SupplierDrawer({
     setOrderProduct(supplier.products[0]?.product_name ?? "");
     setOrderPrice("");
     setOrderQty("");
+    setEditingInfo(false);
     setLoading(true);
     fetch(`/api/supplier-orders/${supplier.id}`, { cache: "no-store" })
       .then((r) => r.json())
@@ -153,9 +157,116 @@ export function SupplierDrawer({
   }
 
   const s = supplier;
+
+  function openInfoEdit() {
+    setInfoForm({
+      name: s.name,
+      company: s.company ?? "",
+      phone: s.phone ?? "",
+      line_id: s.line_id ?? "",
+      email: s.email ?? "",
+      preferred_channel: s.preferred_channel ?? "",
+      payment_terms: s.payment_terms ?? "",
+      lead_time_days: s.lead_time_days !== null ? String(s.lead_time_days) : "",
+      address: s.address ?? "",
+      address_th: s.address_th ?? "",
+      company_name_th: s.company_name_th ?? "",
+      tax_id: s.tax_id ?? "",
+      branch: s.branch ?? "",
+      notes: s.notes ?? "",
+    });
+    setEditingInfo(true);
+  }
+
+  async function saveInfo() {
+    if (!infoForm.name?.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    setSavingInfo(true);
+    try {
+      const payload: Record<string, string | number | null> = {};
+      for (const [k, v] of Object.entries(infoForm)) {
+        payload[k] = v.trim() === "" ? null : v.trim();
+      }
+      if (payload.email && typeof payload.email === "string") payload.email = payload.email.toLowerCase();
+      payload.lead_time_days =
+        infoForm.lead_time_days.trim() !== "" && Number.isFinite(Number(infoForm.lead_time_days))
+          ? Number(infoForm.lead_time_days)
+          : null;
+      const res = await fetch(`/api/contacts/${s.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Failed to save");
+        return;
+      }
+      setEditingInfo(false);
+      toast.success("Supplier updated");
+      onChanged();
+    } finally {
+      setSavingInfo(false);
+    }
+  }
+
+  function InfoInput({ label, field, placeholder }: { label: string; field: string; placeholder?: string }) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</label>
+        <input
+          value={infoForm[field] ?? ""}
+          placeholder={placeholder}
+          onChange={(e) => setInfoForm((p) => ({ ...p, [field]: e.target.value }))}
+          style={inputStyle}
+        />
+      </div>
+    );
+  }
+
   return (
     <Drawer open onClose={onClose} title={s.name} description={s.company ?? "Supplier"} width={560}>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+        {canWrite && !editingInfo && (
+          <div>
+            <Button size="sm" variant="secondary" onClick={openInfoEdit} style={{ gap: 6 }}>
+              <PencilIcon size={13} />Edit info
+            </Button>
+          </div>
+        )}
+        {editingInfo ? (
+          <section>
+            <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: 8 }}>Edit info</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <InfoInput label="Name *" field="name" />
+              <InfoInput label="Company (EN)" field="company" />
+              <InfoInput label="Phone" field="phone" placeholder="+66 …" />
+              <InfoInput label="Line ID" field="line_id" placeholder="@supplier…" />
+              <InfoInput label="Email" field="email" />
+              <InfoInput label="Preferred channel" field="preferred_channel" placeholder="Line / Phone / Email" />
+              <InfoInput label="Payment terms" field="payment_terms" placeholder="Cash / 30 days…" />
+              <InfoInput label="Lead time (days)" field="lead_time_days" placeholder="3" />
+              <div style={{ gridColumn: "span 2" }}>
+                <InfoInput label="Address" field="address" />
+              </div>
+              <div style={{ gridColumn: "span 2" }}>
+                <InfoInput label="Company name (TH)" field="company_name_th" placeholder="บริษัท … จำกัด" />
+              </div>
+              <InfoInput label="Tax ID" field="tax_id" />
+              <InfoInput label="Branch" field="branch" />
+              <div style={{ gridColumn: "span 2" }}>
+                <InfoInput label="Address (TH)" field="address_th" />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <Button size="sm" variant="secondary" onClick={() => setEditingInfo(false)} disabled={savingInfo}>Cancel</Button>
+              <Button size="sm" onClick={() => void saveInfo()} disabled={savingInfo}>{savingInfo ? "Saving…" : "Save"}</Button>
+            </div>
+          </section>
+        ) : (
+        <>
         {/* Contact */}
         <section>
           <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: 8 }}>Contact</p>
@@ -283,6 +394,8 @@ export function SupplierDrawer({
             <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: 8 }}>Notes</p>
             <p style={{ fontSize: 13, color: "var(--fg-3)", margin: 0, whiteSpace: "pre-wrap" }}>{s.notes}</p>
           </section>
+        )}
+        </>
         )}
       </div>
     </Drawer>

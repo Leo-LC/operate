@@ -6,6 +6,6 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    "/(home|reviews|scheduling|attendance|payments|animals|documents|accounting|reports|contacts|wiki|brand|admin)(.*)",
+    "/(home|reviews|scheduling|attendance|payments|animals|documents|accounting|reports|directory|wiki|brand|admin)(.*)",
   ],
 };

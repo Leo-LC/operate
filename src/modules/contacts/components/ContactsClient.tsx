@@ -4,17 +4,26 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Pill } from "@/components/ui/pill";
-import { PageHeader } from "@/components/ui/page-header";
-import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, Trash2Icon, SearchIcon, FolderOpenIcon } from "lucide-react";
 import type { Contact, ContactType } from "@/modules/contacts/types";
 import { CONTACT_TYPES, CONTACT_TYPE_LABELS } from "@/modules/contacts/types";
+import { CONTACT_TYPE_FIELDS } from "@/modules/contacts/contact-type-fields";
 
 interface LocationOption { id: string; name: string }
+
+export interface ProviderMeta {
+  products: { id: string; product_name: string; unit: string | null }[];
+  lastOrderedAt: string | null;
+}
 
 interface Props {
   initialContacts: Contact[];
   locations: LocationOption[];
   canWrite: boolean;
+  /** Extra supplier info (products, last order) shown on provider rows */
+  providerMeta?: Record<string, ProviderMeta>;
+  /** Open the supplier dossier (products + price history) for a provider */
+  onOpenProvider?: (id: string) => void;
 }
 
 type FormState = {
@@ -65,7 +74,7 @@ const TYPE_TONE: Record<ContactType, PillTone> = {
   other:       "neutral",
 };
 
-export function ContactsClient({ initialContacts, locations, canWrite }: Props) {
+export function ContactsClient({ initialContacts, locations, canWrite, providerMeta, onOpenProvider }: Props) {
   const [contacts, setContacts] = useState(initialContacts);
   const [typeFilter, setTypeFilter] = useState<ContactType | "">("");
   const [search, setSearch] = useState("");
@@ -201,47 +210,45 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <PageHeader
-        title="Contacts"
-        subtitle={`${filtered.length} of ${contacts.length} contacts`}
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            {/* Search */}
-            <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-              <SearchIcon style={{ position: "absolute", left: 8, width: 13, height: 13, color: "var(--fg-4)", pointerEvents: "none" }} />
-              <input
-                type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, company…"
-                style={{
-                  height: 34, paddingLeft: 28, paddingRight: "var(--s-3)",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-                  background: "var(--surface)", color: "var(--fg)",
-                  fontSize: 13, width: 220, outline: "none",
-                }}
-              />
-            </div>
-            {/* Type filter */}
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as ContactType | "")}
-              style={{
-                height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-                background: "var(--surface)", color: "var(--fg)",
-                padding: "0 var(--s-3)", fontSize: 13, outline: "none",
-              }}
-            >
-              <option value="">All types</option>
-              {CONTACT_TYPES.map((t) => <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>)}
-            </select>
-            {canWrite && (
-              <Button size="sm" onClick={openAdd} style={{ gap: 6 }}>
-                <PlusIcon size={13} />Add contact
-              </Button>
-            )}
-          </div>
-        }
-      />
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+      {/* Toolbar (no page header — lives inside the Directory tab) */}
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "var(--fg-4)", marginRight: "auto" }}>
+          {filtered.length} of {contacts.length} contacts
+        </span>
+        {/* Search */}
+        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+          <SearchIcon style={{ position: "absolute", left: 8, width: 13, height: 13, color: "var(--fg-4)", pointerEvents: "none" }} />
+          <input
+            type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, company…"
+            style={{
+              height: 34, paddingLeft: 28, paddingRight: "var(--s-3)",
+              borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+              background: "var(--surface)", color: "var(--fg)",
+              fontSize: 13, width: 220, outline: "none",
+            }}
+          />
+        </div>
+        {/* Type filter */}
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as ContactType | "")}
+          style={{
+            height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+            background: "var(--surface)", color: "var(--fg)",
+            padding: "0 var(--s-3)", fontSize: 13, outline: "none",
+          }}
+        >
+          <option value="">All types</option>
+          {CONTACT_TYPES.map((t) => <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>)}
+        </select>
+        {canWrite && (
+          <Button size="sm" onClick={openAdd} style={{ gap: 6 }}>
+            <PlusIcon size={13} />Add contact
+          </Button>
+        )}
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
@@ -251,10 +258,9 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--line)", background: "transparent" }}>
-                {["Name", "Type", "Company", "Contact", "Locations", canWrite ? "" : null]
-                  .filter(Boolean)
-                  .map((h) => (
-                    <th key={String(h)}
+                {["Name", "Type", "Company", "Contact", "Locations", ""]
+                  .map((h, i) => (
+                    <th key={i}
                       style={{
                         padding: "10px 16px", textAlign: "left", fontSize: 11,
                         fontWeight: 500, color: "var(--fg-4)",
@@ -274,7 +280,19 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)" }}>{c.name}</td>
+                  <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)" }}>
+                    <div>{c.name}</div>
+                    {c.contact_type === "provider" && providerMeta?.[c.id] && providerMeta[c.id].products.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                        {providerMeta[c.id].products.slice(0, 3).map((p) => (
+                          <Pill key={p.id} tone="neutral" size="sm">{p.product_name}</Pill>
+                        ))}
+                        {providerMeta[c.id].products.length > 3 && (
+                          <Pill tone="outline" size="sm">+{providerMeta[c.id].products.length - 3}</Pill>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td style={{ padding: "10px 16px" }}>
                     <Pill tone={TYPE_TONE[c.contact_type]} size="sm">{CONTACT_TYPE_LABELS[c.contact_type]}</Pill>
                   </td>
@@ -295,9 +313,23 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
                       ? c.contact_locations.map((cl) => cl.location_name).join(", ")
                       : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </td>
-                  {canWrite && (
-                    <td style={{ padding: "10px 16px", textAlign: "right" }}>
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
+                  <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
+                      {c.contact_type === "provider" && onOpenProvider && (
+                        <button
+                          style={{
+                            width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            borderRadius: "var(--r-sm)", border: "none", background: "transparent",
+                            color: "var(--fg-4)", cursor: "pointer",
+                          }}
+                          onClick={() => onOpenProvider(c.id)} title="Supplier dossier — products & prices"
+                          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bronze)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+                        >
+                          <FolderOpenIcon style={{ width: 13, height: 13 }} />
+                        </button>
+                      )}
+                      {canWrite && (
                         <button
                           style={{
                             width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -310,6 +342,8 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
                         >
                           <PencilIcon style={{ width: 13, height: 13 }} />
                         </button>
+                      )}
+                      {canWrite && (
                         <button
                           style={{
                             width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -322,9 +356,9 @@ export function ContactsClient({ initialContacts, locations, canWrite }: Props) 
                         >
                           <Trash2Icon style={{ width: 13, height: 13 }} />
                         </button>
-                      </div>
-                    </td>
-                  )}
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -391,6 +425,23 @@ const inputStyle: React.CSSProperties = {
   fontSize: 13, color: "var(--fg)", outline: "none", width: "100%",
 };
 
+function ContactField({
+  label, value, type = "text", placeholder, required, onChange,
+}: {
+  label: string; value: string; type?: string; placeholder?: string; required?: boolean;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <label className="eyebrow" style={{ color: "var(--fg-4)" }}>
+        {label}{required && <span style={{ color: "var(--bad)", marginLeft: 2 }}>*</span>}
+      </label>
+      <input type={type} required={required} value={value} placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)} style={inputStyle} />
+    </div>
+  );
+}
+
 function ContactForm({
   form, locIds, locations, onChange, onToggleLoc, onSubmit,
 }: {
@@ -399,25 +450,18 @@ function ContactForm({
   onToggleLoc: (id: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }) {
-  function Field({ label, field, type = "text", placeholder, required }: { label: string; field: keyof FormState; type?: string; placeholder?: string; required?: boolean }) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <label className="eyebrow" style={{ color: "var(--fg-4)" }}>
-          {label}{required && <span style={{ color: "var(--bad)", marginLeft: 2 }}>*</span>}
-        </label>
-        <input type={type} required={required} value={String(form[field])} placeholder={placeholder}
-          onChange={(e) => onChange(field, e.target.value)} style={inputStyle} />
-      </div>
-    );
-  }
+  // Fields adapt to the contact type: a bank doesn't need purchasing info, etc.
+  const cfg = CONTACT_TYPE_FIELDS[form.contact_type || "other"];
+  const set = (field: keyof FormState) => (v: string) => onChange(field, v);
 
   return (
     <form id="contact-form" onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>{cfg.hint}</p>
       {/* Identity */}
       <div>
         <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Identity</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
-          <Field label="Name" field="name" placeholder="Full name" required />
+          <ContactField label="Name" value={form.name} placeholder="Full name" required onChange={set("name")} />
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Type <span style={{ color: "var(--bad)" }}>*</span></label>
             <select required value={form.contact_type} onChange={(e) => onChange("contact_type", e.target.value)} style={inputStyle}>
@@ -425,7 +469,7 @@ function ContactForm({
               {CONTACT_TYPES.map((t) => <option key={t} value={t}>{CONTACT_TYPE_LABELS[t]}</option>)}
             </select>
           </div>
-          <Field label="Company (EN)" field="company" placeholder="Company name" />
+          <ContactField label="Company (EN)" value={form.company} placeholder="Company name" onChange={set("company")} />
         </div>
       </div>
 
@@ -433,27 +477,36 @@ function ContactForm({
       <div>
         <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Contact details</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
-          <Field label="Email" field="email" type="email" placeholder="contact@example.com" />
-          <Field label="Phone" field="phone" placeholder="+66 xx xxx xxxx" />
-          <Field label="Line ID" field="line_id" placeholder="@supplier…" />
-          <Field label="Preferred channel" field="preferred_channel" placeholder="Line / Phone / Email" />
+          <ContactField label="Email" value={form.email} type="email" placeholder="contact@example.com" onChange={set("email")} />
+          <ContactField label="Phone" value={form.phone} placeholder="+66 xx xxx xxxx" onChange={set("phone")} />
+          {cfg.directChannel && (
+            <>
+              <ContactField label="Line ID" value={form.line_id} placeholder="@supplier…" onChange={set("line_id")} />
+              <ContactField label="Preferred channel" value={form.preferred_channel} placeholder="Line / Phone / Email" onChange={set("preferred_channel")} />
+            </>
+          )}
           <div style={{ gridColumn: "span 2" }}>
-            <Field label="Address" field="address" placeholder="Street address" />
+            <ContactField label="Address" value={form.address} placeholder="Street address" onChange={set("address")} />
           </div>
         </div>
       </div>
 
       {/* Business info */}
+      {cfg.business && (
       <div>
         <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Business info</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div style={{ gridColumn: "span 2" }}>
-            <Field label="Company name (TH)" field="company_name_th" placeholder="บริษัท … จำกัด" />
+            <ContactField label="Company name (TH)" value={form.company_name_th} placeholder="บริษัท … จำกัด" onChange={set("company_name_th")} />
           </div>
-          <Field label="Tax ID" field="tax_id" placeholder="0000000000000" />
-          <Field label="Branch" field="branch" placeholder="Head Office" />
-          <Field label="Payment terms" field="payment_terms" placeholder="Cash / 30 days…" />
-          <Field label="Lead time (days)" field="lead_time_days" placeholder="3" />
+          <ContactField label="Tax ID" value={form.tax_id} placeholder="0000000000000" onChange={set("tax_id")} />
+          <ContactField label="Branch" value={form.branch} placeholder="Head Office" onChange={set("branch")} />
+          {cfg.purchasing && (
+            <>
+              <ContactField label="Payment terms" value={form.payment_terms} placeholder="Cash / 30 days…" onChange={set("payment_terms")} />
+              <ContactField label="Lead time (days)" value={form.lead_time_days} placeholder="3" onChange={set("lead_time_days")} />
+            </>
+          )}
           <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 4 }}>
             <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Address (TH)</label>
             <textarea
@@ -465,9 +518,10 @@ function ContactForm({
           </div>
         </div>
       </div>
+      )}
 
       {/* Location tags */}
-      {locations.length > 0 && (
+      {cfg.locations && locations.length > 0 && (
         <div>
           <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Linked locations</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)" }}>

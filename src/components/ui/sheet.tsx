@@ -43,6 +43,7 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  style,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
@@ -85,6 +86,7 @@ function SheetContent({
           boxShadow: "var(--shadow-drawer)",
           transitionDuration: "var(--dur-2)",
           transitionTimingFunction: "var(--ease)",
+          ...style,
         }}
         {...props}
       >

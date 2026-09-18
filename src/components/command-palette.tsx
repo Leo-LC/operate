@@ -25,7 +25,6 @@ const NAV_ITEMS = [
   { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
   { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
   { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
-  { id: "contacts",   label: "Contacts",   href: "/contacts",   icon: UsersIcon,        module: "contacts" },
   { id: "directory",  label: "Directory",  href: "/directory",  icon: StoreIcon,        module: "contacts" },
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
