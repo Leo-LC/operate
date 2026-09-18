@@ -43,6 +43,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const [dirResults, setDirResults] = useState<DirectorySearchItem[]>([]);
+  const [docResults, setDocResults] = useState<{ id: string; title: string; code: string | null; location_name: string | null }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,17 +51,19 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
       setQuery("");
       setSelected(0);
       setDirResults([]);
+      setDocResults([]);
       const t = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
   }, [open]);
 
-  /* Live directory search (shops, suppliers, products) for queries ≥ 2 chars */
+  /* Live directory + documents search for queries ≥ 2 chars */
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
     if (q.length < 2) {
       setDirResults([]);
+      setDocResults([]);
       return;
     }
     const t = setTimeout(() => {
@@ -68,6 +71,10 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
         .then((r) => (r.ok ? r.json() : { items: [] }))
         .then((j) => setDirResults((j as { items: DirectorySearchItem[] }).items ?? []))
         .catch(() => setDirResults([]));
+      fetch(`/api/documents/search?q=${encodeURIComponent(q)}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : { items: [] }))
+        .then((j) => setDocResults((j as { items: { id: string; title: string; code: string | null; location_name: string | null }[] }).items ?? []))
+        .catch(() => setDocResults([]));
     }, 250);
     return () => clearTimeout(t);
   }, [query, open]);
@@ -102,6 +109,17 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
           href: `/directory?tab=${d.tab}&q=${encodeURIComponent(query.trim())}&select=${encodeURIComponent(d.id)}`,
         }))
       : [];
+    const canSearchDocuments = hasModuleAccess(permissions, "documents");
+    const docs = canSearchDocuments
+      ? docResults.map((d) => ({
+          kind: "document" as const,
+          id: `doc-${d.id}`,
+          label: d.location_name ? `${d.title} · ${d.location_name}` : d.title,
+          hint: "Document",
+          icon: FileTextIcon,
+          href: `/documents?q=${encodeURIComponent(query.trim())}&select=${encodeURIComponent(d.id)}`,
+        }))
+      : [];
     if (!query) return nav;
     const lc = query.toLowerCase();
     const filteredNav = nav.filter(
@@ -109,8 +127,8 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
         x.label.toLowerCase().includes(lc) ||
         x.hint.toLowerCase().includes(lc),
     );
-    return [...filteredNav, ...dir];
-  }, [query, permissions, dirResults]);
+    return [...filteredNav, ...dir, ...docs];
+  }, [query, permissions, dirResults, docResults]);
 
   useEffect(() => {
     setSelected((s) => Math.min(s, Math.max(0, items.length - 1)));
