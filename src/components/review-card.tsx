@@ -193,11 +193,12 @@ export function ReviewCard({
             {text ? (
               <div className="mt-1">
                 <p
-                  className="text-muted-foreground text-sm transition-[max-height] duration-300 ease-out"
-                  style={{
-                    maxHeight: isLong && !expanded ? "8.5em" : "2000px",
-                    overflow: "hidden",
-                  }}
+                  className="text-muted-foreground text-sm"
+                  style={
+                    isLong && !expanded
+                      ? { maxHeight: "8.5em", overflow: "hidden" }
+                      : undefined
+                  }
                 >
                   {expanded ? text : text.slice(0, TRUNCATE_LEN)}
                   {isLong && !expanded && "…"}

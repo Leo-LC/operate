@@ -109,7 +109,15 @@ export function ReviewListVirtual({
                   onReplySent={onReplySent}
                   variant={getVariant ? getVariant(r) : variant}
                   position={virtualRow.index + 1}
-                  total={reviews.length}
+                   total={reviews.length}
+                  onExpandChange={() => {
+                    // The expanded card changes height: force the virtualizer
+                    // to re-measure after paint so following rows are pushed
+                    // down instead of being overlapped.
+                    requestAnimationFrame(() => {
+                      virtualizer.measure();
+                    });
+                  }}
                   categoryId={getCategory?.(r.reviewId)}
                   onCategoryChange={
                     onCategoryChange
