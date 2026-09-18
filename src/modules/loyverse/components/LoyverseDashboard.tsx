@@ -214,7 +214,7 @@ function ShopPills({
   );
 }
 
-function HourlyBarChart({ data }: { data: { hour: number; revenue: number; count: number }[] }) {
+function HourlyBarChart({ data, avgMode = false }: { data: { hour: number; revenue: number; count: number }[]; avgMode?: boolean }) {
   const filtered = data.filter((d) => d.hour >= 9 && d.hour <= 21);
   const display = filtered.length ? filtered : data;
   const chartData = display.map((d) => ({ hour: `${d.hour}h`, revenue: d.revenue, count: d.count }));
@@ -233,8 +233,12 @@ function HourlyBarChart({ data }: { data: { hour: number; revenue: number; count
               return (
                 <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
                   <div className="text-xs font-medium text-[var(--fg)]">{p.hour}</div>
-                  <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">{fmtTHB(p.revenue)}</div>
-                  <div className="text-[11px] text-[var(--fg-4)]">{p.count} receipts</div>
+                  <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">
+                    {fmtTHB(p.revenue)}{avgMode ? " / jour" : ""}
+                  </div>
+                  <div className="text-[11px] text-[var(--fg-4)]">
+                    {avgMode ? `${p.count.toFixed(1)} tickets / jour` : `${p.count} receipts`}
+                  </div>
                 </div>
               );
             }}
@@ -305,6 +309,11 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const [hourlyData, setHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
   const [hourlyLoading, setHourlyLoading] = React.useState(false);
+  // Multi-jours : switch Par jour / Par heure + mode Moyenne (journée type) / Total (cumulé)
+  const [chartView, setChartView] = React.useState<"day" | "hour">("day");
+  const [hourlyMode, setHourlyMode] = React.useState<"avg" | "total">("avg");
+  const [rangeHourlyData, setRangeHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
+  const [rangeHourlyLoading, setRangeHourlyLoading] = React.useState(false);
 
   const fetchDashboard = React.useCallback(async (endStr: string, days: number) => {
     setLoading(true);
@@ -378,6 +387,51 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       })
       .finally(() => setHourlyLoading(false));
   }, [effectiveEnd, rangeDays, selectedStores, data]);
+
+  // Multi-jours, vue Par heure : 1 appel / shop sur toute la période (from/to),
+  // cumulé côté API. La moyenne = cumulé / nb jours (journée type).
+  React.useEffect(() => {
+    if (rangeDays <= 1 || chartView !== "hour" || !data?.per_store.length) {
+      setRangeHourlyData(null);
+      return;
+    }
+    const allStoresRaw = data.per_store;
+    const storesToFetch = selectedStores.length === 0 ? allStoresRaw : allStoresRaw.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
+    if (storesToFetch.length === 0) {
+      setRangeHourlyData(null);
+      return;
+    }
+    setRangeHourlyLoading(true);
+    Promise.all(
+      storesToFetch.map((store) =>
+        fetch(`/api/loyverse/hourly?from=${dateRange.from}&to=${dateRange.to}&store_id=${store.store_id}&account_key=${store.account_key}`, { cache: "no-store" })
+          .then((r) => r.json())
+          .then((j) => (j.hourly as { hour: number; revenue: number; count: number }[] | undefined) ?? [])
+          .catch(() => [] as { hour: number; revenue: number; count: number }[])
+      )
+    )
+      .then((results) => {
+        const merged = new Map<number, { revenue: number; count: number }>();
+        for (let h = 9; h <= 21; h++) merged.set(h, { revenue: 0, count: 0 });
+        for (const arr of results) {
+          for (const entry of arr) {
+            const cur = merged.get(entry.hour);
+            if (cur) {
+              cur.revenue += entry.revenue;
+              cur.count += entry.count;
+            } else {
+              merged.set(entry.hour, { revenue: entry.revenue, count: entry.count });
+            }
+          }
+        }
+        setRangeHourlyData(
+          Array.from(merged.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([hour, v]) => ({ hour, revenue: v.revenue, count: v.count }))
+        );
+      })
+      .finally(() => setRangeHourlyLoading(false));
+  }, [chartView, dateRange.from, dateRange.to, rangeDays, selectedStores, data]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -635,10 +689,52 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       {!loading && rangeDays > 1 && (
         <Card className="outline-none focus:outline-none focus-visible:outline-none [&:focus]:outline-none" tabIndex={-1} style={{ outline: "none" }}>
           <CardHeader>
-            <CardTitle>Revenue per day — {rangeDays}d</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle>
+                {chartView === "day" ? `Revenue per day — ${rangeDays}d` : `Revenue per hour — ${rangeDays}d`}
+              </CardTitle>
+              <div className="ml-auto flex items-center gap-1 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-1">
+                <PillButton active={chartView === "day"} onClick={() => setChartView("day")} className="!py-1">
+                  Par jour
+                </PillButton>
+                <PillButton active={chartView === "hour"} onClick={() => setChartView("hour")} className="!py-1">
+                  Par heure
+                </PillButton>
+              </div>
+            </div>
+            {chartView === "hour" && (
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <PillButton active={hourlyMode === "avg"} onClick={() => setHourlyMode("avg")} className="!py-1">
+                  Moyenne / jour
+                </PillButton>
+                <PillButton active={hourlyMode === "total"} onClick={() => setHourlyMode("total")} className="!py-1">
+                  Total période
+                </PillButton>
+                <span className="text-[11px] text-[var(--fg-4)]">
+                  {hourlyMode === "avg"
+                    ? "Journée type : cumulé ÷ nb jours — idéal pour staffing / horaires."
+                    : "Cumulé sur toute la période — grandit avec la durée sélectionnée."}
+                </span>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            <DailyBarChart data={dailyChartData} onSelectDate={(d) => setDateRange({ from: d, to: d })} />
+            {chartView === "day" ? (
+              <DailyBarChart data={dailyChartData} onSelectDate={(d) => setDateRange({ from: d, to: d })} />
+            ) : rangeHourlyLoading ? (
+              <div className="h-[220px] animate-pulse rounded bg-[var(--line-2)]" />
+            ) : rangeHourlyData && rangeHourlyData.some((h) => h.revenue > 0) ? (
+              <HourlyBarChart
+                data={
+                  hourlyMode === "avg"
+                    ? rangeHourlyData.map((h) => ({ hour: h.hour, revenue: h.revenue / rangeDays, count: h.count / rangeDays }))
+                    : rangeHourlyData
+                }
+                avgMode={hourlyMode === "avg"}
+              />
+            ) : (
+              <div className="py-8 text-center text-sm text-[var(--fg-4)]">No hourly data</div>
+            )}
           </CardContent>
         </Card>
       )}
