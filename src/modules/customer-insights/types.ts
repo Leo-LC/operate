@@ -65,6 +65,6 @@ export const CANONICAL_SHOPS = [
   "Silom",
   "Pattaya",
   "Chiang Mai",
-  "Phuket",
   "Laguna",
+  "Karon",
 ] as const;

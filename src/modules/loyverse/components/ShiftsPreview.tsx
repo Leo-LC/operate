@@ -885,7 +885,7 @@ function ChallengesPreviewCard({ month }: { month: string }) {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <TagIcon className="size-4 text-[var(--bronze)]" /> Challenges — pré-remplissage {month}
-          <span className="ml-auto text-xs font-normal text-[var(--fg-4)]">entrées = TICKETS · snacks = SNACKS (Samui A ENTRY inclus)</span>
+          <span className="ml-auto text-xs font-normal text-[var(--fg-4)]">entrées = TICKETS · snacks = SNACKS / Animal food (Samui A ENTRY inclus)</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">

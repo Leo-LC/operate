@@ -113,8 +113,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
     supabase
       .from("locations")
       .select("id, name, external_id")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .not("external_id", "is", null),
+      .eq("organization_id", DEFAULT_ORG_ID),
     loadRevenueThresholdOverrides(),
   ]);
 

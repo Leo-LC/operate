@@ -10,7 +10,7 @@ import type { SyncAllResult, SyncPerAccountResult, SyncPerStoreResult } from "..
 
 export type LoyverseShiftRaw = Record<string, unknown> & { id: string; store_id?: string };
 
-// Samui temporary POS fix — snacks = "A Snacks" in Drinks, entries = "A ENTRY adult/child"
+// Samui temporary POS fix — snacks = "A Snacks" (legacy) / "Animal food" (since Sept 2026) in Drinks, entries = "A ENTRY adult/child"
 let samuiLocationIdsCache: Set<string> | null = null;
 let samuiCacheAt = 0;
 const SAMUI_CACHE_TTL_MS = 60_000;

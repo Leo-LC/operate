@@ -7,10 +7,19 @@ import type {
   WeeklyScheduleShift,
 } from "@/lib/scheduling/types";
 
+/**
+ * Shop list for scheduling — sourced from `locations` (the canonical shop
+ * registry, edited in Admin → Shops), not a parallel `branches` table.
+ * `code` falls back to the slug-derived code so older rows stay compatible.
+ */
 export async function listBranches(): Promise<Branch[]> {
   const supabase = getSupabaseServerClient();
-  const { data } = await supabase.from("branches").select("*").order("name");
-  return (data ?? []).map((r) => ({ id: r.id, name: r.name, code: r.code }));
+  const { data } = await supabase
+    .from("locations")
+    .select("id, name, slug")
+    .eq("is_active", true)
+    .order("name");
+  return (data ?? []).map((r) => ({ id: r.id, name: r.name, code: r.slug as string }));
 }
 
 export async function listEmployees(): Promise<Employee[]> {

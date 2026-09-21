@@ -37,9 +37,15 @@ const SHOP_ALIASES: Record<string, ShopName> = {
   "phuket laguna": "Laguna",
   "laguna phuket": "Laguna",
   "phuket-laguna": "Laguna",
-  phuket: "Phuket",
-  "phuket town": "Phuket",
-  "phuket old town": "Phuket",
+  // Legacy: bare "Phuket" predates Karon and always meant Laguna.
+  // The new Phuket shop is Karon — use the explicit name going forward.
+  phuket: "Laguna",
+  "phuket town": "Laguna",
+  "phuket old town": "Laguna",
+  karon: "Karon",
+  "karon beach": "Karon",
+  "karon phuket": "Karon",
+  "phuket karon": "Karon",
 };
 
 /** Longest names first so "Chiang Mai" wins over partial matches. */
@@ -70,12 +76,15 @@ export function normalizeShop(raw: string): NormalizedField {
     }
   }
 
-  // "Phuket" in longer strings — prefer Laguna only when laguna is mentioned
+  // Explicit Karon wins; bare "Phuket" is legacy Laguna (see SHOP_ALIASES).
+  if (/karon/.test(key) || /karon/.test(fullKey)) {
+    return { canonical: "Karon", matched: true, raw: trimmed };
+  }
   if (/laguna/.test(key) || /laguna/.test(fullKey)) {
     return { canonical: "Laguna", matched: true, raw: trimmed };
   }
   if (/phuket/.test(key) || /phuket/.test(fullKey)) {
-    return { canonical: "Phuket", matched: true, raw: trimmed };
+    return { canonical: "Laguna", matched: true, raw: trimmed };
   }
 
   return { canonical: rawLabel(trimmed), matched: false, raw: trimmed };

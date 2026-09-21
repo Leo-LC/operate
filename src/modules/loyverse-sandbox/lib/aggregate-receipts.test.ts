@@ -6,6 +6,7 @@ import {
   computeCoverage,
   dateRangeForDay,
 } from "./aggregate-receipts";
+import { isSamuiSnackItem, resolveSalesBucket, resolveSalesBucketForSamui } from "../mapping-config";
 import type { LoyverseReceipt } from "../types";
 
 function mkReceipt(overrides: Partial<LoyverseReceipt> = {}): LoyverseReceipt {
@@ -158,6 +159,67 @@ describe("aggregateReceipts", () => {
     ];
     const { meta } = aggregateReceipts(receipts, "2026-08-23", "store-1", new Map(), new Map());
     expect(meta.unmapped_line_items).toBe(1);
+  });
+});
+
+describe("snacks → Animal food rename (Sept 2026)", () => {
+  it("resolves renamed category 'Animal food' to snack (generic resolver)", () => {
+    expect(resolveSalesBucket("cat-x", "Animal food", "Animal food")).toBe("snack");
+    expect(resolveSalesBucket("cat-x", "Snacks", "Snack 100")).toBe("snack");
+    expect(resolveSalesBucket("cat-x", "SNACKS", "AD CAPY SNACK")).toBe("snack");
+  });
+
+  it("resolves renamed items by item name even with null category", () => {
+    expect(resolveSalesBucket(null, null, "ANIMAL FOOD 100")).toBe("snack");
+    expect(resolveSalesBucket(null, null, "A.ANIMAL FOOD 100")).toBe("snack");
+    expect(resolveSalesBucket(null, null, "A.Snack 100")).toBe("snack");
+  });
+
+  it("matches Samui snack items legacy ('A Snacks') and renamed ('Animal food')", () => {
+    expect(isSamuiSnackItem("A Snacks")).toBe(true);
+    expect(isSamuiSnackItem("Animal food")).toBe(true);
+    expect(isSamuiSnackItem("A.ANIMAL FOOD 100")).toBe(true);
+    expect(isSamuiSnackItem("D.water")).toBe(false);
+    expect(isSamuiSnackItem("A ENTRY adult")).toBe(false);
+  });
+
+  it("aggregates Samui renamed snack item to snack (not other)", () => {
+    const receipts: LoyverseReceipt[] = [
+      mkReceipt({
+        receipt_date: "2026-09-10T10:00:00.000Z",
+        created_at: "2026-09-10T10:00:00.000Z",
+        line_items: [
+          { item_id: "item-af", item_name: "Animal food", total_money: 200, quantity: 2 },
+          { item_id: "item-entry", item_name: "A ENTRY adult", total_money: 400, quantity: 1 },
+        ],
+      }),
+    ];
+    const map = new Map<string, string | null>([
+      ["item-af", "cat-af"],
+      ["item-entry", "cat-drinks"],
+    ]);
+    const cats = new Map<string, string>([
+      ["cat-af", "Animal food"],
+      ["cat-drinks", "Drinks"],
+    ]);
+    const { proposed, challenges, meta } = aggregateReceipts(receipts, "2026-09-10", "store-1", map, cats, { isSamui: true });
+    expect(proposed.sales_snack_net).toBe(200);
+    expect(proposed.sales_ticket_net).toBe(400);
+    expect(challenges.snacks_sold).toBe(2);
+    expect(challenges.tickets_sold).toBe(1);
+    expect(meta.unmapped_line_items).toBe(0);
+  });
+
+  it("keeps Samui legacy 'A Snacks' resolving to snack", () => {
+    expect(resolveSalesBucketForSamui("cat-drinks", "Drinks", "A Snacks")).toBe("snack");
+    expect(resolveSalesBucketForSamui("cat-drinks", "Drinks", "A ENTRY child")).toBe("ticket");
+    // guard preserved: non-explicit category-based snacks still ignored for Samui
+    expect(resolveSalesBucketForSamui("cat-snack", "Snacks", "Random bar")).toBe("other");
+  });
+
+  it("keeps Capy merch as goodies, Capy snack as snack", () => {
+    expect(resolveSalesBucket("cat-m", "Merch", "A Capy 150")).toBe("goodies");
+    expect(resolveSalesBucket("cat-s", "SNACKS", "AD CAPY SNACK")).toBe("snack");
   });
 });
 

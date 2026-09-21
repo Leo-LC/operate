@@ -13,12 +13,22 @@ function checkAuth(request: Request): Response | null {
  * loyverse-sync / loyverse-challenges / reviews-sync).
  * Order: sheets (costs) → loyverse snapshots → write-back sales →
  * challenge counters → reviews.
+ *
+ * Optional `?since=YYYY-MM-DD` (Bangkok): retroactive mode — rewrites Loyverse
+ * snapshots with force=true from `since` to today and replays the write-back
+ * over the range (capped at 30 days). Use after a mapping change, e.g.
+ * `POST /api/cron/challenges-sync?since=2026-09-01`.
  */
 async function handleCron(request: Request) {
   const authErr = checkAuth(request);
   if (authErr) return authErr;
+  const url = new URL(request.url);
+  const since = url.searchParams.get("since") ?? undefined;
+  if (since && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
+    return Response.json({ error: "Invalid since — expected YYYY-MM-DD" }, { status: 400 });
+  }
   try {
-    const result = await syncAllChallenges({ triggeredBy: "cron" });
+    const result = await syncAllChallenges({ triggeredBy: "cron", since });
     return Response.json(result, { status: result.ok ? 200 : 500 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

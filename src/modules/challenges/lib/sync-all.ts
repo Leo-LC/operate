@@ -31,6 +31,20 @@ function prevMonth(month: string): string {
   return `${y}-${String(m - 1).padStart(2, "0")}`;
 }
 
+/** All Bangkok dates from `since` (inclusive) to today, ascending, capped at 30. */
+function datesSince(since: string, today: string): string[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(since)) throw new Error(`Invalid since ${since} — expected YYYY-MM-DD`);
+  if (since > today) throw new Error(`Invalid since ${since} — in the future`);
+  const out: string[] = [];
+  const d = new Date(`${since}T12:00:00Z`);
+  const end = new Date(`${today}T12:00:00Z`);
+  while (d <= end && out.length < 30) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+
 export type SyncStepStatus = {
   ok: boolean;
   skipped?: boolean;
@@ -69,10 +83,20 @@ export type SyncAllResult = {
 export async function syncAllChallenges(opts?: {
   triggeredBy?: "cron" | "manual";
   respectSheetConfig?: boolean;
+  /**
+   * Retroactive re-sync from this date (YYYY-MM-DD, Bangkok) to today.
+   * Rewrites Loyverse snapshots with force=true over the range (needed when
+   * the category mapping changed, e.g. Snacks → Animal food) and replays the
+   * write-back for every date in the range. Capped at 30 days (Loyverse API).
+   * Counters always recompute full months from snapshots, so no range needed.
+   */
+  since?: string;
 }): Promise<SyncAllResult> {
   const triggeredBy = opts?.triggeredBy ?? "cron";
   const respectSheetConfig = opts?.respectSheetConfig ?? triggeredBy === "cron";
   const supabase = getSupabaseServerClient();
+  const todayBkk = bangkokDates(1)[0];
+  const retroDates = opts?.since ? datesSince(opts.since, todayBkk) : null;
 
   const steps: SyncAllResult["steps"] = {
     sheets: { ok: true },
@@ -120,7 +144,11 @@ export async function syncAllChallenges(opts?: {
 
   // ——— 2. Loyverse receipts/shifts → snapshots ———
   try {
-    const result = await syncAllLoyverse({ triggeredBy, backfill: true });
+    // Retro mode: force-rewrite the whole range with the current mapping
+    // (backfill would skip already-synced dates).
+    const result = retroDates
+      ? await syncAllLoyverse({ triggeredBy, force: true, days: retroDates.length })
+      : await syncAllLoyverse({ triggeredBy, backfill: true });
     steps.loyverse = {
       ok: result.status !== "failed",
       error: result.error ?? undefined,
@@ -138,13 +166,15 @@ export async function syncAllChallenges(opts?: {
     } else if (!steps.loyverse.ok) {
       steps.writeBack = { ok: false, error: "skipped — loyverse step failed" };
     } else {
-      const results = await writeBackForDates(bangkokDates(2), { dryRun: false });
+      // Retro mode: replay every date in the range, else J + J-1.
+      const dates = retroDates ?? bangkokDates(2);
+      const results = await writeBackForDates(dates, { dryRun: false });
       const upserted = results.reduce((s, r) => s + r.daily_upserted, 0);
       const errors = results.flatMap((r) => r.errors);
       steps.writeBack = {
         ok: errors.length === 0,
         error: errors.length > 0 ? errors.join("; ") : undefined,
-        summary: { daily_upserted: upserted },
+        summary: { dates: dates.length, daily_upserted: upserted },
       };
     }
   } catch (e) {
@@ -157,9 +187,11 @@ export async function syncAllChallenges(opts?: {
       steps.counters = { ok: false, error: "skipped — loyverse step failed" };
     } else {
       const month = bangkokMonth();
-      const months = [month];
-      // Early-month runs: J-1 belongs to the previous month — recompute it too.
-      if (bangkokNow().getUTCDate() <= 3) months.push(prevMonth(month));
+      // Months to recompute: every month spanned by the retro range, else the
+      // current month (+ previous when early-month, as J-1 belongs to it).
+      const months = retroDates
+        ? Array.from(new Set(retroDates.map((d) => d.slice(0, 7))))
+        : [month, ...(bangkokNow().getUTCDate() <= 3 ? [prevMonth(month)] : [])];
       let upserted = 0;
       const errors: string[] = [];
       for (const m of months) {

@@ -22,8 +22,10 @@ export const REVENUE_THRESHOLDS: Record<string, number> = {
   samui: 1_200_000,
   ekkamai: 1_200_000,
   silom: 1_200_000,
+  laguna: 1_200_000,
   pattaya: 900_000,
   "chiang mai": 900_000,
+  karon: 1_000_000,
   phangan: 700_000,
 };
 

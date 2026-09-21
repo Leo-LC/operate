@@ -84,8 +84,9 @@ export default async function MethodologyPage() {
           </Field>
           <Field label="Thresholds">
             <span className="font-mono text-xs text-[var(--fg-2)]">
-              Samui / Ekkamai / Silom: 1,200,000 ฿ &nbsp;|&nbsp;
+              Samui / Ekkamai / Silom / Laguna: 1,200,000 ฿ &nbsp;|&nbsp;
               Pattaya / Chiang Mai: 900,000 ฿ &nbsp;|&nbsp;
+              Karon: 1,000,000 ฿ &nbsp;|&nbsp;
               Phangan: 700,000 ฿
             </span>
           </Field>

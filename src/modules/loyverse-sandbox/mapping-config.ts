@@ -12,6 +12,13 @@ export const CATEGORY_NAME_TO_BUCKET: Record<string, SalesBucket> = {
   entry: "ticket",
   admission: "ticket",
   snack: "snack",
+  // Sept 2026 rename: "Snacks" → "Animal food" (category and/or item, per shop).
+  // "food" below already covers "Animal food", these explicit variants cover
+  // compact spellings (AnimalFood, animal-food, animal_food).
+  "animal food": "snack",
+  "animalfood": "snack",
+  "animal-food": "snack",
+  "animal_food": "snack",
   food: "snack",
   goodies: "goodies",
   merch: "goodies",
@@ -39,6 +46,11 @@ export const PAYMENT_TYPE_KEYWORDS: Record<PaymentBucket, string[]> = {
 };
 
 // Samui temporary POS fix — keep until POS is updated (see AGENTS / spec)
+// Snack item renamed "A Snacks" → "Animal food" (Sept 2026). Match by substring
+// so legacy receipts ("A Snacks") and renamed ones ("Animal food",
+// "A.ANIMAL FOOD 100") all resolve — item-name only, Samui categories are
+// unreliable (the guard in resolveSalesBucketForSamui still discards
+// category-based snack/ticket).
 export const SAMUI_SNACK_ITEM_NORMALIZED = "a snacks";
 export const SAMUI_ENTRY_ITEM_NORMALIZED = new Set<string>(["a entry adult", "a entry child"]);
 
@@ -47,7 +59,11 @@ export function normalizeItemName(name: string | null | undefined): string {
 }
 
 export function isSamuiSnackItem(itemName: string | null | undefined): boolean {
-  return normalizeItemName(itemName) === SAMUI_SNACK_ITEM_NORMALIZED;
+  const normalized = normalizeItemName(itemName);
+  if (normalized === SAMUI_SNACK_ITEM_NORMALIZED) return true;
+  if (normalized.includes("snack")) return true;
+  // compact match: "animal food", "animal-food", "animal_food", "animalfood"
+  return normalized.replace(/[^a-z0-9]/g, "").includes("animalfood");
 }
 
 export function isSamuiEntryItem(itemName: string | null | undefined): boolean {
@@ -80,7 +96,7 @@ export function resolveSalesBucketForSamui(
   itemName: string | null | undefined,
 ): SalesBucket {
   const normalized = normalizeItemName(itemName);
-  if (normalized === SAMUI_SNACK_ITEM_NORMALIZED) return "snack";
+  if (isSamuiSnackItem(itemName)) return "snack";
   if (SAMUI_ENTRY_ITEM_NORMALIZED.has(normalized)) return "ticket";
   const bucket = resolveSalesBucket(categoryId, categoryName, itemName);
   // For Samui, only the explicit items above count as snack/ticket; ignore category-based tickets/snacks
