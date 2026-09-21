@@ -89,9 +89,9 @@ export default async function MethodologyPage() {
               Phangan: 700,000 ฿
             </span>
           </Field>
-          <Field label="Edit">Owner only — use the pencil button next to the target on the Challenges Overview page.</Field>
+          <Field label="Edit">Owner only — use the pencil button on the shop card on the Challenges Overview page.</Field>
           <Field label="Effect">
-            Snacks, Spend per visit, Running costs, and both Review metrics are only awarded if the shop clears
+            Animal Food, Spend per visit, Running costs, and both Review metrics are only awarded if the shop clears
             its sales target. Product sales % is always active regardless.
           </Field>
         </MetricCard>
@@ -118,13 +118,14 @@ export default async function MethodologyPage() {
             <Code>snacks_sold / entry_count ≥ 0.45</Code>
           </Field>
           <Field label="Periods">
-            Entries and snacks are recorded in three periods per month (1–10, 11–20, 21–end).
+            Entries and animal food sales are recorded in three periods per month (1–10, 11–20, 21–end).
             The ratio uses the combined total across all three periods.
           </Field>
           <Field label="Input">
             Synchronisés depuis Loyverse chaque soir (cron, tickets → entrées) ; stockés dans{" "}
             <Code>challenge_counters(location_id, month, period, entry_count, snacks_sold)</Code>.
-            Override manuel réservé au owner (bouton rouge, cas de mauvais paramétrage Loyverse).
+            Override manuel réservé au owner (menu ••• sur la carte → modale, cas de mauvais paramétrage Loyverse).
+            La catégorie POS a été renommée Snacks → Animal food (sept. 2026) ; les colonnes DB sont inchangées.
           </Field>
         </MetricCard>
 
@@ -138,7 +139,7 @@ export default async function MethodologyPage() {
             Ticket sales are excluded from the basket to focus on product revenue.
           </Field>
           <Field label="entry_count">
-            Combined total from <Code>challenge_counters</Code> (auto Loyverse, same as Snacks).
+            Combined total from <Code>challenge_counters</Code> (auto Loyverse, same as Animal Food).
           </Field>
         </MetricCard>
 

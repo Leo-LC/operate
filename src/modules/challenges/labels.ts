@@ -21,7 +21,7 @@ export const TEAM_CHALLENGE_LABELS = {
   salesTarget: "Monthly sales",
   salesTargetReached: "Sales target reached",
   productsPct: "Merch & goodies",
-  snacks: "Snack sales",
+  snacks: "Animal Food",
   spendPerVisit: "Spend per visitor",
   runningCostsPct: "Stock costs",
   reviewCount: "Google reviews",
@@ -31,7 +31,7 @@ export const TEAM_CHALLENGE_LABELS = {
 
 export const PERIOD_LABELS = {
   visitors: ["Visitors 1–10", "Visitors 11–20", "Visitors 21–end"] as const,
-  snacks: ["Snacks 1–10", "Snacks 11–20", "Snacks 21–end"] as const,
+  snacks: ["Animal food 1–10", "Animal food 11–20", "Animal food 21–end"] as const,
   table: ["1–10", "11–20", "21–end"] as const,
 } as const;
 
@@ -48,7 +48,7 @@ export const LEGEND_ITEMS = [
 export const TEAM_LEGEND_ITEMS = [
   { label: TEAM_CHALLENGE_LABELS.salesTarget, max: "unlocks bonuses", tiers: "1.2M / 0.9M / 0.7M ฿" },
   { label: TEAM_CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿", tiers: "7% · 8% · 9% of sales" },
-  { label: TEAM_CHALLENGE_LABELS.snacks, max: "1 250 ฿", tiers: "~1 snack / 2 visitors" },
+  { label: TEAM_CHALLENGE_LABELS.snacks, max: "1 250 ฿", tiers: "~1 animal food / 2 visitors" },
   { label: TEAM_CHALLENGE_LABELS.spendPerVisit, max: "1 250 ฿", tiers: "190 ฿ / visitor" },
   { label: TEAM_CHALLENGE_LABELS.runningCostsPct, max: "1 250 ฿", tiers: "under 9.5% of sales" },
   { label: TEAM_CHALLENGE_LABELS.reviewCount, max: "625 ฿", tiers: "4 reviews / 100 visitors" },
@@ -82,7 +82,7 @@ export const SPOTLIGHT_LABELS = {
   recognitions: {
     revenue: "Sales",
     merch: "Merch",
-    snacks: "Snacks",
+    snacks: "Animal Food",
     reviews: "Reviews",
     spend: "Avg. spend",
     completion: "Most targets hit",
@@ -91,7 +91,7 @@ export const SPOTLIGHT_LABELS = {
   recognitionHints: {
     revenue: "Highest sales vs target",
     merch: "Best merch share of sales",
-    snacks: "Best snack sales per visit",
+    snacks: "Best animal food sales per visit",
     reviews: "Best review results",
     spend: "Highest spend per visitor",
     completion: "Most challenge targets met",

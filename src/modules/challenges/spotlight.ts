@@ -241,7 +241,7 @@ function buildSnacksVisual(loc: LocationOverview): RecognitionVisual {
   return {
     type: "ring",
     primary: `${pct}`,
-    secondary: "snacks / 100 visits",
+    secondary: "animal food / 100 visits",
     progress: Math.min(pct, 100),
     tone: loc.snacks.passes ? "good" : "bronze",
   };
@@ -334,7 +334,7 @@ function enrichSpotlightMetricRow(metric: TeamMetricRow): SpotlightMetricRow {
         label: metric.label,
         value: parsed.value,
         valueHint: parsed.hint,
-        target: `Target: ${snacksPer100} snacks every 100 visitors`,
+        target: `Target: ${snacksPer100} animal food every 100 visitors`,
         passes: metric.currentPasses,
       };
     }
@@ -531,7 +531,7 @@ export function pickMetricLeaders(
     current.filter((loc) => loc.entryCount !== null && loc.entryCount > 0 && loc.snacks.ratio !== null),
     (loc) => loc.snacks.ratio!,
     (loc) => `${Math.round(loc.snacks.ratio! * 100)}/100 visits`,
-    (loc) => `${fmt(loc.snacksSold ?? 0, 0)} snacks · ${fmt(loc.entryCount ?? 0, 0)} visitors`,
+    (loc) => `${fmt(loc.snacksSold ?? 0, 0)} animal food · ${fmt(loc.entryCount ?? 0, 0)} visitors`,
     buildSnacksVisual,
   );
 

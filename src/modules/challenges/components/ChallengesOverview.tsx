@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  CloudDownloadIcon,
   EllipsisIcon,
   PencilIcon,
   PrinterIcon,
@@ -11,10 +10,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { HoverTooltip } from "@/components/ui/hover-tooltip";
 import { Modal } from "@/components/ui/modal";
 import { MonthSelector } from "./MonthSelector";
-import type { AdminLocation } from "@/modules/admin/types";
-import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
 import { SalesTargetSettings } from "./SalesTargetSettings";
 import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
@@ -32,6 +30,7 @@ import {
   REVIEWS_RATING_BONUS,
   REVIEWS_VOLUME_BONUS,
   SNACKS_BONUS,
+  normalizeLocationKey,
 } from "@/modules/challenges/constants";
 import {
   type ViewMode,
@@ -57,13 +56,15 @@ function readStoredViewMode(isOwner: boolean): ViewMode {
   return defaultViewMode(isOwner);
 }
 
-/** Minimal ••• overflow menu — no new primitive, closes on select / Escape / outside click. */
+/** Minimal overflow menu — no new primitive, closes on select / Escape / outside click. */
 function OverflowMenu({
   label,
   items,
+  icon = "ellipsis",
 }: {
   label: string;
   items: { label: string; hint?: string; onSelect: () => void; disabled?: boolean }[];
+  icon?: "ellipsis" | "printer";
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -94,7 +95,11 @@ function OverflowMenu({
         onClick={() => setOpen((v) => !v)}
         className="flex h-7 w-7 items-center justify-center rounded-[var(--r-sm)] text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
       >
-        <EllipsisIcon className="size-4" aria-hidden />
+        {icon === "printer" ? (
+          <PrinterIcon className="size-4" aria-hidden />
+        ) : (
+          <EllipsisIcon className="size-4" aria-hidden />
+        )}
       </button>
       {open && (
         <div
@@ -357,14 +362,14 @@ function KpiRow({
   value,
   status,
   needText,
-  tooltip,
+  tip,
   loading,
 }: {
   label: string;
   value: string;
   status: KpiStatus;
   needText?: string;
-  tooltip: string;
+  tip: React.ReactNode;
   loading: boolean;
 }) {
   if (loading) {
@@ -376,19 +381,20 @@ function KpiRow({
     );
   }
   return (
-    <div
-      className="flex items-baseline justify-between gap-3 py-[7px]"
-      title={tooltip}
-    >
-      <span className="min-w-0 truncate text-[13px] text-[var(--fg-2)]">{label}</span>
+    <div className="flex items-baseline justify-between gap-3 py-[7px]">
+      <HoverTooltip content={tip} align="left" className="min-w-0">
+        <span className="min-w-0 truncate text-[13px] text-[var(--fg-2)]">{label}</span>
+      </HoverTooltip>
       <span className="flex shrink-0 items-baseline gap-2">
-        <span
-          className={`font-mono text-[13px] tabular-nums ${
-            status === "nodata" ? "text-[var(--fg-4)]" : "text-[var(--fg)]"
-          }`}
-        >
-          {value}
-        </span>
+        <HoverTooltip content={tip} align="right">
+          <span
+            className={`font-mono text-[13px] tabular-nums ${
+              status === "nodata" ? "text-[var(--fg-4)]" : "text-[var(--fg)]"
+            }`}
+          >
+            {value}
+          </span>
+        </HoverTooltip>
         <span className="w-[7.5rem] shrink-0 text-right">
           {status === "achieved" ? (
             <span className="text-[13px] font-medium text-[var(--good)]" aria-label="Achieved">✓</span>
@@ -400,6 +406,41 @@ function KpiRow({
         </span>
       </span>
     </div>
+  );
+}
+
+/** Two-line hover content for a KPI: target + bonus, optionally the revenue-gate note. */
+function KpiTip({ target, bonus, gated = true }: { target: string; bonus: string; gated?: boolean }) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span>
+        <span className="text-[var(--fg-4)]">Target: </span>
+        {target}
+      </span>
+      <span>
+        <span className="text-[var(--fg-4)]">Bonus when achieved: </span>
+        {bonus}
+      </span>
+      {gated && <span className="text-[var(--fg-4)]">Unlocks once sales target is reached</span>}
+    </span>
+  );
+}
+
+function ShopSalesTargetModal({ loc, onClose }: { loc: LocationOverview; onClose: () => void }) {
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Sales target — ${shortName(loc.locationTitle)}`}
+      description="Monthly net revenue this shop must reach to unlock its gated challenges. Leave empty to use the default."
+      footer={
+        <div className="flex justify-end">
+          <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
+        </div>
+      }
+    >
+      <SalesTargetSettings onlyShop={normalizeLocationKey(loc.locationTitle)} />
+    </Modal>
   );
 }
 
@@ -415,7 +456,7 @@ function ChallengeSettingsModal({
   const rules: { label: string; target: string; bonus: string }[] = [
     { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
     { label: "Merchandising", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
-    { label: "Snacks", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
+    { label: "Animal Food", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
     { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
     { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
     { label: "Review count", target: "≥ 4% of visitors", bonus: "625 ฿" },
@@ -547,7 +588,7 @@ function LocationCard({
   onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
   onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
 }) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [shopTargetOpen, setShopTargetOpen] = useState(false);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const isTeam = viewMode === "team";
   const totalBonus = loc.totalBonus;
@@ -602,7 +643,7 @@ function LocationCard({
       : "—";
 
   return (
-    <Card className="p-5">
+    <Card className="overflow-visible p-5">
       {/* Header: shop identity + total bonus */}
       <div className="flex items-baseline justify-between gap-3">
         <p className="min-w-0 truncate text-[15px] font-semibold text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
@@ -631,9 +672,9 @@ function LocationCard({
               {isOwner && !isTeam && (
                 <button
                   type="button"
-                  onClick={() => setSettingsOpen(true)}
-                  title="Challenge settings"
-                  aria-label="Challenge settings"
+                  onClick={() => setShopTargetOpen(true)}
+                  title="Edit this shop's sales target"
+                  aria-label="Edit this shop's sales target"
                   className="rounded p-1 text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
                 >
                   <PencilIcon className="size-3" aria-hidden />
@@ -674,7 +715,7 @@ function LocationCard({
           value={isTeam ? buildMerchContext(loc).value : pct(loc.merchandising.ratio)}
           status={merch.status}
           needText={loc.merchandising.ratio !== null ? "Needs 7%" : undefined}
-          tooltip={`Target: ≥ 7%${merchTier > 0 ? ` (${tierLabels[merchTier]})` : ""} · Bonus when achieved: up to 5,000 ฿`}
+          tip={<KpiTip target={`≥ 7%${merchTier > 0 ? ` (${tierLabels[merchTier]})` : ""}`} bonus="up to 5,000 ฿" gated={false} />}
           loading={loading}
         />
         <KpiRow
@@ -688,7 +729,7 @@ function LocationCard({
                 ? "Needs 0.45"
                 : undefined
           }
-          tooltip={`Target: ≥ 0.45 · Bonus when achieved: ${SNACKS_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          tip={<KpiTip target="≥ 0.45" bonus={`${SNACKS_BONUS.toLocaleString()} ฿`} />}
           loading={loading}
         />
         <KpiRow
@@ -702,7 +743,7 @@ function LocationCard({
                 ? "Needs 190 ฿"
                 : undefined
           }
-          tooltip={`Target: ≥ 190 ฿ · Bonus when achieved: ${PANIER_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          tip={<KpiTip target="≥ 190 ฿" bonus={`${PANIER_BONUS.toLocaleString()} ฿`} />}
           loading={loading}
         />
         <KpiRow
@@ -716,7 +757,7 @@ function LocationCard({
                 ? "Needs < 9.5%"
                 : undefined
           }
-          tooltip={`Target: < 9.5% · Bonus when achieved: ${OPEX_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          tip={<KpiTip target="< 9.5%" bonus={`${OPEX_BONUS.toLocaleString()} ฿`} />}
           loading={loading}
         />
         <KpiRow
@@ -730,7 +771,7 @@ function LocationCard({
                 ? "Needs 4%"
                 : undefined
           }
-          tooltip={`Target: ≥ 4% · Bonus when achieved: ${REVIEWS_VOLUME_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          tip={<KpiTip target="≥ 4%" bonus={`${REVIEWS_VOLUME_BONUS.toLocaleString()} ฿`} />}
           loading={loading}
         />
         <KpiRow
@@ -744,22 +785,21 @@ function LocationCard({
                 ? `Needs ${loc.reviews.ratingTarget.toFixed(1)}`
                 : undefined
           }
-          tooltip={`Target: ${ratingTargetLabel} · Bonus when achieved: ${REVIEWS_RATING_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          tip={<KpiTip target={ratingTargetLabel} bonus={`${REVIEWS_RATING_BONUS.toLocaleString()} ฿`} />}
           loading={loading}
         />
       </div>
 
       {/* Visitors — count first, source secondary, actions in ••• menu */}
       <div className="mt-1 flex items-center justify-between border-t border-[var(--line)] pt-1">
-        <span
-          className="flex min-w-0 items-baseline gap-2 py-[7px]"
-          title="Automatically synced from Loyverse"
-        >
-          <span className="text-[13px] text-[var(--fg-2)]">Visitors</span>
-          <span className="font-mono text-[13px] tabular-nums text-[var(--fg)]">
-            {loading ? "—" : loc.entryCount !== null ? fmt(loc.entryCount, 0) : "—"}
+        <HoverTooltip content="Automatically synced from Loyverse" align="left" className="min-w-0">
+          <span className="flex min-w-0 items-baseline gap-2 py-[7px]">
+            <span className="text-[13px] text-[var(--fg-2)]">Visitors</span>
+            <span className="font-mono text-[13px] tabular-nums text-[var(--fg)]">
+              {loading ? "—" : loc.entryCount !== null ? fmt(loc.entryCount, 0) : "—"}
+            </span>
           </span>
-        </span>
+        </HoverTooltip>
         {(isOwner || isTeam) && !loading ? (
           <OverflowMenu
             label="Visitor count actions"
@@ -781,8 +821,8 @@ function LocationCard({
         )}
       </div>
 
-      {settingsOpen && (
-        <ChallengeSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
+      {shopTargetOpen && (
+        <ShopSalesTargetModal loc={loc} onClose={() => setShopTargetOpen(false)} />
       )}
       {overrideOpen && (
         <VisitorOverrideModal
@@ -801,18 +841,15 @@ function LocationCard({
 export function ChallengesOverview({
   isOwner,
   canManage,
-  locations: adminLocations = [],
 }: {
   isOwner?: boolean;
   canManage?: boolean;
-  locations?: AdminLocation[];
 } = {}) {
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
-  const [sheetImportOpen, setSheetImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
 
@@ -854,8 +891,8 @@ export function ChallengesOverview({
     fetchData(month, { silent: true });
   }
 
-  // Manual "Sync all" — same sequential pipeline as the nightly cron
-  // (sheets → loyverse → write-back → counters → reviews). Owner only.
+  // Manual "Refresh all data" — same sequential pipeline as the nightly cron
+  // (reviews + sheets → loyverse → write-back → counters, then cards refresh). Owner only.
   async function handleSyncAll() {
     setSyncingAll(true);
     try {
@@ -865,18 +902,18 @@ export function ChallengesOverview({
         error?: string;
         steps?: Record<string, { ok: boolean; skipped?: boolean; error?: string }>;
       };
-      if (!res.ok) throw new Error(json.error ?? "Sync all failed");
+      if (!res.ok) throw new Error(json.error ?? "Refresh all data failed");
       const failed = Object.entries(json.steps ?? {})
         .filter(([, s]) => !s.ok && !s.skipped)
         .map(([k, s]) => `${k}: ${s.error ?? "failed"}`);
       if (failed.length > 0) {
-        toast.warning(`Sync terminé avec erreurs — ${failed.join(" · ")}`);
+        toast.warning(`Refresh terminé avec erreurs — ${failed.join(" · ")}`);
       } else {
-        toast.success("Sync all terminé — sheets, Loyverse, compteurs, reviews");
+        toast.success("Refresh terminé — reviews, sheets, Loyverse, compteurs");
       }
       await fetchData(month, { silent: true });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Sync all failed");
+      toast.error(e instanceof Error ? e.message : "Refresh all data failed");
     } finally {
       setSyncingAll(false);
     }
@@ -899,17 +936,17 @@ export function ChallengesOverview({
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
-  function exportOverviewPdf(summaryOnly = false, teamMode = false, locationsOverride?: LocationOverview[]) {
+  function exportOverviewPdf(teamMode = false, locationsOverride?: LocationOverview[]) {
     const exportLocations = locationsOverride ?? locations;
     if (exportLocations.length === 0) return;
-    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly, teamMode }));
+    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly: false, teamMode }));
   }
 
   function exportSelectedShopTeamPdf() {
     if (teamLocationFilter === "all") return;
     const shop = locations.find((l) => l.locationId === teamLocationFilter);
     if (!shop) return;
-    exportOverviewPdf(false, true, [shop]);
+    exportOverviewPdf(true, [shop]);
   }
 
   const isTeamView = viewMode === "team";
@@ -942,34 +979,20 @@ export function ChallengesOverview({
                 variant="secondary"
                 onClick={handleSyncAll}
                 disabled={syncingAll || loading}
-                title="Sync all: sheets → Loyverse → compteurs → reviews (même pipeline que le cron du soir)"
+                title="Refresh all data: sync reviews, pull latest Sheets data, refresh Loyverse visitors & animal food, then update cards (same pipeline as the nightly cron)"
               >
                 <RefreshCwIcon size={13} className={syncingAll ? "animate-spin" : ""} />
-                {syncingAll ? "Syncing…" : "Sync"}
-              </Button>
-            )}
-            {canManage && adminLocations.length > 0 && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setSheetImportOpen(true)}
-                title="Import from Google Sheets"
-              >
-                <CloudDownloadIcon size={13} />
-                Sheets
+                {syncingAll ? "Refreshing…" : "Refresh all data"}
               </Button>
             )}
             <OverflowMenu
               label="Export PDFs"
+              icon="printer"
               items={[
-                { label: "Summary PDF", onSelect: () => exportOverviewPdf(true) },
-                { label: "Full PDF", onSelect: () => exportOverviewPdf(false) },
-                { label: "Team PDF", hint: "Friendlier wording for shop teams", onSelect: () => exportOverviewPdf(false, true) },
+                { label: "Operations PDF", hint: "Summary + one detailed page per shop", onSelect: () => exportOverviewPdf(false) },
+                { label: "Team PDF", hint: "Friendlier wording for shop teams", onSelect: () => exportOverviewPdf(true) },
               ]}
             />
-            <Button size="sm" variant="ghost" onClick={() => exportOverviewPdf(true)} disabled={loading || locations.length === 0} title="Print summary">
-              <PrinterIcon size={13} />
-            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -1045,15 +1068,6 @@ export function ChallengesOverview({
             />
           ))}
         </div>
-      )}
-
-      {sheetImportOpen && adminLocations[0] && (
-        <SheetImportModal
-          location={adminLocations[0]}
-          defaultTab="all"
-          onClose={() => setSheetImportOpen(false)}
-          onImported={() => void fetchData(month, { silent: true })}
-        />
       )}
 
       {settingsOpen && (

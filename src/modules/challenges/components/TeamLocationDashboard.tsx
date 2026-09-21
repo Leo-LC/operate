@@ -238,7 +238,7 @@ export function TeamLocationDashboard({
               <span className="text-[10px] text-[var(--fg-4)]">
                 {loc.entryCount !== null && `${fmt(loc.entryCount, 0)} visitors`}
                 {loc.entryCount !== null && loc.snacksSold !== null && " · "}
-                {loc.snacksSold !== null && `${fmt(loc.snacksSold, 0)} snacks`}
+                {loc.snacksSold !== null && `${fmt(loc.snacksSold, 0)} animal food`}
               </span>
             )}
           </div>

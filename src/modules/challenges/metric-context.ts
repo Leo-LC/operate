@@ -69,7 +69,7 @@ export function buildSnacksContext(loc: LocationOverview): MetricContext {
   }
 
   const targetSnacks = Math.ceil(entryCount * SNACKS_THRESHOLD);
-  const value = `${fmt(snacksSold, 0)} / ${fmt(targetSnacks, 0)} snacks`;
+  const value = `${fmt(snacksSold, 0)} / ${fmt(targetSnacks, 0)} animal food`;
   const hint =
     snacksSold < targetSnacks
       ? `${fmt(targetSnacks - snacksSold, 0)} short · ${fmt(entryCount, 0)} visitors`

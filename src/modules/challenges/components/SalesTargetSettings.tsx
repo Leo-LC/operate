@@ -28,7 +28,7 @@ const FIELD: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
 };
 
-export function SalesTargetSettings() {
+export function SalesTargetSettings({ onlyShop }: { onlyShop?: string }) {
   const [shops, setShops] = useState<Record<string, ShopThreshold>>({});
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [canManage, setCanManage] = useState(false);
@@ -61,7 +61,9 @@ export function SalesTargetSettings() {
     setSaving(true);
     try {
       const thresholds: Record<string, number | null> = {};
-      for (const key of Object.keys(shops)) {
+      const keys = onlyShop ? [onlyShop] : Object.keys(shops);
+      for (const key of keys) {
+        if (!(key in shops)) continue;
         const raw = draft[key]?.trim() ?? "";
         thresholds[key] = raw === "" ? null : Number(raw);
       }
@@ -91,7 +93,9 @@ export function SalesTargetSettings() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
-        {Object.entries(shops).map(([key, shop]) => {
+        {Object.entries(shops)
+          .filter(([key]) => !onlyShop || key === onlyShop)
+          .map(([key, shop]) => {
           const raw = draft[key] ?? "";
           const parsed = raw === "" ? null : Number(raw);
           const isOverride = parsed !== null && parsed !== shop.default;

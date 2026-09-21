@@ -9,7 +9,7 @@ doesn't run.
 
 Source of truth for numbers:
 
-- `constants.ts` — every threshold and bonus (merch tiers, snacks 0.45, panier 190,
+- `constants.ts` — every threshold and bonus (merch tiers, animal food 0.45, panier 190,
   opex 9.5%, review volume 4%, review min count 10, revenue thresholds per shop).
 - `overview-data.ts` — the real computation (reads `daily_entries`, `challenge_counters`,
   `reviews_cache`, `location_gbp_ratings`, `locations`).
@@ -25,8 +25,9 @@ Rules to keep accurate:
   sales_card_surcharge`. The `sales_*_net` fields are already VAT-inclusive — do **not**
   add `vat_7`.
 - Merch % (`sales_goodies_net / revenue`) is the only metric NOT gated by the sales target.
-  Snacks, Spend per visit, Running costs, Review count and Review rating are only awarded
-  when the shop clears its sales target.
+  Animal Food, Spend per visit, Running costs, Review count and Review rating are only awarded
+  when the shop clears its sales target. Display label is "Animal Food" (POS rename, Sept 2026);
+  DB columns stay `snacks_sold` / `sales_snack_net`.
 - `entry_count` / `snacks_sold` come from `challenge_counters` (100% Loyverse sync,
   force=true) in three periods per month (1–10, 11–20, 21–end), combined.
   Manual override = owner only (PUT /api/challenges/entries, red button, audited).

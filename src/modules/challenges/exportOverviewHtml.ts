@@ -298,7 +298,7 @@ function buildLocationBlock(loc: LocationOverview, teamMode?: boolean): string {
     </table>
     <h3>${escHtml(visitorLabel)}</h3>
     <table class="detail-table">
-      <thead><tr><th>Period</th><th>Visitors</th><th>Snacks sold</th></tr></thead>
+      <thead><tr><th>Period</th><th>Visitors</th><th>Animal food sold</th></tr></thead>
       <tbody>${periodRows}</tbody>
     </table>
   </div>`;
@@ -446,7 +446,7 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
 
   const visitorLine =
     loc.entryCount !== null || loc.snacksSold !== null
-      ? `<span class="muted">${loc.entryCount !== null ? `${fmt(loc.entryCount, 0)} visitors` : ""}${loc.entryCount !== null && loc.snacksSold !== null ? " · " : ""}${loc.snacksSold !== null ? `${fmt(loc.snacksSold, 0)} snacks` : ""}</span>`
+      ? `<span class="muted">${loc.entryCount !== null ? `${fmt(loc.entryCount, 0)} visitors` : ""}${loc.entryCount !== null && loc.snacksSold !== null ? " · " : ""}${loc.snacksSold !== null ? `${fmt(loc.snacksSold, 0)} animal food` : ""}</span>`
       : "";
 
   const tableRows = metrics
