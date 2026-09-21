@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Drawer } from "@/components/ui/drawer";
+import { Modal } from "@/components/ui/modal";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { toast } from "sonner";
@@ -211,14 +211,14 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
         </>
       )}
 
-      <Drawer open={!!selectedDay} onClose={() => setSelectedDay(null)} title={selectedDay ? `Daily result · ${shortDate(selectedDay.date)}` : "Daily result"} description="Economic result and observed cash remain separate.">
+      <Modal open={!!selectedDay} onClose={() => setSelectedDay(null)} title={selectedDay ? `Daily result · ${shortDate(selectedDay.date)}` : "Daily result"} description="Economic result and observed cash remain separate.">
         {selectedDay && <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{[
           ["Revenue (VAT incl.)", selectedDay.revenue, TrendingUpIcon], ["Daily operating expenses", selectedDay.directExpenses, TrendingDownIcon],
           ["Weighted salaries", selectedDay.payroll, WalletCardsIcon], ["Weighted fixed costs", selectedDay.recurringCosts, CalendarDaysIcon],
           ["Calculated service charge", selectedDay.serviceCharge, CalculatorIcon], ["Challenge bonus", selectedDay.bonus ?? 0, WalletCardsIcon], ["Result", selectedDay.economicProfit, selectedDay.economicProfit >= 0 ? TrendingUpIcon : TrendingDownIcon],
           ["Cash received", selectedDay.cashIn, WalletCardsIcon], ["Cash paid", selectedDay.cashOut, WalletCardsIcon],
         ].map(([label, value, Icon]) => { const RowIcon = Icon as typeof TrendingUpIcon; return <div key={String(label)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingBottom: 10, borderBottom: "1px solid var(--line)" }}><span style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--fg-3)" }}><RowIcon size={14} />{String(label)}</span><strong className="mono">{money(Number(value))}</strong></div>; })}</div>}
-      </Drawer>
+      </Modal>
 
       <DailyProfitManageDrawer open={manageOpen} onClose={() => setManageOpen(false)} onChanged={() => void load()} defaultDate={to} />
     </div>

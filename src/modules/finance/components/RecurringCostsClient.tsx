@@ -6,7 +6,7 @@ import { PlusIcon, UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Drawer } from "@/components/ui/drawer";
+import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
 import { MonthSelector } from "@/modules/challenges/components/MonthSelector";
@@ -422,7 +422,7 @@ export function RecurringCostsClient() {
       </div>
     )}
 
-    <Drawer
+    <Modal
       open={payrollOpen}
       onClose={() => setPayrollOpen(false)}
       title="Payroll"
@@ -465,6 +465,6 @@ export function RecurringCostsClient() {
           </div>
         </div>
       )}
-    </Drawer>
+    </Modal>
   </div>;
 }

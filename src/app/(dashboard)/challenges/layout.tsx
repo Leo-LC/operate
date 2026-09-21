@@ -7,9 +7,7 @@ export default async function ChallengesLayout({ children }: { children: React.R
   const isOwner = session?.user?.role === "owner";
   return (
     <div className="flex flex-col gap-0">
-      <div className="border-b border-[var(--line)] px-8 py-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">Challenges</p>
-        <h1 className="mt-0.5 text-xl font-semibold text-[var(--fg)]">Performance</h1>
+      <div className="px-8 pt-2">
         <ChallengesNav isOwner={isOwner} />
       </div>
       <div className="px-8 py-6">{children}</div>

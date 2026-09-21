@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalculatorIcon, SaveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Drawer } from "@/components/ui/drawer";
+import { Modal } from "@/components/ui/modal";
 import { toast } from "sonner";
 
 interface LocationRow { id: string; name: string; }
@@ -113,7 +113,7 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
   const shopName = config.locations.find((location) => location.id === locationId)?.name ?? "this shop";
 
   return (
-    <Drawer open={open} onClose={onClose} title="Monthly P&L settings" description="One identical form for every shop. These values do not affect Accounting or Payments.">
+    <Modal open={open} onClose={onClose} title="Monthly P&L settings" description="One identical form for every shop. These values do not affect Accounting or Payments." width={640}>
       {loading ? <p style={{ color: "var(--fg-4)" }}>Loading…</p> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
@@ -150,7 +150,7 @@ export function DailyProfitManageDrawer({ open, onClose, onChanged, defaultDate 
           <Button onClick={() => void save()} disabled={saving || !locationId || !reason.trim()}><SaveIcon size={14} />{saving ? "Saving…" : current ? "Update" : "Save"}</Button>
         </div>
       )}
-    </Drawer>
+    </Modal>
   );
 }
 

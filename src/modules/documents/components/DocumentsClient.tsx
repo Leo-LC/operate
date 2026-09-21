@@ -7,7 +7,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import type { PillTone } from "@/components/ui/pill";
-import { Drawer } from "@/components/ui/drawer";
+import { Modal } from "@/components/ui/modal";
 import {
   PlusIcon, ExternalLinkIcon, TrashIcon, PencilIcon,
   DownloadIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
@@ -535,8 +535,8 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
         </div>
       )}
 
-      {/* Add / Edit drawer */}
-      <Drawer
+      {/* Add / Edit modal */}
+      <Modal
         open={drawerMode !== null}
         onClose={closeDrawer}
         title={drawerMode === "add" ? "Add document" : "Edit document"}
@@ -666,7 +666,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
             </div>
           </div>
         </form>
-      </Drawer>
+      </Modal>
     </div>
   );
 }

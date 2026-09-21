@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { TrashIcon, ChevronLeftIcon, ChevronRightIcon, MessageSquareIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
-import { Drawer } from "@/components/ui/drawer";
+import { Modal } from "@/components/ui/modal";
 import {
   EMPTY_ENTRY,
   fromFormState,
@@ -396,7 +396,7 @@ export function DailyEntryModal({
   );
 
   return (
-    <Drawer
+    <Modal
       open
       onClose={onClose}
       title={titleNode}
@@ -547,6 +547,6 @@ export function DailyEntryModal({
           ))}
         </div>
       </form>
-    </Drawer>
+    </Modal>
   );
 }

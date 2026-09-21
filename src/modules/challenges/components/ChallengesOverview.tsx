@@ -1,16 +1,25 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Lock, PencilIcon, PrinterIcon, RefreshCwIcon } from "lucide-react";
+import {
+  CloudDownloadIcon,
+  EllipsisIcon,
+  PencilIcon,
+  PrinterIcon,
+  RefreshCwIcon,
+  Settings2Icon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Drawer } from "@/components/ui/drawer";
+import { Card } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import { MonthSelector } from "./MonthSelector";
+import type { AdminLocation } from "@/modules/admin/types";
+import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
 import { SalesTargetSettings } from "./SalesTargetSettings";
 import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
 import {
   CHALLENGE_LABELS,
-  LEGEND_ITEMS,
   PERIOD_LABELS,
   TEAM_CHALLENGE_LABELS,
   VIEW_MODE_LABELS,
@@ -18,16 +27,13 @@ import {
 import { TeamLocationDashboard } from "./TeamLocationDashboard";
 import { shortLocationName } from "@/modules/challenges/team-metrics";
 import {
-  SNACKS_BONUS,
-  PANIER_BONUS,
   OPEX_BONUS,
-  REVIEWS_VOLUME_BONUS,
+  PANIER_BONUS,
   REVIEWS_RATING_BONUS,
-  SNACKS_THRESHOLD,
-  PANIER_THRESHOLD,
+  REVIEWS_VOLUME_BONUS,
+  SNACKS_BONUS,
 } from "@/modules/challenges/constants";
 import {
-  type MetricContext,
   type ViewMode,
   VIEW_MODE_STORAGE_KEY,
   defaultViewMode,
@@ -51,6 +57,72 @@ function readStoredViewMode(isOwner: boolean): ViewMode {
   return defaultViewMode(isOwner);
 }
 
+/** Minimal ••• overflow menu — no new primitive, closes on select / Escape / outside click. */
+function OverflowMenu({
+  label,
+  items,
+}: {
+  label: string;
+  items: { label: string; hint?: string; onSelect: () => void; disabled?: boolean }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open ]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-7 w-7 items-center justify-center rounded-[var(--r-sm)] text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
+      >
+        <EllipsisIcon className="size-4" aria-hidden />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-8 z-30 min-w-[12rem] rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-1 shadow-lg"
+        >
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              disabled={item.disabled}
+              onClick={() => {
+                setOpen(false);
+                item.onSelect();
+              }}
+              className="flex w-full flex-col items-start gap-0.5 rounded-[var(--r-sm)] px-2.5 py-1.5 text-left text-[13px] text-[var(--fg)] transition-colors hover:bg-[var(--row-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <span>{item.label}</span>
+              {item.hint && <span className="text-[11px] text-[var(--fg-4)]">{item.hint}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TeamLocationFilter({
   locations,
   value,
@@ -67,8 +139,8 @@ function TeamLocationFilter({
         onClick={() => onChange("all")}
         className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
           value === "all"
-            ? "border-[var(--bronze)] bg-[var(--bronze-soft)] text-[var(--fg)]"
-            : "border-[var(--line)] bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
+            ? "border-[var(--line-strong)] bg-[var(--row-hover)] text-[var(--fg)]"
+            : "border-transparent bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
         }`}
       >
         All shops
@@ -80,8 +152,8 @@ function TeamLocationFilter({
           onClick={() => onChange(loc.locationId)}
           className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
             value === loc.locationId
-              ? "border-[var(--bronze)] bg-[var(--bronze-soft)] text-[var(--fg)]"
-              : "border-[var(--line)] bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
+              ? "border-[var(--line-strong)] bg-[var(--row-hover)] text-[var(--fg)]"
+              : "border-transparent bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
           }`}
         >
           {shortLocationName(loc.locationTitle)}
@@ -107,7 +179,7 @@ function ViewModeToggle({
           onClick={() => onChange(mode)}
           className={`rounded-[calc(var(--r-sm)-2px)] px-2.5 py-1 text-xs font-medium transition-colors ${
             value === mode
-              ? "bg-transparent text-[var(--fg)] shadow-sm"
+              ? "bg-[var(--row-hover)] text-[var(--fg)]"
               : "text-[var(--fg-4)] hover:text-[var(--fg-2)]"
           }`}
         >
@@ -135,59 +207,6 @@ function fmt(n: number | null, decimals = 0): string {
 function pct(n: number | null): string {
   if (n === null) return "—";
   return `${(n * 100).toFixed(1)}%`;
-}
-
-function statusColor(passes: boolean | null): string {
-  if (passes === true) return "text-[var(--good)]";
-  if (passes === false) return "text-[var(--bad)]";
-  return "text-[var(--fg-4)]";
-}
-
-function StatusDot({ passes }: { passes: boolean | null }) {
-  if (passes === true) return <span className="text-[var(--good)]">✓</span>;
-  if (passes === false) return <span className="text-[var(--bad)]">✗</span>;
-  return <span className="text-[var(--fg-4)]">—</span>;
-}
-
-/** Fixed-width bonus cell — lock icon + amount stay on one line so cards stay aligned. */
-function BonusAmount({
-  amount,
-  variant,
-  title,
-  teamMode,
-}: {
-  amount: number;
-  variant: "earned" | "locked" | "empty";
-  title?: string;
-  teamMode?: boolean;
-}) {
-  if (variant === "empty") {
-    return <span className="block min-h-[1rem]" aria-hidden />;
-  }
-
-  const color =
-    variant === "locked" ? "text-[var(--bronze)]" : "text-[var(--good)]";
-
-  if (teamMode && variant === "locked") {
-    return (
-      <span
-        className="block text-[10px] leading-tight text-[var(--bronze)] text-right max-w-[5.5rem]"
-        title={title}
-      >
-        {CHALLENGE_LABELS.lockedUntilSalesTarget}
-      </span>
-    );
-  }
-
-  return (
-    <span
-      className={`inline-flex items-center justify-end gap-0.5 font-mono text-xs tabular-nums whitespace-nowrap ${color}`}
-      title={title}
-    >
-      {variant === "locked" && <Lock className="size-3 shrink-0" aria-hidden />}
-      <span>{amount.toLocaleString()}&nbsp;฿</span>
-    </span>
-  );
 }
 
 // Moves focus to the next editable cell in DOM order, mimicking Tab on Enter.
@@ -283,7 +302,7 @@ function InlineNumberInput({
   }
 
   const ringColor =
-    saveState === "error" ? "var(--bad)" : saveState === "saving" ? "var(--bronze)" : undefined;
+    saveState === "error" ? "var(--bad)" : saveState === "saving" ? "var(--accent)" : undefined;
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -309,7 +328,7 @@ function InlineNumberInput({
               commit();
             }}
             onKeyDown={handleKeyDown}
-            className="w-20 cursor-text rounded-[var(--r-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-1.5 py-1 font-mono text-sm tabular-nums text-[var(--fg)] outline-none transition-colors hover:border-[var(--bronze)] focus:border-[var(--bronze)] focus:ring-1 focus:ring-[var(--bronze)] disabled:opacity-60"
+            className="w-20 cursor-text rounded-[var(--r-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-1.5 py-1 font-mono text-sm tabular-nums text-[var(--fg)] outline-none transition-colors hover:border-[var(--fg-4)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-60"
             style={ringColor ? { borderColor: ringColor } : undefined}
           />
           {saveState === "saved" && (
@@ -324,428 +343,165 @@ function InlineNumberInput({
   );
 }
 
-function MetricRow({
+type KpiStatus = "achieved" | "attention" | "nodata";
+
+/**
+ * Single challenge row. Only three visual states:
+ * - achieved → quiet, small green check
+ * - attention (failing / locked / near target) → muted warning text explaining what is needed
+ * - nodata → clearly marked, lowest contrast
+ * Target + bonus live in the hover tooltip, not in the row.
+ */
+function KpiRow({
   label,
   value,
-  passes,
-  bonus,
+  status,
+  needText,
+  tooltip,
   loading,
-  sub,
-  progress,
-  isOwner,
-  locked,
-  potentialBonus,
-  viewMode = "internal",
-  teamContext,
 }: {
   label: string;
   value: string;
-  passes: boolean | null;
-  bonus: number;
+  status: KpiStatus;
+  needText?: string;
+  tooltip: string;
   loading: boolean;
-  sub?: string;
-  progress?: number;
-  isOwner?: boolean;
-  locked?: boolean;
-  potentialBonus?: number;
-  viewMode?: ViewMode;
-  teamContext?: MetricContext;
 }) {
-  const isTeamMode = viewMode === "team";
-  const showTeamCopy = isTeamMode && !!teamContext;
-  const displayValue = showTeamCopy ? teamContext!.value : value;
-  const displayHint = showTeamCopy ? teamContext!.hint : isOwner ? sub : undefined;
-  const barColor = passes === true ? "var(--good)" : passes === false ? "var(--warn)" : "var(--fg-4)";
-  const lockedQualifying = !!locked && passes === true;
-  return (
-    <div className="flex flex-col border-b border-[var(--line)] last:border-b-0 py-1.5 gap-1">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <StatusDot passes={passes} />
-          <span className="text-xs text-[var(--fg-3)] truncate">{label}</span>
-        </div>
-        <div className="flex flex-col items-end shrink-0 ml-2 min-h-[2rem] justify-center">
-          {loading ? (
-            <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
-          ) : (
-            <>
-              <span className={`font-mono text-xs tabular-nums text-right ${statusColor(passes)}`}>{displayValue}</span>
-              {(showTeamCopy || isOwner) && (
-                <span className={`font-mono text-[10px] tabular-nums leading-tight min-h-[0.875rem] text-right ${displayHint ? "text-[var(--fg-4)]" : "text-transparent select-none"}`}>
-                  {displayHint ?? "\u00a0"}
-                </span>
-              )}
-            </>
-          )}
-        </div>
-        <div className={`text-right shrink-0 ml-2 ${isTeamMode ? "w-16" : "w-20"}`}>
-          {loading ? (
-            <div className="h-3 w-12 ml-auto animate-pulse rounded bg-[var(--bg-2)]" />
-          ) : lockedQualifying ? (
-            <BonusAmount
-              amount={potentialBonus ?? bonus}
-              variant="locked"
-              title={CHALLENGE_LABELS.lockedTooltip}
-              teamMode={isTeamMode}
-            />
-          ) : (
-            <BonusAmount
-              amount={bonus}
-              variant={passes === true ? "earned" : "empty"}
-              teamMode={isTeamMode}
-            />
-          )}
-        </div>
-      </div>
-      {!loading && (
-        <div className="h-1 rounded-full bg-[var(--bg-2)] overflow-hidden mx-6">
-          {progress !== undefined && (
-            <div style={{ width: `${Math.round(Math.min(1, progress) * 100)}%`, height: "100%", background: barColor, borderRadius: 9999, transition: "width 0.4s ease" }} />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RevenueGateBanner({
-  loc,
-  loading,
-  isOwner,
-  viewMode = "internal",
-  onEditSalesTarget,
-}: {
-  loc: LocationOverview;
-  loading: boolean;
-  isOwner?: boolean;
-  viewMode?: ViewMode;
-  onEditSalesTarget?: () => void;
-}) {
-  const { amount, threshold, unlocked, ratio } = loc.revenue;
-  const isTeam = viewMode === "team";
-  const teamContext = isTeam ? buildRevenueContext(loc) : null;
-
   if (loading) {
-    return <div className="mx-4 mt-3 h-[3.75rem] animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />;
+    return (
+      <div className="flex items-center justify-between py-[7px]">
+        <div className="h-3 w-24 animate-pulse rounded bg-[var(--bg-2)]" />
+        <div className="h-3 w-14 animate-pulse rounded bg-[var(--bg-2)]" />
+      </div>
+    );
   }
-
-  const hasThreshold = threshold !== null;
-  const passes = hasThreshold ? (amount !== null ? unlocked : null) : null;
-  const isUnlocked = passes === true;
-  const barColor = isUnlocked ? "var(--good)" : hasThreshold ? "var(--bronze)" : "var(--fg-4)";
-  const progressRatio = hasThreshold && ratio !== null ? Math.min(1, ratio) : 0;
-
-  const bannerStyle = isUnlocked
-    ? "border-[var(--good)] bg-[var(--good-soft)]"
-    : hasThreshold
-      ? "border-[var(--bronze)] bg-[var(--bronze-soft)]"
-      : "border-[var(--line)] bg-[var(--bg-2)]";
-
-  const labelStyle = isUnlocked
-    ? "text-[var(--good)]"
-    : hasThreshold
-      ? "text-[var(--bronze-2)]"
-      : "text-[var(--fg-4)]";
-
-  const valueStyle = isUnlocked
-    ? "text-[var(--good)]"
-    : hasThreshold
-      ? "text-[var(--bronze-2)]"
-      : "text-[var(--fg-4)]";
-
-  const amountLabel = isTeam && teamContext
-    ? teamContext.value
-    : hasThreshold
-      ? amount !== null
-        ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿`
-        : `target ${fmt(threshold, 0)} ฿`
-      : amount !== null
-        ? `${fmt(amount, 0)} / ${CHALLENGE_LABELS.salesTargetTbd}`
-        : CHALLENGE_LABELS.salesTargetTbd;
-
-  const hintLabel = isTeam && teamContext?.hint ? teamContext.hint : null;
-
-  const gateLabel = isTeam
-    ? isUnlocked
-      ? TEAM_CHALLENGE_LABELS.salesTargetReached
-      : TEAM_CHALLENGE_LABELS.salesTarget
-    : isUnlocked
-      ? CHALLENGE_LABELS.salesTargetReached
-      : CHALLENGE_LABELS.salesTarget;
-
   return (
     <div
-      className={`mx-4 mt-3 flex h-[3.75rem] flex-col justify-center gap-1.5 rounded-[var(--r-sm)] border px-3 py-2 ${bannerStyle}`}
+      className="flex items-baseline justify-between gap-3 py-[7px]"
+      title={tooltip}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className={`text-[10px] font-semibold uppercase tracking-wide ${labelStyle}`}>
-          {gateLabel}
+      <span className="min-w-0 truncate text-[13px] text-[var(--fg-2)]">{label}</span>
+      <span className="flex shrink-0 items-baseline gap-2">
+        <span
+          className={`font-mono text-[13px] tabular-nums ${
+            status === "nodata" ? "text-[var(--fg-4)]" : "text-[var(--fg)]"
+          }`}
+        >
+          {value}
         </span>
-        <div className="flex flex-col items-end shrink-0">
-          <span className={`flex items-center gap-1.5 font-mono text-xs tabular-nums whitespace-nowrap ${valueStyle}`}>
-            <span>{amountLabel}</span>
-            {isOwner && !isTeam && onEditSalesTarget && (
-              <button
-                type="button"
-                onClick={onEditSalesTarget}
-                title="Edit sales target"
-                className="rounded p-0.5 text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
-              >
-                <PencilIcon className="size-3" aria-hidden />
-              </button>
-            )}
-          </span>
-          {hintLabel && (
-            <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{hintLabel}</span>
+        <span className="w-[7.5rem] shrink-0 text-right">
+          {status === "achieved" ? (
+            <span className="text-[13px] font-medium text-[var(--good)]" aria-label="Achieved">✓</span>
+          ) : status === "attention" ? (
+            <span className="text-xs text-[var(--warn)]">{needText}</span>
+          ) : (
+            <span className="text-[11px] text-[var(--fg-4)]">No data</span>
           )}
-        </div>
-      </div>
-      <div className="h-1.5 rounded-full bg-[var(--bg-2)] overflow-hidden">
-        {hasThreshold && ratio !== null && (
-          <div
-            style={{
-              width: `${Math.round(progressRatio * 100)}%`,
-              height: "100%",
-              background: barColor,
-              borderRadius: 9999,
-              transition: "width 0.4s ease",
-            }}
-          />
-        )}
-      </div>
+        </span>
+      </span>
     </div>
   );
 }
 
-function MerchRow({
-  loc,
-  loading,
+function ChallengeSettingsModal({
+  open,
+  onClose,
   isOwner,
-  viewMode = "internal",
 }: {
-  loc: LocationOverview;
-  loading: boolean;
+  open: boolean;
+  onClose: () => void;
   isOwner?: boolean;
-  viewMode?: ViewMode;
 }) {
-  const tierLabels = ["—", "7%+ (P1)", "8%+ (P2)", "9%+ (P3)"];
-  const tier = loc.merchandising.tier;
-  const passes = tier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
-  const progress = loc.merchandising.ratio !== null ? Math.min(1, loc.merchandising.ratio / 0.07) : undefined;
-  const isTeam = viewMode === "team";
+  const rules: { label: string; target: string; bonus: string }[] = [
+    { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
+    { label: "Merchandising", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
+    { label: "Snacks", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
+    { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
+    { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
+    { label: "Review count", target: "≥ 4% of visitors", bonus: "625 ฿" },
+    { label: "Review rating", target: "+0.1★ vs Google · min 10 reviews/mo", bonus: "625 ฿" },
+  ];
   return (
-    <MetricRow
-      label={isTeam ? TEAM_CHALLENGE_LABELS.productsPct : CHALLENGE_LABELS.productsPct}
-      value={pct(loc.merchandising.ratio)}
-      sub={loc.merchandising.ratio !== null ? (tier > 0 ? tierLabels[tier] : "target ≥ 7%") : undefined}
-      passes={passes}
-      bonus={loc.merchandising.bonus}
-      loading={loading}
-      progress={progress}
-      isOwner={isOwner}
-      viewMode={viewMode}
-      teamContext={isTeam ? buildMerchContext(loc) : undefined}
-    />
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Challenge settings"
+      description="Targets, bonuses and per-shop sales targets. Only the owner can edit sales targets."
+      footer={
+        <div className="flex justify-end">
+          <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        <div className="overflow-x-auto rounded-[var(--r-sm)] border border-[var(--line)]">
+          <table className="w-full min-w-[420px]">
+            <thead>
+              <tr className="border-b border-[var(--line)]">
+                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Challenge</th>
+                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Target</th>
+                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">Bonus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rules.map((r) => (
+                <tr key={r.label} className="border-b border-[var(--line)] last:border-b-0">
+                  <td className="px-3 py-2 text-[13px] text-[var(--fg)]">{r.label}</td>
+                  <td className="px-3 py-2 text-[13px] text-[var(--fg-3)]">{r.target}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[13px] tabular-nums text-[var(--fg-3)]">{r.bonus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p className="mb-2 text-[13px] font-medium text-[var(--fg)]">Sales targets by shop</p>
+          {isOwner ? (
+            <SalesTargetSettings />
+          ) : (
+            <p className="text-[13px] text-[var(--fg-4)]">Only the owner can view and edit sales targets.</p>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
-function LocationCard({
+function VisitorOverrideModal({
   loc,
   month,
   loading,
-  isOwner,
-  viewMode,
   onEntryUpdated,
   onSnacksUpdated,
-  onEditSalesTarget,
+  onClose,
 }: {
   loc: LocationOverview;
   month: string;
   loading: boolean;
-  isOwner?: boolean;
-  viewMode: ViewMode;
   onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
   onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
-  onEditSalesTarget?: () => void;
+  onClose: () => void;
 }) {
-  const [overrideOpen, setOverrideOpen] = useState(false);
-  const isTeam = viewMode === "team";
-  const totalBonus = loc.totalBonus;
-  const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
-
-  const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
-
-  // Sum of bonuses that would be earned right now if the revenue gate were reached.
-  const potentialLockedBonus = revenueLocked
-    ? (loc.snacks.passes === true ? SNACKS_BONUS : 0) +
-      (loc.panierMoyen.passes === true ? PANIER_BONUS : 0) +
-      (loc.opex.passes === true ? OPEX_BONUS : 0) +
-      (loc.reviews.volumePass === true ? REVIEWS_VOLUME_BONUS : 0) +
-      (loc.reviews.ratingPass === true ? REVIEWS_RATING_BONUS : 0)
-    : 0;
-
   return (
-    <div className="flex h-full flex-col gap-0 rounded-[var(--r-md)] border border-[var(--line)] bg-transparent overflow-hidden">
-      {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
-        <p className="text-sm font-medium text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
-        {loading ? (
-          <div className="h-5 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
-        ) : (
-          <div className="flex min-h-[1.25rem] items-baseline gap-1.5">
-            <span className={`font-mono text-sm font-semibold tabular-nums whitespace-nowrap ${totalBonus > 0 ? "text-[var(--good)]" : "text-[var(--fg-4)]"}`}>
-              {hasBonusData ? `${totalBonus.toLocaleString()}\u00a0฿` : "—"}
-            </span>
-            {potentialLockedBonus > 0 && (
-              <span
-                className="inline-flex items-baseline gap-0.5 font-mono text-xs font-medium tabular-nums whitespace-nowrap text-[var(--bronze)]"
-                title={CHALLENGE_LABELS.lockedTooltip}
-              >
-                <span>+</span>
-                {!isTeam && <Lock className="size-3 shrink-0 self-center" aria-hidden />}
-                <span>{potentialLockedBonus.toLocaleString()}&nbsp;฿</span>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Revenue gate — not a challenge metric */}
-      <RevenueGateBanner loc={loc} loading={loading} isOwner={isOwner} viewMode={viewMode} onEditSalesTarget={onEditSalesTarget} />
-
-      {/* Metric column headers */}
-      <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
-        <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">
-          {isTeam ? "Challenge" : "Metric"}
-        </span>
-        <div className="flex items-center">
-          <span className={`text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] text-right mr-2 ${isTeam ? "w-20" : "w-16"}`}>
-            {isTeam ? "Progress" : "Value"}
-          </span>
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)] w-16 text-right">Bonus</span>
+    <Modal
+      open
+      onClose={onClose}
+      title={`Visitor counts — ${shortName(loc.locationTitle)}`}
+      description="Manual override overwrites the Loyverse-synced values and is logged in audit. Only use it when Loyverse is misconfigured."
+      footer={
+        <div className="flex justify-end">
+          <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
         </div>
-      </div>
-
-      {/* Metric rows */}
-      <div className="px-4 pb-1">
-        <MerchRow loc={loc} loading={loading} isOwner={isOwner} viewMode={viewMode} />
-        <MetricRow
-          label={isTeam ? TEAM_CHALLENGE_LABELS.snacks : CHALLENGE_LABELS.snacks}
-          value={loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—"}
-          sub={loc.snacks.ratio !== null ? "target ≥ 0.45" : undefined}
-          passes={loc.snacks.passes}
-          bonus={loc.snacks.bonus}
-          locked={revenueLocked}
-          potentialBonus={SNACKS_BONUS}
-          loading={loading}
-          progress={loc.snacks.ratio !== null ? Math.min(1, loc.snacks.ratio / SNACKS_THRESHOLD) : undefined}
-          isOwner={isOwner}
-          viewMode={viewMode}
-          teamContext={isTeam ? buildSnacksContext(loc) : undefined}
-        />
-        <MetricRow
-          label={isTeam ? TEAM_CHALLENGE_LABELS.spendPerVisit : CHALLENGE_LABELS.spendPerVisit}
-          value={loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—"}
-          sub={loc.panierMoyen.value !== null ? "target ≥ 190 ฿" : undefined}
-          passes={loc.panierMoyen.passes}
-          bonus={loc.panierMoyen.bonus}
-          locked={revenueLocked}
-          potentialBonus={PANIER_BONUS}
-          loading={loading}
-          progress={loc.panierMoyen.value !== null ? Math.min(1, loc.panierMoyen.value / PANIER_THRESHOLD) : undefined}
-          isOwner={isOwner}
-          viewMode={viewMode}
-          teamContext={isTeam ? buildPanierContext(loc) : undefined}
-        />
-        <MetricRow
-          label={isTeam ? TEAM_CHALLENGE_LABELS.runningCostsPct : CHALLENGE_LABELS.runningCostsPct}
-          value={pct(loc.opex.ratio)}
-          sub={loc.opex.ratio !== null ? "target < 9.5%" : undefined}
-          passes={loc.opex.passes}
-          bonus={loc.opex.bonus}
-          locked={revenueLocked}
-          potentialBonus={OPEX_BONUS}
-          loading={loading}
-          progress={loc.opex.ratio !== null ? Math.min(1, loc.opex.threshold / loc.opex.ratio) : undefined}
-          isOwner={isOwner}
-          viewMode={viewMode}
-          teamContext={isTeam ? buildOpexContext(loc) : undefined}
-        />
-        <MetricRow
-          label={isTeam ? TEAM_CHALLENGE_LABELS.reviewCount : CHALLENGE_LABELS.reviewCount}
-          value={loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`}
-          sub={loc.reviews.volumeRatio !== null ? "target ≥ 4%" : undefined}
-          passes={loc.reviews.volumePass}
-          bonus={loc.reviews.volumeBonus}
-          locked={revenueLocked}
-          potentialBonus={REVIEWS_VOLUME_BONUS}
-          loading={loading}
-          progress={loc.reviews.volumeRatio !== null ? Math.min(1, loc.reviews.volumeRatio / 0.04) : undefined}
-          isOwner={isOwner}
-          viewMode={viewMode}
-          teamContext={isTeam ? buildReviewVolumeContext(loc) : undefined}
-        />
-        <MetricRow
-          label={isTeam ? TEAM_CHALLENGE_LABELS.reviewRating : CHALLENGE_LABELS.reviewRating}
-          value={loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—"}
-          sub={
-            loc.reviews.currentRating > 0 && loc.reviews.ratingTarget > 0
-              ? `target ≥ ${loc.reviews.ratingTarget.toFixed(1)}`
-              : undefined
-          }
-          passes={loc.reviews.ratingPass}
-          bonus={loc.reviews.ratingBonus}
-          locked={revenueLocked}
-          potentialBonus={REVIEWS_RATING_BONUS}
-          progress={loc.reviews.count > 0 && loc.reviews.ratingTarget > 0 ? Math.min(1, loc.reviews.avgRating / loc.reviews.ratingTarget) : undefined}
-          isOwner={isOwner}
-          loading={loading}
-          viewMode={viewMode}
-          teamContext={isTeam ? buildReviewRatingContext(loc) : undefined}
-        />
-      </div>
-
-      {/* Compteurs — source de vérité 100% Loyverse (sync auto force=true).
-          Override manuel = owner uniquement, derrière le bouton rouge (mauvais paramétrage Loyverse). */}
-      <div className="mt-auto flex flex-col gap-0 border-t border-[var(--line)] bg-transparent">
-        <div className="flex items-center justify-between px-4 pt-2 pb-0.5">
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--fg-4)]">
-            {isTeam ? TEAM_CHALLENGE_LABELS.visitorCounts : CHALLENGE_LABELS.visitorCounts}
-          </span>
-          <span className="rounded bg-[var(--info-soft)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--info)]">
-            auto Loyverse
-          </span>
-        </div>
-        {!isOwner && !isTeam ? (
-          <p className="px-4 py-2 text-[11px] text-[var(--fg-4)]">
-            Compteurs synchronisés depuis Loyverse — contacte le owner en cas d&apos;anomalie.
-          </p>
-        ) : isOwner && !overrideOpen ? (
-          <div className="px-4 py-2">
-            <button
-              type="button"
-              onClick={() => setOverrideOpen(true)}
-              className="rounded-[var(--r-sm)] border border-[var(--bad)] bg-[var(--bad-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--bad)]"
-              title="Override manuel — écrase les valeurs Loyverse. À n'utiliser qu'en cas de mauvais paramétrage Loyverse. Loggé en audit."
-            >
-              Override manuel (owner) — modifier les compteurs
-            </button>
-          </div>
-        ) : isOwner && overrideOpen ? (
-          <>
-            <p className="px-4 py-1 text-[11px] font-medium text-[var(--bad)]">
-              ⚠ Override actif — tu écrases les valeurs Loyverse. Referme après correction.
-              <button type="button" onClick={() => setOverrideOpen(false)} className="ml-2 underline">
-                refermer
-              </button>
-            </p>
+      }
+    >
+      <div className="flex flex-col">
         {([1, 2, 3] as const).map((p) => {
-          const entryLabel  = PERIOD_LABELS.visitors[p - 1];
+          const entryLabel = PERIOD_LABELS.visitors[p - 1];
           const snacksLabel = PERIOD_LABELS.snacks[p - 1];
-          const entryInit   = p === 1 ? loc.entryCountP1 : p === 2 ? loc.entryCountP2 : loc.entryCountP3;
-          const snacksInit  = p === 1 ? loc.snacksSoldP1 : p === 2 ? loc.snacksSoldP2 : loc.snacksSoldP3;
+          const entryInit = p === 1 ? loc.entryCountP1 : p === 2 ? loc.entryCountP2 : loc.entryCountP3;
+          const snacksInit = p === 1 ? loc.snacksSoldP1 : p === 2 ? loc.snacksSoldP2 : loc.snacksSoldP3;
           return (
-            <div key={p} className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0">
+            <div key={p} className="grid grid-cols-2 gap-3 border-b border-[var(--line)] py-3 last:border-b-0">
               <InlineNumberInput
                 label={entryLabel}
                 locationId={loc.locationId}
@@ -769,26 +525,295 @@ function LocationCard({
             </div>
           );
         })}
-          </>
-        ) : null}
       </div>
-    </div>
+    </Modal>
+  );
+}
+
+function LocationCard({
+  loc,
+  month,
+  loading,
+  isOwner,
+  viewMode,
+  onEntryUpdated,
+  onSnacksUpdated,
+}: {
+  loc: LocationOverview;
+  month: string;
+  loading: boolean;
+  isOwner?: boolean;
+  viewMode: ViewMode;
+  onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
+  onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
+}) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const isTeam = viewMode === "team";
+  const totalBonus = loc.totalBonus;
+  const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
+  const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
+
+  const { amount, threshold, unlocked, ratio } = loc.revenue;
+  const teamRevenue = isTeam ? buildRevenueContext(loc) : null;
+  const amountLabel =
+    isTeam && teamRevenue
+      ? teamRevenue.value
+      : threshold !== null
+        ? amount !== null
+          ? `${fmt(amount, 0)} / ${fmt(threshold, 0)} ฿`
+          : `— / ${fmt(threshold, 0)} ฿`
+        : amount !== null
+          ? `${fmt(amount, 0)} ฿`
+          : "—";
+  const progressRatio = threshold !== null && ratio !== null ? Math.min(1, ratio) : 0;
+
+  const tierLabels = ["—", "7%+ (P1)", "8%+ (P2)", "9%+ (P3)"];
+  const merchTier = loc.merchandising.tier;
+  const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+
+  // 6 gated/ungated challenges counted for the "X / 6 achieved" summary.
+  const challengeStates: (boolean | null)[] = [
+    merchPass,
+    loc.snacks.passes,
+    loc.panierMoyen.passes,
+    loc.opex.passes,
+    loc.reviews.volumePass,
+    loc.reviews.ratingPass,
+  ];
+  const achievedCount = challengeStates.filter((s) => s === true).length;
+
+  function kpiStatus(passes: boolean | null, lockedOut: boolean): { status: KpiStatus; need?: string } {
+    if (passes === null) return { status: "nodata" };
+    if (passes === true && !lockedOut) return { status: "achieved" };
+    return { status: "attention" };
+  }
+
+  const merch = kpiStatus(merchPass, false);
+  const snacks = kpiStatus(loc.snacks.passes, revenueLocked);
+  const panier = kpiStatus(loc.panierMoyen.passes, revenueLocked);
+  const opex = kpiStatus(loc.opex.passes, revenueLocked);
+  const revVolume = kpiStatus(loc.reviews.volumePass, revenueLocked);
+  const revRating = kpiStatus(loc.reviews.ratingPass, revenueLocked);
+
+  const ratingTargetLabel =
+    loc.reviews.currentRating > 0 && loc.reviews.ratingTarget > 0
+      ? `≥ ${loc.reviews.ratingTarget.toFixed(1)}`
+      : "—";
+
+  return (
+    <Card className="p-5">
+      {/* Header: shop identity + total bonus */}
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-[15px] font-semibold text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
+        {loading ? (
+          <div className="h-4 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
+        ) : (
+          <p
+            className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
+              totalBonus > 0 ? "text-[var(--fg)]" : "text-[var(--fg-4)]"
+            }`}
+            title="Total bonus currently earned by this shop"
+          >
+            {hasBonusData ? `${totalBonus.toLocaleString()} ฿` : "—"}
+          </p>
+        )}
+      </div>
+
+      {/* Sales target — the only progress bar on the card */}
+      <div className="mt-3">
+        {loading ? (
+          <div className="h-9 animate-pulse rounded bg-[var(--bg-2)]" />
+        ) : (
+          <>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-mono text-[13px] tabular-nums text-[var(--fg-2)]">{amountLabel}</span>
+              {isOwner && !isTeam && (
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  title="Challenge settings"
+                  aria-label="Challenge settings"
+                  className="rounded p-1 text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
+                >
+                  <PencilIcon className="size-3" aria-hidden />
+                </button>
+              )}
+            </div>
+            <div
+              className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--bg-2)]"
+              role="progressbar"
+              aria-label="Sales target progression"
+              aria-valuenow={Math.round(progressRatio * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              {threshold !== null && ratio !== null && (
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.round(progressRatio * 100)}%`,
+                    background: unlocked ? "var(--good)" : "var(--fg-3)",
+                  }}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Completion summary — neutral, compact */}
+      <p className="mt-2.5 text-xs text-[var(--fg-4)]">
+        {loading ? "—" : `${achievedCount} / 6 challenges achieved`}
+      </p>
+
+      {/* KPI list — no bars, no per-row bonuses, targets on hover */}
+      <div className="mt-1 divide-y divide-[var(--line)]">
+        <KpiRow
+          label={isTeam ? TEAM_CHALLENGE_LABELS.productsPct : CHALLENGE_LABELS.productsPct}
+          value={isTeam ? buildMerchContext(loc).value : pct(loc.merchandising.ratio)}
+          status={merch.status}
+          needText={loc.merchandising.ratio !== null ? "Needs 7%" : undefined}
+          tooltip={`Target: ≥ 7%${merchTier > 0 ? ` (${tierLabels[merchTier]})` : ""} · Bonus when achieved: up to 5,000 ฿`}
+          loading={loading}
+        />
+        <KpiRow
+          label={isTeam ? TEAM_CHALLENGE_LABELS.snacks : CHALLENGE_LABELS.snacks}
+          value={isTeam ? buildSnacksContext(loc).value : (loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—")}
+          status={snacks.status}
+          needText={
+            revenueLocked && loc.snacks.passes === true
+              ? "Locked"
+              : loc.snacks.ratio !== null
+                ? "Needs 0.45"
+                : undefined
+          }
+          tooltip={`Target: ≥ 0.45 · Bonus when achieved: ${SNACKS_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          loading={loading}
+        />
+        <KpiRow
+          label={isTeam ? TEAM_CHALLENGE_LABELS.spendPerVisit : CHALLENGE_LABELS.spendPerVisit}
+          value={isTeam ? buildPanierContext(loc).value : (loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—")}
+          status={panier.status}
+          needText={
+            revenueLocked && loc.panierMoyen.passes === true
+              ? "Locked"
+              : loc.panierMoyen.value !== null
+                ? "Needs 190 ฿"
+                : undefined
+          }
+          tooltip={`Target: ≥ 190 ฿ · Bonus when achieved: ${PANIER_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          loading={loading}
+        />
+        <KpiRow
+          label={isTeam ? TEAM_CHALLENGE_LABELS.runningCostsPct : CHALLENGE_LABELS.runningCostsPct}
+          value={isTeam ? buildOpexContext(loc).value : pct(loc.opex.ratio)}
+          status={opex.status}
+          needText={
+            revenueLocked && loc.opex.passes === true
+              ? "Locked"
+              : loc.opex.ratio !== null
+                ? "Needs < 9.5%"
+                : undefined
+          }
+          tooltip={`Target: < 9.5% · Bonus when achieved: ${OPEX_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          loading={loading}
+        />
+        <KpiRow
+          label={isTeam ? TEAM_CHALLENGE_LABELS.reviewCount : CHALLENGE_LABELS.reviewCount}
+          value={isTeam ? buildReviewVolumeContext(loc).value : (loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`)}
+          status={revVolume.status}
+          needText={
+            revenueLocked && loc.reviews.volumePass === true
+              ? "Locked"
+              : loc.reviews.volumeRatio !== null
+                ? "Needs 4%"
+                : undefined
+          }
+          tooltip={`Target: ≥ 4% · Bonus when achieved: ${REVIEWS_VOLUME_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          loading={loading}
+        />
+        <KpiRow
+          label={isTeam ? TEAM_CHALLENGE_LABELS.reviewRating : CHALLENGE_LABELS.reviewRating}
+          value={isTeam ? buildReviewRatingContext(loc).value : (loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—")}
+          status={revRating.status}
+          needText={
+            revenueLocked && loc.reviews.ratingPass === true
+              ? "Locked"
+              : loc.reviews.count > 0 && loc.reviews.ratingTarget > 0
+                ? `Needs ${loc.reviews.ratingTarget.toFixed(1)}`
+                : undefined
+          }
+          tooltip={`Target: ${ratingTargetLabel} · Bonus when achieved: ${REVIEWS_RATING_BONUS.toLocaleString()} ฿ · ${CHALLENGE_LABELS.lockedTooltip}`}
+          loading={loading}
+        />
+      </div>
+
+      {/* Visitors — count first, source secondary, actions in ••• menu */}
+      <div className="mt-1 flex items-center justify-between border-t border-[var(--line)] pt-1">
+        <span
+          className="flex min-w-0 items-baseline gap-2 py-[7px]"
+          title="Automatically synced from Loyverse"
+        >
+          <span className="text-[13px] text-[var(--fg-2)]">Visitors</span>
+          <span className="font-mono text-[13px] tabular-nums text-[var(--fg)]">
+            {loading ? "—" : loc.entryCount !== null ? fmt(loc.entryCount, 0) : "—"}
+          </span>
+        </span>
+        {(isOwner || isTeam) && !loading ? (
+          <OverflowMenu
+            label="Visitor count actions"
+            items={[
+              ...(isOwner
+                ? [{ label: "Manual override", hint: "Edit synced counters", onSelect: () => setOverrideOpen(true) }]
+                : []),
+              {
+                label: "Sync info",
+                hint: "Automatically synced from Loyverse",
+                onSelect: () => {
+                  toast.info("Visitor counts sync automatically from Loyverse.");
+                },
+              },
+            ]}
+          />
+        ) : (
+          <span className="w-7" aria-hidden />
+        )}
+      </div>
+
+      {settingsOpen && (
+        <ChallengeSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
+      )}
+      {overrideOpen && (
+        <VisitorOverrideModal
+          loc={loc}
+          month={month}
+          loading={loading}
+          onEntryUpdated={onEntryUpdated}
+          onSnacksUpdated={onSnacksUpdated}
+          onClose={() => setOverrideOpen(false)}
+        />
+      )}
+    </Card>
   );
 }
 
 export function ChallengesOverview({
   isOwner,
   canManage,
+  locations: adminLocations = [],
 }: {
   isOwner?: boolean;
   canManage?: boolean;
+  locations?: AdminLocation[];
 } = {}) {
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
-  const [salesTargetOpen, setSalesTargetOpen] = useState(false);
+  const [sheetImportOpen, setSheetImportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
 
   useEffect(() => {
@@ -829,8 +854,8 @@ export function ChallengesOverview({
     fetchData(month, { silent: true });
   }
 
-  // Manual "Refresh all data" — same sequential pipeline as the nightly cron
-  // (reviews + sheets → loyverse → write-back → counters, then cards refresh). Owner only.
+  // Manual "Sync all" — same sequential pipeline as the nightly cron
+  // (sheets → loyverse → write-back → counters → reviews). Owner only.
   async function handleSyncAll() {
     setSyncingAll(true);
     try {
@@ -840,18 +865,18 @@ export function ChallengesOverview({
         error?: string;
         steps?: Record<string, { ok: boolean; skipped?: boolean; error?: string }>;
       };
-      if (!res.ok) throw new Error(json.error ?? "Refresh all data failed");
+      if (!res.ok) throw new Error(json.error ?? "Sync all failed");
       const failed = Object.entries(json.steps ?? {})
         .filter(([, s]) => !s.ok && !s.skipped)
         .map(([k, s]) => `${k}: ${s.error ?? "failed"}`);
       if (failed.length > 0) {
-        toast.warning(`Refresh terminé avec erreurs — ${failed.join(" · ")}`);
+        toast.warning(`Sync terminé avec erreurs — ${failed.join(" · ")}`);
       } else {
-        toast.success("Refresh terminé — reviews, sheets, Loyverse, compteurs");
+        toast.success("Sync all terminé — sheets, Loyverse, compteurs, reviews");
       }
       await fetchData(month, { silent: true });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Refresh all data failed");
+      toast.error(e instanceof Error ? e.message : "Sync all failed");
     } finally {
       setSyncingAll(false);
     }
@@ -874,17 +899,17 @@ export function ChallengesOverview({
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
-  function exportOverviewPdf(teamMode = false, locationsOverride?: LocationOverview[]) {
+  function exportOverviewPdf(summaryOnly = false, teamMode = false, locationsOverride?: LocationOverview[]) {
     const exportLocations = locationsOverride ?? locations;
     if (exportLocations.length === 0) return;
-    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly: false, teamMode }));
+    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly, teamMode }));
   }
 
   function exportSelectedShopTeamPdf() {
     if (teamLocationFilter === "all") return;
     const shop = locations.find((l) => l.locationId === teamLocationFilter);
     if (!shop) return;
-    exportOverviewPdf(true, [shop]);
+    exportOverviewPdf(false, true, [shop]);
   }
 
   const isTeamView = viewMode === "team";
@@ -894,69 +919,69 @@ export function ChallengesOverview({
       : locations;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header row */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-5">
+      {/* Light top controls: month + total earned, then view switch + actions */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <MonthSelector value={month} onChange={setMonth} />
-          <ViewModeToggle value={viewMode} onChange={handleViewModeChange} />
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {!loading && locations.length > 0 && totalEarned > 0 && (
-            <div className="flex items-center gap-2 text-sm text-[var(--fg-3)]">
-              <span className="font-mono font-semibold text-[var(--good)]">{totalEarned.toLocaleString()} ฿</span>
-              <span>earned across all shops</span>
-            </div>
+          {!loading && locations.length > 0 && (
+            <p className="text-[13px] text-[var(--fg-3)]">
+              <span className="font-mono font-semibold tabular-nums text-[var(--fg)]">
+                {totalEarned.toLocaleString()} ฿
+              </span>{" "}
+              earned across all shops
+            </p>
           )}
-          {canManage && (
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ViewModeToggle value={viewMode} onChange={handleViewModeChange} />
+          <div className="flex flex-wrap items-center gap-2">
+            {canManage && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleSyncAll}
+                disabled={syncingAll || loading}
+                title="Sync all: sheets → Loyverse → compteurs → reviews (même pipeline que le cron du soir)"
+              >
+                <RefreshCwIcon size={13} className={syncingAll ? "animate-spin" : ""} />
+                {syncingAll ? "Syncing…" : "Sync"}
+              </Button>
+            )}
+            {canManage && adminLocations.length > 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setSheetImportOpen(true)}
+                title="Import from Google Sheets"
+              >
+                <CloudDownloadIcon size={13} />
+                Sheets
+              </Button>
+            )}
+            <OverflowMenu
+              label="Export PDFs"
+              items={[
+                { label: "Summary PDF", onSelect: () => exportOverviewPdf(true) },
+                { label: "Full PDF", onSelect: () => exportOverviewPdf(false) },
+                { label: "Team PDF", hint: "Friendlier wording for shop teams", onSelect: () => exportOverviewPdf(false, true) },
+              ]}
+            />
+            <Button size="sm" variant="ghost" onClick={() => exportOverviewPdf(true)} disabled={loading || locations.length === 0} title="Print summary">
+              <PrinterIcon size={13} />
+            </Button>
             <Button
               size="sm"
               variant="secondary"
-              onClick={handleSyncAll}
-              disabled={syncingAll || loading}
-              title="Refresh all data: sync reviews, pull latest Sheets data, refresh Loyverse entries & snacks, then update cards (same pipeline as the nightly cron)"
+              onClick={() => setSettingsOpen(true)}
+              title="Challenge targets, bonuses and sales targets"
             >
-              <RefreshCwIcon size={13} className={syncingAll ? "animate-spin" : ""} />
-              {syncingAll ? "Refreshing…" : "Refresh all data"}
+              <Settings2Icon size={13} />
+              Challenge settings
             </Button>
-          )}
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => exportOverviewPdf(false)}
-            disabled={loading || locations.length === 0}
-            title="Operations PDF: summary on the first page, then one detailed page per shop"
-          >
-            <PrinterIcon size={13} />
-            Operations PDF
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => exportOverviewPdf(true)}
-            disabled={loading || locations.length === 0}
-          >
-            <PrinterIcon size={13} />
-            Team PDF
-          </Button>
+          </div>
         </div>
       </div>
-
-      {/* Legend row — internal view only */}
-      {!isTeamView && (
-        <div className="flex flex-wrap gap-3">
-          {LEGEND_ITEMS.map((item) => (
-            <div
-              key={item.label}
-              className="flex flex-col gap-0.5 rounded-[var(--r-sm)] border border-[var(--line)] bg-transparent px-3 py-2"
-            >
-              <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">{item.label}</span>
-              <span className="font-mono text-sm font-semibold text-[var(--fg)]">{item.max}</span>
-              <span className="text-[10px] text-[var(--fg-4)]">{item.tiers}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Team view — location filter */}
       {isTeamView && locations.length > 1 && (
@@ -989,14 +1014,14 @@ export function ChallengesOverview({
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-72 animate-pulse rounded-[var(--r-md)] border border-[var(--line)] bg-transparent" />
+              <div key={i} className="h-72 animate-pulse rounded-[var(--r-lg)] border border-[var(--line)] bg-transparent" />
             ))}
           </div>
         )
       ) : locations.length === 0 ? (
-        <div className="flex h-40 items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] bg-transparent">
+        <div className="flex h-40 items-center justify-center rounded-[var(--r-lg)] border border-[var(--line)] bg-transparent">
           <span className="text-sm text-[var(--fg-4)]">No data yet for this month.</span>
         </div>
       ) : isTeamView ? (
@@ -1006,7 +1031,7 @@ export function ChallengesOverview({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:grid-cols-3 items-stretch">
+        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {locations.map((loc) => (
             <LocationCard
               key={loc.locationId}
@@ -1017,26 +1042,22 @@ export function ChallengesOverview({
               viewMode={viewMode}
               onEntryUpdated={(id, p, val) => handleEntryUpdated(id, p, val)}
               onSnacksUpdated={(id, p, val) => handleSnacksUpdated(id, p, val)}
-              onEditSalesTarget={isOwner ? () => setSalesTargetOpen(true) : undefined}
             />
           ))}
         </div>
       )}
 
-      {salesTargetOpen && (
-        <Drawer
-          open={salesTargetOpen}
-          onClose={() => setSalesTargetOpen(false)}
-          title="Sales targets"
-          description="Monthly net revenue each shop must reach to unlock its gated challenges. Leave empty to use the default."
-          footer={
-            <div className="flex justify-end">
-              <Button size="sm" variant="secondary" onClick={() => setSalesTargetOpen(false)}>Done</Button>
-            </div>
-          }
-        >
-          <SalesTargetSettings />
-        </Drawer>
+      {sheetImportOpen && adminLocations[0] && (
+        <SheetImportModal
+          location={adminLocations[0]}
+          defaultTab="all"
+          onClose={() => setSheetImportOpen(false)}
+          onImported={() => void fetchData(month, { silent: true })}
+        />
+      )}
+
+      {settingsOpen && (
+        <ChallengeSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { ModuleTabs } from "@/components/ui/module-tabs";
 import type { SessionRole } from "@/core/permissions/types";
 
 interface ReviewsTabNavProps {
@@ -9,7 +8,6 @@ interface ReviewsTabNavProps {
 }
 
 export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
-  const pathname = usePathname();
   const isOwner = role === "owner";
 
   const tabs = [
@@ -25,29 +23,7 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
 
   return (
     <div className="reviews-tab-nav">
-      {tabs.map((tab) => {
-        const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            style={{
-              position: "relative",
-              padding: "8px 12px 10px",
-              fontSize: 13,
-              fontWeight: 500,
-              color: active ? "var(--fg)" : "var(--fg-4)",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              borderBottom: active ? "2px solid var(--bronze)" : "2px solid transparent",
-              marginBottom: -1,
-              transition: "color 150ms, border-color 150ms",
-            }}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
+      <ModuleTabs tabs={tabs} ariaLabel="Reviews" />
     </div>
   );
 }
