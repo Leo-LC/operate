@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  CircleHelpIcon,
   EllipsisIcon,
+  Lock,
   PencilIcon,
   PrinterIcon,
   RefreshCwIcon,
@@ -10,7 +12,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { HoverTooltip } from "@/components/ui/hover-tooltip";
 import { Modal } from "@/components/ui/modal";
 import { MonthSelector } from "./MonthSelector";
 import { SalesTargetSettings } from "./SalesTargetSettings";
@@ -24,14 +25,7 @@ import {
 } from "@/modules/challenges/labels";
 import { TeamLocationDashboard } from "./TeamLocationDashboard";
 import { shortLocationName } from "@/modules/challenges/team-metrics";
-import {
-  OPEX_BONUS,
-  PANIER_BONUS,
-  REVIEWS_RATING_BONUS,
-  REVIEWS_VOLUME_BONUS,
-  SNACKS_BONUS,
-  normalizeLocationKey,
-} from "@/modules/challenges/constants";
+import { normalizeLocationKey } from "@/modules/challenges/constants";
 import {
   type ViewMode,
   VIEW_MODE_STORAGE_KEY,
@@ -348,81 +342,131 @@ function InlineNumberInput({
   );
 }
 
-type KpiStatus = "achieved" | "attention" | "nodata";
+type KpiStatus = "achieved" | "locked" | "missed" | "nodata";
 
 /**
- * Single challenge row. Only three visual states:
- * - achieved → quiet, small green check
- * - attention (failing / locked / near target) → muted warning text explaining what is needed
- * - nodata → clearly marked, lowest contrast
- * Target + bonus live in the hover tooltip, not in the row.
+ * One challenge row: label | current | target | status.
+ * - achieved → quiet green check (bonus paid)
+ * - locked → target met but bonus held until the sales target is cleared
+ * - missed → below target, compare Current vs Target
+ * - nodata → counters not synced yet
  */
 function KpiRow({
   label,
   value,
+  target,
   status,
-  needText,
-  tip,
   loading,
 }: {
   label: string;
   value: string;
+  target: string;
   status: KpiStatus;
-  needText?: string;
-  tip: React.ReactNode;
   loading: boolean;
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-between py-[7px]">
+      <div className="grid grid-cols-[minmax(0,1fr)_4.75rem_4.75rem_4rem] items-baseline gap-3 py-2">
         <div className="h-3 w-24 animate-pulse rounded bg-[var(--bg-2)]" />
-        <div className="h-3 w-14 animate-pulse rounded bg-[var(--bg-2)]" />
+        <div className="h-3 w-12 animate-pulse rounded bg-[var(--bg-2)]" />
+        <div className="h-3 w-12 animate-pulse rounded bg-[var(--bg-2)]" />
+        <div className="h-3 w-10 animate-pulse rounded bg-[var(--bg-2)]" />
       </div>
     );
   }
   return (
-    <div className="flex items-baseline justify-between gap-3 py-[7px]">
-      <HoverTooltip content={tip} align="left" className="min-w-0">
-        <span className="min-w-0 truncate text-[13px] text-[var(--fg-2)]">{label}</span>
-      </HoverTooltip>
-      <span className="flex shrink-0 items-baseline gap-2">
-        <HoverTooltip content={tip} align="right">
-          <span
-            className={`font-mono text-[13px] tabular-nums ${
-              status === "nodata" ? "text-[var(--fg-4)]" : "text-[var(--fg)]"
-            }`}
-          >
-            {value}
+    <div className="grid grid-cols-[minmax(0,1fr)_4.75rem_4.75rem_4rem] items-baseline gap-3 py-2">
+      <span className="min-w-0 truncate text-[13px] text-[var(--fg-2)]">{label}</span>
+      <span
+        className={`text-right font-mono text-[13px] tabular-nums ${
+          status === "nodata" ? "text-[var(--fg-4)]" : "text-[var(--fg)]"
+        }`}
+      >
+        {value}
+      </span>
+      <span className="text-right font-mono text-xs tabular-nums text-[var(--fg-4)]">{target}</span>
+      <span className="text-right">
+        {status === "achieved" ? (
+          <span className="text-[13px] font-medium text-[var(--good)]" aria-label="Achieved">✓</span>
+        ) : status === "locked" ? (
+          <span className="inline-flex items-center justify-end gap-1 text-xs text-[var(--fg-3)]" aria-label="Target met, bonus locked until sales target is cleared">
+            <Lock className="size-3" aria-hidden />
+            Locked
           </span>
-        </HoverTooltip>
-        <span className="w-[7.5rem] shrink-0 text-right">
-          {status === "achieved" ? (
-            <span className="text-[13px] font-medium text-[var(--good)]" aria-label="Achieved">✓</span>
-          ) : status === "attention" ? (
-            <span className="text-xs text-[var(--warn)]">{needText}</span>
-          ) : (
-            <span className="text-[11px] text-[var(--fg-4)]">No data</span>
-          )}
-        </span>
+        ) : status === "missed" ? (
+          <span className="text-xs font-medium text-[var(--warn)]">Missed</span>
+        ) : (
+          <span className="text-[11px] text-[var(--fg-4)]">No data</span>
+        )}
       </span>
     </div>
   );
 }
 
-/** Two-line hover content for a KPI: target + bonus, optionally the revenue-gate note. */
-function KpiTip({ target, bonus, gated = true }: { target: string; bonus: string; gated?: boolean }) {
+const CHALLENGE_RULES: { label: string; target: string; bonus: string }[] = [
+  { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
+  { label: "Merchandising", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
+  { label: "Animal Food", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
+  { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
+  { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
+  { label: "Review count", target: "≥ 4% of visitors", bonus: "625 ฿" },
+  { label: "Review rating", target: "+0.1★ vs Google · min 10 reviews/mo", bonus: "625 ฿" },
+];
+
+const STATUS_MEANINGS: { status: string; meaning: string }[] = [
+  { status: "✓ Achieved", meaning: "Target met — bonus paid." },
+  { status: "Locked", meaning: "Target met — bonus held until the shop clears its sales target." },
+  { status: "Missed", meaning: "Below target — compare Current vs Target." },
+  { status: "No data", meaning: "Counters not synced yet — check Loyverse sync." },
+];
+
+function ChallengeRulesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <span className="flex flex-col gap-0.5">
-      <span>
-        <span className="text-[var(--fg-4)]">Target: </span>
-        {target}
-      </span>
-      <span>
-        <span className="text-[var(--fg-4)]">Bonus when achieved: </span>
-        {bonus}
-      </span>
-      {gated && <span className="text-[var(--fg-4)]">Unlocks once sales target is reached</span>}
-    </span>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Challenge rules"
+      description="Targets, bonuses and what each status means."
+      footer={
+        <div className="flex justify-end">
+          <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        <div className="overflow-x-auto rounded-[var(--r-sm)] border border-[var(--line)]">
+          <table className="w-full min-w-[420px]">
+            <thead>
+              <tr className="border-b border-[var(--line)]">
+                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Challenge</th>
+                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Target</th>
+                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">Bonus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CHALLENGE_RULES.map((r) => (
+                <tr key={r.label} className="border-b border-[var(--line)] last:border-b-0">
+                  <td className="px-3 py-2 text-[13px] text-[var(--fg)]">{r.label}</td>
+                  <td className="px-3 py-2 text-[13px] text-[var(--fg-3)]">{r.target}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[13px] tabular-nums text-[var(--fg-3)]">{r.bonus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p className="mb-2 text-[13px] font-medium text-[var(--fg)]">Statuses</p>
+          <div className="flex flex-col rounded-[var(--r-sm)] border border-[var(--line)]">
+            {STATUS_MEANINGS.map((s) => (
+              <div key={s.status} className="flex items-baseline gap-3 border-b border-[var(--line)] px-3 py-2 last:border-b-0">
+                <span className="w-24 shrink-0 text-[13px] font-medium text-[var(--fg)]">{s.status}</span>
+                <span className="text-[13px] text-[var(--fg-3)]">{s.meaning}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -431,8 +475,8 @@ function ShopSalesTargetModal({ loc, onClose }: { loc: LocationOverview; onClose
     <Modal
       open
       onClose={onClose}
+      width={420}
       title={`Sales target — ${shortName(loc.locationTitle)}`}
-      description="Monthly net revenue this shop must reach to unlock its gated challenges. Leave empty to use the default."
       footer={
         <div className="flex justify-end">
           <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
@@ -453,57 +497,23 @@ function ChallengeSettingsModal({
   onClose: () => void;
   isOwner?: boolean;
 }) {
-  const rules: { label: string; target: string; bonus: string }[] = [
-    { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
-    { label: "Merchandising", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
-    { label: "Animal Food", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
-    { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
-    { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
-    { label: "Review count", target: "≥ 4% of visitors", bonus: "625 ฿" },
-    { label: "Review rating", target: "+0.1★ vs Google · min 10 reviews/mo", bonus: "625 ฿" },
-  ];
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Challenge settings"
-      description="Targets, bonuses and per-shop sales targets. Only the owner can edit sales targets."
+      description="Per-shop sales targets. Only the owner can edit them — see the rules via the ? button."
       footer={
         <div className="flex justify-end">
           <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
         </div>
       }
     >
-      <div className="flex flex-col gap-5">
-        <div className="overflow-x-auto rounded-[var(--r-sm)] border border-[var(--line)]">
-          <table className="w-full min-w-[420px]">
-            <thead>
-              <tr className="border-b border-[var(--line)]">
-                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Challenge</th>
-                <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Target</th>
-                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">Bonus</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((r) => (
-                <tr key={r.label} className="border-b border-[var(--line)] last:border-b-0">
-                  <td className="px-3 py-2 text-[13px] text-[var(--fg)]">{r.label}</td>
-                  <td className="px-3 py-2 text-[13px] text-[var(--fg-3)]">{r.target}</td>
-                  <td className="px-3 py-2 text-right font-mono text-[13px] tabular-nums text-[var(--fg-3)]">{r.bonus}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <p className="mb-2 text-[13px] font-medium text-[var(--fg)]">Sales targets by shop</p>
-          {isOwner ? (
-            <SalesTargetSettings />
-          ) : (
-            <p className="text-[13px] text-[var(--fg-4)]">Only the owner can view and edit sales targets.</p>
-          )}
-        </div>
-      </div>
+      {isOwner ? (
+        <SalesTargetSettings />
+      ) : (
+        <p className="text-[13px] text-[var(--fg-4)]">Only the owner can view and edit sales targets.</p>
+      )}
     </Modal>
   );
 }
@@ -609,7 +619,6 @@ function LocationCard({
           : "—";
   const progressRatio = threshold !== null && ratio !== null ? Math.min(1, ratio) : 0;
 
-  const tierLabels = ["—", "7%+ (P1)", "8%+ (P2)", "9%+ (P3)"];
   const merchTier = loc.merchandising.tier;
   const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
 
@@ -624,18 +633,18 @@ function LocationCard({
   ];
   const achievedCount = challengeStates.filter((s) => s === true).length;
 
-  function kpiStatus(passes: boolean | null, lockedOut: boolean): { status: KpiStatus; need?: string } {
-    if (passes === null) return { status: "nodata" };
-    if (passes === true && !lockedOut) return { status: "achieved" };
-    return { status: "attention" };
+  function rowState(passes: boolean | null, lockedOut: boolean): KpiStatus {
+    if (passes === null) return "nodata";
+    if (passes === true) return lockedOut ? "locked" : "achieved";
+    return "missed";
   }
 
-  const merch = kpiStatus(merchPass, false);
-  const snacks = kpiStatus(loc.snacks.passes, revenueLocked);
-  const panier = kpiStatus(loc.panierMoyen.passes, revenueLocked);
-  const opex = kpiStatus(loc.opex.passes, revenueLocked);
-  const revVolume = kpiStatus(loc.reviews.volumePass, revenueLocked);
-  const revRating = kpiStatus(loc.reviews.ratingPass, revenueLocked);
+  const merch = rowState(merchPass, false);
+  const snacks = rowState(loc.snacks.passes, revenueLocked);
+  const panier = rowState(loc.panierMoyen.passes, revenueLocked);
+  const opex = rowState(loc.opex.passes, revenueLocked);
+  const revVolume = rowState(loc.reviews.volumePass, revenueLocked);
+  const revRating = rowState(loc.reviews.ratingPass, revenueLocked);
 
   const ratingTargetLabel =
     loc.reviews.currentRating > 0 && loc.reviews.ratingTarget > 0
@@ -646,7 +655,7 @@ function LocationCard({
     <Card className="overflow-visible p-5">
       {/* Header: shop identity + total bonus */}
       <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 truncate text-[15px] font-semibold text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
+        <p className="min-w-0 truncate text-[17px] font-semibold tracking-tight text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
         {loading ? (
           <div className="h-4 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
         ) : (
@@ -703,103 +712,71 @@ function LocationCard({
         )}
       </div>
 
-      {/* Completion summary — neutral, compact */}
-      <p className="mt-2.5 text-xs text-[var(--fg-4)]">
+      {/* Completion summary — neutral, compact, with breathing room below */}
+      <p className="mb-2 mt-3 text-xs text-[var(--fg-4)]">
         {loading ? "—" : `${achievedCount} / 6 challenges achieved`}
       </p>
 
-      {/* KPI list — no bars, no per-row bonuses, targets on hover */}
-      <div className="mt-1 divide-y divide-[var(--line)]">
+      {/* KPI list — current vs target columns, single status per row */}
+      <div className="grid grid-cols-[minmax(0,1fr)_4.75rem_4.75rem_4rem] items-baseline gap-3 pb-1 text-[10px] text-[var(--fg-4)]" aria-hidden>
+        <span />
+        <span className="text-right">Current</span>
+        <span className="text-right">Target</span>
+        <span className="text-right">Status</span>
+      </div>
+      <div className="divide-y divide-[var(--line)]">
         <KpiRow
           label={isTeam ? TEAM_CHALLENGE_LABELS.productsPct : CHALLENGE_LABELS.productsPct}
           value={isTeam ? buildMerchContext(loc).value : pct(loc.merchandising.ratio)}
-          status={merch.status}
-          needText={loc.merchandising.ratio !== null ? "Needs 7%" : undefined}
-          tip={<KpiTip target={`≥ 7%${merchTier > 0 ? ` (${tierLabels[merchTier]})` : ""}`} bonus="up to 5,000 ฿" gated={false} />}
+          target="≥ 7%"
+          status={merch}
           loading={loading}
         />
         <KpiRow
           label={isTeam ? TEAM_CHALLENGE_LABELS.snacks : CHALLENGE_LABELS.snacks}
           value={isTeam ? buildSnacksContext(loc).value : (loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—")}
-          status={snacks.status}
-          needText={
-            revenueLocked && loc.snacks.passes === true
-              ? "Locked"
-              : loc.snacks.ratio !== null
-                ? "Needs 0.45"
-                : undefined
-          }
-          tip={<KpiTip target="≥ 0.45" bonus={`${SNACKS_BONUS.toLocaleString()} ฿`} />}
+          target="≥ 0.45"
+          status={snacks}
           loading={loading}
         />
         <KpiRow
           label={isTeam ? TEAM_CHALLENGE_LABELS.spendPerVisit : CHALLENGE_LABELS.spendPerVisit}
           value={isTeam ? buildPanierContext(loc).value : (loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—")}
-          status={panier.status}
-          needText={
-            revenueLocked && loc.panierMoyen.passes === true
-              ? "Locked"
-              : loc.panierMoyen.value !== null
-                ? "Needs 190 ฿"
-                : undefined
-          }
-          tip={<KpiTip target="≥ 190 ฿" bonus={`${PANIER_BONUS.toLocaleString()} ฿`} />}
+          target="≥ 190 ฿"
+          status={panier}
           loading={loading}
         />
         <KpiRow
           label={isTeam ? TEAM_CHALLENGE_LABELS.runningCostsPct : CHALLENGE_LABELS.runningCostsPct}
           value={isTeam ? buildOpexContext(loc).value : pct(loc.opex.ratio)}
-          status={opex.status}
-          needText={
-            revenueLocked && loc.opex.passes === true
-              ? "Locked"
-              : loc.opex.ratio !== null
-                ? "Needs < 9.5%"
-                : undefined
-          }
-          tip={<KpiTip target="< 9.5%" bonus={`${OPEX_BONUS.toLocaleString()} ฿`} />}
+          target="< 9.5%"
+          status={opex}
           loading={loading}
         />
         <KpiRow
           label={isTeam ? TEAM_CHALLENGE_LABELS.reviewCount : CHALLENGE_LABELS.reviewCount}
           value={isTeam ? buildReviewVolumeContext(loc).value : (loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`)}
-          status={revVolume.status}
-          needText={
-            revenueLocked && loc.reviews.volumePass === true
-              ? "Locked"
-              : loc.reviews.volumeRatio !== null
-                ? "Needs 4%"
-                : undefined
-          }
-          tip={<KpiTip target="≥ 4%" bonus={`${REVIEWS_VOLUME_BONUS.toLocaleString()} ฿`} />}
+          target="≥ 4%"
+          status={revVolume}
           loading={loading}
         />
         <KpiRow
           label={isTeam ? TEAM_CHALLENGE_LABELS.reviewRating : CHALLENGE_LABELS.reviewRating}
           value={isTeam ? buildReviewRatingContext(loc).value : (loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—")}
-          status={revRating.status}
-          needText={
-            revenueLocked && loc.reviews.ratingPass === true
-              ? "Locked"
-              : loc.reviews.count > 0 && loc.reviews.ratingTarget > 0
-                ? `Needs ${loc.reviews.ratingTarget.toFixed(1)}`
-                : undefined
-          }
-          tip={<KpiTip target={ratingTargetLabel} bonus={`${REVIEWS_RATING_BONUS.toLocaleString()} ฿`} />}
+          target={ratingTargetLabel}
+          status={revRating}
           loading={loading}
         />
       </div>
 
       {/* Visitors — count first, source secondary, actions in ••• menu */}
       <div className="mt-1 flex items-center justify-between border-t border-[var(--line)] pt-1">
-        <HoverTooltip content="Automatically synced from Loyverse" align="left" className="min-w-0">
-          <span className="flex min-w-0 items-baseline gap-2 py-[7px]">
-            <span className="text-[13px] text-[var(--fg-2)]">Visitors</span>
-            <span className="font-mono text-[13px] tabular-nums text-[var(--fg)]">
-              {loading ? "—" : loc.entryCount !== null ? fmt(loc.entryCount, 0) : "—"}
-            </span>
+        <span className="flex min-w-0 items-baseline gap-2 py-2">
+          <span className="text-[13px] text-[var(--fg-2)]">Visitors</span>
+          <span className="font-mono text-[13px] tabular-nums text-[var(--fg)]">
+            {loading ? "—" : loc.entryCount !== null ? fmt(loc.entryCount, 0) : "—"}
           </span>
-        </HoverTooltip>
+        </span>
         {(isOwner || isTeam) && !loading ? (
           <OverflowMenu
             label="Visitor count actions"
@@ -851,6 +828,7 @@ export function ChallengesOverview({
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
 
   useEffect(() => {
@@ -971,7 +949,18 @@ export function ChallengesOverview({
           )}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <ViewModeToggle value={viewMode} onChange={handleViewModeChange} />
+          <div className="flex items-center gap-1.5">
+            <ViewModeToggle value={viewMode} onChange={handleViewModeChange} />
+            <button
+              type="button"
+              onClick={() => setRulesOpen(true)}
+              title="Challenge rules"
+              aria-label="Challenge rules"
+              className="flex h-7 w-7 items-center justify-center rounded-[var(--r-sm)] text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
+            >
+              <CircleHelpIcon className="size-4" aria-hidden />
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {canManage && (
               <Button
@@ -1072,6 +1061,10 @@ export function ChallengesOverview({
 
       {settingsOpen && (
         <ChallengeSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
+      )}
+
+      {rulesOpen && (
+        <ChallengeRulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
       )}
     </div>
   );
