@@ -1,9 +1,10 @@
 "use client";
 import { useState, useMemo } from "react";
-import { PencilIcon, HistoryIcon, XIcon, ListIcon, EyeIcon } from "lucide-react";
+import { PencilIcon, HistoryIcon, XIcon, ListIcon, EyeIcon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { DailyEntryModal } from "@/modules/accounting/components/DailyEntryModal";
+import { AccountingCopyRange } from "@/modules/accounting/components/AccountingCopyRange";
 import { DaySummaryCards } from "@/modules/accounting/components/DaySummaryCards";
 import { DayFullLedger } from "@/modules/accounting/components/DayFullLedger";
 import { EntryLedgerTable } from "@/modules/accounting/components/EntryLedgerTable";
@@ -97,7 +98,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
   const [historyOpen, setHistoryOpen]   = useState(false);
   const [historyLogs, setHistoryLogs]   = useState<AuditLog[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [mode, setMode]                 = useState<"day" | "ledger">("day");
+  const [mode, setMode]                 = useState<"day" | "ledger" | "copy">("day");
   const [fullDetail, setFullDetail]     = useState(false);
 
   const entryMap = useMemo(() => {
@@ -247,12 +248,13 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
 
   return (
     <div>
-      {/* Day / Ledger sub-mode */}
+      {/* Day / Ledger / Copy sub-mode */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)", marginBottom: "var(--s-4)" }}>
         <div style={{ display: "inline-flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: 3, gap: 2 }}>
           {([
             { id: "day" as const, label: "Day", icon: EyeIcon },
             { id: "ledger" as const, label: "Ledger", icon: ListIcon },
+            { id: "copy" as const, label: "Copy", icon: CopyIcon },
           ]).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -292,6 +294,8 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
           </button>
         )}
       </div>
+
+      {mode === "copy" && <AccountingCopyRange />}
 
       {mode === "ledger" && (
         <EntryLedgerTable
