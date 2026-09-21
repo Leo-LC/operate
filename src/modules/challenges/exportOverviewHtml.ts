@@ -343,7 +343,9 @@ const PRINT_CSS = [
   ".muted{color:#9ca3af}",
   ".gate-unlocked{border:1px solid #16a34a;background:#f0fdf4;padding:6px 10px;border-radius:4px;margin-bottom:8px;font-size:9.5px}",
   ".gate-locked{border:1px solid #b45309;background:#fffbeb;padding:6px 10px;border-radius:4px;margin-bottom:8px;font-size:9.5px}",
-  ".location-block{margin-top:16px;page-break-inside:avoid}",
+  ".location-block{margin-top:0;padding-top:16px;page-break-inside:avoid;page-break-after:always;break-inside:avoid;break-after:page}",
+  ".location-block:last-of-type{page-break-after:auto;break-after:auto}",
+  ".summary-table{page-break-after:always;break-after:page}",
   ".detail-table{margin-bottom:4px}",
   ".legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb}",
   ".legend-item{display:flex;flex-direction:column;gap:1px;border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;min-width:120px}",
@@ -546,9 +548,12 @@ export function buildOverviewPrintHtml(
     year: "numeric",
   });
   const titlePrefix = teamMode ? "Team challenges" : "Challenges";
-  const title = opts?.summaryOnly
+  const summaryOnly = opts?.summaryOnly ?? false;
+  const title = summaryOnly
     ? `${titlePrefix} — ${monthLabel} — Summary`
-    : `${titlePrefix} — ${monthLabel} — All shops`;
+    : teamMode
+      ? `${titlePrefix} — ${monthLabel} — All shops`
+      : `Operations — ${monthLabel}`;
 
   const labels = teamMode ? TEAM_CHALLENGE_LABELS : CHALLENGE_LABELS;
   const summaryHeaders = [
@@ -565,11 +570,12 @@ export function buildOverviewPrintHtml(
     .map((h) => `<th>${escHtml(h)}</th>`)
     .join("");
 
-  const locationBlocks = opts?.summaryOnly
+  const locationBlocks = summaryOnly
     ? ""
     : locations.map((loc) => buildLocationBlock(loc, teamMode)).join("");
 
   const headerTag = teamMode ? "Team — Performance" : "Internal — Performance";
+  const summaryTableCls = summaryOnly ? "" : ' class="summary-table"';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${PRINT_CSS}</style></head><body>
 <div class="accent"></div>
@@ -581,7 +587,7 @@ export function buildOverviewPrintHtml(
   <div class="header-right">Capybara Coffee<br>Generated ${escHtml(generated)}<br>${escHtml(headerTag)}</div>
 </div>
 <div class="content">
-  <table>
+  <table${summaryTableCls}>
     <thead><tr>${summaryHeaders}</tr></thead>
     <tbody>${buildSummaryRows(locations, teamMode)}</tbody>
   </table>

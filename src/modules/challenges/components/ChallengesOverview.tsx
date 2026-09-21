@@ -1,12 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CloudDownloadIcon, Lock, PencilIcon, PrinterIcon, RefreshCwIcon } from "lucide-react";
+import { Lock, PencilIcon, PrinterIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { MonthSelector } from "./MonthSelector";
-import type { AdminLocation } from "@/modules/admin/types";
-import { SheetImportModal } from "@/modules/accounting/components/SheetImportModal";
 import { SalesTargetSettings } from "./SalesTargetSettings";
 import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
@@ -781,18 +779,15 @@ function LocationCard({
 export function ChallengesOverview({
   isOwner,
   canManage,
-  locations: adminLocations = [],
 }: {
   isOwner?: boolean;
   canManage?: boolean;
-  locations?: AdminLocation[];
 } = {}) {
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
-  const [sheetImportOpen, setSheetImportOpen] = useState(false);
   const [salesTargetOpen, setSalesTargetOpen] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
 
@@ -834,8 +829,8 @@ export function ChallengesOverview({
     fetchData(month, { silent: true });
   }
 
-  // Manual "Sync all" — same sequential pipeline as the nightly cron
-  // (sheets → loyverse → write-back → counters → reviews). Owner only.
+  // Manual "Refresh all data" — same sequential pipeline as the nightly cron
+  // (reviews + sheets → loyverse → write-back → counters, then cards refresh). Owner only.
   async function handleSyncAll() {
     setSyncingAll(true);
     try {
@@ -845,18 +840,18 @@ export function ChallengesOverview({
         error?: string;
         steps?: Record<string, { ok: boolean; skipped?: boolean; error?: string }>;
       };
-      if (!res.ok) throw new Error(json.error ?? "Sync all failed");
+      if (!res.ok) throw new Error(json.error ?? "Refresh all data failed");
       const failed = Object.entries(json.steps ?? {})
         .filter(([, s]) => !s.ok && !s.skipped)
         .map(([k, s]) => `${k}: ${s.error ?? "failed"}`);
       if (failed.length > 0) {
-        toast.warning(`Sync terminé avec erreurs — ${failed.join(" · ")}`);
+        toast.warning(`Refresh terminé avec erreurs — ${failed.join(" · ")}`);
       } else {
-        toast.success("Sync all terminé — sheets, Loyverse, compteurs, reviews");
+        toast.success("Refresh terminé — reviews, sheets, Loyverse, compteurs");
       }
       await fetchData(month, { silent: true });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Sync all failed");
+      toast.error(e instanceof Error ? e.message : "Refresh all data failed");
     } finally {
       setSyncingAll(false);
     }
@@ -879,17 +874,17 @@ export function ChallengesOverview({
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
-  function exportOverviewPdf(summaryOnly = false, teamMode = false, locationsOverride?: LocationOverview[]) {
+  function exportOverviewPdf(teamMode = false, locationsOverride?: LocationOverview[]) {
     const exportLocations = locationsOverride ?? locations;
     if (exportLocations.length === 0) return;
-    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly, teamMode }));
+    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly: false, teamMode }));
   }
 
   function exportSelectedShopTeamPdf() {
     if (teamLocationFilter === "all") return;
     const shop = locations.find((l) => l.locationId === teamLocationFilter);
     if (!shop) return;
-    exportOverviewPdf(false, true, [shop]);
+    exportOverviewPdf(true, [shop]);
   }
 
   const isTeamView = viewMode === "team";
@@ -919,45 +914,26 @@ export function ChallengesOverview({
               variant="secondary"
               onClick={handleSyncAll}
               disabled={syncingAll || loading}
-              title="Sync all: sheets → Loyverse → compteurs → reviews (même pipeline que le cron du soir)"
+              title="Refresh all data: sync reviews, pull latest Sheets data, refresh Loyverse entries & snacks, then update cards (same pipeline as the nightly cron)"
             >
               <RefreshCwIcon size={13} className={syncingAll ? "animate-spin" : ""} />
-              {syncingAll ? "Syncing…" : "Sync all"}
+              {syncingAll ? "Refreshing…" : "Refresh all data"}
             </Button>
           )}
-          {canManage && adminLocations.length > 0 && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setSheetImportOpen(true)}
-              title="Import from Google Sheets"
-            >
-              <CloudDownloadIcon size={13} />
-              Sheets
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => exportOverviewPdf(true)}
-            disabled={loading || locations.length === 0}
-          >
-            <PrinterIcon size={13} />
-            Summary PDF
-          </Button>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => exportOverviewPdf(false)}
             disabled={loading || locations.length === 0}
+            title="Operations PDF: summary on the first page, then one detailed page per shop"
           >
             <PrinterIcon size={13} />
-            Full PDF
+            Operations PDF
           </Button>
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => exportOverviewPdf(false, true)}
+            onClick={() => exportOverviewPdf(true)}
             disabled={loading || locations.length === 0}
           >
             <PrinterIcon size={13} />
@@ -1045,15 +1021,6 @@ export function ChallengesOverview({
             />
           ))}
         </div>
-      )}
-
-      {sheetImportOpen && adminLocations[0] && (
-        <SheetImportModal
-          location={adminLocations[0]}
-          defaultTab="all"
-          onClose={() => setSheetImportOpen(false)}
-          onImported={() => void fetchData(month, { silent: true })}
-        />
       )}
 
       {salesTargetOpen && (
