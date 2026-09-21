@@ -17,6 +17,12 @@ import {
   normalizeLocationKey,
   computeRatingTarget,
 } from "@/modules/challenges/constants";
+import {
+  buildGbpToUuidMap,
+  reviewJoinKey,
+  selectGbpRatings,
+  selectReviewsCache,
+} from "@/modules/challenges/lib/review-location";
 
 export interface LocationOverview {
   locationId: string;
@@ -86,7 +92,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
 
   const supabase = getSupabaseServerClient();
 
-  const [accountingResult, entriesResult, ratingsResult, reviewsResult, locationsResult, thresholdOverrides] = await Promise.all([
+  const [accountingResult, entriesResult, locationsResult, thresholdOverrides, ratingsRows, reviewsRows] = await Promise.all([
     supabase
       .from("daily_entries")
       .select(
@@ -101,25 +107,17 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("month", month),
     supabase
-      .from("location_gbp_ratings")
-      .select("location_id, location_title, average_rating, total_review_count")
-      .eq("organization_id", DEFAULT_ORG_ID),
-    supabase
-      .from("reviews_cache")
-      .select("location_id, location_title, star_rating")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .gte("create_time", rangeStart)
-      .lt("create_time", rangeEnd),
-    supabase
       .from("locations")
       .select("id, name, external_id")
       .eq("organization_id", DEFAULT_ORG_ID),
     loadRevenueThresholdOverrides(),
+    // Review tables join on the internal UUID when available (location_uuid),
+    // with GBP TEXT fallback pre-migration — see review-location.ts.
+    selectGbpRatings(supabase),
+    selectReviewsCache(supabase, rangeStart, rangeEnd),
   ]);
 
   if (accountingResult.error) throw new Error(accountingResult.error.message);
-  if (ratingsResult.error) throw new Error(ratingsResult.error.message);
-  if (reviewsResult.error) throw new Error(reviewsResult.error.message);
 
   const uuidToGbp = new Map<string, string>();
   const gbpToInternalName = new Map<string, string>();
@@ -131,6 +129,16 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
       gbpToInternalName.set(loc.external_id, loc.name as string);
     }
   }
+  const gbpToUuid = buildGbpToUuidMap(
+    ((locationsResult.data ?? []) as Array<{ id: string; external_id: string | null }>),
+  );
+  // Canonical key shared with accounting/counters: GBP path when the shop
+  // has one, else the internal UUID (or the TEXT id for reviews-only GBP
+  // locations with no `locations` row).
+  const toCanonicalId = (row: { location_id: string; location_uuid?: string | null }) => {
+    const key = reviewJoinKey(row, gbpToUuid);
+    return uuidToGbp.get(key) ?? key;
+  };
 
   type AccAgg = {
     salesNetIncVat: number;
@@ -209,19 +217,20 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
   }
 
   const gbpByLoc = new Map(
-    (ratingsResult.data ?? []).map((r) => [
-      r.location_id,
+    ratingsRows.map((r) => [
+      toCanonicalId(r),
       { title: r.location_title as string, avgRating: r.average_rating as number, totalCount: r.total_review_count as number },
     ])
   );
 
   type RevAgg = { title: string; count: number; ratingSum: number };
   const revByLoc = new Map<string, RevAgg>();
-  for (const row of reviewsResult.data ?? []) {
-    const existing = revByLoc.get(row.location_id) ?? { title: row.location_title as string, count: 0, ratingSum: 0 };
+  for (const row of reviewsRows) {
+    const key = toCanonicalId(row);
+    const existing = revByLoc.get(key) ?? { title: row.location_title as string, count: 0, ratingSum: 0 };
     existing.count++;
     existing.ratingSum += row.star_rating as number;
-    revByLoc.set(row.location_id, existing);
+    revByLoc.set(key, existing);
   }
 
   const allIds = new Set([

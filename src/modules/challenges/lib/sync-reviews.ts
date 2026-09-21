@@ -38,6 +38,14 @@ async function fetchAllReviewsForLocation(
   return out;
 }
 
+async function hasLocationUuidColumn(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  table: "reviews_cache" | "location_gbp_ratings",
+): Promise<boolean> {
+  const { error } = await supabase.from(table).select("location_uuid").limit(0);
+  return !error;
+}
+
 export type ReviewsSyncResult = {
   synced: number;
   locations: number;
@@ -62,6 +70,20 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
     getActiveLocationExternalIds(),
   ]);
   const supabase = getSupabaseServerClient();
+  // Internal UUID per GBP short id, for the location_uuid join key
+  // (migration 20260923000000). Falls back to TEXT-only rows pre-migration.
+  const { data: locRows } = await supabase
+    .from("locations")
+    .select("id, external_id")
+    .eq("organization_id", DEFAULT_ORG_ID);
+  const uuidByExternalId = new Map<string, string>();
+  for (const row of (locRows ?? []) as Array<{ id: string; external_id: string | null }>) {
+    if (row.external_id) uuidByExternalId.set(row.external_id, row.id);
+  }
+  const [uuidCacheOk, uuidRatingsOk] = await Promise.all([
+    hasLocationUuidColumn(supabase, "reviews_cache"),
+    hasLocationUuidColumn(supabase, "location_gbp_ratings"),
+  ]);
   const syncedAt = new Date().toISOString();
   let totalSynced = 0;
 
@@ -89,10 +111,14 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
               if (!starNum) return null;
               const reviewId = r.reviewId ?? r.name?.split("/").pop() ?? "";
               if (!reviewId || !r.createTime || !r.updateTime) return null;
+              const locationUuid = uuidByExternalId.get(shortName) ?? null;
               return {
                 id: r.name ?? reviewId,
                 organization_id: DEFAULT_ORG_ID,
                 location_id: shortName,
+                // Dual-write: internal UUID join key (null pre-migration or
+                // for reviews-only GBP locations with no `locations` row).
+                ...(uuidCacheOk && locationUuid ? { location_uuid: locationUuid } : {}),
                 location_title: locationTitle,
                 star_rating: starNum,
                 has_reply: !!r.reviewReply,
@@ -161,6 +187,10 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
   const ratingRows = Array.from(locationStats.entries()).map(([locationId, stats]) => ({
     location_id: locationId,
     organization_id: DEFAULT_ORG_ID,
+    // Dual-write: internal UUID join key (see reviews_cache above).
+    ...(uuidRatingsOk && uuidByExternalId.get(locationId)
+      ? { location_uuid: uuidByExternalId.get(locationId)! }
+      : {}),
     location_title: stats.title,
     average_rating: Math.round((stats.ratingSum / stats.count) * 10) / 10,
     total_review_count: stats.count,

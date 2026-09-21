@@ -34,4 +34,7 @@ Rules to keep accurate:
 - Review rating target = `MIN(4.5, ROUND(currentGBPRating + 0.1, 1))`, needs ≥ 10 reviews
   in the month, using the monthly average star rating vs the live Google rating snapshot.
 - Location IDs: `daily_entries.location_id` (UUID) ↔ GBP path via `locations.external_id`;
-  fall back to the UUID when no mapping exists.
+  fall back to the UUID when no mapping exists. Review tables join on
+  `location_uuid` (written by `sync-reviews.ts`, backfilled for history) with
+  GBP TEXT fallback — see `lib/review-location.ts`. Never fuzzy-match shop
+  names to resolve an id; use the maps in `review-location.ts` or `@/lib/shops`.

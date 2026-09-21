@@ -84,7 +84,7 @@ export async function getDailyProfitData(
   })();
 
   const [locationsResult, entitiesResult, assignmentsResult, mirrorResult, sourceResult, inputsResult, syncResult, snapshotsResult] = await Promise.all([
-    supabase.from("locations").select("id,name").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
+    supabase.from("locations").select("id,name,external_id").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_legal_entities").select("*").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_location_assignments").select("location_id,legal_entity_id,operational_start_date").eq("organization_id", DEFAULT_ORG_ID),
     supabase.from("finance_sheet_entries").select("location_id,entry_date,payload").eq("organization_id", DEFAULT_ORG_ID).gte("entry_date", extendedFrom).lte("entry_date", extendedTo),
@@ -212,15 +212,28 @@ export async function getDailyProfitData(
       // Bonus per month (group by month)
       const bonusByKey = new Map<string, Map<string, number>>();
       const distinctMonths = Array.from(new Set(stillMissing.map((m) => `${m.period.year}-${String(m.period.month).padStart(2, "0")}`)));
+      // Exact shop resolution: challenge overviews are keyed by GBP path
+      // (shops with a GBP id) or internal UUID — both resolve through
+      // `locations`, never by fuzzy name matching.
+      const byUuid = new Map(locations.map((l) => [l.id, l.id]));
+      for (const row of (locationsResult.data ?? []) as Array<{ id: unknown; external_id?: unknown }>) {
+        if (row.external_id) byUuid.set(String(row.external_id), String(row.id));
+      }
       for (const monthKey of distinctMonths) {
         try {
           const { getChallengesOverview } = await import("@/modules/challenges/overview-data");
           const overviews = await getChallengesOverview(monthKey);
           const perLoc = new Map<string, number>();
           for (const o of overviews) {
-            const titleKey = String(o.locationTitle).replace(/^Capybara Coffee\s*/i, "").trim().toLowerCase();
-            // map title to internal location id via selected locations names
-            const match = locations.find((l) => titleKey.includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(titleKey));
+            const locationId = byUuid.get(o.locationId);
+            // Legacy fallback for titles with no id mapping (e.g. reviews-only
+            // GBP locations): fuzzy name match, last resort only.
+            const match = locationId
+              ? locations.find((l) => l.id === locationId) ?? null
+              : (() => {
+                  const titleKey = String(o.locationTitle).replace(/^Capybara Coffee\s*/i, "").trim().toLowerCase();
+                  return locations.find((l) => titleKey.includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(titleKey)) ?? null;
+                })();
             if (match) perLoc.set(match.id, Number(o.totalBonus ?? 0));
           }
           bonusByKey.set(monthKey, perLoc);

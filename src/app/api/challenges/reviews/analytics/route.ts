@@ -2,6 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import {
+  buildGbpToUuidMap,
+  reviewJoinKey,
+  selectGbpRatings,
+  selectReviewsCache,
+} from "@/modules/challenges/lib/review-location";
 
 interface LocationCard {
   locationId: string;
@@ -38,34 +44,39 @@ export async function GET(request: Request) {
 
   const supabase = getSupabaseServerClient();
 
-  const [reviewsResult, ratingsResult, entriesResult] = await Promise.all([
-    supabase
-      .from("reviews_cache")
-      .select("location_id, location_title, star_rating, synced_at")
-      .eq("organization_id", DEFAULT_ORG_ID)
-      .gte("create_time", rangeStart)
-      .lt("create_time", rangeEnd),
-    supabase
-      .from("location_gbp_ratings")
-      .select("location_id, location_title, average_rating, total_review_count")
-      .eq("organization_id", DEFAULT_ORG_ID),
+  const [reviewsRows, ratingsRows, entriesResult, locationsResult] = await Promise.all([
+    // Prefer location_uuid, TEXT fallback pre-migration — see review-location.ts.
+    selectReviewsCache(supabase, rangeStart, rangeEnd),
+    selectGbpRatings(supabase),
     supabase
       .from("challenge_counters")
       .select("location_id, entry_count")
       .eq("organization_id", DEFAULT_ORG_ID)
       .eq("month", month),
+    supabase
+      .from("locations")
+      .select("id, external_id")
+      .eq("organization_id", DEFAULT_ORG_ID),
   ]);
 
-  if (reviewsResult.error) {
-    return Response.json({ error: reviewsResult.error.message }, { status: 500 });
+  if (entriesResult.error) {
+    return Response.json({ error: entriesResult.error.message }, { status: 500 });
   }
-  if (ratingsResult.error) {
-    return Response.json({ error: ratingsResult.error.message }, { status: 500 });
+  if (locationsResult.error) {
+    return Response.json({ error: locationsResult.error.message }, { status: 500 });
   }
 
+  // Canonical join key: internal UUID when resolvable (fixes entryCount,
+  // which is keyed by UUID in challenge_counters), else the GBP TEXT id.
+  const gbpToUuid = buildGbpToUuidMap(
+    (locationsResult.data ?? []) as Array<{ id: string; external_id: string | null }>,
+  );
+  const joinKey = (row: { location_id: string; location_uuid?: string | null }) =>
+    reviewJoinKey(row, gbpToUuid);
+
   const gbpRatings = new Map(
-    (ratingsResult.data ?? []).map((r) => [
-      r.location_id,
+    ratingsRows.map((r) => [
+      joinKey(r),
       { currentRating: r.average_rating, totalReviewCount: r.total_review_count, locationTitle: r.location_title },
     ])
   );
@@ -77,15 +88,16 @@ export async function GET(request: Request) {
   // Aggregate monthly stats per location
   const byLocation = new Map<string, { title: string; count: number; ratingSum: number }>();
 
-  for (const row of reviewsResult.data ?? []) {
-    const existing = byLocation.get(row.location_id) ?? {
+  for (const row of reviewsRows) {
+    const key = joinKey(row);
+    const existing = byLocation.get(key) ?? {
       title: row.location_title,
       count: 0,
       ratingSum: 0,
     };
     existing.count++;
     existing.ratingSum += row.star_rating;
-    byLocation.set(row.location_id, existing);
+    byLocation.set(key, existing);
   }
 
   const allLocationIds = new Set([
@@ -115,8 +127,8 @@ export async function GET(request: Request) {
     .sort((a, b) => a.locationTitle.localeCompare(b.locationTitle));
 
   const lastSyncedAt =
-    reviewsResult.data && reviewsResult.data.length > 0
-      ? reviewsResult.data.reduce((max, r) => (r.synced_at > max ? r.synced_at : max), reviewsResult.data[0].synced_at)
+    reviewsRows.length > 0
+      ? reviewsRows.reduce((max, r) => (r.synced_at > max ? r.synced_at : max), reviewsRows[0].synced_at)
       : null;
 
   return Response.json({ locations, lastSyncedAt });
