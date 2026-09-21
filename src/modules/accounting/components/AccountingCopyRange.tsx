@@ -79,6 +79,8 @@ export function AccountingCopyRange() {
   const [paymentMap, setPaymentMap] = React.useState<Map<string, string>>(new Map());
   const [loading, setLoading] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
+  const [forceSyncing, setForceSyncing] = React.useState(false);
+  const [forceProgress, setForceProgress] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [copiedAll, setCopiedAll] = React.useState(false);
   const [copiedDay, setCopiedDay] = React.useState<string | null>(null);
@@ -219,6 +221,37 @@ export function AccountingCopyRange() {
     setTimeout(() => setCopiedDay(null), 1800);
   }
 
+  async function handleForceSync() {
+    if (days.length === 0) return;
+    setForceSyncing(true);
+    setForceProgress(null);
+    setError(null);
+    try {
+      // ≤5 explicit dates => manual path re-syncs everything (no skip-existing).
+      // Chunk the range so mapping fixes can be replayed over already-synced days.
+      // Small chunks (2 days) to stay under serverless timeouts — upserts are
+      // idempotent so a failed chunk can simply be retried.
+      const chunks: string[][] = [];
+      for (let i = 0; i < days.length; i += 2) chunks.push(days.slice(i, i + 2));
+      for (let i = 0; i < chunks.length; i++) {
+        setForceProgress(`Sync ${i + 1}/${chunks.length}…`);
+        const res = await fetch("/api/loyverse/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dates: chunks[i] }),
+        });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error ?? `Sync failed (partie ${i + 1})`);
+      }
+      await fetchRange(from, to);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setForceSyncing(false);
+      setForceProgress(null);
+    }
+  }
+
   async function handleSync() {
     if (days.length === 0) return;
     setSyncing(true);
@@ -273,9 +306,19 @@ export function AccountingCopyRange() {
           </label>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
-          <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || loading || days.length === 0}>
+          <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || forceSyncing || loading || days.length === 0}>
             <RefreshCwIcon size={13} />
             {syncing ? "Synchronisation…" : `Synchroniser${days.length > 1 ? ` (${days.length} j)` : ""}`}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleForceSync}
+            disabled={syncing || forceSyncing || loading || days.length === 0}
+            title="Re-synchronise tous les jours de la plage, même déjà synchronisés — utile après un changement de mapping (ex: rename Snacks → Animal food)"
+          >
+            <RefreshCwIcon size={13} />
+            {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
           </Button>
           <Button size="sm" onClick={handleCopyAll} disabled={dataRows.length === 0}>
             {copiedAll ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
