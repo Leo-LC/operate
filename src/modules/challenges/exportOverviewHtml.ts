@@ -357,60 +357,74 @@ const PRINT_CSS = [
 
 const TEAM_PRINT_CSS = [
   "*{box-sizing:border-box;margin:0;padding:0}",
-  "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10px;color:#2b231b;background:#f8f6f3}",
-  ".page{padding:12px 16px}",
-  ".dashboard{margin-bottom:18px;padding:12px;border:1px solid rgba(43,35,27,0.1);border-radius:8px;background:#fff;page-break-inside:avoid}",
-  ".dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}",
-  ".dash-title{font-size:18px;font-weight:500;font-style:italic;color:#2b231b}",
-  ".dash-subtitle{font-size:9px;color:#8a7d6a;margin-top:1px}",
-  ".dash-logo{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#6b5d4b;text-align:right}",
-  ".kpi-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px}",
-  ".kpi-card{border:1px solid rgba(43,35,27,0.1);border-radius:6px;padding:10px;background:#fff}",
-  ".kpi-card.bonus{background:#e6d4ba;border-color:rgba(176,135,90,0.25);min-width:120px}",
-  ".kpi-sales .sales-top{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}",
-  ".kpi-sales .target-inline{font-size:11px;font-weight:600;color:#8a7d6a}",
-  ".kpi-sales .pct{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:#9a7448}",
-  ".kpi-label{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#8a7d6a}",
-  ".kpi-value{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}",
-  ".kpi-bar{height:5px;border-radius:999px;background:#f2f0ec;margin-top:6px;overflow:hidden}",
+  "body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10.5px;color:#111827;background:#fff}",
+  ".page{padding:14px 18px}",
+  ".cover{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #111827}",
+  ".cover-title{font-size:16px;font-weight:800;color:#111827}",
+  ".cover-sub{font-size:10px;color:#6b7280;margin-top:2px}",
+  ".cover-meta{font-size:9px;color:#6b7280;text-align:right}",
+  ".dashboard{margin-bottom:20px;padding:16px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;page-break-inside:avoid}",
+  ".dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}",
+  ".dash-title{font-size:20px;font-weight:800;color:#111827}",
+  ".dash-subtitle{font-size:10px;color:#6b7280;margin-top:1px}",
+  ".dash-logo{font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#9ca3af;text-align:right}",
+  ".how{border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:9.5px;line-height:1.5;color:#374151}",
+  ".how strong{color:#111827}",
+  ".how .dot{display:inline-block;min-width:86px;font-weight:700;border-radius:999px;padding:1px 8px;font-size:8.5px;margin-right:4px;text-align:center}",
+  ".dot-earned{background:#dcfce7;color:#15803d}",
+  ".dot-waiting{background:#fef3c7;color:#92400e}",
+  ".dot-missed{background:#f3f4f6;color:#4b5563}",
+  ".kpi-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;margin-bottom:12px}",
+  ".kpi-card{border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#fff}",
+  ".kpi-card.sales{border-top:3px solid #111827}",
+  ".kpi-card.earned{border-top:3px solid #15803d;background:#f0fdf4}",
+  ".kpi-card.waiting{border-top:3px solid #d97706;background:#fffbeb}",
+  ".kpi-label{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280}",
+  ".kpi-value{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px;color:#111827}",
+  ".kpi-value.small{font-size:17px}",
+  ".kpi-target{font-size:10px;font-weight:600;color:#6b7280}",
+  ".kpi-sub{font-size:8.5px;color:#6b7280;margin-top:3px;line-height:1.4}",
+  ".kpi-bar{height:6px;border-radius:999px;background:#f3f4f6;margin-top:8px;overflow:hidden}",
   ".kpi-bar-fill{height:100%;border-radius:999px}",
-  ".status-row{margin-top:4px;font-size:9px;font-weight:600;display:flex;gap:8px;flex-wrap:wrap}",
-  ".section-title{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#8a7d6a;margin-bottom:6px}",
-  ".metric-table{width:100%;border-collapse:collapse;border:1px solid rgba(43,35,27,0.1);border-radius:6px;margin-bottom:10px}",
-  ".metric-table th{background:#f2f0ec;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a7d6a;padding:5px 8px;text-align:right}",
+  ".sales-status{margin-top:6px;font-size:9.5px;font-weight:700}",
+  ".section-title{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#6b7280;margin:12px 0 6px}",
+  ".section-hint{font-size:9px;color:#6b7280;margin:-3px 0 6px}",
+  ".metric-table{width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:4px;overflow:hidden}",
+  ".metric-table th{background:#111827;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#fff;padding:6px 8px;text-align:right}",
   ".metric-table th:first-child{text-align:left;padding-left:10px}",
-  ".metric-table td{padding:6px 8px;border-bottom:1px solid rgba(43,35,27,0.06);vertical-align:top;font-variant-numeric:tabular-nums}",
-  ".metric-table td.gap-cell{padding-right:12px;text-align:right}",
-  ".metric-table td.num{text-align:right;font-size:12px;font-weight:700}",
-  ".metric-table td.target{text-align:right;font-size:9px;color:#4a3f33}",
-  ".metric-table tr.row-pass td{background:rgba(220,252,231,0.6)}",
-  ".metric-table tr.row-warn td{background:rgba(254,243,199,0.5)}",
-  ".metric-name{font-size:9px;font-weight:600;color:#2b231b}",
-  ".metric-sub{font-size:7px;color:#8a7d6a;line-height:1.3}",
-  ".advice-row{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}",
-  ".advice-card{border:1px solid rgba(43,35,27,0.1);border-radius:6px;padding:6px;background:#f8f7f4}",
-  ".advice-card .title{font-size:8px;font-weight:700;margin-bottom:4px}",
-  ".advice-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px}",
-  ".stat-label{font-size:6px;font-weight:600;text-transform:uppercase;color:#8a7d6a}",
-  ".stat-val{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}",
-  ".advice-card .gap{font-size:8px;font-weight:700;margin:4px 0;padding:3px 4px;border-radius:4px}",
-  ".gap-pass{background:#dcfce7}.gap-warn{background:#fef3c7}",
-  ".advice-card .tip{font-size:7px;color:#6b5d4b;line-height:1.35}",
-  ".footer{text-align:center;font-size:8px;font-style:italic;color:#8a7d6a;padding-top:4px}",
-  ".pass{color:#16a34a}.warn{color:#d97706}.fail{color:#dc2626}.muted{color:#8a7d6a}",
+  ".metric-table td{padding:7px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;font-variant-numeric:tabular-nums}",
+  ".metric-table tr:last-child td{border-bottom:none}",
+  ".metric-table td.num{text-align:right;font-size:12px;font-weight:700;color:#111827;white-space:nowrap}",
+  ".metric-table td.target{text-align:right;font-size:9px;color:#4b5563;white-space:nowrap}",
+  ".metric-table td.status-cell{text-align:right;white-space:nowrap}",
+  ".metric-table td.bonus-cell{text-align:right;font-size:10px;font-weight:700;white-space:nowrap}",
+  ".pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:8.5px;font-weight:800;white-space:nowrap}",
+  ".pill-earned{background:#dcfce7;color:#15803d}",
+  ".pill-waiting{background:#fef3c7;color:#92400e}",
+  ".pill-missed{background:#f3f4f6;color:#4b5563}",
+  ".pill-nodata{background:#fff;border:1px solid #e5e7eb;color:#9ca3af}",
+  ".metric-name{font-size:9.5px;font-weight:700;color:#111827}",
+  ".metric-sub{font-size:7.5px;color:#6b7280;line-height:1.3;margin-top:1px}",
+  ".bonus-earned{color:#15803d}",
+  ".bonus-waiting{color:#92400e}",
+  ".bonus-max{color:#9ca3af;font-weight:600}",
+  ".advice-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px}",
+  ".advice-card{border:1px solid #e5e7eb;border-radius:6px;padding:7px 8px;background:#fafafa}",
+  ".advice-card .title{font-size:8.5px;font-weight:800;margin-bottom:3px;color:#111827}",
+  ".advice-card .gap{font-size:8px;font-weight:700;margin:4px 0;padding:3px 6px;border-radius:4px;display:inline-block}",
+  ".advice-card .tip{font-size:7.5px;color:#4b5563;line-height:1.4}",
+  ".footer{text-align:center;font-size:8.5px;font-style:italic;color:#9ca3af;padding-top:8px;border-top:1px solid #f3f4f6;margin-top:8px}",
+  ".pass{color:#15803d}.warn{color:#92400e}.muted{color:#6b7280}",
   "@media print{@page{margin:8mm;size:portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.dashboard{page-break-after:always}.dashboard:last-child{page-break-after:auto}}",
 ].join("");
 
-function gapClass(passes: boolean | null): string {
-  if (passes === true) return "pass";
-  if (passes === false) return "warn";
-  return "muted";
-}
+type TeamRowStatus = "earned" | "waiting" | "missed" | "nodata";
 
-function rowBgClass(passes: boolean | null): string {
-  if (passes === true) return "row-pass";
-  if (passes === false) return "row-warn";
-  return "";
+function teamStatusPill(status: TeamRowStatus): string {
+  if (status === "earned") return '<span class="pill pill-earned">Earned ✓</span>';
+  if (status === "waiting") return '<span class="pill pill-waiting">Waiting for sales</span>';
+  if (status === "missed") return '<span class="pill pill-missed">Not yet</span>';
+  return '<span class="pill pill-nodata">No data</span>';
 }
 
 function isMonthPast(month: string): boolean {
@@ -425,50 +439,99 @@ function salesTargetLabel(
   month: string,
   amount: number | null,
   threshold: number | null,
-): string {
-  if (unlocked) return "Sales target achieved!";
-  if (isMonthPast(month)) return "Target not reached";
-  if (ratio !== null && ratio >= 0.9) return "Almost there!";
+): { label: string; cls: string } {
+  if (unlocked) return { label: "Sales target reached ✓", cls: "pass" };
+  if (isMonthPast(month)) return { label: "Sales target missed", cls: "muted" };
+  if (ratio !== null && ratio >= 0.9) return { label: "Almost there — keep pushing!", cls: "warn" };
   if (amount !== null && threshold !== null && amount < threshold) {
-    return `${fmt(threshold - amount, 0)} ฿ to go`;
+    return { label: `${fmt(threshold - amount, 0)} ฿ left to reach the target`, cls: "muted" };
   }
-  return "In progress";
+  return { label: "In progress", cls: "muted" };
 }
+
+const MERCH_BONUS_BY_TIER = [0, 1500, 3000, 5000] as const;
 
 function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
   const name = escHtml(shortLocationName(loc.locationTitle));
   const { amount, threshold, unlocked, ratio } = loc.revenue;
+  const salesReached = unlocked === true;
+  const revenueLocked = threshold !== null && unlocked === false;
   const pctOfTarget = threshold !== null && ratio !== null ? Math.round(ratio * 100) : null;
-  const barColor = unlocked === true ? "#16a34a" : ratio !== null && ratio >= 0.9 ? "#d97706" : "#b0875a";
+  // Simplified palette: green = reached, dark grey = still in progress. No red, no bronze.
+  const barColor = salesReached ? "#15803d" : "#374151";
   const barWidth = pctOfTarget !== null ? Math.min(100, pctOfTarget) : 0;
-  const statusLabel = salesTargetLabel(!!unlocked, ratio, month, amount, threshold);
+  const salesStatus = salesTargetLabel(!!unlocked, ratio, month, amount, threshold);
   const metrics = buildTeamMetrics(loc, month);
+
+  const merchTier = loc.merchandising.tier;
+  const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  const merchBonus = MERCH_BONUS_BY_TIER[merchTier] ?? 0;
+
+  // Per-challenge state: "earned" = target hit AND payable (sales reached, or merch which never needs sales).
+  // "waiting" = target hit BUT sales target missed → would have been paid otherwise.
+  const states: { passes: boolean | null; locked: boolean; earned: number; waiting: number; max: number }[] = [
+    { passes: merchPass, locked: false, earned: merchBonus, waiting: 0, max: 5000 },
+    { passes: loc.snacks.passes, locked: revenueLocked, earned: loc.snacks.bonus, waiting: loc.snacks.passes === true && revenueLocked ? SNACKS_BONUS : 0, max: SNACKS_BONUS },
+    { passes: loc.panierMoyen.passes, locked: revenueLocked, earned: loc.panierMoyen.bonus, waiting: loc.panierMoyen.passes === true && revenueLocked ? PANIER_BONUS : 0, max: PANIER_BONUS },
+    { passes: loc.opex.passes, locked: revenueLocked, earned: loc.opex.bonus, waiting: loc.opex.passes === true && revenueLocked ? OPEX_BONUS : 0, max: OPEX_BONUS },
+    { passes: loc.reviews.volumePass, locked: revenueLocked, earned: loc.reviews.volumeBonus, waiting: loc.reviews.volumePass === true && revenueLocked ? REVIEWS_VOLUME_BONUS : 0, max: REVIEWS_VOLUME_BONUS },
+    { passes: loc.reviews.ratingPass, locked: revenueLocked, earned: loc.reviews.ratingBonus, waiting: loc.reviews.ratingPass === true && revenueLocked ? REVIEWS_RATING_BONUS : 0, max: REVIEWS_RATING_BONUS },
+  ];
+
+  function rowStatus(s: (typeof states)[number]): TeamRowStatus {
+    if (s.passes === null) return "nodata";
+    if (s.passes === true) return s.locked ? "waiting" : "earned";
+    return "missed";
+  }
+
+  const earnedCount = states.filter((s) => rowStatus(s) === "earned").length;
+  const waitingCount = states.filter((s) => rowStatus(s) === "waiting").length;
+  const waitingBonus = states.reduce((sum, s) => sum + s.waiting, 0);
 
   const visitorLine =
     loc.entryCount !== null || loc.snacksSold !== null
-      ? `<span class="muted">${loc.entryCount !== null ? `${fmt(loc.entryCount, 0)} visitors` : ""}${loc.entryCount !== null && loc.snacksSold !== null ? " · " : ""}${loc.snacksSold !== null ? `${fmt(loc.snacksSold, 0)} animal food` : ""}</span>`
+      ? `<div class="kpi-sub">${loc.entryCount !== null ? `${fmt(loc.entryCount, 0)} visitors` : ""}${loc.entryCount !== null && loc.snacksSold !== null ? " · " : ""}${loc.snacksSold !== null ? `${fmt(loc.snacksSold, 0)} animal food` : ""}</div>`
       : "";
 
   const tableRows = metrics
-    .map(
-      (m) => `<tr class="${rowBgClass(m.currentPasses)}">
+    .map((m, i) => {
+      const s = states[i];
+      const status = rowStatus(s);
+      const bonusHtml =
+        status === "earned"
+          ? `<span class="bonus-earned">฿${fmt(s.earned, 0)}</span>`
+          : status === "waiting"
+            ? `<span class="bonus-waiting">฿${fmt(s.waiting, 0)} to unlock</span>`
+            : `<span class="bonus-max">up to ฿${fmt(s.max, 0)}</span>`;
+      // Plain-language progress line under the numbers: what is missing, or confirmation.
+      const progressLine =
+        status === "earned"
+          ? "Target hit — bonus paid."
+          : status === "waiting"
+            ? "Target hit — paid once sales target is reached."
+            : status === "missed"
+              ? escHtml(m.gapSecondary ?? m.gapPrimary)
+              : "Waiting for data.";
+      return `<tr>
         <td><div class="metric-name">${m.letter}. ${escHtml(m.label)}</div><div class="metric-sub">${escHtml(m.subtitle)}</div></td>
-        <td class="num ${gapClass(m.currentPasses)}">${escHtml(m.current)}</td>
-        <td class="target">${escHtml(m.target)}</td>
-        <td class="gap-cell"><div class="${gapClass(m.gapPasses)}">${escHtml(m.gapPrimary)}</div>${m.gapSecondary ? `<div class="metric-sub">${escHtml(m.gapSecondary)}</div>` : ""}</td>
-      </tr>`,
-    )
+        <td class="num">${escHtml(m.current)}</td>
+        <td class="target">${escHtml(m.target)}<div class="metric-sub">${escHtml(progressLine)}</div></td>
+        <td class="status-cell">${teamStatusPill(status)}</td>
+        <td class="bonus-cell">${bonusHtml}</td>
+      </tr>`;
+    })
     .join("");
 
   const adviceCards = metrics
-    .map((m) => {
-      const achieved = m.gapPasses === true;
-      const tip = achieved ? m.achievedTip : m.adviceTip;
-      const gapBg = achieved ? "gap-pass" : m.gapPasses === false ? "gap-warn" : "";
+    .map((m, i) => {
+      const status = rowStatus(states[i]);
+      // Focus advice on what is not earned yet; earned cards get a short confirmation.
+      const tip = status === "earned" ? m.achievedTip : m.adviceTip;
+      const gapCls = status === "earned" ? "pill-earned" : status === "waiting" ? "pill-waiting" : "pill-missed";
+      const gapText = status === "earned" ? "Earned ✓" : escHtml(m.gapPrimary);
       return `<div class="advice-card">
         <div class="title">${m.letter}. ${escHtml(m.label)}</div>
-        <div class="advice-stats"><div><div class="stat-label">Current</div><div class="stat-val ${gapClass(m.currentPasses)}">${escHtml(m.current)}</div></div><div><div class="stat-label">Target</div><div class="stat-val">${escHtml(m.target)}</div></div></div>
-        <div class="gap ${gapBg} ${gapClass(m.gapPasses)}">${escHtml(m.gapPrimary)}</div>
+        <div><span class="gap pill ${gapCls}">${gapText}</span></div>
         <div class="tip">${escHtml(tip)}</div>
       </div>`;
     })
@@ -476,28 +539,47 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
 
   return `<div class="dashboard">
     <div class="dash-header">
-      <div><div class="dash-title">${name}</div><div class="dash-subtitle">Monthly Challenge</div></div>
+      <div><div class="dash-title">${name}</div><div class="dash-subtitle">Monthly Challenge — your bonus, simply explained</div></div>
       <div class="dash-logo">Capybara Coffee</div>
     </div>
+
+    <div class="how">
+      <strong>How your bonus works:</strong> each challenge has a target. Hit it and the bonus is
+      <span class="dot dot-earned">Earned ✓</span> — with one rule: apart from Merchandise, bonuses are only paid if the shop also reaches its <strong>monthly sales target</strong>.
+      <span class="dot dot-waiting">Waiting for sales</span> means you hit the target but sales were missed, so it is not paid.
+      <span class="dot dot-missed">Not yet</span> means the target was not hit yet.
+    </div>
+
     <div class="kpi-row">
-      <div class="kpi-card kpi-sales">
-        <div class="sales-top"><div><div class="kpi-label">Sales this month</div><div class="kpi-value">${amount !== null ? `฿${fmt(amount, 0)}` : "—"}${threshold !== null ? `<span class="target-inline"> / ฿${fmt(threshold, 0)} target</span>` : ""}</div></div>${pctOfTarget !== null ? `<div class="pct">${pctOfTarget}%</div>` : ""}</div>
+      <div class="kpi-card sales">
+        <div class="kpi-label">1 · Monthly sales — the key target</div>
+        <div class="kpi-value">${amount !== null ? `฿${fmt(amount, 0)}` : "—"}${threshold !== null ? `<span class="kpi-target"> / ฿${fmt(threshold, 0)}</span>` : ""}${pctOfTarget !== null ? ` <span class="kpi-target">${pctOfTarget}%</span>` : ""}</div>
         <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
-        <div class="status-row"><span class="${unlocked ? "pass" : isMonthPast(month) && !unlocked ? "fail" : "muted"}">${escHtml(statusLabel)}</span> ${visitorLine}</div>
+        <div class="sales-status ${salesStatus.cls}">${escHtml(salesStatus.label)}</div>
+        ${visitorLine}
       </div>
-      <div class="kpi-card bonus">
-        <div class="kpi-label">Bonus earned</div>
-        <div class="kpi-value">฿${fmt(loc.totalBonus, 0)}</div>
+      <div class="kpi-card earned">
+        <div class="kpi-label">2 · Bonus earned</div>
+        <div class="kpi-value small">฿${fmt(loc.totalBonus, 0)}</div>
+        <div class="kpi-sub">${earnedCount} of 6 challenges earned and paid.</div>
+      </div>
+      <div class="kpi-card waiting">
+        <div class="kpi-label">3 · Would have been extra</div>
+        <div class="kpi-value small">฿${fmt(waitingBonus, 0)}</div>
+        <div class="kpi-sub">${waitingCount === 0 ? "Nothing waiting — every hit target is paid." : `${waitingCount} challenge${waitingCount === 1 ? "" : "s"} hit, but not paid because sales were missed.`}</div>
       </div>
     </div>
-    <div class="section-title">How are we doing?</div>
+
+    <div class="section-title">Your challenges — earned or still to unlock?</div>
+    <div class="section-hint">“Earned” = target hit and paid. “Waiting for sales” = target hit but not paid because monthly sales were missed. “Not yet” = target not hit.</div>
     <table class="metric-table">
-      <thead><tr><th>Metric</th><th>Current</th><th>Target</th><th>Gap to reach target</th></tr></thead>
+      <thead><tr><th>Challenge</th><th>Result</th><th>Target</th><th>Status</th><th>Bonus</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
-    <div class="section-title">General advice</div>
+
+    <div class="section-title">What to focus on next</div>
     <div class="advice-row">${adviceCards}</div>
-    <div class="footer">Small actions every day lead to big results. Let's keep growing together!</div>
+    <div class="footer">Small actions every day lead to big results. Let&apos;s keep growing together!</div>
   </div>`;
 }
 
@@ -516,9 +598,9 @@ function buildTeamPrintHtml(locations: LocationOverview[], month: string): strin
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${TEAM_PRINT_CSS}</style></head><body>
 <div class="page">
-  <div style="display:flex;justify-content:space-between;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(43,35,27,0.1)">
-    <div><div style="font-size:14px;font-weight:700">${escHtml(title)}</div><div class="muted" style="margin-top:2px">${locations.length} shop${locations.length === 1 ? "" : "s"}</div></div>
-    <div class="dash-logo">Generated ${escHtml(generated)}</div>
+  <div class="cover">
+    <div><div class="cover-title">${escHtml(title)}</div><div class="cover-sub">${locations.length} shop${locations.length === 1 ? "" : "s"} · Green = bonus paid · Yellow = target hit but not paid (sales missed)</div></div>
+    <div class="cover-meta">Capybara Coffee<br>Generated ${escHtml(generated)}</div>
   </div>
   ${dashboards}
 </div>
