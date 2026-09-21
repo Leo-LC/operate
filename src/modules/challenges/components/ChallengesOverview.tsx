@@ -355,12 +355,14 @@ function KpiRow({
   label,
   value,
   target,
+  targetMet,
   status,
   loading,
 }: {
   label: string;
   value: string;
   target: string;
+  targetMet: boolean;
   status: KpiStatus;
   loading: boolean;
 }) {
@@ -384,7 +386,13 @@ function KpiRow({
       >
         {value}
       </span>
-      <span className="text-right font-mono text-xs tabular-nums text-[var(--fg-4)]">{target}</span>
+      <span
+        className={`text-right font-mono text-xs tabular-nums ${
+          targetMet ? "font-semibold text-[var(--good)]" : "text-[var(--fg-4)]"
+        }`}
+      >
+        {target}
+      </span>
       <span className="text-right">
         {status === "achieved" ? (
           <span className="text-[13px] font-medium text-[var(--good)]" aria-label="Achieved">✓</span>
@@ -405,7 +413,7 @@ function KpiRow({
 
 const CHALLENGE_RULES: { label: string; target: string; bonus: string }[] = [
   { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
-  { label: "Merchandising", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
+  { label: "Merchandise", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
   { label: "Animal Food", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
   { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
   { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
@@ -476,6 +484,7 @@ function ShopSalesTargetModal({ loc, onClose }: { loc: LocationOverview; onClose
       open
       onClose={onClose}
       width={420}
+      compact
       title={`Sales target — ${shortName(loc.locationTitle)}`}
       footer={
         <div className="flex justify-end">
@@ -729,6 +738,7 @@ function LocationCard({
           label={isTeam ? TEAM_CHALLENGE_LABELS.productsPct : CHALLENGE_LABELS.productsPct}
           value={isTeam ? buildMerchContext(loc).value : pct(loc.merchandising.ratio)}
           target="≥ 7%"
+          targetMet={merchPass === true}
           status={merch}
           loading={loading}
         />
@@ -736,6 +746,7 @@ function LocationCard({
           label={isTeam ? TEAM_CHALLENGE_LABELS.snacks : CHALLENGE_LABELS.snacks}
           value={isTeam ? buildSnacksContext(loc).value : (loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—")}
           target="≥ 0.45"
+          targetMet={loc.snacks.passes === true}
           status={snacks}
           loading={loading}
         />
@@ -743,6 +754,7 @@ function LocationCard({
           label={isTeam ? TEAM_CHALLENGE_LABELS.spendPerVisit : CHALLENGE_LABELS.spendPerVisit}
           value={isTeam ? buildPanierContext(loc).value : (loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—")}
           target="≥ 190 ฿"
+          targetMet={loc.panierMoyen.passes === true}
           status={panier}
           loading={loading}
         />
@@ -750,6 +762,7 @@ function LocationCard({
           label={isTeam ? TEAM_CHALLENGE_LABELS.runningCostsPct : CHALLENGE_LABELS.runningCostsPct}
           value={isTeam ? buildOpexContext(loc).value : pct(loc.opex.ratio)}
           target="< 9.5%"
+          targetMet={loc.opex.passes === true}
           status={opex}
           loading={loading}
         />
@@ -757,6 +770,7 @@ function LocationCard({
           label={isTeam ? TEAM_CHALLENGE_LABELS.reviewCount : CHALLENGE_LABELS.reviewCount}
           value={isTeam ? buildReviewVolumeContext(loc).value : (loc.reviews.volumeRatio !== null ? pct(loc.reviews.volumeRatio) : `${loc.reviews.count} reviews`)}
           target="≥ 4%"
+          targetMet={loc.reviews.volumePass === true}
           status={revVolume}
           loading={loading}
         />
@@ -764,19 +778,21 @@ function LocationCard({
           label={isTeam ? TEAM_CHALLENGE_LABELS.reviewRating : CHALLENGE_LABELS.reviewRating}
           value={isTeam ? buildReviewRatingContext(loc).value : (loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : "—")}
           target={ratingTargetLabel}
+          targetMet={loc.reviews.ratingPass === true}
           status={revRating}
           loading={loading}
         />
       </div>
 
-      {/* Visitors — count first, source secondary, actions in ••• menu */}
-      <div className="mt-1 flex items-center justify-between border-t border-[var(--line)] pt-1">
-        <span className="flex min-w-0 items-baseline gap-2 py-2">
-          <span className="text-[13px] text-[var(--fg-2)]">Visitors</span>
-          <span className="font-mono text-[13px] tabular-nums text-[var(--fg)]">
-            {loading ? "—" : loc.entryCount !== null ? fmt(loc.entryCount, 0) : "—"}
-          </span>
-        </span>
+      {/* Raw counts — data, not challenges: muted mono line, visually separate */}
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--line)] pt-2">
+        <p className="min-w-0 truncate font-mono text-xs tabular-nums text-[var(--fg-3)]">
+          {loading
+            ? "—"
+            : loc.entryCount !== null || loc.snacksSold !== null
+              ? `${loc.entryCount !== null ? `${fmt(loc.entryCount, 0)} visitors` : "— visitors"} · ${loc.snacksSold !== null ? `${fmt(loc.snacksSold, 0)} animal food` : "— animal food"}`
+              : "No counts yet"}
+        </p>
         {(isOwner || isTeam) && !loading ? (
           <OverflowMenu
             label="Visitor count actions"

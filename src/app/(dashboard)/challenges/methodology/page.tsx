@@ -98,7 +98,7 @@ export default async function MethodologyPage() {
         </MetricCard>
       </Section>
 
-      {/* Merchandising */}
+      {/* Merchandise */}
       <Section title="Metrics">
         <MetricCard title={CHALLENGE_LABELS.productsPct} gated={false} bonus="up to 5,000 ฿">
           <Field label="DB table"><Code>daily_entries</Code></Field>

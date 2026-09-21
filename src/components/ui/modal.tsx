@@ -12,6 +12,8 @@ interface ModalProps {
   children: React.ReactNode
   footer?: React.ReactNode
   width?: number
+  /** Compact dialogs (one or two rows): shrink to content instead of filling available height. */
+  compact?: boolean
 }
 
 export function Modal({
@@ -22,6 +24,7 @@ export function Modal({
   children,
   footer,
   width = 560,
+  compact = false,
 }: ModalProps) {
   return (
     <ModalPrimitive.Root open={open} onOpenChange={(v) => { if (!v) onClose() }}>
@@ -44,6 +47,7 @@ export function Modal({
             boxShadow: "var(--shadow-drawer)",
             transitionDuration: "var(--dur-2)",
             transitionTimingFunction: "var(--ease)",
+            ...(compact ? { height: "fit-content", maxHeight: "calc(100vh - 48px)" } : {}),
           }}
         >
           {(title || description) && (
@@ -97,7 +101,7 @@ export function Modal({
           )}
 
           {/* Body */}
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "var(--s-5)" }}>
+          <div style={{ flex: compact ? "none" : 1, minHeight: 0, overflowY: "auto", padding: "var(--s-5)" }}>
             {children}
           </div>
 

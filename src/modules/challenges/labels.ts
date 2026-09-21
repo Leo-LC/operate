@@ -3,7 +3,7 @@
 export const CHALLENGE_LABELS = {
   salesTarget: "Sales target",
   salesTargetReached: "Sales target reached",
-  productsPct: "Merchandising sales %",
+  productsPct: "Merchandise",
   snacks: "Snacks",
   spendPerVisit: "Spend per visit",
   runningCostsPct: "Running costs %",
