@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { EmployeeDocument } from "@/modules/admin/types";
+import { compressImageClient } from "@/modules/admin/lib/compress-client";
 import {
   BUILTIN_DOC_TYPES,
   BUILTIN_DOC_TYPE_LABELS,
@@ -25,6 +26,7 @@ import {
   getDocTypeLabel,
   isValidCustomDocTypeSlug,
   slugifyDocType,
+  validateFileMeta,
 } from "@/modules/admin/lib/employee-documents";
 
 const DOC_TYPE_TONES: Record<string, "neutral" | "bronze" | "good" | "warn" | "bad" | "info"> = {
@@ -114,25 +116,87 @@ export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: E
     return true;
   }
 
+  // Direct upload: browser -> Supabase Storage via a signed URL (our API
+  // never sees the bytes, so the Vercel ~4.5MB function body limit no longer
+  // applies — files up to the 8MB bucket cap work).
   async function handleFileUpload(file: File) {
     if (atMax) {
       toast.error(`Maximum ${MAX_DOCS_PER_EMPLOYEE} documents per employee`);
       return;
     }
+    const pre = validateFileMeta({ type: file.type, size: file.size });
+    if (!pre.ok) {
+      toast.error(pre.error ?? "Upload failed");
+      return;
+    }
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("doc_type", docType);
-      const res = await fetch(`/api/admin/employees/${employeeId}/documents`, {
+      const isPdf = file.type === "application/pdf";
+      let payload: Blob = file;
+      let outName = file.name;
+      let outMime = file.type;
+      if (!isPdf) {
+        try {
+          const compressed = await compressImageClient(file);
+          payload = compressed.blob;
+          outName = compressed.fileName;
+          outMime = "image/webp";
+        } catch {
+          toast.error("Could not process image");
+          return;
+        }
+        const meta = validateFileMeta({ type: outMime, size: payload.size });
+        if (!meta.ok) {
+          toast.error(meta.error ?? "Upload failed");
+          return;
+        }
+      }
+
+      const reqRes = await fetch(`/api/admin/employees/${employeeId}/documents/request-upload`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_name: outName,
+          mime_type: outMime,
+          size_bytes: payload.size,
+          doc_type: docType,
+        }),
       });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error((result as { error?: string }).error ?? "Upload failed");
+      const reqData = (await reqRes.json().catch(() => ({}))) as {
+        error?: string;
+        storage_path?: string;
+        signed_url?: string;
+      };
+      if (!reqRes.ok || !reqData.storage_path || !reqData.signed_url) {
+        toast.error(reqData.error ?? "Upload failed");
         return;
       }
+
+      const putRes = await fetch(reqData.signed_url, {
+        method: "PUT",
+        body: payload,
+        headers: { "Content-Type": outMime },
+      });
+      if (!putRes.ok) {
+        toast.error("Upload failed — please retry");
+        return;
+      }
+
+      const confRes = await fetch(`/api/admin/employees/${employeeId}/documents/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storage_path: reqData.storage_path,
+          file_name: outName,
+          doc_type: docType,
+        }),
+      });
+      const confData = (await confRes.json().catch(() => ({}))) as { error?: string };
+      if (!confRes.ok) {
+        toast.error(confData.error ?? "Upload failed");
+        return;
+      }
+
       toast.success(`${getDocTypeLabel(docType)} uploaded`);
       onRefresh();
       void refreshTypes();

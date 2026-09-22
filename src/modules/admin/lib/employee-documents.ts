@@ -7,6 +7,32 @@ export const ALLOWED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp"];
 export const ALLOWED_PDF_MIMES = ["application/pdf"];
 export const ALLOWED_MIMES = [...ALLOWED_IMAGE_MIMES, ...ALLOWED_PDF_MIMES];
 
+/** Client-side compression target (mirrored from the old sharp pipeline). */
+export const MAX_DIMENSION = 1600;
+export const WEBP_QUALITY = 0.78;
+
+/** Metadata-only file check (no bytes read) — usable client + server. */
+export function validateFileMeta(meta: { type: string; size: number }): { ok: boolean; error?: string } {
+  if (!ALLOWED_MIMES.includes(meta.type)) {
+    return { ok: false, error: `Unsupported file type: ${meta.type || "unknown"}. Allowed: PDF, JPEG, PNG, WebP` };
+  }
+  if (meta.size > MAX_SIZE_BYTES) {
+    return { ok: false, error: `File too large: ${(meta.size / 1024 / 1024).toFixed(1)}MB. Max 8MB` };
+  }
+  if (meta.size <= 0) {
+    return { ok: false, error: "File is empty" };
+  }
+  return { ok: true };
+}
+
+/** Storage path relative to the bucket (never include the bucket prefix). */
+export function generateStoragePath(organizationId: string, employeeId: string, fileName: string): string {
+  const uuid = crypto.randomUUID();
+  const rawExt = fileName.split(".").pop() ?? "bin";
+  const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "bin";
+  return `${organizationId}/${employeeId}/${uuid}.${ext}`;
+}
+
 /** Built-in document categories, shared by all employees. */
 export const BUILTIN_DOC_TYPES = ["id_card", "passport", "work_permit", "contract"] as const;
 export type BuiltinDocType = (typeof BUILTIN_DOC_TYPES)[number];

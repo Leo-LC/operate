@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  generateStoragePath,
   getDocTypeLabel,
   isKnownDocType,
   isValidCustomDocTypeSlug,
   prettifyDocType,
   slugifyDocType,
+  validateFileMeta,
 } from "./employee-documents";
 
 describe("employee-documents custom categories", () => {
@@ -36,5 +38,22 @@ describe("employee-documents custom categories", () => {
     expect(getDocTypeLabel("other")).toBe("Other");
     expect(getDocTypeLabel("house_registration")).toBe("House Registration");
     expect(prettifyDocType("tabien_baan")).toBe("Tabien Baan");
+  });
+
+  it("validates file metadata (type + 8MB cap)", () => {
+    expect(validateFileMeta({ type: "application/pdf", size: 10 }).ok).toBe(true);
+    expect(validateFileMeta({ type: "image/jpeg", size: 10 }).ok).toBe(true);
+    expect(validateFileMeta({ type: "image/tiff", size: 10 }).ok).toBe(false);
+    expect(validateFileMeta({ type: "application/pdf", size: 9 * 1024 * 1024 }).ok).toBe(false);
+    expect(validateFileMeta({ type: "application/pdf", size: 0 }).ok).toBe(false);
+  });
+
+  it("generates unique bucket-relative storage paths", () => {
+    const a = generateStoragePath("org", "emp", "id-front.jpg");
+    const b = generateStoragePath("org", "emp", "id-front.jpg");
+    expect(a.startsWith("employee-docs/")).toBe(false);
+    expect(a.startsWith("org/emp/")).toBe(true);
+    expect(a).not.toBe(b);
+    expect(generateStoragePath("o", "e", "evil.PDF ")).toMatch(/\.pdf$/);
   });
 });
