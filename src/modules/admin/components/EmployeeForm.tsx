@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { BankAccountInput } from "./BankAccountField";
+import { formatThaiBankAccount } from "@/modules/admin/lib/thai-bank-account";
 import type { AdminLocation } from "@/modules/admin/types";
 
 export const POSITIONS = ["", "All-rounder", "Bartender", "Cashier", "Manager", "Director"] as const;
@@ -11,7 +12,7 @@ export const NATIONALITIES = ["", "Thai", "Burmese", "French", "Other"] as const
 export const THAI_BANKS = [
   "", "Bangkok Bank", "Kasikorn Bank (KBank)", "Siam Commercial Bank (SCB)",
   "Krungthai Bank", "Bank of Ayudhya (Krungsri)", "TMBThanachart Bank (TTB)",
-  "Government Savings Bank", "CIMB Thai", "UOB Thailand", "Krungsri", "Other",
+  "Government Savings Bank", "GSB", "CIMB Thai", "UOB Thailand", "Krungsri", "Other",
 ] as const;
 
 export type EmployeeFormState = {
@@ -178,13 +179,13 @@ export function EmployeeForm({
             <>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 180 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Bank name</label>
-                <select value={form.bank_name} onChange={(e) => onChange("bank_name", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
+                <select value={form.bank_name} onChange={(e) => { const next = e.target.value; onChange("bank_name", next); onChange("bank_account_number", formatThaiBankAccount(form.bank_account_number, next)); }} style={{ ...inputStyle, cursor: "pointer" }}>
                   {THAI_BANKS.map((b) => <option key={b} value={b}>{b || "— Select bank —"}</option>)}
                 </select>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 200 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Account number</label>
-                <BankAccountInput id="bank-account-number" value={form.bank_account_number} onChange={(v) => onChange("bank_account_number", v)} inputStyle={inputStyle} />
+                <BankAccountInput id="bank-account-number" value={form.bank_account_number} onChange={(v) => onChange("bank_account_number", v)} inputStyle={inputStyle} bankName={form.bank_name} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 180 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Account holder name</label>

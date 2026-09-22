@@ -229,7 +229,7 @@ export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: E
         <span className="eyebrow">Documents</span>
         <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading || atMax}>
           {uploading ? <Loader2Icon className="size-4 animate-spin" /> : <UploadIcon className="size-4" />}
-          {uploading ? "Uploading…" : atMax ? "Max (3)" : "Add document"}
+          {uploading ? "Uploading…" : atMax ? `Max (${MAX_DOCS_PER_EMPLOYEE})` : "Add document"}
         </Button>
       </div>
       <input

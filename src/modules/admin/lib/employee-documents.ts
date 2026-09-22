@@ -1,6 +1,6 @@
 // Client-safe constants for employee documents (no Node imports —
 // safe to import from client components).
-export const MAX_DOCS_PER_EMPLOYEE = 3;
+export const MAX_DOCS_PER_EMPLOYEE = 10;
 export const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 
 export const ALLOWED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp"];

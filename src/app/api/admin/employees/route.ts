@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       base_salary_monthly: primarySalary ?? body.base_salary_monthly ?? null,
       has_thai_bank_account: body.has_thai_bank_account ?? false,
       bank_name: body.bank_name?.trim() ?? null,
-      bank_account_number: body.bank_account_number?.trim().replace(/[\s-]/g, "") ?? null,
+      bank_account_number: body.bank_account_number?.trim().replace(/\D/g, "") ?? null,
       bank_account_name: body.bank_account_name?.trim() ?? null,
       credit_note: body.credit_note?.trim() ?? null,
       service_charge_pct: body.service_charge_pct ?? null,

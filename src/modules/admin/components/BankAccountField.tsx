@@ -4,9 +4,11 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import {
-  THAI_BANK_ACCOUNT_PLACEHOLDER,
   formatThaiBankAccount,
+  getBankAccountDigits,
+  getBankAccountPlaceholder,
   isCompleteThaiBankAccount,
+  isGsbBank,
   normalizeThaiBankAccountDigits,
 } from "@/modules/admin/lib/thai-bank-account";
 
@@ -87,14 +89,19 @@ export function BankAccountInput({
   onChange,
   inputStyle,
   id,
+  bankName,
 }: {
   value: string;
   onChange: (formatted: string) => void;
   inputStyle?: React.CSSProperties;
   id?: string;
+  bankName?: string | null;
 }) {
-  const digits = normalizeThaiBankAccountDigits(value);
-  const complete = isCompleteThaiBankAccount(value);
+  const digits = normalizeThaiBankAccountDigits(value, bankName);
+  const complete = isCompleteThaiBankAccount(value, bankName);
+  const expected = getBankAccountDigits(bankName);
+  const placeholder = getBankAccountPlaceholder(bankName);
+  const gsb = isGsbBank(bankName);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 }}>
@@ -106,34 +113,40 @@ export function BankAccountInput({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          maxLength={13}
-          value={formatThaiBankAccount(value)}
-          onChange={(e) => onChange(formatThaiBankAccount(e.target.value))}
+          maxLength={gsb ? 12 : 13}
+          value={formatThaiBankAccount(value, bankName)}
+          onChange={(e) => onChange(formatThaiBankAccount(e.target.value, bankName))}
           onPaste={(e) => {
             e.preventDefault();
-            onChange(formatThaiBankAccount(e.clipboardData.getData("text")));
+            onChange(formatThaiBankAccount(e.clipboardData.getData("text"), bankName));
           }}
-          placeholder={THAI_BANK_ACCOUNT_PLACEHOLDER}
+          placeholder={placeholder}
           aria-describedby={id ? `${id}-hint` : undefined}
           style={{ ...(inputStyle ?? {}), paddingRight: 38, fontVariantNumeric: "tabular-nums" }}
         />
         <span style={{ position: "absolute", right: 2 }}>
-          <CopyAccountButton value={formatThaiBankAccount(value)} />
+          <CopyAccountButton value={formatThaiBankAccount(value, bankName)} />
         </span>
       </div>
       <span
         id={id ? `${id}-hint` : undefined}
         style={{ fontSize: 10, color: complete ? "var(--good)" : "var(--fg-4)" }}
       >
-        {complete ? "✓ XXX-X-XXXXX-X" : `XXX-X-XXXXX-X · ${digits.length}/10 digits`}
+        {gsb
+          ? complete
+            ? "✓ 12 digits, no dashes (GSB)"
+            : `12 digits, no dashes (GSB) · ${digits.length}/${expected} digits`
+          : complete
+            ? "✓ XXX-X-XXXXX-X"
+            : `XXX-X-XXXXX-X · ${digits.length}/${expected} digits`}
       </span>
     </div>
   );
 }
 
 /** Read-only formatted account number with a copy icon (e.g. table cells). */
-export function BankAccountDisplay({ value, mono = true }: { value: string | null | undefined; mono?: boolean }) {
-  const formatted = formatThaiBankAccount(value);
+export function BankAccountDisplay({ value, mono = true, bankName }: { value: string | null | undefined; mono?: boolean; bankName?: string | null }) {
+  const formatted = formatThaiBankAccount(value, bankName);
   if (!formatted) return <span style={{ color: "var(--fg-4)" }}>—</span>;
   return (
     <span

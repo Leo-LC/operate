@@ -157,7 +157,7 @@ function EmployeeViewPanel({ emp, shopFilter, onEdit, onCollapse, onDocumentsCha
         {emp.has_thai_bank_account && (bankName || bankNumber || holderName) && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: "var(--s-2)", padding: "var(--s-3)", border: "1px dashed var(--line)", borderRadius: "var(--r-md)", background: "var(--surface-2)" }}>
             {bankName && <ViewField label="Bank">{bankName}</ViewField>}
-            {bankNumber && <ViewField label="Account number"><BankAccountDisplay value={bankNumber} /></ViewField>}
+            {bankNumber && <ViewField label="Account number"><BankAccountDisplay value={bankNumber} bankName={bankName} /></ViewField>}
             {holderName && <ViewField label="Holder">{holderName}</ViewField>}
           </div>
         )}
@@ -255,7 +255,7 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
             </select>
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Account number
-            <BankAccountInput value={form.bank_account_number ?? ""} onChange={(v) => onChange("bank_account_number", v)} inputStyle={SIMPLE_INPUT} />
+            <BankAccountInput value={form.bank_account_number ?? ""} onChange={(v) => onChange("bank_account_number", v)} inputStyle={SIMPLE_INPUT} bankName={form.bank_name ?? ""} />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--fg-3)" }}>Holder name
             <input value={form.bank_account_name ?? ""} onChange={(e) => onChange("bank_account_name", e.target.value)} style={SIMPLE_INPUT} placeholder="As on bank book" />
@@ -314,6 +314,7 @@ function SimpleEmployeeForm({ form, locIds, primaryLoc, locations, locationSalar
 }
 
 function empToForm(emp: Employee): FormState {
+  const bankName = (emp as unknown as { bank_name?: string | null }).bank_name ?? "";
   return {
     first_name: emp.first_name,
     last_name: emp.last_name,
@@ -327,8 +328,8 @@ function empToForm(emp: Employee): FormState {
     notes: emp.notes ?? "",
     base_salary_monthly: emp.base_salary_monthly != null ? String(emp.base_salary_monthly) : "",
     has_thai_bank_account: emp.has_thai_bank_account ?? false,
-    bank_name: (emp as unknown as { bank_name?: string | null }).bank_name ?? "",
-    bank_account_number: formatThaiBankAccount((emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? ""),
+    bank_name: bankName,
+    bank_account_number: formatThaiBankAccount((emp as unknown as { bank_account_number?: string | null }).bank_account_number ?? "", bankName),
     bank_account_name: (emp as unknown as { bank_account_name?: string | null }).bank_account_name ?? "",
     credit_note: emp.credit_note ?? "",
     service_charge_pct: emp.service_charge_pct != null ? String(emp.service_charge_pct) : "",
@@ -770,7 +771,12 @@ export function EmployeesListClient({ locations }: Props) {
           activeShopId={shopFilter}
           readOnlyShops={false}
           onChange={(key, val) => {
-            setForm((prev) => ({ ...prev, [key]: val }));
+            setForm((prev) => {
+              if (key === "bank_name") {
+                return { ...prev, bank_name: val as string, bank_account_number: formatThaiBankAccount(prev.bank_account_number ?? "", val as string) };
+              }
+              return { ...prev, [key]: val };
+            });
             if (key === "base_salary_monthly" && shopFilter && formLocIds.has(shopFilter)) {
               setFormSalaries((prev) => ({ ...prev, [shopFilter]: val as string }));
             }
@@ -859,7 +865,12 @@ export function EmployeesListClient({ locations }: Props) {
                                   documents={emp.employee_documents}
                                   onDocumentsChange={() => void refreshEmployeesQuiet()}
                                   onChange={(key, val) => {
-                                    setEditForm((prev) => ({ ...prev, [key]: val }));
+                                    setEditForm((prev) => {
+                                      if (key === "bank_name") {
+                                        return { ...prev, bank_name: val as string, bank_account_number: formatThaiBankAccount(prev.bank_account_number ?? "", val as string) };
+                                      }
+                                      return { ...prev, [key]: val };
+                                    });
                                     if (key === "base_salary_monthly") {
                                       const target = shopFilter && editLocIds.has(shopFilter) ? shopFilter : editPrimaryLoc;
                                       if (target) setEditSalaries((prev) => ({ ...prev, [target]: val as string }));
@@ -1017,7 +1028,7 @@ function EmployeeCells({ emp, onEdit, onArchive, onDelete, open, editing }: {
             )}
             {((emp as unknown as { bank_account_number?: string | null }).bank_account_number) && (
               <span style={{ display: "block", fontSize: 11 }}>
-                <BankAccountDisplay value={(emp as unknown as { bank_account_number?: string | null }).bank_account_number} />
+                <BankAccountDisplay value={(emp as unknown as { bank_account_number?: string | null }).bank_account_number} bankName={(emp as unknown as { bank_name?: string | null }).bank_name} />
               </span>
             )}
             {((emp as unknown as { bank_account_name?: string | null }).bank_account_name) && (

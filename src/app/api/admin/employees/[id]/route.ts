@@ -85,7 +85,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if ("base_salary_monthly" in body) updates.base_salary_monthly = body.base_salary_monthly ?? null;
   if ("has_thai_bank_account" in body) updates.has_thai_bank_account = body.has_thai_bank_account ?? false;
   if ("bank_name" in body) updates.bank_name = body.bank_name?.trim() ?? null;
-  if ("bank_account_number" in body) updates.bank_account_number = body.bank_account_number?.trim().replace(/[\s-]/g, "") ?? null;
+  if ("bank_account_number" in body) updates.bank_account_number = body.bank_account_number?.trim().replace(/\D/g, "") ?? null;
   if ("bank_account_name" in body) updates.bank_account_name = body.bank_account_name?.trim() ?? null;
   // Clear bank details when Thai bank is disabled
   if (body.has_thai_bank_account === false) {
