@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { Modal } from "@/components/ui/modal";
@@ -14,26 +14,37 @@ import {
   XIcon,
   CheckIcon,
   PencilIcon,
+  PlusIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { EmployeeDocument } from "@/modules/admin/types";
-import { MAX_DOCS_PER_EMPLOYEE } from "@/modules/admin/lib/employee-documents";
+import {
+  BUILTIN_DOC_TYPES,
+  BUILTIN_DOC_TYPE_LABELS,
+  MAX_DOCS_PER_EMPLOYEE,
+  getDocTypeLabel,
+  isValidCustomDocTypeSlug,
+  slugifyDocType,
+} from "@/modules/admin/lib/employee-documents";
 
-const DOC_TYPE_LABELS: Record<EmployeeDocument["doc_type"], string> = {
-  id_card: "ID card",
-  passport: "Passport",
-  work_permit: "Work permit",
-  contract: "Contract",
-  other: "Other",
-};
-
-const DOC_TYPE_TONES: Record<EmployeeDocument["doc_type"], "neutral" | "bronze" | "good" | "warn" | "bad" | "info"> = {
+const DOC_TYPE_TONES: Record<string, "neutral" | "bronze" | "good" | "warn" | "bad" | "info"> = {
   id_card: "bronze",
   passport: "info",
   work_permit: "good",
   contract: "neutral",
-  other: "warn",
 };
+
+function docTone(type: string): "neutral" | "bronze" | "good" | "warn" | "bad" | "info" {
+  return DOC_TYPE_TONES[type] ?? "warn";
+}
+
+interface CustomDocType {
+  slug: string;
+  label: string;
+  count: number;
+}
+
+const NEW_TYPE_VALUE = "__new__";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -50,16 +61,58 @@ interface EmployeeDocumentsSectionProps {
 export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: EmployeeDocumentsSectionProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [docType, setDocType] = useState<EmployeeDocument["doc_type"]>("id_card");
+  const [docType, setDocType] = useState<string>("id_card");
+  const [customTypes, setCustomTypes] = useState<CustomDocType[]>([]);
+  const [addingType, setAddingType] = useState(false);
+  const [newTypeLabel, setNewTypeLabel] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [previewOpen, setPreviewOpen] = useState<{ url: string; name: string; mime: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<EmployeeDocument | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [editFileName, setEditFileName] = useState("");
-  const [editDocType, setEditDocType] = useState<EmployeeDocument["doc_type"]>("id_card");
+  const [editDocType, setEditDocType] = useState<string>("id_card");
 
   const atMax = documents.length >= MAX_DOCS_PER_EMPLOYEE;
+
+  const refreshTypes = async () => {
+    try {
+      const res = await fetch("/api/admin/employees/document-types");
+      if (!res.ok) return;
+      const data = (await res.json()) as { custom?: CustomDocType[] };
+      setCustomTypes(data.custom ?? []);
+    } catch {
+      // Non-blocking: upload still works with builtins.
+    }
+  };
+
+  useEffect(() => {
+    void refreshTypes();
+  }, []);
+
+  function typeOptions(current?: string) {
+    const slugs = new Set<string>([
+      ...(BUILTIN_DOC_TYPES as readonly string[]),
+      ...customTypes.map((t) => t.slug),
+    ]);
+    if (current && !slugs.has(current) && current !== NEW_TYPE_VALUE) slugs.add(current);
+    return Array.from(slugs);
+  }
+
+  function confirmNewType(): boolean {
+    const slug = slugifyDocType(newTypeLabel);
+    if (!isValidCustomDocTypeSlug(slug)) {
+      toast.error("Use at least 2 letters/numbers for the category name");
+      return false;
+    }
+    if (!customTypes.some((t) => t.slug === slug)) {
+      setCustomTypes((prev) => [...prev, { slug, label: getDocTypeLabel(slug), count: 0 }]);
+    }
+    setDocType(slug);
+    setNewTypeLabel("");
+    setAddingType(false);
+    return true;
+  }
 
   async function handleFileUpload(file: File) {
     if (atMax) {
@@ -80,8 +133,9 @@ export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: E
         toast.error((result as { error?: string }).error ?? "Upload failed");
         return;
       }
-      toast.success(`${DOC_TYPE_LABELS[docType]} uploaded`);
+      toast.success(`${getDocTypeLabel(docType)} uploaded`);
       onRefresh();
+      void refreshTypes();
     } catch {
       toast.error("Upload failed");
     } finally {
@@ -266,13 +320,22 @@ export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: E
                   />
                   <select
                     value={editDocType}
-                    onChange={(e) => setEditDocType(e.target.value as EmployeeDocument["doc_type"])}
+                    onChange={(e) => setEditDocType(e.target.value)}
                     aria-label="Document type"
                     style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 8px", fontSize: 13 }}
                   >
-                    {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
+                    <optgroup label="Standard">
+                      {(BUILTIN_DOC_TYPES as readonly string[]).map((value) => (
+                        <option key={value} value={value}>{BUILTIN_DOC_TYPE_LABELS[value as keyof typeof BUILTIN_DOC_TYPE_LABELS]}</option>
+                      ))}
+                    </optgroup>
+                    {typeOptions(doc.doc_type).filter((s) => !(BUILTIN_DOC_TYPES as readonly string[]).includes(s)).length > 0 && (
+                      <optgroup label="Custom">
+                        {typeOptions(doc.doc_type).filter((s) => !(BUILTIN_DOC_TYPES as readonly string[]).includes(s)).map((value) => (
+                          <option key={value} value={value}>{getDocTypeLabel(value)}</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                   <Button size="sm" variant="ghost" onClick={() => void saveRename(doc)} title="Save">
                     <CheckIcon className="size-4" />
@@ -286,7 +349,7 @@ export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: E
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 500, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{doc.file_name}</span>
-                      <Pill tone={DOC_TYPE_TONES[doc.doc_type]} size="sm">{DOC_TYPE_LABELS[doc.doc_type]}</Pill>
+                      <Pill tone={docTone(doc.doc_type)} size="sm">{getDocTypeLabel(doc.doc_type)}</Pill>
                     </div>
                     <div style={{ display: "flex", gap: 12, marginTop: 2, fontSize: 11, color: "var(--fg-4)" }}>
                       <span>{formatBytes(doc.size_bytes)}</span>
@@ -342,15 +405,57 @@ export function EmployeeDocumentsSection({ employeeId, documents, onRefresh }: E
             <label style={{ fontSize: 11, color: "var(--fg-4)", marginRight: 6 }} htmlFor={`doctype-${employeeId}`}>Type</label>
             <select
               id={`doctype-${employeeId}`}
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as EmployeeDocument["doc_type"])}
+              value={addingType ? NEW_TYPE_VALUE : docType}
+              onChange={(e) => {
+                if (e.target.value === NEW_TYPE_VALUE) {
+                  setAddingType(true);
+                } else {
+                  setAddingType(false);
+                  setDocType(e.target.value);
+                }
+              }}
               onClick={(e) => e.stopPropagation()}
               style={{ padding: "6px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", color: "var(--fg)", fontSize: 12 }}
             >
-              {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
+              <optgroup label="Standard">
+                {(BUILTIN_DOC_TYPES as readonly string[]).map((value) => (
+                  <option key={value} value={value}>{BUILTIN_DOC_TYPE_LABELS[value as keyof typeof BUILTIN_DOC_TYPE_LABELS]}</option>
+                ))}
+              </optgroup>
+              {customTypes.length > 0 && (
+                <optgroup label="Custom">
+                  {customTypes.map((t) => (
+                    <option key={t.slug} value={t.slug}>{t.label}{t.count > 0 ? ` (${t.count})` : ""}</option>
+                  ))}
+                </optgroup>
+              )}
+              <option value={NEW_TYPE_VALUE}>＋ New category…</option>
             </select>
+            {addingType && (
+              <div style={{ display: "flex", gap: 6, marginTop: 8, justifyContent: "center", alignItems: "center" }}>
+                <input
+                  value={newTypeLabel}
+                  onChange={(e) => setNewTypeLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); confirmNewType(); }
+                    if (e.key === "Escape") { setAddingType(false); setNewTypeLabel(""); }
+                  }}
+                  autoFocus
+                  placeholder="e.g. House registration"
+                  aria-label="New category name"
+                  style={{ padding: "6px 10px", borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", fontSize: 12, width: 200 }}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => confirmNewType()}
+                  title="Add this category (reusable for all employees)"
+                >
+                  <PlusIcon className="size-4" />
+                  Add
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}

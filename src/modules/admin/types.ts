@@ -62,7 +62,8 @@ export interface EmployeeLocationRow {
 export interface EmployeeDocument {
   id: string;
   employee_id: string;
-  doc_type: "id_card" | "passport" | "work_permit" | "contract" | "other";
+  /** Builtin slug (id_card, …), legacy "other", or a custom category slug. */
+  doc_type: string;
   file_name: string;
   storage_path: string;
   mime_type: string;

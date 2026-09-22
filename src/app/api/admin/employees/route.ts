@@ -83,7 +83,7 @@ export async function GET(request: Request) {
       employee_documents: ((emp.employee_documents ?? []) as DocRow[]).map((d) => ({
         id: d.id,
         employee_id: emp.id,
-        doc_type: d.doc_type as "id_card" | "passport" | "work_permit" | "contract" | "other",
+        doc_type: d.doc_type,
         file_name: d.file_name,
         storage_path: d.storage_path,
         mime_type: d.mime_type,

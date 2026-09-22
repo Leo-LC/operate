@@ -4,7 +4,11 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { isOperationalAdmin } from "@/core/permissions/guards";
-import { DOC_TYPES } from "@/modules/admin/lib/employee-documents";
+import {
+  isKnownDocType,
+  isValidCustomDocTypeSlug,
+  slugifyDocType,
+} from "@/modules/admin/lib/employee-documents";
 
 export async function PATCH(
   request: Request,
@@ -46,10 +50,15 @@ export async function PATCH(
   }
 
   if (body.doc_type !== undefined) {
-    if (!(DOC_TYPES as readonly string[]).includes(body.doc_type)) {
+    const raw = body.doc_type.trim();
+    const slugged = slugifyDocType(raw);
+    if (isKnownDocType(raw)) {
+      updates.doc_type = raw;
+    } else if (isValidCustomDocTypeSlug(slugged)) {
+      updates.doc_type = slugged;
+    } else {
       return Response.json({ error: "Invalid document type" }, { status: 400 });
     }
-    updates.doc_type = body.doc_type;
   }
 
   if (Object.keys(updates).length === 0) {

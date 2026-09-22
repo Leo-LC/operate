@@ -5,7 +5,12 @@ import { writeAuditLog } from "@/modules/admin/lib/audit";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { isOperationalAdmin } from "@/core/permissions/guards";
 import { validateFile, compressFile, generateStoragePath } from "@/modules/admin/lib/compress-image";
-import { DOC_TYPES, MAX_DOCS_PER_EMPLOYEE } from "@/modules/admin/lib/employee-documents";
+import {
+  MAX_DOCS_PER_EMPLOYEE,
+  isKnownDocType,
+  isValidCustomDocTypeSlug,
+  slugifyDocType,
+} from "@/modules/admin/lib/employee-documents";
 
 export async function POST(
   request: Request,
@@ -59,9 +64,14 @@ export async function POST(
   const validation = validateFile(file as File);
   if (!validation.ok) return Response.json({ error: validation.error }, { status: 400 });
 
-  const finalDocType = docType && (DOC_TYPES as readonly string[]).includes(docType)
-    ? docType
-    : "id_card";
+  // Builtin, legacy "other", or a custom category slug (free-form, reusable by all).
+  const rawType = (docType ?? "").trim();
+  const slugged = slugifyDocType(rawType);
+  const finalDocType = isKnownDocType(rawType)
+    ? rawType
+    : isValidCustomDocTypeSlug(slugged)
+      ? slugged
+      : "id_card";
 
   const originalName = (file as File).name;
   const finalFileName = fileName?.trim() || originalName;
