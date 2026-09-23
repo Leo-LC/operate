@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildEmployeeDocumentsCsv,
+  collectMatrixDocTypes,
   generateStoragePath,
   getDocTypeLabel,
   isKnownDocType,
@@ -55,5 +57,54 @@ describe("employee-documents custom categories", () => {
     expect(a.startsWith("org/emp/")).toBe(true);
     expect(a).not.toBe(b);
     expect(generateStoragePath("o", "e", "evil.PDF ")).toMatch(/\.pdf$/);
+  });
+});
+
+describe("employee documents matrix csv", () => {
+  it("orders builtins first, then customs sorted by label", () => {
+    const employees = [
+      {
+        first_name: "A",
+        employee_documents: [{ doc_type: "house_registration" }, { doc_type: "bank_book" }],
+      },
+    ];
+    expect(collectMatrixDocTypes(employees)).toEqual([
+      "id_card",
+      "passport",
+      "work_permit",
+      "contract",
+      "bank_book",
+      "house_registration",
+    ]);
+  });
+
+  it("appends legacy other only when present", () => {
+    expect(collectMatrixDocTypes([{ first_name: "A" }])).toEqual([
+      "id_card",
+      "passport",
+      "work_permit",
+      "contract",
+    ]);
+    const withOther = collectMatrixDocTypes([
+      { first_name: "A", employee_documents: [{ doc_type: "other" }] },
+    ]);
+    expect(withOther[withOther.length - 1]).toBe("other");
+  });
+
+  it("marks present types and quotes names with commas", () => {
+    const csv = buildEmployeeDocumentsCsv([
+      {
+        first_name: "Som, Chai",
+        last_name: "Dee",
+        employee_locations: [{ location_name: "Karon", is_primary: true }],
+        employee_documents: [{ doc_type: "id_card" }, { doc_type: "passport" }],
+      },
+      { first_name: "No", last_name: "Docs", employee_documents: [] },
+    ]);
+    expect(csv.startsWith("﻿")).toBe(true);
+    const lines = csv.slice(1).split("\n");
+    expect(lines[0]).toBe("Name,Shop,ID card,Passport,Work permit,Contract");
+    expect(lines[1]).toBe('"Som, Chai Dee",Karon,✓,✓,,');
+    expect(lines[2]).toBe("No Docs,,,,,");
   });
 });

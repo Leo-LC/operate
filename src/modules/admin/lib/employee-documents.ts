@@ -90,3 +90,71 @@ export function getDocTypeLabel(value: string): string {
   if (value === LEGACY_OTHER_DOC_TYPE) return "Other";
   return prettifyDocType(value);
 }
+
+/** Minimal employee shape needed to build the documents matrix CSV. */
+export interface EmployeeDocsMatrixInput {
+  first_name: string;
+  last_name?: string | null;
+  location_name?: string | null;
+  employee_locations?: { location_name: string; is_primary?: boolean }[] | null;
+  employee_documents?: { doc_type: string }[] | null;
+}
+
+/**
+ * Ordered doc-type columns for the matrix: builtins first (fixed order),
+ * then custom slugs (sorted by label), then legacy "other" only if present.
+ */
+export function collectMatrixDocTypes(employees: EmployeeDocsMatrixInput[]): string[] {
+  const customs = new Set<string>();
+  let hasLegacyOther = false;
+  for (const emp of employees) {
+    for (const doc of emp.employee_documents ?? []) {
+      const t = doc.doc_type;
+      if ((BUILTIN_DOC_TYPES as readonly string[]).includes(t)) continue;
+      if (t === LEGACY_OTHER_DOC_TYPE) hasLegacyOther = true;
+      else customs.add(t);
+    }
+  }
+  const sortedCustoms = Array.from(customs).sort((a, b) =>
+    getDocTypeLabel(a).localeCompare(getDocTypeLabel(b)),
+  );
+  return [
+    ...(BUILTIN_DOC_TYPES as readonly string[]),
+    ...sortedCustoms,
+    ...(hasLegacyOther ? [LEGACY_OTHER_DOC_TYPE] : []),
+  ];
+}
+
+function csvCell(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function matrixShopName(emp: EmployeeDocsMatrixInput): string {
+  const locs = emp.employee_locations ?? [];
+  const primary = locs.find((el) => el.is_primary);
+  if (primary) return primary.location_name;
+  if (locs.length > 0) return locs[0].location_name;
+  return emp.location_name ?? "";
+}
+
+/**
+ * Builds a simple CSV matrix: one row per employee, one column per document
+ * type ("✓" when the employee has at least one doc of that type, empty
+ * otherwise). Opens directly in Google Sheets / Excel (BOM included).
+ */
+export function buildEmployeeDocumentsCsv(employees: EmployeeDocsMatrixInput[]): string {
+  const types = collectMatrixDocTypes(employees);
+  const lines = [
+    ["Name", "Shop", ...types.map(getDocTypeLabel)].map(csvCell).join(","),
+  ];
+  for (const emp of employees) {
+    const name = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
+    const present = new Set((emp.employee_documents ?? []).map((d) => d.doc_type));
+    lines.push(
+      [name, matrixShopName(emp), ...types.map((t) => (present.has(t) ? "✓" : ""))]
+        .map(csvCell)
+        .join(","),
+    );
+  }
+  return `\uFEFF${lines.join("\n")}`;
+}

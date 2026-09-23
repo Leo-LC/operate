@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
-import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon } from "lucide-react";
+import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon, DownloadIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
+import { buildEmployeeDocumentsCsv, collectMatrixDocTypes, getDocTypeLabel } from "@/modules/admin/lib/employee-documents";
 import { EMPTY_EMPLOYEE_FORM, NATIONALITIES, THAI_BANKS, type EmployeeFormState } from "./EmployeeForm";
 import { BankAccountDisplay, BankAccountInput } from "./BankAccountField";
 import { formatThaiBankAccount } from "@/modules/admin/lib/thai-bank-account";
@@ -370,6 +371,7 @@ export function EmployeesListClient({ locations }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [view, setView] = useState<"list" | "matrix">("list");
 
   const shopFiltered = useMemo(() => {
     if (!shopFilter) return employees;
@@ -424,6 +426,10 @@ export function EmployeesListClient({ locations }: Props) {
     });
     return arr;
   }, [searchFiltered, sortKey, sortDir]);
+
+  // Document-type columns for the matrix view (builtins, then customs found
+  // in the currently visible employees). Same source as the CSV export.
+  const matrixTypes = useMemo(() => collectMatrixDocTypes(sorted), [sorted]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -712,27 +718,57 @@ export function EmployeesListClient({ locations }: Props) {
     }
   }
 
+  // CSV matrix: one row per visible employee, one column per document type
+  // ("✓" = present, empty = missing). Respects the current shop/search/sort
+  // filters and opens directly in Google Sheets or Excel.
+  function handleExportDocsCsv() {
+    if (sorted.length === 0) {
+      toast.error("Nothing to export");
+      return;
+    }
+    const csv = buildEmployeeDocumentsCsv(sorted);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `employee-documents-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${sorted.length} employee${sorted.length > 1 ? "s" : ""}`);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <PageHeader
         title="Employees"
         actions={
-          <Button size="sm" onClick={() => {
-            const next = !showAdd;
-            setShowAdd(next);
-            setEditingId(null);
-            if (next && shopFilter) {
-              setFormLocIds(new Set([shopFilter]));
-              setFormPrimaryLoc(shopFilter);
-            }
-          }}>
-            <PlusIcon className="size-4" />
-            Add employee
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button size="sm" variant="secondary" onClick={handleExportDocsCsv} title="Export the visible list as CSV (opens in Google Sheets)">
+              <DownloadIcon className="size-4" />
+              Export docs CSV
+            </Button>
+            <Button size="sm" onClick={() => {
+              const next = !showAdd;
+              setShowAdd(next);
+              setEditingId(null);
+              if (next && shopFilter) {
+                setFormLocIds(new Set([shopFilter]));
+                setFormPrimaryLoc(shopFilter);
+              }
+            }}>
+              <PlusIcon className="size-4" />
+              Add employee
+            </Button>
+          </div>
         }
       />
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <PillButton active={view === "list"} onClick={() => setView("list")}>List</PillButton>
+        <PillButton active={view === "matrix"} onClick={() => setView("matrix")}>Documents</PillButton>
+        <span style={{ width: 8 }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <SearchIcon size={14} style={{ position: "absolute", left: 9, color: "var(--fg-4)", pointerEvents: "none" }} />
           <input
@@ -799,6 +835,14 @@ export function EmployeesListClient({ locations }: Props) {
           <Loader2Icon className="size-4 animate-spin" />
           Loading…
         </div>
+      ) : view === "matrix" ? (
+        <DocumentsMatrix
+          employees={sorted}
+          types={matrixTypes}
+          searchQuery={searchQuery}
+          hasEmployees={employees.length > 0}
+          hasShopFiltered={shopFiltered.length > 0}
+        />
       ) : (
         <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
@@ -957,6 +1001,87 @@ export function EmployeesListClient({ locations }: Props) {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Ultra-simple overview: one row per employee, one column per document type.
+// Green check = present, red-tinted cell = missing. Same data as the CSV export.
+function DocumentsMatrix({ employees, types, searchQuery, hasEmployees, hasShopFiltered }: {
+  employees: Employee[];
+  types: string[];
+  searchQuery: string;
+  hasEmployees: boolean;
+  hasShopFiltered: boolean;
+}) {
+  return (
+    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflowX: "auto" }}>
+      <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", minWidth: Math.max(480, 240 + types.length * 92) }}>
+        <thead>
+          <tr>
+            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>Name</th>
+            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>Shop</th>
+            {types.map((t) => (
+              <th key={t} className="eyebrow" style={{ padding: "10px 8px", textAlign: "center", color: "var(--fg-4)", minWidth: 84 }}>
+                {getDocTypeLabel(t)}
+              </th>
+            ))}
+            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "center", color: "var(--fg-4)" }} title="Number of missing document types">Missing</th>
+          </tr>
+        </thead>
+        <tbody>
+          {employees.map((emp) => {
+            const present = new Set((emp.employee_documents ?? []).map((d) => d.doc_type));
+            const missing = types.filter((t) => !present.has(t)).length;
+            const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
+            return (
+              <tr key={emp.id} style={{ borderTop: "1px solid var(--line)", opacity: emp.archived_at ? 0.6 : 1 }}>
+                <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--fg)", whiteSpace: "nowrap" }}>
+                  {fullName}
+                  {emp.archived_at && (
+                    <Pill tone="neutral" size="sm" style={{ marginLeft: 8 }}>Archived</Pill>
+                  )}
+                </td>
+                <td style={{ padding: "10px 16px", fontSize: 12, color: "var(--fg-3)", whiteSpace: "nowrap" }}>
+                  {primaryShopName(emp) ?? <span style={{ color: "var(--fg-4)" }}>—</span>}
+                </td>
+                {types.map((t) => {
+                  const ok = present.has(t);
+                  return (
+                    <td
+                      key={t}
+                      title={ok ? `${getDocTypeLabel(t)}: present` : `${getDocTypeLabel(t)}: missing`}
+                      style={{ padding: 8, textAlign: "center", background: ok ? "transparent" : "var(--bad-soft)" }}
+                    >
+                      {ok ? (
+                        <CheckIcon className="size-4" style={{ color: "var(--good)", margin: "0 auto" }} />
+                      ) : (
+                        <span style={{ color: "var(--bad)", fontSize: 12 }}>—</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td style={{ padding: "10px 16px", textAlign: "center", fontWeight: 600, color: missing === 0 ? "var(--good)" : "var(--bad)" }}>
+                  {missing === 0 ? (
+                    <CheckIcon className="size-4" style={{ margin: "0 auto" }} />
+                  ) : (
+                    missing
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {!hasEmployees && (
+        <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees yet.</div>
+      )}
+      {hasEmployees && !hasShopFiltered && (
+        <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees at this shop.</div>
+      )}
+      {hasEmployees && hasShopFiltered && employees.length === 0 && (
+        <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>No employees match “{searchQuery}”.</div>
       )}
     </div>
   );
