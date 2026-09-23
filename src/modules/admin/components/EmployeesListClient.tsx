@@ -372,6 +372,10 @@ export function EmployeesListClient({ locations }: Props) {
   const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [view, setView] = useState<"list" | "matrix">("list");
+  // Matrix sorting: "name" | "shop" | "missing" | <doc_type slug>.
+  // Doc columns sort missing-first on first click (0 = missing, 1 = present).
+  const [matrixSortKey, setMatrixSortKey] = useState<string>("name");
+  const [matrixSortDir, setMatrixSortDir] = useState<SortDir>("asc");
 
   const shopFiltered = useMemo(() => {
     if (!shopFilter) return employees;
@@ -429,7 +433,45 @@ export function EmployeesListClient({ locations }: Props) {
 
   // Document-type columns for the matrix view (builtins, then customs found
   // in the currently visible employees). Same source as the CSV export.
-  const matrixTypes = useMemo(() => collectMatrixDocTypes(sorted), [sorted]);
+  const matrixTypes = useMemo(() => collectMatrixDocTypes(searchFiltered), [searchFiltered]);
+
+  const matrixMissingCount = useCallback((emp: Employee): number => {
+    const present = new Set((emp.employee_documents ?? []).map((d) => d.doc_type));
+    return matrixTypes.filter((t) => !present.has(t)).length;
+  }, [matrixTypes]);
+
+  // Matrix rows: same shop/search filter as the list, with their own sorting
+  // (independent from the list-view sort).
+  const matrixRows = useMemo(() => {
+    const arr = [...searchFiltered];
+    const dir = matrixSortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let cmp = 0;
+      if (matrixSortKey === "name") {
+        cmp = `${a.first_name} ${a.last_name ?? ""}`.trim().localeCompare(`${b.first_name} ${b.last_name ?? ""}`.trim());
+      } else if (matrixSortKey === "shop") {
+        cmp = (primaryShopName(a) ?? "").localeCompare(primaryShopName(b) ?? "");
+      } else if (matrixSortKey === "missing") {
+        cmp = matrixMissingCount(a) - matrixMissingCount(b);
+      } else {
+        const aHas = (a.employee_documents ?? []).some((d) => d.doc_type === matrixSortKey) ? 1 : 0;
+        const bHas = (b.employee_documents ?? []).some((d) => d.doc_type === matrixSortKey) ? 1 : 0;
+        cmp = aHas - bHas;
+      }
+      return cmp * dir;
+    });
+    return arr;
+  }, [searchFiltered, matrixSortKey, matrixSortDir, matrixMissingCount]);
+
+  function toggleMatrixSort(key: string) {
+    if (matrixSortKey === key) {
+      setMatrixSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setMatrixSortKey(key);
+      // Most useful first: missing docs first on type columns, worst rows first on Missing.
+      setMatrixSortDir(key === "missing" ? "desc" : "asc");
+    }
+  }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -719,14 +761,15 @@ export function EmployeesListClient({ locations }: Props) {
   }
 
   // CSV matrix: one row per visible employee, one column per document type
-  // ("✓" = present, empty = missing). Respects the current shop/search/sort
-  // filters and opens directly in Google Sheets or Excel.
+  // ("✓" = present, empty = missing). Exports exactly what's on screen:
+  // matrix order in Documents view, list order otherwise.
   function handleExportDocsCsv() {
-    if (sorted.length === 0) {
+    const list = view === "matrix" ? matrixRows : sorted;
+    if (list.length === 0) {
       toast.error("Nothing to export");
       return;
     }
-    const csv = buildEmployeeDocumentsCsv(sorted);
+    const csv = buildEmployeeDocumentsCsv(list);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -736,7 +779,7 @@ export function EmployeesListClient({ locations }: Props) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success(`Exported ${sorted.length} employee${sorted.length > 1 ? "s" : ""}`);
+    toast.success(`Exported ${list.length} employee${list.length > 1 ? "s" : ""}`);
   }
 
   return (
@@ -837,11 +880,14 @@ export function EmployeesListClient({ locations }: Props) {
         </div>
       ) : view === "matrix" ? (
         <DocumentsMatrix
-          employees={sorted}
+          employees={matrixRows}
           types={matrixTypes}
           searchQuery={searchQuery}
           hasEmployees={employees.length > 0}
           hasShopFiltered={shopFiltered.length > 0}
+          sortKey={matrixSortKey}
+          sortDir={matrixSortDir}
+          onSort={toggleMatrixSort}
         />
       ) : (
         <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
@@ -1008,26 +1054,56 @@ export function EmployeesListClient({ locations }: Props) {
 
 // Ultra-simple overview: one row per employee, one column per document type.
 // Green check = present, red-tinted cell = missing. Same data as the CSV export.
-function DocumentsMatrix({ employees, types, searchQuery, hasEmployees, hasShopFiltered }: {
+function DocumentsMatrix({ employees, types, searchQuery, hasEmployees, hasShopFiltered, sortKey, sortDir, onSort }: {
   employees: Employee[];
   types: string[];
   searchQuery: string;
   hasEmployees: boolean;
   hasShopFiltered: boolean;
+  sortKey: string;
+  sortDir: SortDir;
+  onSort: (key: string) => void;
 }) {
+  function SortButton({ columnKey, label, centered }: { columnKey: string; label: string; centered?: boolean }) {
+    const active = sortKey === columnKey;
+    return (
+      <button
+        type="button"
+        onClick={() => onSort(columnKey)}
+        style={{ ...SORT_HEADER_STYLE, ...(centered ? { margin: "0 auto" } : {}) }}
+        title={`Sort by ${label}`}
+      >
+        {label}
+        {active ? (
+          sortDir === "asc"
+            ? <ArrowUpIcon className="size-3" />
+            : <ArrowDownIcon className="size-3" />
+        ) : (
+          <ArrowUpDownIcon className="size-3" style={{ opacity: 0.4 }} />
+        )}
+      </button>
+    );
+  }
+
   return (
     <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflowX: "auto" }}>
       <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", minWidth: Math.max(480, 240 + types.length * 92) }}>
         <thead>
           <tr>
-            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>Name</th>
-            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>Shop</th>
+            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>
+              <SortButton columnKey="name" label="Name" />
+            </th>
+            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "left", color: "var(--fg-4)" }}>
+              <SortButton columnKey="shop" label="Shop" />
+            </th>
             {types.map((t) => (
               <th key={t} className="eyebrow" style={{ padding: "10px 8px", textAlign: "center", color: "var(--fg-4)", minWidth: 84 }}>
-                {getDocTypeLabel(t)}
+                <SortButton columnKey={t} label={getDocTypeLabel(t)} centered />
               </th>
             ))}
-            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "center", color: "var(--fg-4)" }} title="Number of missing document types">Missing</th>
+            <th className="eyebrow" style={{ padding: "10px 16px", textAlign: "center", color: "var(--fg-4)" }} title="Number of missing document types">
+              <SortButton columnKey="missing" label="Missing" centered />
+            </th>
           </tr>
         </thead>
         <tbody>
