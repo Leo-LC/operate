@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CashCounter } from "@/modules/treasury/components/CashCounter";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -415,6 +416,11 @@ export function TreasuryClient() {
             />
           ))}
         </Section>
+      )}
+
+      {/* Cash counter — denomination counts per shop with history */}
+      {data && data.locations.length > 0 && (
+        <CashCounter locations={data.locations} onCashPositionChanged={() => void load()} />
       )}
 
       {/* Bank accounts */}
