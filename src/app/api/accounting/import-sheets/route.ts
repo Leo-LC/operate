@@ -98,9 +98,9 @@ export async function POST(request: Request) {
 
     if (parsed.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
 
-    // Skip future dates (don't import data for days that haven't happened yet)
+    // Skip today and future dates (today's shift isn't done / data not entered yet)
     const today = new Date().toISOString().split("T")[0];
-    const pastOrToday = parsed.filter((p) => p.dateVal <= today);
+    const pastOrToday = parsed.filter((p) => p.dateVal < today);
     const skippedFuture = parsed.length - pastOrToday.length;
 
     // Fetch existing entries for comparison (only past/today dates)

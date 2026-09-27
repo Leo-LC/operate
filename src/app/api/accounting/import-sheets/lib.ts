@@ -135,9 +135,9 @@ export async function importLocationFromSheet(
 
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, skipped_future: 0, errors, batch_id: null };
 
-  // Skip future dates
+  // Skip today and future dates — today's shift isn't done / data not entered yet
   const today = new Date().toISOString().split("T")[0];
-  const pastOrToday = parsed.filter((p) => p.dateVal <= today);
+  const pastOrToday = parsed.filter((p) => p.dateVal < today);
   const skippedFuture = parsed.length - pastOrToday.length;
 
   // Get all unique dates from parsed rows
