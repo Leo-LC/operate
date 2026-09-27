@@ -9,27 +9,17 @@ import {
   formatMoney,
   formatMonthLabel,
   shortShopName,
-  type EndOfMonthCategory,
-  type EndOfMonthShopSafe,
+  shopRemaining,
+  type EndOfMonthShop,
   type EndOfMonthTotals,
 } from "@/modules/direction/lib/endOfMonth";
 
 interface EndOfMonthData {
   month: string;
-  safes: EndOfMonthShopSafe[];
-  categories: EndOfMonthCategory[];
+  shops: EndOfMonthShop[];
   totals: EndOfMonthTotals;
 }
 
-const rowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 12,
-  padding: "10px 0",
-  borderBottom: "1px solid var(--line)",
-  fontSize: 13,
-};
 const amountStyle: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontVariantNumeric: "tabular-nums",
@@ -57,6 +47,13 @@ function MissingBadge({ label }: { label: string }) {
     </span>
   );
 }
+
+const COST_ROWS = [
+  { key: "loyers", label: "Loyers" },
+  { key: "marketing", label: "Marketing" },
+  { key: "fournisseurs", label: "Fournisseurs" },
+  { key: "autres", label: "Autres" },
+] as const;
 
 export function DirectionEndOfMonth() {
   const [year, setYear] = useState(() => new Date().getFullYear());
@@ -87,11 +84,11 @@ export function DirectionEndOfMonth() {
     void load(year, focusMonth);
   }, [load, year, focusMonth]);
 
-  function toggleCategory(key: string) {
+  function toggleShop(id: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -201,82 +198,77 @@ export function DirectionEndOfMonth() {
             </Card>
           )}
 
-          {/* Cash by shop — no total row: each shop is independent */}
-          <Card style={{ gap: 4, padding: "var(--s-4) var(--s-5)" }}>
-            <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-3)" }}>
-              Espèces en coffre
+          {/* Par boutique : coffre + sorties prévues + toggle détail */}
+          <Card style={{ gap: 0, padding: "var(--s-4) var(--s-5)" }}>
+            <h3 style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-3)" }}>
+              Par boutique
             </h3>
-            {data.safes.map((s, i) => (
-              <div key={s.locationId} style={{ ...rowStyle, borderBottom: i === data.safes.length - 1 ? "none" : rowStyle.borderBottom }}>
-                <span style={{ fontWeight: 500 }}>{shortShopName(s.name)}</span>
-                {s.missing || s.amount == null ? (
-                  <MissingBadge label="Montant manquant" />
-                ) : (
-                  <span style={amountStyle}>{formatMoney(s.amount)}</span>
-                )}
-              </div>
-            ))}
-          </Card>
-
-          {/* Money to take out — expandable categories, collapsed by default */}
-          <Card style={{ gap: 4, padding: "var(--s-4) var(--s-5)" }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-              <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-3)" }}>
-                Sorties prévues
-              </h3>
-              <strong className="mono tabular-nums" style={{ fontSize: 18 }}>{formatMoney(totals.takeOut)}</strong>
-            </div>
-            {data.categories.map((c) => {
-              const isOpen = expanded.has(c.key);
+            {data.shops.map((shop, i) => {
+              const isOpen = expanded.has(shop.locationId);
+              const remaining = shopRemaining(shop);
               return (
-                <div key={c.key} style={{ borderBottom: "1px solid var(--line)" }}>
+                <div key={shop.locationId} style={{ borderBottom: i === data.shops.length - 1 ? "none" : "1px solid var(--line)", padding: "12px 0" }}>
+                  {/* Coffre */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{shortShopName(shop.name)}</span>
+                    {shop.missing || shop.safe == null ? (
+                      <MissingBadge label="Montant manquant" />
+                    ) : (
+                      <span style={{ ...amountStyle, fontSize: 15, fontWeight: 700 }}>{formatMoney(shop.safe)}</span>
+                    )}
+                  </div>
+                  {/* Sorties prévues + toggle */}
                   <button
                     type="button"
-                    onClick={() => toggleCategory(c.key)}
+                    onClick={() => toggleShop(shop.locationId)}
                     aria-expanded={isOpen}
                     style={{
                       display: "flex", alignItems: "center", gap: 8, width: "100%",
-                      padding: "10px 0", border: "none", background: "none", cursor: "pointer",
-                      fontSize: 13, color: "var(--fg)", textAlign: "left",
+                      padding: "8px 0 0", border: "none", background: "none", cursor: "pointer",
+                      fontSize: 13, color: "var(--fg-3)", textAlign: "left",
                     }}
                   >
-                    <span style={{ fontWeight: 500 }}>{c.label}</span>
-                    {c.finalized && (
-                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>
-                        {c.paymentCount} versement{c.paymentCount > 1 ? "s" : ""}
-                      </span>
-                    )}
+                    <span>Sorties prévues</span>
                     <span style={{ flex: 1 }} />
-                    {!c.finalized || c.total == null ? (
-                      <MissingBadge label="Non finalisé" />
-                    ) : (
-                      <span style={amountStyle}>{formatMoney(c.total)}</span>
-                    )}
+                    <span style={{ ...amountStyle, color: "var(--fg)" }}>{formatMoney(shop.takeOut)}</span>
                     <ChevronDownIcon
                       size={14}
                       style={{ color: "var(--fg-4)", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform var(--dur) var(--ease)" }}
                     />
                   </button>
                   {isOpen && (
-                    <div style={{ padding: "0 0 12px 0" }}>
-                      {!c.finalized && (
-                        <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--warn)" }}>
-                          Montants prévisionnels — à faire valider avant de les compter dans les sorties.
-                        </p>
+                    <div style={{ paddingTop: 4 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, padding: "6px 0", fontSize: 12 }}>
+                        <span style={{ color: "var(--fg-3)" }}>
+                          Salaires
+                          <span style={{ color: "var(--fg-4)", marginLeft: 6 }}>
+                            {shop.salaries.headcount} personne{shop.salaries.headcount > 1 ? "s" : ""}
+                          </span>
+                        </span>
+                        <span style={{ ...amountStyle, color: "var(--fg-3)" }}>{formatMoney(shop.salaries.total)}</span>
+                      </div>
+                      {(shop.salaries.base > 0 || shop.salaries.serviceCharge > 0 || shop.salaries.adjustments !== 0) && (
+                        <div style={{ fontSize: 11, color: "var(--fg-4)", paddingBottom: 2 }}>
+                          base {formatMoney(shop.salaries.base)} + service charge {formatMoney(shop.salaries.serviceCharge)}
+                          {shop.salaries.adjustments !== 0 && (
+                            <> {shop.salaries.adjustments > 0 ? "+" : "−"} ajust. {formatMoney(shop.salaries.adjustments)}</>
+                          )}
+                        </div>
                       )}
-                      {c.lines.length === 0 ? (
-                        <p style={{ margin: 0, fontSize: 12, color: "var(--fg-4)" }}>Aucun détail pour ce mois</p>
-                      ) : (
-                        c.lines.map((l) => (
-                          <div key={l.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "6px 0", fontSize: 12 }}>
-                            <span style={{ color: "var(--fg-3)" }}>
-                              {l.label}
-                              {l.finalized === false && <span style={{ color: "var(--warn)", marginLeft: 6 }}>· non finalisé</span>}
-                            </span>
-                            <span style={{ ...amountStyle, color: "var(--fg-3)" }}>{formatMoney(l.amount)}</span>
-                          </div>
-                        ))
-                      )}
+                      {COST_ROWS.map((c) => (
+                        <div key={c.key} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, padding: "6px 0", fontSize: 12 }}>
+                          <span style={{ color: "var(--fg-3)" }}>{c.label}</span>
+                          <span style={{ ...amountStyle, color: "var(--fg-3)" }}>{formatMoney(shop.costs[c.key])}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, paddingTop: 8, marginTop: 4, borderTop: "1px solid var(--line)", fontSize: 12 }}>
+                        <strong>Reste dans le coffre</strong>
+                        {remaining != null ? (
+                          <strong style={{ ...amountStyle }}>{formatMoney(remaining)}</strong>
+                        ) : (
+                          <MissingBadge label="Calcul impossible" />
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -289,11 +281,11 @@ export function DirectionEndOfMonth() {
             <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-3)", display: "flex", alignItems: "center", gap: 6 }}>
               <ReceiptTextIcon size={13} />Résumé fin de mois
             </h3>
-            <div style={{ ...rowStyle }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line)", fontSize: 13 }}>
               <span>Espèces en coffre</span>
               <span style={amountStyle}>{formatMoney(totals.cash)}</span>
             </div>
-            <div style={{ ...rowStyle }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line)", fontSize: 13 }}>
               <span>Sorties prévues</span>
               <span style={amountStyle}>−{formatMoney(totals.takeOut)}</span>
             </div>

@@ -63,6 +63,43 @@ export interface EndOfMonthTotals {
   unfinalizedCategories: string[];
 }
 
+/** One shop block: cash in its safe + its upcoming outflows. */
+export interface EndOfMonthShopSalaries {
+  total: number;
+  base: number;
+  serviceCharge: number;
+  adjustments: number;
+  headcount: number;
+}
+
+export interface EndOfMonthShop {
+  locationId: string;
+  name: string;
+  /** Null when no daily entry exists for the shop in the month — never silently 0. */
+  safe: number | null;
+  missing: boolean;
+  salaries: EndOfMonthShopSalaries;
+  costs: Record<Exclude<EndOfMonthCategoryKey, "salaires">, number>;
+  takeOut: number;
+}
+
+/** Total outflows for one shop. */
+export function shopTakeOut(shop: Pick<EndOfMonthShop, "salaries" | "costs">): number {
+  return (
+    shop.salaries.total +
+    shop.costs.loyers +
+    shop.costs.marketing +
+    shop.costs.fournisseurs +
+    shop.costs.autres
+  );
+}
+
+/** Cash left in one shop's safe after its outflows — null while the safe is missing. */
+export function shopRemaining(shop: Pick<EndOfMonthShop, "safe" | "missing" | "takeOut">): number | null {
+  if (shop.missing || shop.safe == null) return null;
+  return shop.safe - shop.takeOut;
+}
+
 export function shortShopName(name: string): string {
   return name.replace(/^Capybara Coffee\s*/i, "").trim() || name;
 }

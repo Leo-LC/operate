@@ -6,6 +6,8 @@ import {
   mapRecurringCategory,
   monthBounds,
   shortShopName,
+  shopRemaining,
+  shopTakeOut,
   type EndOfMonthCategory,
 } from "./endOfMonth";
 
@@ -59,6 +61,20 @@ describe("latestSafePerShop", () => {
       { locationId: "a", name: "Capybara Coffee Ekkamai", amount: 82500, missing: false },
       { locationId: "b", name: "Capybara Coffee Silom", amount: null, missing: true },
     ]);
+  });
+});
+
+describe("shopTakeOut / shopRemaining", () => {
+  const shop = {
+    salaries: { total: 32000, base: 28000, serviceCharge: 4000, adjustments: 0, headcount: 3 },
+    costs: { loyers: 15000, marketing: 5000, fournisseurs: 4000, autres: 2000 },
+  };
+  it("sums salaries and cost buckets", () => {
+    expect(shopTakeOut(shop)).toBe(58000);
+  });
+  it("computes the remainder per shop, null when the safe is missing", () => {
+    expect(shopRemaining({ safe: 82500, missing: false, takeOut: 58000 })).toBe(24500);
+    expect(shopRemaining({ safe: null, missing: true, takeOut: 58000 })).toBeNull();
   });
 });
 
