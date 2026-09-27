@@ -16,6 +16,7 @@ import {
   adjustmentsTotal,
   totalPayment,
 } from "@/modules/payments/types";
+import { liveSalaryShare } from "@/modules/finance/lib/hr";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { EmployeeForm, EMPTY_EMPLOYEE_FORM, type EmployeeFormState } from "@/modules/admin/components/EmployeeForm";
 import { formatThaiBankAccount } from "@/modules/admin/lib/thai-bank-account";
@@ -106,6 +107,23 @@ export function PaymentsClient({ initialLocations }: Props) {
     })),
     [locationEmployees, records]
   );
+
+  // Live values (current salary + service charge on revenue-to-date, same
+  // formula as Generate period). Powers preview rows for employees without a
+  // record and the "Total temps réel" line — records stay frozen by design.
+  const defaultPct = initialLocations.find((l) => l.id === locationId)?.default_service_charge_pct ?? 1;
+  const liveById = useMemo(() => {
+    const map = new Map<string, { base: number; serviceCharge: number }>();
+    if (revenue == null) return map;
+    for (const emp of locationEmployees) {
+      const share = liveSalaryShare(emp, locationId, revenue, defaultPct);
+      if (share && (share.base > 0 || share.serviceCharge > 0)) {
+        map.set(emp.id, { base: share.base, serviceCharge: share.serviceCharge });
+      }
+    }
+    return map;
+  }, [locationEmployees, locationId, revenue, defaultPct]);
+  const previewCount = useMemo(() => rows.filter((r) => !r.record && liveById.has(r.employee.id)).length, [rows, liveById]);
 
   const stats = useMemo(() => {
     const withRecord = rows.filter((r) => r.record);
@@ -374,6 +392,16 @@ export function PaymentsClient({ initialLocations }: Props) {
     };
   }, [rows]);
 
+  // Live total across ALL employees (current values + manual adjustments).
+  // Shown when it adds information: preview rows exist or records went stale.
+  const liveTotals = useMemo(() => {
+    if (revenue == null || liveById.size === 0) return null;
+    let base = 0, sc = 0;
+    liveById.forEach((v) => { base += v.base; sc += v.serviceCharge; });
+    return { base, sc, total: base + sc + totals.adj };
+  }, [liveById, revenue, totals.adj]);
+  const showLiveTotal = liveTotals != null && (previewCount > 0 || Math.round(liveTotals.total) !== Math.round(totals.total));
+
   const COL_GRID = "28px 1.5fr 110px 110px 130px 130px 90px 90px";
 
   return (
@@ -481,7 +509,7 @@ export function PaymentsClient({ initialLocations }: Props) {
           {
             label: "Total payroll",
             value: stats.total > 0 ? fmtThb(stats.total) : "—",
-            hint: monthName,
+            hint: previewCount > 0 ? `${monthName} · ${previewCount} poste(s) en temps réel` : monthName,
           },
           {
             label: "Employees",
@@ -543,8 +571,9 @@ export function PaymentsClient({ initialLocations }: Props) {
 
             {/* Flat employee rows */}
             {rows.map(({ employee: emp, record }) => {
+              const preview = !record ? liveById.get(emp.id) ?? null : null;
               const isBankTransfer = record?.payment_method === "bank_transfer" || emp.has_thai_bank_account;
-              const total = record ? totalPayment(record) : 0;
+              const total = record ? totalPayment(record) : preview ? preview.base + preview.serviceCharge : 0;
               const adj = record ? adjustmentsTotal(record) : 0;
               const adjCount = record?.adjustments?.length ?? 0;
               const fullName = `${emp.first_name} ${emp.last_name ?? ""}`.trim();
@@ -589,7 +618,19 @@ export function PaymentsClient({ initialLocations }: Props) {
                       {locationName && (
                         <div style={{ fontSize: 11, color: "var(--fg-4)" }}>{locationName}</div>
                       )}
-                      {!emp.base_salary_monthly && (
+                      {preview && (
+                        <div
+                          style={{
+                            display: "inline-flex", fontSize: 10, fontWeight: 600,
+                            color: "var(--accent)", background: "var(--accent-soft)",
+                            border: "1px solid var(--accent)", borderRadius: "var(--r-pill)",
+                            padding: "1px 7px", marginTop: 2,
+                          }}
+                        >
+                          Temps réel · non généré
+                        </div>
+                      )}
+                      {!emp.base_salary_monthly && !preview && (
                         <div style={{ fontSize: 11, color: "var(--warn)" }}>no salary set</div>
                       )}
                       {emp.base_salary_monthly ? (
@@ -601,17 +642,21 @@ export function PaymentsClient({ initialLocations }: Props) {
                   </div>
 
                   {/* Base salary */}
-                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                  <div className="mono tabular-nums" style={{ textAlign: "right", color: preview ? "var(--fg-3)" : undefined }}>
                     {record
                       ? (record.base_salary > 0 ? fmtThb(record.base_salary) : <span style={{ color: "var(--fg-4)" }}>—</span>)
-                      : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                      : preview && preview.base > 0
+                        ? fmtThb(preview.base)
+                        : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
                   {/* Service charge */}
-                  <div className="mono tabular-nums" style={{ textAlign: "right" }}>
+                  <div className="mono tabular-nums" style={{ textAlign: "right", color: preview ? "var(--fg-3)" : undefined }}>
                     {record
                       ? (record.service_charge > 0 ? fmtThb(record.service_charge) : <span style={{ color: "var(--fg-4)" }}>—</span>)
-                      : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                      : preview && preview.serviceCharge > 0
+                        ? fmtThb(preview.serviceCharge)
+                        : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
                   {/* Adjustments */}
@@ -624,19 +669,19 @@ export function PaymentsClient({ initialLocations }: Props) {
                   </div>
 
                   {/* Total */}
-                  <div className="mono tabular-nums" style={{ textAlign: "right", fontWeight: 600, fontSize: 14 }}>
-                    {record ? fmtThb(total) : <span style={{ color: "var(--fg-4)" }}>—</span>}
+                  <div className="mono tabular-nums" style={{ textAlign: "right", fontWeight: 600, fontSize: 14, color: preview ? "var(--fg-3)" : undefined }}>
+                    {record || preview ? fmtThb(total) : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
 
                   {/* Cash column */}
                   <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 12, color: isBankTransfer ? "var(--fg-4)" : "var(--fg)" }}>
-                    {record
+                    {record || preview
                       ? (isBankTransfer ? "—" : fmtThb(total))
                       : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
                   {/* Transfer column */}
                   <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 12, color: isBankTransfer ? "var(--fg)" : "var(--fg-4)" }}>
-                    {record
+                    {record || preview
                       ? (isBankTransfer ? fmtThb(total) : "—")
                       : <span style={{ color: "var(--fg-4)" }}>—</span>}
                   </div>
@@ -683,10 +728,41 @@ export function PaymentsClient({ initialLocations }: Props) {
                 <div />
               </div>
             )}
+            {/* Live total — current values for everyone + manual adjustments */}
+            {showLiveTotal && liveTotals && (
+              <div
+                style={{
+                  display: "grid", gridTemplateColumns: COL_GRID,
+                  padding: "12px var(--s-4)", alignItems: "center", gap: 12,
+                  borderTop: rows.some((r) => r.record) ? "1px solid var(--line)" : "2px solid var(--line)",
+                  background: "var(--accent-soft)",
+                  fontWeight: 600, fontSize: 13,
+                }}
+              >
+                <div />
+                <div style={{ color: "var(--accent)", fontWeight: 600 }}>Total temps réel</div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
+                  {liveTotals.base > 0 ? fmtThb(liveTotals.base) : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
+                  {liveTotals.sc > 0 ? fmtThb(liveTotals.sc) : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", color: totals.adj !== 0 ? (totals.adj > 0 ? "var(--good)" : "var(--bad)") : "var(--fg-4)" }}>
+                  {totals.adj !== 0 ? `${totals.adj > 0 ? "+" : "−"}${fmtThb(Math.abs(totals.adj))}` : "—"}
+                </div>
+                <div className="mono tabular-nums" style={{ textAlign: "right", fontSize: 15, color: "var(--fg)" }}>
+                  {fmtThb(liveTotals.total)}
+                </div>
+                <div />
+                <div />
+              </div>
+            )}
           </div>
 
           <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
-            Click <strong>Generate period</strong> to snapshot base salary and service charge for every employee. Click a row to edit base salary, service charge and adjustments — every override needs a reason.
+            Click <strong>Generate period</strong> to snapshot base salary and service charge for every employee — records stay frozen afterwards so overrides keep their meaning.
+            Rows marked <strong>Temps réel</strong> are live previews (current salary and service charge to date) for employees without a record yet.
+            Click a generated row to edit base salary, service charge and adjustments — every override needs a reason.
           </p>
         </div>
       ) : (

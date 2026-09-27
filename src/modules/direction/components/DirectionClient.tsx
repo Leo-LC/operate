@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon, CalendarClockIcon } from "lucide-react";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
 import { DirectionSourceBanner } from "./DirectionSourceBanner";
 import { DirectionComparaison } from "./DirectionComparaison";
 import { DirectionDetails } from "./DirectionDetails";
 import { DirectionDaily } from "./DirectionDaily";
+import { DirectionEndOfMonth } from "./DirectionEndOfMonth";
 
-type TabKey = "loyverse" | "overview" | "comparaison" | "daily" | "details";
+type TabKey = "loyverse" | "overview" | "comparaison" | "daily" | "details" | "end_of_month";
 type TabDef = { value: TabKey; label: string; icon: React.ElementType };
 
 const ALL_TABS: TabDef[] = [
@@ -18,6 +19,7 @@ const ALL_TABS: TabDef[] = [
   { value: "comparaison", label: "Comparaison", icon: BarChart3Icon },
   { value: "daily", label: "Résultat quotidien", icon: CalculatorIcon },
   { value: "details", label: "Détails", icon: LayersIcon },
+  { value: "end_of_month", label: "Fin de mois", icon: CalendarClockIcon },
 ];
 
 const STORAGE_KEY = "direction-tabs-visibility";
@@ -27,6 +29,7 @@ const DEFAULT_VISIBILITY: Record<TabKey, boolean> = {
   comparaison: true,
   daily: false,
   details: false,
+  end_of_month: false,
 };
 
 function loadVisibility(): Record<TabKey, boolean> {
@@ -207,6 +210,7 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
         {active === "comparaison" && <DirectionComparaison />}
         {active === "daily" && <DirectionDaily />}
         {active === "details" && <DirectionDetails />}
+        {active === "end_of_month" && <DirectionEndOfMonth />}
       </div>
     </div>
   );

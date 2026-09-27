@@ -8,6 +8,7 @@ const DEFAULT_VISIBILITY: Record<string, boolean> = {
   comparaison: true,
   daily: false,
   details: false,
+  end_of_month: false,
 };
 
 const VALID_TABS = new Set(Object.keys(DEFAULT_VISIBILITY));
