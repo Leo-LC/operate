@@ -81,9 +81,7 @@ export function CustomerInsightsClient() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Performance"
         title="Customer Insights"
-        subtitle="Google Form responses aggregated by shop, discovery channel, and country."
         actions={
           <Button
             variant="outline"

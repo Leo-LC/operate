@@ -10,6 +10,7 @@ import {
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon, CopyIcon,
   SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, CrownIcon, StoreIcon,
+  EyeIcon, EyeOffIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -101,6 +102,14 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/* Modules masked globally until the owner releases them (eye toggle in sidebar).
+   Maps sidebar item id -> module_visibility key. */
+const GATED_NAV: Record<string, string> = {
+  attendance: "attendance",
+  scheduling: "schedules",
+  treasury: "treasury",
+};
+
 /* Deterministic avatar colour from initials */
 const AVATAR_HUES = [24, 38, 185, 145, 260, 310];
 function avatarColor(seed: string): string {
@@ -132,7 +141,20 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwd, setPwd] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
+  const [moduleVisibility, setModuleVisibility] = useState<Record<string, boolean> | null>(null);
+  const isOwner = permissions.global_role === "owner";
   useEffect(() => setMounted(true), []);
+  /* Global release flags for gated modules (owner eye-toggle). Defaults to masked on error. */
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/module-visibility", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled && j && typeof j === "object") setModuleVisibility(j as Record<string, boolean>);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     try {
       const v = localStorage.getItem("nexus-sidebar-collapsed");
@@ -243,6 +265,23 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       setPwd("");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
     finally { setPwdSaving(false); }
+  }
+
+  async function toggleModuleRelease(key: string) {
+    const next = !(moduleVisibility?.[key] ?? false);
+    setModuleVisibility((prev) => ({ ...(prev ?? {}), [key]: next }));
+    try {
+      const res = await fetch("/api/admin/module-visibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ module_key: key, visible: next }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(next ? "Module released" : "Module masked");
+    } catch {
+      setModuleVisibility((prev) => ({ ...(prev ?? {}), [key]: !next }));
+      toast.error("Failed to update visibility");
+    }
   }
 
   return (
@@ -371,6 +410,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               if (!item.module && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
+              /* Gated modules: owner always sees them, others only once released */
+              const gateKey = GATED_NAV[item.id];
+              if (gateKey && !isOwner && !(moduleVisibility?.[gateKey] ?? false)) return false;
               return true;
             });
             if (visibleItems.length === 0) return null;
@@ -420,11 +462,20 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                       );
                     }
                       return (
-                      <Link
+                      <div
                         key={item.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                      <Link
                         href={item.href}
                         title={sidebarCollapsed ? item.label : undefined}
                         style={{
+                          flex: 1,
+                          minWidth: 0,
                           display: "flex",
                           alignItems: "center",
                           gap: 8,
@@ -451,6 +502,33 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                         />
                         <span className="app-sidebar-label">{item.label}</span>
                       </Link>
+                      {isOwner && GATED_NAV[item.id] && !sidebarCollapsed && (
+                        <button
+                          type="button"
+                          onClick={() => void toggleModuleRelease(GATED_NAV[item.id])}
+                          title={(moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? `Mask "${item.label}" for everyone` : `Release "${item.label}" to authorized roles`}
+                          aria-label={(moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? `Mask ${item.label}` : `Release ${item.label}`}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: "var(--r-sm)",
+                            border: "1px solid transparent",
+                            background: "transparent",
+                            color: (moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? "var(--fg-3)" : "var(--fg-mute)",
+                            opacity: (moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? 0.9 : 0.45,
+                            cursor: "pointer",
+                            flexShrink: 0,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--row-hover)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                        >
+                          {(moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
+                        </button>
+                      )}
+                      </div>
                     );
                   })}
                 </div>

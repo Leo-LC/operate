@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { ArrowLeftRightIcon, RefreshCwIcon, TableIcon } from "lucide-react";
 import {
   addDays,
@@ -212,7 +213,6 @@ export function LoyverseExportClient() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <PageHeader
         title="Loyverse Export"
-        subtitle="Données Loyverse à copier dans Accounting — organisées dans le même ordre, pas de nouvelles données."
       />
 
       {/* Single shop + daterange selector (shared by both tabs) */}
@@ -280,35 +280,16 @@ export function LoyverseExportClient() {
 
       {/* Tabs */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
-        <div style={{
-          display: "inline-flex", borderRadius: "var(--r-md)",
-          border: "1px solid var(--line)", background: "var(--bg-2)",
-          padding: 3, gap: 2,
-        }}>
-          {TABS.map(({ id, label }) => {
-            const Icon = id === "copy" ? TableIcon : ArrowLeftRightIcon;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setTab(id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
-                  fontSize: 12, fontWeight: tab === id ? 500 : 400,
-                  color: tab === id ? "var(--fg)" : "var(--fg-4)",
-                  background: tab === id ? "var(--surface)" : "transparent",
-                  border: `1px solid ${tab === id ? "var(--line)" : "transparent"}`,
-                  boxShadow: tab === id ? "var(--shadow-1)" : "none",
-                  cursor: "pointer", transition: "all var(--dur) var(--ease)",
-                }}
-              >
-                <Icon size={12} strokeWidth={1.5} />
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <ViewToggle
+          value={tab}
+          onChange={setTab}
+          options={TABS.map(({ id, label }) => ({
+            value: id,
+            label,
+            icon: id === "copy" ? TableIcon : ArrowLeftRightIcon,
+          }))}
+          ariaLabel="Loyverse export view"
+        />
       </div>
 
       {tab === "copy" ? (

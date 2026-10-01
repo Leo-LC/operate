@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon, CopyIcon, TrashIcon, CheckIcon, XIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
@@ -183,33 +184,18 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       <PageHeader
-        eyebrow="Operations"
         title="Animals"
-        subtitle="Track each animal and its vaccine schedule, per shop."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <div style={{ display: "flex", borderRadius: "var(--r-sm)", border: "1px solid var(--line)", overflow: "hidden" }}>
-              {(["animals", "vaccines"] as const).map((v, i) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 4,
-                    padding: "0 var(--s-3)", height: 32, fontSize: 12, cursor: "pointer", border: "none",
-                    borderLeft: i > 0 ? "1px solid var(--line)" : "none",
-                    background: view === v ? "var(--row-active)" : "var(--bg)",
-                    color: view === v ? "var(--fg)" : "var(--fg-4)",
-                    transition: "background var(--dur) var(--ease)",
-                  }}
-                >
-                  {v === "animals"
-                    ? <ListIcon style={{ width: 13, height: 13 }} />
-                    : <SyringeIcon style={{ width: 13, height: 13 }} />}
-                  {v === "animals" ? "Animals" : "Vaccines"}
-                </button>
-              ))}
-            </div>
+            <ViewToggle
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "animals", label: "Animals", icon: ListIcon },
+                { value: "vaccines", label: "Vaccines", icon: SyringeIcon },
+              ]}
+              ariaLabel="Animals view"
+            />
             <a href="/api/animals/export" download style={{ textDecoration: "none" }}>
               <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> CSV</Button>
             </a>

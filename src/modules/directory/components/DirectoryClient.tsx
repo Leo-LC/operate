@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SearchIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
+import { ControlledTabs } from "@/components/ui/module-tabs";
 import { ContactsClient } from "@/modules/contacts/components/ContactsClient";
 import type { Contact } from "@/modules/contacts/types";
 import { ShopTable } from "@/modules/directory/components/ShopTable";
@@ -166,32 +167,16 @@ export function DirectoryClient({
       </div>
 
       {/* Underline tabs — same styling as the Direction module */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--line)", gap: 0, overflowX: "auto", scrollbarWidth: "none" }}>
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const isActive = tab === t.value;
-          const count = t.value === "shops" ? sortedShops.length : contacts.length;
-          return (
-            <div key={t.value} style={{ display: "inline-flex", alignItems: "center", borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent", marginBottom: -1 }}>
-              <button
-                type="button"
-                onClick={() => switchTab(t.value)}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, padding: "0 var(--s-3)", height: 36, fontSize: 13, fontWeight: 500,
-                  border: "none", background: "none", cursor: "pointer",
-                  color: isActive ? "var(--fg)" : "var(--fg-4)",
-                  transition: "color var(--dur) var(--ease)", whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = "var(--fg-2)"; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = "var(--fg-4)"; }}
-              >
-                <Icon size={14} />
-                {t.label} ({count})
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      <ControlledTabs
+        tabs={TABS.map((t) => ({
+          value: t.value,
+          label: `${t.label} (${t.value === "shops" ? sortedShops.length : contacts.length})`,
+          icon: t.icon,
+        }))}
+        value={tab}
+        onChange={(v) => switchTab(v as DirectoryTab)}
+        ariaLabel="Directory"
+      />
 
       {tab === "shops" ? (
         <ShopTable

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { PageHeader } from "@/components/ui/page-header";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { Stat } from "@/components/ui/stat";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -407,81 +408,9 @@ export function PaymentsClient({ initialLocations }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <PageHeader
-        eyebrow={monthName}
         title="Payments"
-        subtitle="Base salary, service charge and manual adjustments for the period."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            {/* Location selector */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {initialLocations.map((l) => (
-                <PillButton key={l.id} active={locationId === l.id} onClick={() => setLocationId(l.id)}>{l.name}</PillButton>
-              ))}
-            </div>
-
-            {/* Month nav */}
-            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <button
-                onClick={prevMonth}
-                style={{
-                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
-                  color: "var(--fg-3)", cursor: "pointer",
-                }}
-              >
-                <ChevronLeftIcon size={14} />
-              </button>
-              <span
-                className="mono tabular-nums"
-                style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
-              >
-                {monthName}
-              </span>
-              <button
-                onClick={nextMonth}
-                style={{
-                  width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
-                  color: "var(--fg-3)", cursor: "pointer",
-                }}
-              >
-                <ChevronRightIcon size={14} />
-              </button>
-            </div>
-
-            {/* View toggle */}
-            <div
-              style={{
-                display: "inline-flex", borderRadius: "var(--r-md)", border: "1px solid var(--line)",
-                background: "var(--bg-2)", padding: 3, gap: 2,
-              }}
-            >
-              {([
-                { id: "table" as View, label: "Table",  Icon: ListIcon },
-                { id: "detail" as View, label: "Detail", Icon: EyeIcon },
-              ]).map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setView(id)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    height: 26, padding: "0 10px",
-                    borderRadius: "var(--r-sm)", fontSize: 12,
-                    fontWeight: view === id ? 500 : 400,
-                    color: view === id ? "var(--fg)" : "var(--fg-4)",
-                    background: view === id ? "var(--surface)" : "transparent",
-                    border: `1px solid ${view === id ? "var(--line)" : "transparent"}`,
-                    boxShadow: view === id ? "var(--shadow-1)" : "none",
-                    cursor: "pointer", transition: "all var(--dur) var(--ease)",
-                  }}
-                >
-                  <Icon size={12} strokeWidth={1.5} />
-                  {label}
-                </button>
-              ))}
-            </div>
-
             <Button
               size="sm" variant="secondary" style={{ gap: 6 }}
               onClick={() => void handleCalculate()} disabled={calculating || !locationId}
@@ -497,6 +426,58 @@ export function PaymentsClient({ initialLocations }: Props) {
           </div>
         }
       />
+
+      {/* Selectors row — date selector on top */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {initialLocations.map((l) => (
+            <PillButton key={l.id} active={locationId === l.id} onClick={() => setLocationId(l.id)}>{l.name}</PillButton>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+          {/* Month nav */}
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button
+              onClick={prevMonth}
+              style={{
+                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
+                color: "var(--fg-3)", cursor: "pointer",
+              }}
+            >
+              <ChevronLeftIcon size={14} />
+            </button>
+            <span
+              className="mono tabular-nums"
+              style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
+            >
+              {monthName}
+            </span>
+            <button
+              onClick={nextMonth}
+              style={{
+                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
+                color: "var(--fg-3)", cursor: "pointer",
+              }}
+            >
+              <ChevronRightIcon size={14} />
+            </button>
+          </div>
+
+          {/* View toggle */}
+          <ViewToggle
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "table" as View, label: "Table", icon: ListIcon },
+              { value: "detail" as View, label: "Detail", icon: EyeIcon },
+            ]}
+            ariaLabel="Payments view"
+          />
+        </div>
+      </div>
 
       {/* Stats band */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-3)" }}>

@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon, DownloadIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { buildEmployeeDocumentsCsv, collectMatrixDocTypes, getDocTypeLabel } from "@/modules/admin/lib/employee-documents";
@@ -784,29 +783,26 @@ export function EmployeesListClient({ locations }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <PageHeader
-        title="Employees"
-        actions={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button size="sm" variant="secondary" onClick={handleExportDocsCsv} title="Export the visible list as CSV (opens in Google Sheets)">
-              <DownloadIcon className="size-4" />
-              Export docs CSV
-            </Button>
-            <Button size="sm" onClick={() => {
-              const next = !showAdd;
-              setShowAdd(next);
-              setEditingId(null);
-              if (next && shopFilter) {
-                setFormLocIds(new Set([shopFilter]));
-                setFormPrimaryLoc(shopFilter);
-              }
-            }}>
-              <PlusIcon className="size-4" />
-              Add employee
-            </Button>
-          </div>
-        }
-      />
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button size="sm" variant="secondary" onClick={handleExportDocsCsv} title="Export the visible list as CSV (opens in Google Sheets)">
+            <DownloadIcon className="size-4" />
+            Export docs CSV
+          </Button>
+          <Button size="sm" onClick={() => {
+            const next = !showAdd;
+            setShowAdd(next);
+            setEditingId(null);
+            if (next && shopFilter) {
+              setFormLocIds(new Set([shopFilter]));
+              setFormPrimaryLoc(shopFilter);
+            }
+          }}>
+            <PlusIcon className="size-4" />
+            Add employee
+          </Button>
+        </div>
+      </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 4 }}>
         <PillButton active={view === "list"} onClick={() => setView("list")}>List</PillButton>

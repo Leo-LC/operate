@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon, CalendarClockIcon } from "lucide-react";
+import { ControlledTabs, type ControlledTab } from "@/components/ui/module-tabs";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
 import { DirectionSourceBanner } from "./DirectionSourceBanner";
@@ -98,6 +99,10 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
     ? ALL_TABS.filter((t) => visibility[t.value] !== false)
     : ALL_TABS;
 
+  const hiddenTabs: TabDef[] = isPrivileged
+    ? ALL_TABS.filter((t) => !visibleTabs.some((v) => v.value === t.value))
+    : [];
+
   // Ensure active is visible; if not, switch to first visible
   useEffect(() => {
     if (!visibleTabs.some((t) => t.value === active)) {
@@ -119,90 +124,52 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
     }
   }
 
+  function EyeToggle({ tabKey, label }: { tabKey: TabKey; label: string }) {
+    const isVisibleForBoss = visibility[tabKey] !== false;
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); toggleTabVisibility(tabKey); }}
+        title={isVisibleForBoss ? `Masquer "${label}" pour la Direction (Boss)` : `Afficher "${label}" pour la Direction (Boss)`}
+        aria-label={isVisibleForBoss ? `Masquer ${label} pour Direction` : `Afficher ${label} pour Direction`}
+        style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: 22, height: 22, borderRadius: "var(--r-sm)",
+          border: "1px solid transparent", background: "transparent",
+          color: isVisibleForBoss ? "var(--fg-3)" : "var(--fg-4)", cursor: "pointer",
+          opacity: isVisibleForBoss ? 0.9 : 0.45, marginRight: 4,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-2)"; e.currentTarget.style.borderColor = "var(--line)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
+      >
+        {isVisibleForBoss ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
+      </button>
+    );
+  }
+
+  const controlledTabs: ControlledTab[] = useMemo(() => [
+    ...visibleTabs.map((tab) => ({
+      value: tab.value,
+      label: tab.label,
+      icon: tab.icon,
+      extra: isPrivileged ? <EyeToggle tabKey={tab.value} label={tab.label} /> : undefined,
+    })),
+    // For privileged users, also show hidden tabs as muted with eye-off so they can re-enable
+    ...hiddenTabs.map((tab) => ({
+      value: tab.value,
+      label: tab.label,
+      icon: tab.icon,
+      dimmed: true,
+      extra: <EyeToggle tabKey={tab.value} label={tab.label} />,
+    })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [visibleTabs, hiddenTabs, isPrivileged, visibility]);
+
   return (
     <div className="flex flex-col gap-4">
       {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
       {/* Tab bar with eye toggle per tab for privileged users */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--line)", gap: 0, overflowX: "auto", scrollbarWidth: "none" }}>
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = active === tab.value;
-          const isVisibleForBoss = visibility[tab.value] !== false;
-          return (
-            <div key={tab.value} style={{ display: "inline-flex", alignItems: "center", gap: 0, borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent", marginBottom: -1 }}>
-              <button
-                type="button"
-                onClick={() => setActive(tab.value)}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, padding: "0 var(--s-3)", height: 36, fontSize: 13, fontWeight: 500,
-                  border: "none", background: "none", cursor: "pointer",
-                  color: isActive ? "var(--fg)" : "var(--fg-4)",
-                  transition: "color var(--dur) var(--ease)", whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget.style.color = "var(--fg-2)"); }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget.style.color = "var(--fg-4)"); }}
-                title={tab.label}
-              >
-                <Icon size={14} />
-                {tab.label}
-              </button>
-              {isPrivileged && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleTabVisibility(tab.value); }}
-                  title={isVisibleForBoss ? `Masquer "${tab.label}" pour la Direction (Boss)` : `Afficher "${tab.label}" pour la Direction (Boss)`}
-                  aria-label={isVisibleForBoss ? `Masquer ${tab.label} pour Direction` : `Afficher ${tab.label} pour Direction`}
-                  style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 22, height: 22, borderRadius: "var(--r-sm)",
-                    border: "1px solid transparent", background: "transparent",
-                    color: isVisibleForBoss ? "var(--fg-3)" : "var(--fg-4)", cursor: "pointer",
-                    opacity: isVisibleForBoss ? 0.9 : 0.45, marginRight: 4,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-2)"; e.currentTarget.style.borderColor = "var(--line)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
-                >
-                  {isVisibleForBoss ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
-                </button>
-              )}
-            </div>
-          );
-        })}
-        {/* For privileged users, also show hidden tabs as muted with eye-off so they can re-enable */}
-        {isPrivileged && ALL_TABS.filter((t) => !visibleTabs.some((v) => v.value === t.value)).map((tab) => {
-          const Icon = tab.icon;
-          const isActive = active === tab.value;
-          return (
-            <div key={tab.value} style={{ display: "inline-flex", alignItems: "center", gap: 0, borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent", marginBottom: -1, opacity: 0.55 }}>
-              <button
-                type="button"
-                onClick={() => setActive(tab.value)}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, padding: "0 var(--s-3)", height: 36, fontSize: 13, fontWeight: 500,
-                  border: "none", background: "none", cursor: "pointer",
-                  color: isActive ? "var(--fg)" : "var(--fg-4)", whiteSpace: "nowrap",
-                }}
-              >
-                <Icon size={14} />
-                {tab.label}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); toggleTabVisibility(tab.value); }}
-                title={`Afficher "${tab.label}" pour la Direction (Boss)`}
-                aria-label={`Afficher ${tab.label} pour Direction`}
-                style={{
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  width: 22, height: 22, borderRadius: "var(--r-sm)", border: "1px solid transparent", background: "transparent",
-                  color: "var(--fg-4)", cursor: "pointer", opacity: 0.6, marginRight: 4,
-                }}
-              >
-                <EyeOffIcon size={13} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      <ControlledTabs tabs={controlledTabs} value={active} onChange={(v) => setActive(v as TabKey)} ariaLabel="Direction" />
 
       <div className="pt-2">
         {active === "loyverse" && <LoyverseDashboard canSync={canSync} />}

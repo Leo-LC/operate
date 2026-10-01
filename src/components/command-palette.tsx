@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon, CopyIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon, CrownIcon, StoreIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon, CrownIcon, StoreIcon, VaultIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
   { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
   { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
+  { id: "treasury", label: "Treasury", href: "/treasury", icon: VaultIcon, module: "treasury" },
   { id: "directory",  label: "Directory",  href: "/directory",  icon: StoreIcon,        module: "contacts" },
   { id: "wiki",       label: "Wiki",       href: "/wiki",       icon: BookOpenIcon,     module: "wiki" },
   { id: "brand",      label: "Brand",      href: "/brand",      icon: PaletteIcon,      module: "brand" },
@@ -45,7 +46,21 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   const [selected, setSelected] = useState(0);
   const [dirResults, setDirResults] = useState<DirectorySearchItem[]>([]);
   const [docResults, setDocResults] = useState<{ id: string; title: string; code: string | null; location_name: string | null }[]>([]);
+  const [moduleVisibility, setModuleVisibility] = useState<Record<string, boolean> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /* Global release flags for gated modules (attendance/scheduling/treasury) */
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/api/admin/module-visibility", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled && j && typeof j === "object") setModuleVisibility(j as Record<string, boolean>);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -81,11 +96,15 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
   }, [query, open]);
 
   const items = useMemo(() => {
+    const GATED: Record<string, string> = { attendance: "attendance", scheduling: "schedules", treasury: "treasury" };
+    const isOwner = permissions.global_role === "owner";
     const nav = NAV_ITEMS
       .filter((n) => {
         if (permissions.global_role === "direction" && n.id === "loyverse") return false;
         if (n.id === "admin" && permissions.global_role !== "owner") return false;
         if (n.id === "customer-insights" && permissions.global_role !== "owner") return false;
+        const gateKey = GATED[n.id];
+        if (gateKey && !isOwner && !(moduleVisibility?.[gateKey] ?? false)) return false;
         return !n.module || hasModuleAccess(permissions, n.module as Parameters<typeof hasModuleAccess>[1]);
       })
       .map((n) => ({
@@ -129,7 +148,7 @@ export function CommandPalette({ open, onClose, permissions }: CommandPalettePro
         x.hint.toLowerCase().includes(lc),
     );
     return [...filteredNav, ...dir, ...docs];
-  }, [query, permissions, dirResults, docResults]);
+  }, [query, permissions, dirResults, docResults, moduleVisibility]);
 
   useEffect(() => {
     setSelected((s) => Math.min(s, Math.max(0, items.length - 1)));

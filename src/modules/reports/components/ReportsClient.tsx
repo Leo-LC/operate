@@ -18,6 +18,7 @@ import {
   PercentCircleIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { ControlledTabs } from "@/components/ui/module-tabs";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
@@ -1603,33 +1604,11 @@ export function ReportsClient() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       <PageHeader
-        eyebrow="Financial performance"
         title="Reports"
-        subtitle="Revenue, costs, and shop comparison across the selected period."
       />
 
       {/* Tab bar */}
-      <div style={{ display: "flex", borderBottom: "1px solid var(--line)", gap: 0 }}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setActiveTab(tab.value)}
-            style={{
-              padding: "0 var(--s-4)", height: 36, fontSize: 13, fontWeight: 500,
-              border: "none", background: "none", cursor: "pointer",
-              color: activeTab === tab.value ? "var(--fg)" : "var(--fg-4)",
-              borderBottom: activeTab === tab.value ? "2px solid var(--bronze)" : "2px solid transparent",
-              marginBottom: -1,
-              transition: "color var(--dur) var(--ease)",
-            }}
-            onMouseEnter={(e) => { if (activeTab !== tab.value) (e.currentTarget.style.color = "var(--fg-2)"); }}
-            onMouseLeave={(e) => { if (activeTab !== tab.value) (e.currentTarget.style.color = "var(--fg-4)"); }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <ControlledTabs tabs={TABS} value={activeTab} onChange={(v) => setActiveTab(v as typeof activeTab)} ariaLabel="Reports" />
 
       {activeTab === "daily-profit" ? (
         <DailyProfitView from={dailyFrom} to={dailyTo} onFromChange={setDailyFrom} onToChange={setDailyTo} />

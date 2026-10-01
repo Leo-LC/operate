@@ -43,7 +43,7 @@ export function ShopSettingsClient() {
 
   const selectedLocation = locations.find((location) => location.id === selectedId);
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-    <PageHeader eyebrow="Finance" title="Shop settings" subtitle="One place to see how each shop is configured and jump to the right module." />
+    <PageHeader title="Shop settings" />
     <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>View</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       <PillButton active={!selectedId} onClick={() => setSelectedId("")}>All shops</PillButton>
       {locations.map((location) => <PillButton key={location.id} active={selectedId === location.id} onClick={() => setSelectedId(location.id)}>{location.name}</PillButton>)}

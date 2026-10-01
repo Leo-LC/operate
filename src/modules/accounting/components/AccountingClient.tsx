@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { ViewToggle } from "@/components/ui/view-toggle";
 import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFocusDay";
 import { MonthlyFixedExpensesTable } from "@/modules/accounting/components/MonthlyFixedExpensesTable";
 import type { DailyEntry } from "@/modules/accounting/types";
@@ -387,32 +388,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
       )}
 
         {/* View toggle — right side of selectors row */}
-        <div style={{
-          display: "inline-flex", borderRadius: "var(--r-md)",
-          border: "1px solid var(--line)", background: "var(--bg-2)",
-          padding: 3, gap: 2,
-        }}>
-          {VIEWS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setView(id)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
-                fontSize: 12, fontWeight: view === id ? 500 : 400,
-                color: view === id ? "var(--fg)" : "var(--fg-4)",
-                background: view === id ? "var(--surface)" : "transparent",
-                border: `1px solid ${view === id ? "var(--line)" : "transparent"}`,
-                boxShadow: view === id ? "var(--shadow-1)" : "none",
-                cursor: "pointer", transition: "all var(--dur) var(--ease)",
-              }}
-            >
-              <Icon size={12} strokeWidth={1.5} />
-              {label}
-            </button>
-          ))}
-        </div>
+        <ViewToggle value={view} onChange={setView} options={VIEWS.map((v) => ({ value: v.id, label: v.label, icon: v.icon }))} ariaLabel="Accounting view" />
       </div>
 
       {/* Focus day */}

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
-import { PageHeader } from "@/components/ui/page-header";
 import { PlusIcon, ChevronRightIcon, Loader2Icon } from "lucide-react";
 import type { AdminUser } from "@/modules/admin/types";
 
@@ -148,15 +147,12 @@ export function UsersListClient({ allLocations = [] }: UsersListClientProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <PageHeader
-        title="Users"
-        actions={
-          <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-            <PlusIcon className="size-4" />
-            Add user
-          </Button>
-        }
-      />
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+          <PlusIcon className="size-4" />
+          Add user
+        </Button>
+      </div>
 
       {showForm && (
         <form

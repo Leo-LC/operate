@@ -358,9 +358,7 @@ export function TreasuryClient() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       <PageHeader
-        eyebrow="Finance"
         title="Treasury"
-        subtitle="Cash position, bank accounts, and reserve obligations."
       />
 
       {/* Top summary — compact tiles 16/8 as ref */}

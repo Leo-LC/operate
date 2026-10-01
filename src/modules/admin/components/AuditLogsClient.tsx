@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { toast } from "sonner";
@@ -95,34 +94,30 @@ export function AuditLogsClient({ logs: initialLogs }: { logs: AuditLogEntry[] }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <PageHeader
-        title="Audit Logs"
-        subtitle={`${filtered.length} of ${logs.length} entries · auto-deleted after 90 days`}
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search action, user, entity…"
-              style={{ ...inputSm, width: 208 }}
-            />
-            <select
-              value={moduleFilter}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              style={{ ...inputSm, cursor: "pointer" }}
-            >
-              {MODULE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <Button size="sm" variant="secondary" onClick={() => setShowClearModal(true)}>
-              <Trash2Icon className="size-3.5" />
-              Clear old logs
-            </Button>
-          </div>
-        }
-      />
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search action, user, entity…"
+            style={{ ...inputSm, width: 208 }}
+          />
+          <select
+            value={moduleFilter}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            style={{ ...inputSm, cursor: "pointer" }}
+          >
+            {MODULE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <Button size="sm" variant="secondary" onClick={() => setShowClearModal(true)}>
+            <Trash2Icon className="size-3.5" />
+            Clear old logs
+          </Button>
+        </div>
+      </div>
 
       {visible.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No matching entries.</p>
