@@ -1,9 +1,37 @@
 "use client";
 
 import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { formatDateDDMMYYYY, formatDisplayAmount } from "@/modules/loyverse/lib/accounting-copy";
 import { summarizeCashMovements, type CashMovementLine } from "@/modules/loyverse/lib/shift-summary";
 import type { ShiftRow } from "./LoyverseExportClient";
+
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+}
+
+function csvCell(v: string): string {
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+/** One CSV row per movement: date,type,reason,raw amount. */
+function buildPayMovementCsv(date: string, m: CashMovementLine): string {
+  const kind = m.kind === "in" ? "IN" : m.kind === "out" ? "OUT" : "OTHER";
+  const amount = Number.isFinite(m.amount) ? String(m.amount) : "";
+  return [date, kind, csvCell((m.reason ?? "").trim()), amount].join(",");
+}
 
 interface DayPay {
   date: string;
@@ -49,6 +77,8 @@ function MovementList({ items, emptyLabel }: { items: CashMovementLine[]; emptyL
 }
 
 export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) {
+  const [copied, setCopied] = React.useState(false);
+
   const rows: DayPay[] = React.useMemo(() => {
     return days.map((date) => {
       const dayRows = shiftRows.filter((r) => r.store_id === selectedStore && r.date === date);
@@ -71,12 +101,29 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
   const totalInAll = rows.reduce((a, r) => a + r.totalIn, 0);
   const totalOutAll = rows.reduce((a, r) => a + r.totalOut, 0);
 
+  async function handleCopyCsv() {
+    const lines = ["date,type,reason,amount"];
+    for (const r of rows) {
+      for (const m of [...r.payOut, ...r.payIn]) lines.push(buildPayMovementCsv(r.date, m));
+    }
+    if (lines.length <= 1) return;
+    await copyToClipboard(lines.join("\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-      <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>
-        Pay in / Pay out Loyverse — {movementCount} mouvement{movementCount > 1 ? "s" : ""} sur la plage
-        {` · OUT ${formatDisplayAmount(totalOutAll)} · IN ${formatDisplayAmount(totalInAll)}`}.
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
+        <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>
+          Pay in / Pay out Loyverse — {movementCount} mouvement{movementCount > 1 ? "s" : ""} sur la plage
+          {` · OUT ${formatDisplayAmount(totalOutAll)} · IN ${formatDisplayAmount(totalInAll)}`}.
+        </p>
+        <Button size="sm" variant="secondary" onClick={handleCopyCsv} disabled={movementCount === 0} title="Copier les mouvements en CSV (date,type,motif,montant brut)">
+          {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
+          {copied ? "copié" : "CSV"}
+        </Button>
+      </div>
 
       {!selectedStore ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
