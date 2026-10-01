@@ -207,3 +207,25 @@ export function formatDateDDMMYYYY(dateStr: string): string {
   if (!m) return dateStr;
   return `${m[3]} ${m[2]} ${m[1]}`;
 }
+
+/** Display-only thousands separator ("1000000" → "1,000,000").
+ *  The clipboard copy path keeps the raw value (see formatCopyNumber). */
+export function formatDisplayNumber(raw: string): string {
+  if (raw === "") return "";
+  const parsed = parseFloat(raw.replace(/,/g, ""));
+  if (!Number.isFinite(parsed)) return raw;
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(parsed);
+}
+
+/** Display-only amount with thousands separator (0 → "0", non-finite → "—"). */
+export function formatDisplayAmount(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  if (value === 0) return "0";
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+}

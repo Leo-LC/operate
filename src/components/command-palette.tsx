@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
-  PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
+  PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon, CopyIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, PlugIcon, ReceiptTextIcon, SlidersHorizontalIcon, CrownIcon, StoreIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { id: "animals",    label: "Animals",    href: "/animals",    icon: PawPrintIcon,     module: "animals" },
   { id: "documents",  label: "Documents",  href: "/documents",  icon: FileTextIcon,     module: "documents" },
   { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon,   module: "accounting" },
+  { id: "loyverse-export", label: "Loyverse Export", href: "/loyverse-export", icon: CopyIcon, module: "accounting" },
   { id: "reports",    label: "Reports",    href: "/reports",    icon: TrendingUpIcon,   module: "reports" },
   { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
   { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },

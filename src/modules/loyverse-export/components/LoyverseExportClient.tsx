@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
-import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
+import { ArrowLeftRightIcon, RefreshCwIcon, TableIcon } from "lucide-react";
 import {
   addDays,
   bangkokToday,
@@ -11,18 +12,11 @@ import {
   capitalizeShop,
   datesInRange,
 } from "@/lib/loyverse/dates";
-import {
-  COMPUTED_COLS,
-  COLUMN_LABELS,
-  VISIBLE_COLUMNS,
-  buildAccountingValues,
-  buildCopyLine,
-  buildCopyText,
-  formatDateDDMMYYYY,
-  type SnapshotLike,
-} from "@/modules/loyverse/lib/accounting-copy";
+import { ExportCopyTab } from "./ExportCopyTab";
+import { PayInOutTab } from "./PayInOutTab";
+import type { SnapshotLike } from "@/modules/loyverse/lib/accounting-copy";
 
-type ShiftRow = {
+export type ShiftRow = {
   id: string;
   store_id: string;
   date: string;
@@ -30,7 +24,7 @@ type ShiftRow = {
   shift_count: number;
 };
 
-type SnapshotRow = SnapshotLike & {
+export type SnapshotRow = SnapshotLike & {
   id: string;
   store_id: string;
   date: string;
@@ -38,23 +32,14 @@ type SnapshotRow = SnapshotLike & {
 
 type Shop = { store_id: string; account_key: string };
 
-const VISIBLE = VISIBLE_COLUMNS as unknown as string[];
-const MAX_DAYS = 31;
+type ExportTab = "copy" | "pay";
 
-async function copyToClipboard(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-  }
-}
+const TABS: Array<{ id: ExportTab; label: string }> = [
+  { id: "copy", label: "Sales & Payments → Accounting" },
+  { id: "pay", label: "Pay in / Pay out" },
+];
+
+const MAX_DAYS = 31;
 
 const inputStyle: React.CSSProperties = {
   height: 32,
@@ -68,8 +53,9 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-export function AccountingCopyRange() {
+export function LoyverseExportClient() {
   const today = bangkokToday();
+  const [tab, setTab] = React.useState<ExportTab>("copy");
   const [to, setTo] = React.useState(() => bangkokYesterday());
   const [from, setFrom] = React.useState(() => addDays(bangkokYesterday(), -6));
   const [shops, setShops] = React.useState<Shop[]>([]);
@@ -82,8 +68,6 @@ export function AccountingCopyRange() {
   const [forceSyncing, setForceSyncing] = React.useState(false);
   const [forceProgress, setForceProgress] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [copiedAll, setCopiedAll] = React.useState(false);
-  const [copiedDay, setCopiedDay] = React.useState<string | null>(null);
 
   // Shops — same source as Shift & Sales (Loyverse stores)
   React.useEffect(() => {
@@ -168,58 +152,12 @@ export function AccountingCopyRange() {
     }
   }, []);
 
-  // Refetch when range changes (debounced by explicit Load + auto on valid change)
+  // Refetch when range changes (auto on valid change)
   React.useEffect(() => {
     if (invalidRange || rangeClamped) return;
     if (!from || !to) return;
     void fetchRange(from, to);
   }, [from, to, invalidRange, rangeClamped, fetchRange]);
-
-  const shiftByDate = React.useMemo(() => {
-    const m = new Map<string, ShiftRow[]>();
-    for (const r of shiftRows) {
-      if (r.store_id !== selectedStore) continue;
-      const arr = m.get(r.date) ?? [];
-      arr.push(r);
-      m.set(r.date, arr);
-    }
-    return m;
-  }, [shiftRows, selectedStore]);
-
-  const snapshotByDate = React.useMemo(() => {
-    const m = new Map<string, SnapshotRow>();
-    for (const r of snapshotRows) {
-      if (r.store_id !== selectedStore) continue;
-      if (!m.has(r.date)) m.set(r.date, r);
-    }
-    return m;
-  }, [snapshotRows, selectedStore]);
-
-  const rows = React.useMemo(() => {
-    return days.map((date) => {
-      const sRows = shiftByDate.get(date) ?? [];
-      const snapshot = snapshotByDate.get(date) ?? null;
-      const rawShift = (sRows[0]?.shifts?.[0] as Record<string, unknown> | undefined) ?? null;
-      const values = buildAccountingValues(rawShift, snapshot, date, paymentMap);
-      return { date, values, line: buildCopyLine(values), hasData: Boolean(rawShift || snapshot) };
-    });
-  }, [days, shiftByDate, snapshotByDate, paymentMap]);
-
-  const dataRows = rows.filter((r) => r.hasData);
-  const missingCount = rows.length - dataRows.length;
-
-  async function handleCopyAll() {
-    if (dataRows.length === 0) return;
-    await copyToClipboard(buildCopyText(dataRows.map((r) => r.line)));
-    setCopiedAll(true);
-    setTimeout(() => setCopiedAll(false), 1800);
-  }
-
-  async function handleCopyDay(date: string, line: string) {
-    await copyToClipboard(line);
-    setCopiedDay(date);
-    setTimeout(() => setCopiedDay(null), 1800);
-  }
 
   async function handleForceSync() {
     if (days.length === 0) return;
@@ -227,8 +165,6 @@ export function AccountingCopyRange() {
     setForceProgress(null);
     setError(null);
     try {
-      // ≤5 explicit dates => manual path re-syncs everything (no skip-existing).
-      // Chunk the range so mapping fixes can be replayed over already-synced days.
       // Small chunks (2 days) to stay under serverless timeouts — upserts are
       // idempotent so a failed chunk can simply be retried.
       const chunks: string[][] = [];
@@ -273,8 +209,13 @@ export function AccountingCopyRange() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-      {/* Controls: shop + range + actions */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <PageHeader
+        title="Loyverse Export"
+        subtitle="Données Loyverse à copier dans Accounting — organisées dans le même ordre, pas de nouvelles données."
+      />
+
+      {/* Single shop + daterange selector (shared by both tabs) */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Shop</span>
@@ -315,14 +256,10 @@ export function AccountingCopyRange() {
             variant="secondary"
             onClick={handleForceSync}
             disabled={syncing || forceSyncing || loading || days.length === 0}
-            title="Re-synchronise tous les jours de la plage, même déjà synchronisés — utile après un changement de mapping (ex: rename Snacks → Animal food)"
+            title="Re-synchronise tous les jours de la plage, même déjà synchronisés — utile après un changement de mapping"
           >
             <RefreshCwIcon size={13} />
             {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
-          </Button>
-          <Button size="sm" onClick={handleCopyAll} disabled={dataRows.length === 0}>
-            {copiedAll ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-            {copiedAll ? "copié" : `copier ${dataRows.length} ligne${dataRows.length > 1 ? "s" : ""}`}
           </Button>
         </div>
       </div>
@@ -341,79 +278,55 @@ export function AccountingCopyRange() {
         </div>
       )}
 
-      {/* Multi-day table */}
-      {!selectedStore ? (
-        <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
-          Sélectionne un shop ci-dessus.
-        </p>
-      ) : loading ? (
-        <div className="animate-pulse" style={{ height: 120, borderRadius: "var(--r-md)", background: "var(--line-2)" }} />
-      ) : rows.length === 0 ? (
-        <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
-          Choisis une plage de dates.
-        </p>
-      ) : (
-        <div style={{ overflow: "auto", borderRadius: "var(--r-md)", border: "1px solid var(--line)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: "var(--bg-2)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--fg-4)" }}>
-                <th style={{ whiteSpace: "nowrap", padding: "8px 10px", textAlign: "left", fontWeight: 500 }}>Date</th>
-                {VISIBLE.map((c) => (
-                  <th key={c} title={c} style={{ whiteSpace: "nowrap", padding: "8px 10px", textAlign: "left", fontWeight: 500 }}>
-                    {COLUMN_LABELS[c] ?? c}
-                    {COMPUTED_COLS.has(c) ? " *" : ""}
-                  </th>
-                ))}
-                <th style={{ whiteSpace: "nowrap", padding: "8px 10px", textAlign: "right", fontWeight: 500 }}>Copier</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ date, values, line, hasData }) => (
-                <tr key={date} style={{ borderTop: "1px solid var(--line)", background: hasData ? "var(--surface)" : "var(--bg-2)", opacity: hasData ? 1 : 0.75 }}>
-                  <td className="mono tabular-nums" style={{ whiteSpace: "nowrap", padding: "8px 10px", fontWeight: 500 }}>
-                    {formatDateDDMMYYYY(date)}
-                  </td>
-                  {VISIBLE.map((c) => {
-                    const v = values[c];
-                    const isComputed = COMPUTED_COLS.has(c);
-                    const isEmpty = v === "";
-                    return (
-                      <td
-                        key={c}
-                        className="mono tabular-nums"
-                        style={{
-                          whiteSpace: "nowrap",
-                          padding: "8px 10px",
-                          color: isComputed || isEmpty ? "var(--fg-4)" : "var(--fg)",
-                          fontWeight: !isComputed && !isEmpty ? 500 : 400,
-                        }}
-                      >
-                        {isEmpty ? "—" : v}
-                      </td>
-                    );
-                  })}
-                  <td style={{ whiteSpace: "nowrap", padding: "6px 10px", textAlign: "right" }}>
-                    {hasData ? (
-                      <Button size="sm" variant="secondary" onClick={() => void handleCopyDay(date, line)} title={`Copier la ligne du ${formatDateDDMMYYYY(date)}`}>
-                        {copiedDay === date ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
-                      </Button>
-                    ) : (
-                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Tabs */}
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
+        <div style={{
+          display: "inline-flex", borderRadius: "var(--r-md)",
+          border: "1px solid var(--line)", background: "var(--bg-2)",
+          padding: 3, gap: 2,
+        }}>
+          {TABS.map(({ id, label }) => {
+            const Icon = id === "copy" ? TableIcon : ArrowLeftRightIcon;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  height: 28, padding: "0 12px", borderRadius: "var(--r-sm)",
+                  fontSize: 12, fontWeight: tab === id ? 500 : 400,
+                  color: tab === id ? "var(--fg)" : "var(--fg-4)",
+                  background: tab === id ? "var(--surface)" : "transparent",
+                  border: `1px solid ${tab === id ? "var(--line)" : "transparent"}`,
+                  boxShadow: tab === id ? "var(--shadow-1)" : "none",
+                  cursor: "pointer", transition: "all var(--dur) var(--ease)",
+                }}
+              >
+                <Icon size={12} strokeWidth={1.5} />
+                {label}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      {rows.length > 0 && (
-        <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
-          {dataRows.length} jour{dataRows.length > 1 ? "s" : ""} avec données
-          {missingCount > 0 ? ` · ${missingCount} jour${missingCount > 1 ? "s" : ""} sans données (synchronise la plage)` : ""} ·
-          même format que Shift &amp; Sales (Drinks → CC, tabulations, une ligne par jour).
-        </p>
+      {tab === "copy" ? (
+        <ExportCopyTab
+          days={days}
+          selectedStore={selectedStore}
+          shiftRows={shiftRows}
+          snapshotRows={snapshotRows}
+          paymentMap={paymentMap}
+          loading={loading}
+        />
+      ) : (
+        <PayInOutTab
+          days={days}
+          selectedStore={selectedStore}
+          shiftRows={shiftRows}
+          loading={loading}
+        />
       )}
     </div>
   );

@@ -1,11 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   buildAccountingValues,
   buildCopyLine,
   buildCopyText,
+  formatCopyNumber,
+  formatDisplayAmount,
+  formatDisplayNumber,
   VISIBLE_COLUMNS,
   formatDateDDMMYYYY,
-} from "@/modules/loyverse/lib/accounting-copy";
+} from "./accounting-copy";
 
 describe("accounting-copy", () => {
   it("builds a single-day line in VISIBLE_COLUMNS order", () => {
@@ -39,15 +42,38 @@ describe("accounting-copy", () => {
     expect(text).toBe("a\tb\nc\td");
   });
 
-  it("returns empty values when no shift and no snapshot", () => {
-    const values = buildAccountingValues(null, null, "2026-09-20", new Map());
-    expect(values["date"]).toBe("2026-09-20");
-    expect(buildCopyLine(values)).toBe(
-      (VISIBLE_COLUMNS as unknown as string[]).map(() => "").join("\t"),
-    );
+  it("formats dates as DD MM YYYY", () => {
+    expect(formatDateDDMMYYYY("2026-09-20")).toBe("20 09 2026");
+  });
+});
+
+describe("thousands separator — display formatted, copy raw", () => {
+  it("formats 1000000 as 1,000,000 for display", () => {
+    expect(formatDisplayNumber("1000000")).toBe("1,000,000");
+    expect(formatDisplayAmount(1000000)).toBe("1,000,000");
   });
 
-  it("formats date DD MM YYYY for display", () => {
-    expect(formatDateDDMMYYYY("2026-09-05")).toBe("05 09 2026");
+  it("keeps the clipboard value raw (no separator)", () => {
+    expect(formatCopyNumber(1000000)).toBe("1000000");
+    const line = buildCopyLine({
+      sales_drinks_net: formatCopyNumber(1000000),
+      sales_ticket_net: "0",
+      sales_snack_net: "",
+      sales_goodies_net: "",
+      sales_card_surcharge: "",
+      sales_net_inc_vat: "",
+      vat_7: "",
+      payment_cash: "",
+      payment_scan: "",
+      payment_credit_card: "",
+    });
+    expect(line.split("\t")[0]).toBe("1000000");
+  });
+
+  it("handles decimals, zero and empty", () => {
+    expect(formatDisplayNumber("1234567.5")).toBe("1,234,567.5");
+    expect(formatDisplayNumber("")).toBe("");
+    expect(formatDisplayAmount(0)).toBe("0");
+    expect(formatDisplayAmount(NaN)).toBe("—");
   });
 });

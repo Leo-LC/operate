@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import {
   StarIcon, CalendarDaysIcon, ClockIcon, BanknoteIcon,
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
-  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon,
+  UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon, CopyIcon,
   SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, CrownIcon, StoreIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -74,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "recurring-costs", label: "Recurring costs", href: "/finance/recurring-costs", icon: ReceiptTextIcon, module: "reports" },
       { id: "shop-settings", label: "Shop settings", href: "/finance/shop-settings", icon: SlidersHorizontalIcon, module: "reports" },
       { id: "accounting", label: "Accounting", href: "/accounting", icon: CalculatorIcon, module: "accounting" },
+      { id: "loyverse-export", label: "Loyverse Export", href: "/loyverse-export", icon: CopyIcon, module: "accounting" },
       { id: "treasury", label: "Treasury", href: "/treasury", icon: VaultIcon, module: "treasury" },
     ],
   },
