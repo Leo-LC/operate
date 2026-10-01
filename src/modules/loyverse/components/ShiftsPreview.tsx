@@ -11,6 +11,7 @@ import "react-day-picker/style.css";
 import { startOfMonth } from "date-fns";
 import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay, toDay } from "@/lib/loyverse/dates";
 import { resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
+import { fmtNum, isZeroDiff, summarizeCashControl, summarizeCashMovements, summarizePayments, summarizeSales, type ShiftLike } from "@/modules/loyverse/lib/shift-summary";
 
 function fmtTHB(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -425,6 +426,177 @@ function SalesItemBlock({ rows }: { rows: SalesRow[] }) {
   );
 }
 
+function AmountCell({ value, strong = false }: { value: number; strong?: boolean }) {
+  return (
+    <td className={`px-2 py-1.5 text-right font-mono tabular-nums ${strong ? "font-semibold text-[var(--fg)]" : "text-[var(--fg-2)]"}`}>
+      {fmtNum(value)}
+    </td>
+  );
+}
+
+function BlockTitle({ children }: { children: React.ReactNode }) {
+  return <p className="px-1 text-xs font-semibold text-[var(--fg-3)]">{children}</p>;
+}
+
+function ShiftSummary({ shifts, paymentMap }: { shifts: ShiftLike[]; paymentMap: Map<string, string> }) {
+  const sales = React.useMemo(() => summarizeSales(shifts), [shifts]);
+  const payments = React.useMemo(() => summarizePayments(shifts, paymentMap), [shifts, paymentMap]);
+  const cash = React.useMemo(() => summarizeCashControl(shifts), [shifts]);
+  const movements = React.useMemo(() => summarizeCashMovements(shifts), [shifts]);
+
+  const salesRows: { label: string; value: number | null; strong?: boolean }[] = [
+    { label: "Ventes brutes", value: sales.gross_sales },
+    { label: "Remises", value: sales.discounts },
+    { label: "Remboursements", value: sales.refunds },
+    { label: "Ventes nettes", value: sales.net_sales, strong: true },
+    { label: "Taxes enregistrées", value: sales.taxes },
+    { label: "Suppléments", value: sales.surcharge },
+  ].filter((r) => r.value !== null);
+  const cashRows: { label: string; value: number | null; prefix?: string; strong?: boolean }[] = [
+    { label: "Fond de caisse initial", value: cash.starting_cash },
+    { label: "Paiements en espèces", value: cash.cash_payments, prefix: "+" },
+    { label: "Entrées de caisse", value: cash.paid_in, prefix: "+" },
+    { label: "Sorties de caisse", value: cash.paid_out, prefix: "−" },
+    { label: "Remboursements en espèces", value: cash.cash_refunds, prefix: "−" },
+    { label: "Espèces attendues", value: cash.expected_cash, strong: true },
+    { label: "Espèces comptées", value: cash.actual_cash, strong: true },
+  ].filter((r) => r.value !== null);
+
+  const paymentTotal = payments.reduce((a, l) => a + l.amount, 0);
+  const outTotal = movements.filter((m) => m.kind === "out").reduce((a, m) => a + m.amount, 0);
+  const inTotal = movements.filter((m) => m.kind === "in").reduce((a, m) => a + m.amount, 0);
+  const diffOk = cash.difference !== null && isZeroDiff(cash.difference);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <BlockTitle>Ventes</BlockTitle>
+          {salesRows.length === 0 ? (
+            <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de totaux de ventes dans ce shift.</p>
+          ) : (
+            <div className="overflow-hidden rounded border border-[var(--line)]">
+              <table className="w-full text-xs">
+                <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                  <tr><th className="px-2 py-1.5 text-left font-medium">Indicateur</th><th className="px-2 py-1.5 text-right font-medium">THB</th></tr>
+                </thead>
+                <tbody>
+                  {salesRows.map((r) => (
+                    <tr key={r.label} className={`border-t border-[var(--line)] first:border-t-0 ${r.strong ? "bg-[var(--bg-2)]" : ""}`}>
+                      <td className={`px-2 py-1.5 ${r.strong ? "font-semibold" : "font-medium"}`}>{r.label}</td>
+                      <AmountCell value={r.value as number} strong={r.strong} />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <BlockTitle>Répartition des paiements</BlockTitle>
+          {payments.length === 0 ? (
+            <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de paiements dans ce shift.</p>
+          ) : (
+            <div className="overflow-hidden rounded border border-[var(--line)]">
+              <table className="w-full text-xs">
+                <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                  <tr><th className="px-2 py-1.5 text-left font-medium">Moyen de paiement</th><th className="px-2 py-1.5 text-right font-medium">THB</th></tr>
+                </thead>
+                <tbody>
+                  {payments.map((p) => (
+                    <tr key={p.id} className="border-t border-[var(--line)] first:border-t-0">
+                      <td className="px-2 py-1.5 font-medium">{p.label}</td>
+                      <AmountCell value={p.amount} />
+                    </tr>
+                  ))}
+                  <tr className="border-t border-[var(--line)] bg-[var(--bg-2)]">
+                    <td className="px-2 py-1.5 font-semibold">Total encaissé</td>
+                    <AmountCell value={paymentTotal} strong />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <BlockTitle>Contrôle de caisse</BlockTitle>
+        {cashRows.length === 0 && cash.difference === null ? (
+          <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de contrôle de caisse dans ce shift.</p>
+        ) : (
+          <div className="overflow-hidden rounded border border-[var(--line)]">
+            <table className="w-full text-xs">
+              <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                <tr><th className="px-2 py-1.5 text-left font-medium">Élément</th><th className="px-2 py-1.5 text-right font-medium">THB</th></tr>
+              </thead>
+              <tbody>
+                {cashRows.map((r) => (
+                  <tr key={r.label} className={`border-t border-[var(--line)] first:border-t-0 ${r.strong ? "bg-[var(--bg-2)]" : ""}`}>
+                    <td className={`px-2 py-1.5 ${r.strong ? "font-semibold" : ""}`}>
+                      {r.prefix ? <span className="mr-1 text-[var(--fg-4)]">{r.prefix}</span> : null}{r.label}
+                    </td>
+                    <AmountCell value={r.value as number} strong={r.strong} />
+                  </tr>
+                ))}
+                {cash.difference !== null && (
+                  <tr className="border-t border-[var(--line)]">
+                    <td className="px-2 py-1.5">
+                      <span className="inline-flex items-center gap-2 font-semibold">
+                        Écart de caisse
+                        <Pill tone={diffOk ? "good" : "bad"} size="sm" dot>{diffOk ? "OK" : "À vérifier"}</Pill>
+                      </span>
+                    </td>
+                    <td className={`px-2 py-1.5 text-right font-mono tabular-nums font-semibold ${diffOk ? "text-[var(--good)]" : "text-[var(--bad)]"}`}>
+                      {fmtNum(cash.difference)}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <BlockTitle>Détail des mouvements de caisse</BlockTitle>
+        {movements.length === 0 ? (
+          <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Aucun mouvement de caisse.</p>
+        ) : (
+          <div className="overflow-hidden rounded border border-[var(--line)]">
+            <table className="w-full text-xs">
+              <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
+                <tr><th className="px-2 py-1.5 text-left font-medium">Mouvement</th><th className="px-2 py-1.5 text-left font-medium">Motif</th><th className="px-2 py-1.5 text-right font-medium">THB</th></tr>
+              </thead>
+              <tbody>
+                {movements.map((m, i) => (
+                  <tr key={`${m.label}-${m.reason}-${i}`} className="border-t border-[var(--line)] first:border-t-0">
+                    <td className="px-2 py-1.5 font-medium whitespace-nowrap">{m.label}</td>
+                    <td className="px-2 py-1.5 text-[var(--fg-2)]">{m.reason}</td>
+                    <AmountCell value={m.amount} />
+                  </tr>
+                ))}
+                {inTotal > 0 && (
+                  <tr className="border-t border-[var(--line)] bg-[var(--bg-2)]">
+                    <td className="px-2 py-1.5 font-semibold" colSpan={2}>Total des entrées</td>
+                    <AmountCell value={inTotal} strong />
+                  </tr>
+                )}
+                {outTotal > 0 && (
+                  <tr className="border-t border-[var(--line)] bg-[var(--bg-2)]">
+                    <td className="px-2 py-1.5 font-semibold" colSpan={2}>Total des sorties</td>
+                    <AmountCell value={outTotal} strong />
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CollapsibleSection({ title, icon, defaultOpen = true, children }: { title: string; icon: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
@@ -801,7 +973,19 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                 paymentMap={paymentMap}
               />
             </CollapsibleSection>
-            <CollapsibleSection title="Shift — détail brut" icon={<ClockIcon className="size-3.5" />} defaultOpen>
+            <CollapsibleSection title="Shift — synthèse" icon={<ClockIcon className="size-3.5" />} defaultOpen>
+              {shiftForStore.length === 0 || shiftForStore.every((r) => r.shifts.length === 0) ? (
+                <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
+              ) : (
+                <>
+                  <ShiftSummary shifts={shiftForStore.flatMap((r) => r.shifts as ShiftLike[])} paymentMap={paymentMap} />
+                  {totalShifts > 1 && (
+                    <p className="px-1 text-[11px] text-[var(--fg-4)]">{totalShifts} shifts agrégés sur la journée.</p>
+                  )}
+                </>
+              )}
+            </CollapsibleSection>
+            <CollapsibleSection title="Shift — détail brut" icon={<ClockIcon className="size-3.5" />} defaultOpen={false}>
               {shiftForStore.length === 0 ? (
                 <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
               ) : (
