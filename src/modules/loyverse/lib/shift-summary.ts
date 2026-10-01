@@ -1,7 +1,7 @@
-// Helpers purs pour le résumé "Shift" (onglet Shift & Sales).
-// Agrègent le(s) shift(s) Loyverse bruts d'un jour/store en 4 blocs :
-// ventes, répartition des paiements, contrôle de caisse, mouvements de caisse.
-// Ne rajoute aucune ligne : chaque valeur vient d'une clé Loyverse existante.
+// Pure helpers for the "Shift" summary (Shift & Sales tab).
+// Aggregate the raw Loyverse shift(s) of a day/store into 4 blocks:
+// sales, payment breakdown, cash control, cash movements.
+// No invented rows: every value comes from an existing Loyverse key.
 
 export type ShiftLike = Record<string, unknown>;
 
@@ -18,7 +18,7 @@ export function hasKey(s: ShiftLike, k: string): boolean {
   return s[k] !== undefined && s[k] !== null;
 }
 
-/** Formate un montant avec 2 décimales, sans symbole (le « THB » est dans l'en-tête). */
+/** Formats an amount with 2 decimals, no symbol ("THB" lives in the header). */
 export function fmtNum(n: number): string {
   if (!Number.isFinite(n)) return "—";
   return new Intl.NumberFormat("en-US", {
@@ -126,7 +126,7 @@ export function summarizeCashMovements(shifts: ShiftLike[]): CashMovementLine[] 
       const kind: CashMovementLine["kind"] = raw === "PAY_IN" ? "in" : raw === "PAY_OUT" ? "out" : "other";
       out.push({
         kind,
-        label: raw === "PAY_IN" ? "Entrée" : raw === "PAY_OUT" ? "Sortie" : String(cm["type"] ?? "—"),
+        label: raw === "PAY_IN" ? "Pay in" : raw === "PAY_OUT" ? "Pay out" : String(cm["type"] ?? "—"),
         reason: String(cm["comment"] ?? cm["reason"] ?? "—"),
         amount: num(cm["money_amount"] ?? cm["amount"]),
       });
@@ -135,7 +135,7 @@ export function summarizeCashMovements(shifts: ShiftLike[]): CashMovementLine[] 
   return out;
 }
 
-/** Écart nul à 0,01 près (montants THB à 2 décimales). */
+/** Zero difference within 0.01 (THB amounts with 2 decimals). */
 export function isZeroDiff(v: number | null): boolean {
   if (v === null) return false;
   return Math.abs(v) < 0.005;
