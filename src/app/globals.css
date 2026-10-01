@@ -47,6 +47,7 @@
   *, *::before, *::after { box-sizing: border-box; }
 
   :root {
+    color-scheme: light;
     --canvas:        #f8fafc;
     --sidebar:       #ffffff;
     --surface:       #ffffff;
@@ -102,6 +103,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --canvas:        #18181a;
     --sidebar:       #1e1e20;
     --surface:       #1f1f22;
@@ -181,8 +183,9 @@
   .font-mono, [data-numeric] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-  input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
-  .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+  input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
+  .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.7; }
+  input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] { color-scheme: inherit; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
