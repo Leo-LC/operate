@@ -26,13 +26,22 @@ function MovementList({ items, emptyLabel }: { items: CashMovementLine[]; emptyL
     return <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{emptyLabel}</span>;
   }
   return (
-    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
+    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column" }}>
       {items.map((m, i) => (
-        <li key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <span style={{ color: "var(--fg-3)" }}>{m.reason}</span>
-          <span className="mono tabular-nums" style={{ whiteSpace: "nowrap", fontWeight: 500, color: "var(--fg)" }}>
+        <li
+          key={i}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto 1fr",
+            gap: 10,
+            padding: "3px 0",
+            borderTop: i > 0 ? "1px solid var(--line-2)" : "none",
+          }}
+        >
+          <span className="mono tabular-nums" style={{ whiteSpace: "nowrap", fontWeight: 500, color: "var(--fg)", textAlign: "right" }}>
             {formatDisplayAmount(m.amount)}
           </span>
+          <span style={{ color: "var(--fg-3)" }}>{m.reason}</span>
         </li>
       ))}
     </ul>
@@ -66,7 +75,7 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
       <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>
         Pay in / Pay out Loyverse — {movementCount} mouvement{movementCount > 1 ? "s" : ""} sur la plage
-        {` · IN ${formatDisplayAmount(totalInAll)} · OUT ${formatDisplayAmount(totalOutAll)}`}.
+        {` · OUT ${formatDisplayAmount(totalOutAll)} · IN ${formatDisplayAmount(totalInAll)}`}.
       </p>
 
       {!selectedStore ? (
@@ -85,8 +94,8 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
             <thead>
               <tr style={{ background: "var(--bg-2)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--fg-4)" }}>
                 <th style={{ whiteSpace: "nowrap", padding: "8px 10px", textAlign: "left", fontWeight: 500 }}>Date</th>
-                <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500 }}>Pay in</th>
-                <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500 }}>Pay out</th>
+                <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, borderLeft: "1px solid var(--line-2)" }}>Pay out</th>
+                <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 500, borderLeft: "1px solid var(--line-2)" }}>Pay in</th>
               </tr>
             </thead>
             <tbody>
@@ -95,18 +104,18 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
                   <td className="mono tabular-nums" style={{ whiteSpace: "nowrap", padding: "8px 10px", fontWeight: 500, verticalAlign: "top" }}>
                     {formatDateDDMMYYYY(date)}
                   </td>
-                  <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top" }}>
-                    {!hasData ? (
-                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
-                    ) : (
-                      <MovementList items={payIn} emptyLabel="—" />
-                    )}
-                  </td>
-                  <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top" }}>
+                  <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top", borderLeft: "1px solid var(--line-2)" }}>
                     {!hasData ? (
                       <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
                     ) : (
                       <MovementList items={payOut} emptyLabel="—" />
+                    )}
+                  </td>
+                  <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top", borderLeft: "1px solid var(--line-2)" }}>
+                    {!hasData ? (
+                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
+                    ) : (
+                      <MovementList items={payIn} emptyLabel="—" />
                     )}
                   </td>
                 </tr>
