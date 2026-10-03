@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 const DEFAULT_VISIBILITY: Record<string, boolean> = {
+  dashboard: true,
   loyverse: true,
   overview: true,
   comparaison: true,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDownIcon, InfoIcon, RefreshCwIcon, ShieldCheckIcon, WalletCardsIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, InfoIcon, RefreshCwIcon, ShieldCheckIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/filters/DateRangePicker";
@@ -35,6 +35,18 @@ function compactDateLabel(value: string) {
   });
 }
 
+function shiftDay(value: string, amount: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + amount));
+  return shifted.toISOString().slice(0, 10);
+}
+
+function diffDays(from: string, to: string) {
+  const [fy, fm, fd] = from.split("-").map(Number);
+  const [ty, tm, td] = to.split("-").map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
 function PeriodValue({ value, missing = false, large = false }: { value: number; missing?: boolean; large?: boolean }) {
   if (missing) return <span className="text-xl font-semibold text-[var(--fg-3)]">Non renseigné</span>;
   return (
@@ -56,20 +68,23 @@ function LoadingDashboard() {
   );
 }
 
-function DailyValue({ row, field }: { row: DailyProfitRow; field: "revenue" | "totalCosts" | "economicProfit" }) {
-  const missing = row.sourceStatus === "missing" && field !== "totalCosts";
-  if (missing) return <span className="text-[12px] text-[var(--fg-3)]">Non renseigné</span>;
+function TableCell({ row, field, missing }: { row: DailyProfitRow; field: "revenue" | "directExpenses" | "payroll" | "recurringCosts" | "serviceCharge" | "bonus" | "economicProfit"; missing?: boolean }) {
+  if (missing && (field === "revenue" || field === "economicProfit")) {
+    return <span className="text-[12px] text-[var(--fg-3)]">Non renseigné</span>;
+  }
+  const value = field === "bonus" ? (row.bonus ?? 0) : row[field];
   return (
     <span
-      className="font-mono text-[13px] font-semibold tabular-nums"
+      className="font-mono text-[12px] font-semibold tabular-nums"
       style={{ color: field === "economicProfit" ? (row.economicProfit >= 0 ? "var(--good)" : "var(--bad)") : "var(--fg)" }}
     >
-      {money(row[field])}
+      {money(value)}
     </span>
   );
 }
 
 export function DirectionExecutiveDashboard() {
+  const today = useMemo(() => bangkokToday(), []);
   const yesterday = useMemo(() => bangkokYesterday(), []);
   const [period, setPeriod] = useState<DateRangeValue>({ from: yesterday, to: yesterday });
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
@@ -110,26 +125,44 @@ export function DirectionExecutiveDashboard() {
     return () => controller.abort();
   }, [load]);
 
+  function shiftPeriod(amount: number) {
+    const length = diffDays(period.from, period.to);
+    let nextFrom = shiftDay(period.from, amount);
+    let nextTo = shiftDay(period.to, amount);
+    // Ne pas naviguer dans le futur : on borne la fin à aujourd'hui en gardant la durée.
+    if (nextTo > today) {
+      nextTo = today;
+      nextFrom = shiftDay(nextTo, -length);
+    }
+    setPeriod({ from: nextFrom, to: nextTo });
+  }
+
   const shopOptions: ShopOption[] = (data?.locations ?? []).map((location) => ({ id: location.id, name: location.name }));
   const sourceMissing = data ? data.daily.length === 0 || data.daily.every((row) => row.sourceStatus === "missing") : false;
   const sourcePartial = data ? data.daily.length === 0 || data.daily.some((row) => row.sourceStatus !== "complete") : false;
-  const periodLabel = period.from === period.to
-    ? dateLabel(period.to)
-    : `du ${dateLabel(period.from)} au ${dateLabel(period.to)}`;
+  const latestSheetDate = data?.coverage.latestSheetDate ?? null;
+  // La borne "saisies comptables" ne doit alerter que si des jours au-delà
+  // restent sans ventes (ni saisie, ni Loyverse).
+  const uncoveredAfterSheets = !!data && !!latestSheetDate && data.daily.some((row) => row.date > (latestSheetDate as string) && row.sourceStatus === "missing");
 
   return (
     <section className="mx-auto flex w-full max-w-[1480px] flex-col gap-4" aria-labelledby="boss-dashboard-title">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--fg-4)]">Direction</p>
-          <h1 id="boss-dashboard-title" className="text-2xl font-semibold tracking-[-0.025em] text-[var(--fg)]">Résultats estimés</h1>
-          <p className="mt-1 text-[13px] text-[var(--fg-3)]">{periodLabel}</p>
-        </div>
+      <header className="flex flex-col gap-3">
+        <h1 id="boss-dashboard-title" className="text-2xl font-semibold tracking-[-0.025em] text-[var(--fg)]">Résultats estimés</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={period} onChange={setPeriod} today={bangkokToday()} align="end" language="fr" />
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(-1)} disabled={loading} aria-label="Jour précédent">
+              <ChevronLeftIcon />
+            </Button>
+            <DateRangePicker value={period} onChange={setPeriod} today={today} align="start" language="fr" />
+            <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(1)} disabled={loading || period.to >= today} aria-label="Jour suivant">
+              <ChevronRightIcon />
+            </Button>
+          </div>
+          <div className="flex-1" />
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCwIcon className={loading ? "animate-spin" : ""} />
-            Actualiser les chiffres
+            Actualiser
           </Button>
         </div>
       </header>
@@ -140,13 +173,15 @@ export function DirectionExecutiveDashboard() {
           selected={selectedLocationIds}
           onChange={setSelectedLocationIds}
           allLabel="Toutes les boutiques"
+          getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
         />
       </div>
 
       <div className="flex items-start gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--fg-3)]">
         <InfoIcon className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
         <span>
-          Estimation : les charges mensuelles sont réparties par jour. Les heures supplémentaires, dépenses et mouvements de coffre non saisis peuvent faire varier le résultat.
+          Estimation : les ventes viennent de Loyverse et les charges mensuelles sont réparties par jour.
+          Les dépenses et mouvements de coffre non saisis peuvent faire varier le résultat.
         </span>
       </div>
 
@@ -162,11 +197,11 @@ export function DirectionExecutiveDashboard() {
 
       {data && (
         <>
-          {(sourcePartial || (data.coverage.latestSheetDate && data.coverage.latestSheetDate < period.to)) && (
+          {(sourcePartial || uncoveredAfterSheets) && (
             <div className="flex items-center gap-2 rounded-[var(--r-sm)] border border-[var(--warn)]/30 bg-[var(--warn-soft)] px-3 py-2 text-[12px] text-[var(--warn)]">
               <InfoIcon className="size-4 shrink-0" />
-              {data.coverage.latestSheetDate && data.coverage.latestSheetDate < period.to
-                ? `Données disponibles jusqu’au ${dateLabel(data.coverage.latestSheetDate)}.`
+              {uncoveredAfterSheets && latestSheetDate
+                ? `Saisies comptables jusqu’au ${dateLabel(latestSheetDate)} — ventes au-delà via Loyverse.`
                 : "Certaines boutiques ou journées ne sont pas renseignées sur cette période."}
             </div>
           )}
@@ -195,9 +230,56 @@ export function DirectionExecutiveDashboard() {
                 <div style={{ color: data.summary.economicProfit >= 0 ? "var(--good)" : "var(--bad)" }}>
                   <PeriodValue value={data.summary.economicProfit} missing={sourceMissing} large />
                 </div>
-                {!sourceMissing && <span className="text-[12px] text-[var(--fg-3)]">Marge estimée : {numberFormatter.format(data.summary.margin)} %</span>}
               </div>
             </CardContent>
+          </Card>
+
+          <Card flush>
+            <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
+              <CardTitle className="text-[15px]">Détail quotidien</CardTitle>
+              <CardDescription>Ventes, charges et résultat estimé — même lecture que l’onglet Résultat quotidien</CardDescription>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, textAlign: "left" }}>Date</th>
+                    <th style={thStyle}>Chiffre d’affaires</th>
+                    <th style={thStyle}>Charges d’exploitation</th>
+                    <th style={thStyle}>Salaires</th>
+                    <th style={thStyle}>Charges fixes</th>
+                    <th style={thStyle}>Service</th>
+                    <th style={thStyle}>Prime</th>
+                    <th style={thStyle}>Résultat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.daily.map((row) => {
+                    const missing = row.sourceStatus === "missing";
+                    return (
+                      <tr key={row.date} style={{ borderTop: "1px solid var(--line)" }}>
+                        <td style={tdLeft}>
+                          <span className="capitalize">{compactDateLabel(row.date)}</span>
+                          {row.sourceStatus !== "complete" && (
+                            <span className="block text-[10px] font-medium text-[var(--warn)]">
+                              {row.sourceStatus === "partial" ? "Données partielles" : "Ventes non renseignées"}
+                            </span>
+                          )}
+                        </td>
+                        <td style={tdNumber}><TableCell row={row} field="revenue" missing={missing} /></td>
+                        <td style={tdNumber}><TableCell row={row} field="directExpenses" /></td>
+                        <td style={tdNumber}><TableCell row={row} field="payroll" /></td>
+                        <td style={tdNumber}><TableCell row={row} field="recurringCosts" /></td>
+                        <td style={tdNumber}><TableCell row={row} field="serviceCharge" /></td>
+                        <td style={tdNumber}><TableCell row={row} field="bonus" /></td>
+                        <td style={tdNumber}><TableCell row={row} field="economicProfit" missing={missing} /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {data.daily.length === 0 && <p className="px-5 py-8 text-center text-[13px] text-[var(--fg-3)]">Aucune donnée pour cette période.</p>}
+            </div>
           </Card>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -213,7 +295,7 @@ export function DirectionExecutiveDashboard() {
                 {data.cashSafes.map((safe) => (
                   <div key={safe.locationId} className="flex items-center justify-between gap-4 py-3 first:pt-1 last:pb-1">
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium text-[var(--fg)]">{safe.locationName}</p>
+                      <p className="truncate text-[13px] font-medium text-[var(--fg)]">{safe.locationName.replace(/^Capybara Coffee\s*/i, "").trim() || safe.locationName}</p>
                       <p className="mt-0.5 text-[11px] text-[var(--fg-3)]">
                         {!safe.asOf ? "Non renseigné" : safe.isStale ? `Dernière saisie le ${dateLabel(safe.asOf)}` : `À jour au ${dateLabel(safe.asOf)}`}
                       </p>
@@ -255,34 +337,13 @@ export function DirectionExecutiveDashboard() {
               )}
             </Card>
           </div>
-
-          <Card flush>
-            <div className="border-b border-[var(--line)] px-4 py-4 sm:px-5">
-              <CardTitle className="text-[15px]">Jour par jour</CardTitle>
-              <CardDescription>Ventes, dépenses et résultat estimé</CardDescription>
-            </div>
-            <div className="hidden grid-cols-[minmax(130px,1fr)_repeat(3,minmax(120px,1fr))] gap-4 border-b border-[var(--line)] bg-[var(--surface-2)] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-4)] md:grid">
-              <span>Date</span><span className="text-right">Ventes</span><span className="text-right">Dépenses</span><span className="text-right">Résultat</span>
-            </div>
-            <div className="divide-y divide-[var(--line)]">
-              {data.daily.length === 0 && <p className="px-5 py-8 text-center text-[13px] text-[var(--fg-3)]">Aucune donnée pour cette période.</p>}
-              {data.daily.map((row) => (
-                <div key={row.date} className="grid grid-cols-3 gap-x-3 gap-y-3 px-4 py-4 md:grid-cols-[minmax(130px,1fr)_repeat(3,minmax(120px,1fr))] md:items-center md:gap-4 md:px-5 md:py-3">
-                  <div className="col-span-3 flex items-center justify-between gap-2 md:col-span-1 md:block">
-                    <span className="text-[13px] font-medium capitalize text-[var(--fg)]">{compactDateLabel(row.date)}</span>
-                    {row.sourceStatus !== "complete" && (
-                      <span className="text-[10px] font-medium text-[var(--warn)]">{row.sourceStatus === "partial" ? "Données partielles" : "Ventes non renseignées"}</span>
-                    )}
-                  </div>
-                  <div><span className="mb-1 block text-[10px] uppercase text-[var(--fg-4)] md:hidden">Ventes</span><div className="md:text-right"><DailyValue row={row} field="revenue" /></div></div>
-                  <div><span className="mb-1 block text-[10px] uppercase text-[var(--fg-4)] md:hidden">Dépenses</span><div className="md:text-right"><DailyValue row={row} field="totalCosts" /></div></div>
-                  <div><span className="mb-1 block text-[10px] uppercase text-[var(--fg-4)] md:hidden">Résultat</span><div className="md:text-right"><DailyValue row={row} field="economicProfit" /></div></div>
-                </div>
-              ))}
-            </div>
-          </Card>
         </>
       )}
     </section>
   );
 }
+
+const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 12 };
+const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)", fontWeight: 500, textAlign: "right", background: "var(--bg-2)", whiteSpace: "nowrap" };
+const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };
+const tdNumber: React.CSSProperties = { padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", fontFamily: "var(--font-mono)" };

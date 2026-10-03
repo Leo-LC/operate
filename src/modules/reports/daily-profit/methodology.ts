@@ -1,6 +1,6 @@
 export const DAILY_PROFIT_METHODOLOGY = {
-  version: "Simplified v3 · 2026-09-03",
-  formula: "Revenue − Sheet expenses excl. HR − salaries − fixed costs − service charge − challenge bonus",
+  version: "Simplified v4 · 2026-10-03",
+  formula: "Loyverse revenue − Sheet expenses excl. HR − salaries − fixed costs − service charge − challenge bonus",
   revenueFields: [
     "sales_drinks_net",
     "sales_ticket_net",
@@ -27,6 +27,8 @@ export const DAILY_PROFIT_METHODOLOGY = {
     "hr_accompte_cash",
   ],
   rules: [
+    "Sales, payments and VAT come from Loyverse snapshots when available (source of truth), otherwise from the sheet revenue fields.",
+    "A day with Loyverse sales but no accounting entry still shows its sales; daily charges may then be understated.",
     "Salaries, rent, electricity, water, other fixed costs and challenge bonus are entered per shop and per month (via Monthly snapshots or manual entry).",
     "Monthly amounts are spread across all calendar days of the month, in Bangkok time.",
     "Each day's service charge equals the day's revenue × the shop's rate × number of employees.",

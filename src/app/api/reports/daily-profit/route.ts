@@ -39,6 +39,10 @@ export async function GET(request: Request) {
 
   try {
     const isManager = permissions.global_role === "owner" || permissions.global_role === "admin";
+    // Direction sans affectation explicite voit tous les shops (all_locations=true).
+    // getAllowedLocationIds() renvoie [] dans ce cas, ce qui vidait locations
+    // et affichait "aucune vente" (ex. Ekkamai le 24 sept) — on respecte donc
+    // le flag all_locations au lieu du tableau vide.
     const allowedLocationIds = permissions.all_locations
       ? null
       : await getAllowedLocationIds(session.user.userId, isManager);

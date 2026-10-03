@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { calculateDailyProfit } from "./engine";
 import { buildCashSafeRows, type CashSafeSourceRow } from "./cash-safes";
+import { applyLoyverseOverlay, toSnapshotSale } from "./loyverse-overlay";
 import { filterAllowedLocations } from "./access";
 import { DAILY_PROFIT_METHODOLOGY } from "./methodology";
 import {
@@ -92,7 +93,7 @@ export async function getDailyProfitData(
     }
   })();
 
-  const [locationsResult, entitiesResult, assignmentsResult, mirrorResult, sourceResult, inputsResult, syncResult, snapshotsResult, recurringRulesResult, recurringOverridesResult] = await Promise.all([
+  const [locationsResult, entitiesResult, assignmentsResult, mirrorResult, sourceResult, inputsResult, syncResult, snapshotsResult, recurringRulesResult, recurringOverridesResult, loyverseSalesRaw] = await Promise.all([
     supabase.from("locations").select("id,name,external_id").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_legal_entities").select("*").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_location_assignments").select("location_id,legal_entity_id,operational_start_date").eq("organization_id", DEFAULT_ORG_ID),
@@ -111,7 +112,13 @@ export async function getDailyProfitData(
       .eq("organization_id", DEFAULT_ORG_ID)
       .lte("service_from", extendedTo)
       .gte("service_to", extendedFrom),
+    // Ventes Loyverse (source de vérité) — lecture seule, best-effort.
+    supabase.from("loyverse_daily_snapshots")
+      .select("location_id,date,sales_drinks_net,sales_ticket_net,sales_snack_net,sales_goodies_net,sales_card_surcharge,vat_7,payment_cash,payment_scan,payment_credit_card")
+      .gte("date", extendedFrom)
+      .lte("date", extendedTo),
   ]);
+  const loyverseSalesResult = loyverseSalesRaw as unknown as { data: Array<Record<string, unknown>> | null; error: unknown };
   const firstError = [locationsResult, entitiesResult, assignmentsResult, inputsResult].find((result) => result.error)?.error;
   if (firstError) throw new Error(firstError.message);
 
@@ -155,6 +162,14 @@ export async function getDailyProfitData(
     const source = toSourceEntry(row as Record<string, unknown>, (row.payload ?? {}) as Record<string, unknown>);
     entryMap.set(`${source.locationId}:${source.date}`, source);
   }
+  const sheetEntries = Array.from(entryMap.values());
+  // Loyverse = source de vérité des ventes : les snapshots écrasent
+  // revenue/vat/cashIn (charges des saisies préservées) et comblent les
+  // jours sans saisie comptable.
+  const loyverseSnapshots = ((loyverseSalesResult.data ?? []) as Record<string, unknown>[])
+    .map(toSnapshotSale)
+    .filter((snap): snap is NonNullable<typeof snap> => snap !== null);
+  const loyverseOnlyKeys = applyLoyverseOverlay(entryMap, loyverseSnapshots);
   const allEntries = Array.from(entryMap.values());
   const rawMonthlyInputs = ((inputsResult.data ?? []) as FinanceShopMonthlyInput[]).filter((row) =>
     periodMonths.some((period) => period.year === Number(row.period_year) && period.month === Number(row.period_month)),
@@ -373,8 +388,17 @@ export async function getDailyProfitData(
     return { id: locationId, name: location.name, revenue: sum.revenue, costs, economicProfit: sum.economicProfit, margin: sum.revenue > 0 ? sum.economicProfit / sum.revenue * 100 : 0, estimatedAmount: 0 };
   }).sort((a, b) => b.economicProfit - a.economicProfit);
 
-  const selectedEntries = allEntries.filter((entry) => selectedLocationIds.includes(entry.locationId) && entry.date >= params.from && entry.date <= params.to);
-  const latestSheetDate = selectedEntries.map((entry) => entry.date).sort().at(-1) ?? null;
+  // Dernière saisie comptable (hors Loyverse) — les ventes peuvent être plus
+  // récentes via les snapshots.
+  const latestSheetDate = sheetEntries
+    .filter((entry) => selectedLocationIds.includes(entry.locationId) && entry.date >= params.from && entry.date <= params.to)
+    .map((entry) => entry.date).sort().at(-1) ?? null;
+  const loyverseOnlyDays = Array.from(loyverseOnlyKeys).filter((key) => {
+    const separator = key.lastIndexOf(":");
+    const locationId = key.slice(0, separator);
+    const date = key.slice(separator + 1);
+    return selectedLocationIds.includes(locationId) && date >= params.from && date <= params.to;
+  }).length;
   const missingInputs: string[] = [];
   for (const locationId of selectedLocationIds) {
     const locationName = locations.find((row) => row.id === locationId)?.name ?? "Shop";
@@ -388,6 +412,7 @@ export async function getDailyProfitData(
   if ((mirrorResult.data ?? []).length === 0) warnings.push("The finance mirror is empty: reading directly from Accounting data.");
   if (!syncResult.data?.enabled) warnings.push("Automatic Daily P&L synchronisation is disabled.");
   if (latestSheetDate && latestSheetDate < params.to) warnings.push(`Latest daily data available: ${latestSheetDate}.`);
+  if (loyverseOnlyDays > 0) warnings.push(`${loyverseOnlyDays} day(s) with Loyverse sales but no accounting entry: daily charges may be understated.`);
   if (missingInputs.length > 0) warnings.push(`${missingInputs.length} missing shop/month entry(ies), counted as zero.`);
 
   const shopSettings = monthlyInputs
