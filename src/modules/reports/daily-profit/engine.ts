@@ -30,12 +30,14 @@ export function monthDays(year: number, month: number): number {
 function emptyDay(date: string): DailyProfitRow {
   return {
     date,
+    sourceStatus: "missing",
     revenue: 0,
     directExpenses: 0,
     payroll: 0,
     recurringCosts: 0,
     serviceCharge: 0,
     bonus: 0,
+    totalCosts: 0,
     adjustments: 0,
     economicProfit: 0,
     margin: 0,
@@ -51,7 +53,20 @@ function inputKey(locationId: string, year: number, month: number) {
 }
 
 function fixedMonthlyTotal(input: FinanceShopMonthlyInput) {
+  if (input.recurring_breakdown) {
+    return Object.values(input.recurring_breakdown).reduce((sum, amount) => sum + Number(amount), 0);
+  }
   return Number(input.rent_amount) + Number(input.electricity_amount) + Number(input.water_amount) + Number(input.other_fixed_amount);
+}
+
+function recurringBreakdown(input: FinanceShopMonthlyInput) {
+  if (input.recurring_breakdown) return input.recurring_breakdown;
+  return {
+    rent: Number(input.rent_amount),
+    marketing: 0,
+    supportWorkers: 0,
+    other: Number(input.electricity_amount) + Number(input.water_amount) + Number(input.other_fixed_amount),
+  };
 }
 
 export function calculateDailyProfit(input: EngineInput): EngineOutput {
@@ -59,6 +74,7 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
   const locationMap = new Map(input.locations.map((location) => [location.id, location]));
   const monthlyInputMap = new Map(input.monthlyInputs.map((row) => [inputKey(row.location_id, row.period_year, row.period_month), row]));
   const dailyByLocation = new Map<string, Map<string, DailyProfitRow>>();
+  const recurringTotals = { rent: 0, marketing: 0, supportWorkers: 0, other: 0 };
 
   for (const locationId of input.selectedLocationIds) {
     const location = locationMap.get(locationId);
@@ -73,6 +89,7 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
     day.directExpenses += entry.directExpenses;
     day.cashIn += entry.cashIn;
     day.cashOut += entry.directExpenses + entry.hrCash;
+    day.sourceStatus = "complete";
   }
 
   for (const [locationId, days] of Array.from(dailyByLocation.entries())) {
@@ -83,12 +100,18 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
       const settings = monthlyInputMap.get(inputKey(locationId, year, month));
       if (settings) {
         const divisor = monthDays(year, month);
+        const breakdown = recurringBreakdown(settings);
         day.payroll = Number(settings.salaries_amount) / divisor;
         day.recurringCosts = fixedMonthlyTotal(settings) / divisor;
         day.serviceCharge = day.revenue * (Number(settings.service_charge_rate_pct) / 100) * Number(settings.employee_count);
         day.bonus = Number((settings as { bonus_amount?: number }).bonus_amount ?? 0) / divisor;
+        recurringTotals.rent += Number(breakdown.rent) / divisor;
+        recurringTotals.marketing += Number(breakdown.marketing) / divisor;
+        recurringTotals.supportWorkers += Number(breakdown.supportWorkers) / divisor;
+        recurringTotals.other += Number(breakdown.other) / divisor;
       }
-      day.economicProfit = day.revenue - day.directExpenses - day.payroll - day.recurringCosts - day.serviceCharge - day.bonus;
+      day.totalCosts = day.directExpenses + day.payroll + day.recurringCosts + day.serviceCharge + day.bonus;
+      day.economicProfit = day.revenue - day.totalCosts;
       day.margin = day.revenue > 0 ? day.economicProfit / day.revenue * 100 : 0;
     }
   }
@@ -104,5 +127,15 @@ export function calculateDailyProfit(input: EngineInput): EngineOutput {
       { key: "service_charge", label: "Service Charge", amount: total("serviceCharge"), status: "actual" as const },
       { key: "bonus", label: "Bonus", amount: total("bonus"), status: "actual" as const },
     ].sort((a, b) => b.amount - a.amount),
+    expenseBreakdown: [
+      { key: "operating", label: "Achats et exploitation", amount: total("directExpenses"), status: "actual" as const },
+      { key: "payroll", label: "Salaires", amount: total("payroll"), status: "estimated" as const },
+      { key: "rent", label: "Loyers", amount: recurringTotals.rent, status: "estimated" as const },
+      { key: "marketing", label: "Marketing", amount: recurringTotals.marketing, status: "estimated" as const },
+      { key: "support_workers", label: "Métiers support", amount: recurringTotals.supportWorkers, status: "estimated" as const },
+      { key: "other_recurring", label: "Autres charges fixes", amount: recurringTotals.other, status: "estimated" as const },
+      { key: "service_charge", label: "Service charge", amount: total("serviceCharge"), status: "estimated" as const },
+      { key: "bonus", label: "Primes et bonus", amount: total("bonus"), status: "estimated" as const },
+    ],
   };
 }

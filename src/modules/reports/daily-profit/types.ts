@@ -92,6 +92,12 @@ export interface FinanceShopMonthlyInput {
   service_charge_rate_pct: number;
   employee_count: number;
   bonus_amount?: number;
+  recurring_breakdown?: {
+    rent: number;
+    marketing: number;
+    supportWorkers: number;
+    other: number;
+  };
 }
 
 export interface PayrollPeriod {
@@ -104,12 +110,14 @@ export interface PayrollPeriod {
 
 export interface DailyProfitRow {
   date: string;
+  sourceStatus: "complete" | "partial" | "missing";
   revenue: number;
   directExpenses: number;
   payroll: number;
   recurringCosts: number;
   serviceCharge: number;
   bonus: number;
+  totalCosts: number;
   adjustments: number;
   economicProfit: number;
   margin: number;
@@ -117,6 +125,14 @@ export interface DailyProfitRow {
   cashOut: number;
   estimatedAmount: number;
   status: ValueStatus;
+}
+
+export interface CashSafeRow {
+  locationId: string;
+  locationName: string;
+  amount: number | null;
+  asOf: string | null;
+  isStale: boolean;
 }
 
 export interface ScopeProfitRow {
@@ -162,6 +178,8 @@ export interface DailyProfitResponse {
   daily: DailyProfitRow[];
   byScope: ScopeProfitRow[];
   categories: CategoryProfitRow[];
+  expenseBreakdown: CategoryProfitRow[];
+  cashSafes: CashSafeRow[];
   coverage: {
     score: number;
     mirrorActive: boolean;
@@ -206,4 +224,5 @@ export interface EngineInput {
 export interface EngineOutput {
   dailyByLocation: Map<string, Map<string, DailyProfitRow>>;
   categories: CategoryProfitRow[];
+  expenseBreakdown: CategoryProfitRow[];
 }

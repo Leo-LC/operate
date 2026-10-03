@@ -1,7 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { calculateDailyProfit } from "./engine";
+import { buildCashSafeRows, type CashSafeSourceRow } from "./cash-safes";
+import { filterAllowedLocations } from "./access";
 import { DAILY_PROFIT_METHODOLOGY } from "./methodology";
+import {
+  buildRecurringCostBreakdowns,
+  recurringMonthKey,
+  type RecurringCostOverrideRow,
+  type RecurringCostRuleRow,
+} from "./recurring-costs";
 import type {
   DailyProfitResponse,
   DailyProfitRow,
@@ -58,12 +66,13 @@ function sumDays(days: Iterable<DailyProfitRow>) {
     recurringCosts: acc.recurringCosts + day.recurringCosts,
     serviceCharge: acc.serviceCharge + day.serviceCharge,
     bonus: (acc.bonus ?? 0) + (day.bonus ?? 0),
+    totalCosts: acc.totalCosts + day.totalCosts,
     adjustments: 0,
     economicProfit: acc.economicProfit + day.economicProfit,
     cashIn: acc.cashIn + day.cashIn,
     cashOut: acc.cashOut + day.cashOut,
     estimatedAmount: 0,
-  }), { revenue: 0, directExpenses: 0, payroll: 0, recurringCosts: 0, serviceCharge: 0, bonus: 0, adjustments: 0, economicProfit: 0, cashIn: 0, cashOut: 0, estimatedAmount: 0 } as { revenue: number; directExpenses: number; payroll: number; recurringCosts: number; serviceCharge: number; bonus: number; adjustments: number; economicProfit: number; cashIn: number; cashOut: number; estimatedAmount: number });
+  }), { revenue: 0, directExpenses: 0, payroll: 0, recurringCosts: 0, serviceCharge: 0, bonus: 0, totalCosts: 0, adjustments: 0, economicProfit: 0, cashIn: 0, cashOut: 0, estimatedAmount: 0 } as { revenue: number; directExpenses: number; payroll: number; recurringCosts: number; serviceCharge: number; bonus: number; totalCosts: number; adjustments: number; economicProfit: number; cashIn: number; cashOut: number; estimatedAmount: number });
 }
 
 export async function getDailyProfitData(
@@ -83,7 +92,7 @@ export async function getDailyProfitData(
     }
   })();
 
-  const [locationsResult, entitiesResult, assignmentsResult, mirrorResult, sourceResult, inputsResult, syncResult, snapshotsResult] = await Promise.all([
+  const [locationsResult, entitiesResult, assignmentsResult, mirrorResult, sourceResult, inputsResult, syncResult, snapshotsResult, recurringRulesResult, recurringOverridesResult] = await Promise.all([
     supabase.from("locations").select("id,name,external_id").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_legal_entities").select("*").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).order("name"),
     supabase.from("finance_location_assignments").select("location_id,legal_entity_id,operational_start_date").eq("organization_id", DEFAULT_ORG_ID),
@@ -92,13 +101,22 @@ export async function getDailyProfitData(
     supabase.from("finance_shop_monthly_inputs").select("*").eq("organization_id", DEFAULT_ORG_ID).gte("period_year", periodMonths[0]?.year ?? 2000).lte("period_year", periodMonths.at(-1)?.year ?? 2200),
     supabase.from("finance_sync_config").select("enabled,last_run_at,last_run_result").eq("organization_id", DEFAULT_ORG_ID).maybeSingle(),
     snapshotsPromise,
+    supabase.from("recurring_costs")
+      .select("id,location_id,category,scope_type,cadence,estimated_amount,effective_from,effective_to")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .eq("is_active", true)
+      .neq("category", "legacy_fixed_expenses"),
+    supabase.from("recurring_cost_overrides")
+      .select("cost_rule_id,service_from,service_to,amount")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .lte("service_from", extendedTo)
+      .gte("service_to", extendedFrom),
   ]);
   const firstError = [locationsResult, entitiesResult, assignmentsResult, inputsResult].find((result) => result.error)?.error;
   if (firstError) throw new Error(firstError.message);
 
   const assignmentMap = new Map(((assignmentsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => [String(row.location_id), row as unknown as { legal_entity_id: string | null; operational_start_date: string | null }]));
-  const locations: FinanceLocation[] = (locationsResult.data ?? [])
-    .filter((row) => !params.allowedLocationIds || params.allowedLocationIds.includes(String(row.id)))
+  const locations: FinanceLocation[] = filterAllowedLocations(locationsResult.data ?? [], params.allowedLocationIds)
     .map((row) => {
       const assignment = assignmentMap.get(String(row.id));
       return {
@@ -109,6 +127,24 @@ export async function getDailyProfitData(
       };
     });
   const selectedLocationIds = locations.filter((location) => params.scopeType === "group" || params.scopeIds.includes(location.id)).map((location) => location.id);
+  const recurringBreakdowns = buildRecurringCostBreakdowns({
+    periods: periodMonths,
+    locationIds: selectedLocationIds,
+    rules: ((recurringRulesResult.data ?? []) as unknown as RecurringCostRuleRow[]),
+    overrides: ((recurringOverridesResult.data ?? []) as unknown as RecurringCostOverrideRow[]),
+  });
+  const cashSafeRowsPromise = Promise.all(selectedLocationIds.map(async (locationId) => {
+    const result = await supabase
+      .from("daily_entries")
+      .select("location_id,entry_date,cash_safe")
+      .eq("organization_id", DEFAULT_ORG_ID)
+      .eq("location_id", locationId)
+      .lte("entry_date", params.to)
+      .order("entry_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return result.error ? null : result.data;
+  }));
 
   const entryMap = new Map<string, SourceDailyEntry>();
   for (const row of sourceResult.data ?? []) {
@@ -183,15 +219,10 @@ export async function getDailyProfitData(
   }
   if (stillMissing.length > 0) {
     try {
-      const [costRulesRes, employeesRes, shopSettingsRes] = await Promise.all([
-        supabase.from("recurring_costs").select("location_id,estimated_amount").eq("organization_id", DEFAULT_ORG_ID).eq("is_active", true).neq("category", "legacy_fixed_expenses"),
+      const [employeesRes, shopSettingsRes] = await Promise.all([
         supabase.from("employees").select("id, location_id, base_salary_monthly, employee_locations(location_id, base_salary_monthly)").eq("organization_id", DEFAULT_ORG_ID).eq("active", true),
         supabase.from("finance_shop_settings").select("location_id,service_charge_rate_pct").eq("organization_id", DEFAULT_ORG_ID),
       ]);
-      const costByLoc = new Map<string, number>();
-      for (const r of (costRulesRes.data as Array<{ location_id: string; estimated_amount: number }> | null) ?? []) {
-        costByLoc.set(String(r.location_id), (costByLoc.get(String(r.location_id)) ?? 0) + Number(r.estimated_amount ?? 0));
-      }
       const payrollByLoc: Record<string, number> = {};
       const countByLoc: Record<string, number> = {};
       for (const emp of (employeesRes.data as Array<{ id: string; location_id: string | null; base_salary_monthly: number | null; employee_locations: Array<{ location_id: string; base_salary_monthly: number | null }> | null }> | null) ?? []) {
@@ -242,6 +273,7 @@ export async function getDailyProfitData(
       for (const { locationId, period } of stillMissing) {
         const key = `${locationId}:${period.year}-${period.month}`;
         const monthKey = `${period.year}-${String(period.month).padStart(2, "0")}`;
+        const recurring = recurringBreakdowns.get(recurringMonthKey(locationId, period.year, period.month));
         const rawBonus = bonusByKey.get(monthKey)?.get(locationId) ?? 0;
         const empCountForBonus = countByLoc[locationId] ?? 0;
         const bonus = rawBonus > 0 && empCountForBonus > 0 ? rawBonus * empCountForBonus : rawBonus;
@@ -254,14 +286,40 @@ export async function getDailyProfitData(
           rent_amount: 0,
           electricity_amount: 0,
           water_amount: 0,
-          other_fixed_amount: costByLoc.get(locationId) ?? 0,
+          other_fixed_amount: recurring ? recurring.rent + recurring.marketing + recurring.supportWorkers + recurring.other : 0,
           service_charge_rate_pct: rateByLoc.get(locationId) ?? 0,
           employee_count: countByLoc[locationId] ?? 0,
           bonus_amount: bonus,
+          recurring_breakdown: recurring ? {
+            rent: recurring.rent,
+            marketing: recurring.marketing,
+            supportWorkers: recurring.supportWorkers,
+            other: recurring.other,
+          } : undefined,
         });
         seenKeys.add(key);
       }
     } catch { /* fallback is best-effort */ }
+  }
+
+  // Live recurring-cost rules are the canonical source for their categories.
+  // Payroll, service charge and bonus continue to come from the monthly input
+  // or snapshot so the existing finance workflow remains unchanged.
+  for (const row of monthlyInputs) {
+    const recurring = recurringBreakdowns.get(
+      recurringMonthKey(row.location_id, Number(row.period_year), Number(row.period_month)),
+    );
+    if (!recurring?.hasRules) continue;
+    row.recurring_breakdown = {
+      rent: recurring.rent,
+      marketing: recurring.marketing,
+      supportWorkers: recurring.supportWorkers,
+      other: recurring.other,
+    };
+    row.rent_amount = recurring.rent;
+    row.electricity_amount = 0;
+    row.water_amount = 0;
+    row.other_fixed_amount = recurring.marketing + recurring.supportWorkers + recurring.other;
   }
 
   const engine = calculateDailyProfit({
@@ -276,13 +334,14 @@ export async function getDailyProfitData(
   const allDays = new Map<string, DailyProfitRow>();
   for (const days of Array.from(engine.dailyByLocation.values())) {
     for (const [date, day] of Array.from(days.entries())) {
-      const target = allDays.get(date) ?? { ...day, revenue: 0, directExpenses: 0, payroll: 0, recurringCosts: 0, serviceCharge: 0, bonus: 0, adjustments: 0, economicProfit: 0, margin: 0, cashIn: 0, cashOut: 0, estimatedAmount: 0, status: "actual" as const };
+      const target = allDays.get(date) ?? { ...day, sourceStatus: "missing" as const, revenue: 0, directExpenses: 0, payroll: 0, recurringCosts: 0, serviceCharge: 0, bonus: 0, totalCosts: 0, adjustments: 0, economicProfit: 0, margin: 0, cashIn: 0, cashOut: 0, estimatedAmount: 0, status: "actual" as const };
       target.revenue += day.revenue;
       target.directExpenses += day.directExpenses;
       target.payroll += day.payroll;
       target.recurringCosts += day.recurringCosts;
       target.serviceCharge += day.serviceCharge;
       target.bonus += day.bonus ?? 0;
+      target.totalCosts += day.totalCosts;
       target.economicProfit += day.economicProfit;
       target.cashIn += day.cashIn;
       target.cashOut += day.cashOut;
@@ -290,13 +349,27 @@ export async function getDailyProfitData(
       allDays.set(date, target);
     }
   }
-  const daily = Array.from(allDays.values()).sort((a, b) => a.date.localeCompare(b.date));
+  const availableLocationsByDate = new Map<string, Set<string>>();
+  for (const entry of allEntries) {
+    if (!selectedLocationIds.includes(entry.locationId) || entry.date < params.from || entry.date > params.to) continue;
+    const available = availableLocationsByDate.get(entry.date) ?? new Set<string>();
+    available.add(entry.locationId);
+    availableLocationsByDate.set(entry.date, available);
+  }
+  const daily = Array.from(allDays.values())
+    .map((day) => {
+      const expected = selectedLocationIds.filter((locationId) => engine.dailyByLocation.get(locationId)?.has(day.date)).length;
+      const available = availableLocationsByDate.get(day.date)?.size ?? 0;
+      day.sourceStatus = available === 0 ? "missing" : available < expected ? "partial" : "complete";
+      return day;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
   const totals = sumDays(daily);
-  const totalCosts = totals.directExpenses + totals.payroll + totals.recurringCosts + totals.serviceCharge + totals.bonus;
+  const totalCosts = totals.totalCosts;
   const byScope = selectedLocationIds.map((locationId) => {
     const location = locations.find((row) => row.id === locationId)!;
     const sum = sumDays(engine.dailyByLocation.get(locationId)?.values() ?? []);
-    const costs = sum.directExpenses + sum.payroll + sum.recurringCosts + sum.serviceCharge + sum.bonus;
+    const costs = sum.totalCosts;
     return { id: locationId, name: location.name, revenue: sum.revenue, costs, economicProfit: sum.economicProfit, margin: sum.revenue > 0 ? sum.economicProfit / sum.revenue * 100 : 0, estimatedAmount: 0 };
   }).sort((a, b) => b.economicProfit - a.economicProfit);
 
@@ -330,6 +403,12 @@ export async function getDailyProfitData(
   const scopeLabel = params.scopeType === "group"
     ? "Global"
     : locations.filter((location) => params.scopeIds.includes(location.id)).map((location) => location.name).join(" + ") || "Shop";
+  const cashSafeSourceRows = (await cashSafeRowsPromise) as Array<CashSafeSourceRow | null>;
+  const cashSafes = buildCashSafeRows(
+    locations.filter((location) => selectedLocationIds.includes(location.id)),
+    cashSafeSourceRows,
+    params.to,
+  );
 
   return {
     period: { from: params.from, to: params.to },
@@ -342,6 +421,8 @@ export async function getDailyProfitData(
     daily,
     byScope,
     categories: engine.categories,
+    expenseBreakdown: engine.expenseBreakdown,
+    cashSafes,
     coverage: {
       score: Math.max(0, 100 - warnings.length * 10 - missingInputs.length * 5),
       mirrorActive: (mirrorResult.data ?? []).length > 0,
