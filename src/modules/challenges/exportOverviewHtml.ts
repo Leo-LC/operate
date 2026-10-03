@@ -124,15 +124,16 @@ function salesTargetCell(loc: LocationOverview, teamMode?: boolean): string {
   return `${amountStr} / ${thresholdStr} ฿`;
 }
 
-function buildSummaryRows(locations: LocationOverview[], teamMode?: boolean): string {
+function buildSummaryRows(locations: LocationOverview[], teamMode?: boolean, adjustedIds?: Set<string>): string {
   return locations
     .map((loc, idx) => {
       const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
       const merchPasses = loc.merchandising.tier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
       const rowCls = idx % 2 === 1 ? ' class="alt"' : "";
+      const adjustedTag = adjustedIds?.has(loc.locationId) ? ' <span class="adjusted-tag">Adjusted</span>' : "";
 
       return `<tr${rowCls}>
-        <td class="shop">${escHtml(shortName(loc.locationTitle))}</td>
+        <td class="shop">${escHtml(shortName(loc.locationTitle))}${adjustedTag}</td>
         <td>${salesTargetCell(loc, teamMode)}</td>
         <td class="bonus-total">${loc.totalBonus > 0 ? `<span class="pass">${loc.totalBonus.toLocaleString()} ฿</span>` : '<span class="muted">0 ฿</span>'}</td>
         <td>${metricSummaryCell(merchPasses, pct(loc.merchandising.ratio), loc.merchandising.bonus, false, 0, teamMode, teamMode ? buildMerchContext(loc) : undefined)}</td>
@@ -229,10 +230,11 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
   ];
 }
 
-function buildLocationBlock(loc: LocationOverview, teamMode?: boolean): string {
+function buildLocationBlock(loc: LocationOverview, teamMode?: boolean, adjustedIds?: Set<string>): string {
   const { amount, threshold, unlocked } = loc.revenue;
   const name = escHtml(shortName(loc.locationTitle));
   const totalBonusCls = loc.totalBonus > 0 ? "pass" : "muted";
+  const adjustedTag = adjustedIds?.has(loc.locationId) ? ' <span class="adjusted-tag">Adjusted display</span>' : "";
 
   let gateHtml = "";
   if (threshold !== null) {
@@ -290,7 +292,7 @@ function buildLocationBlock(loc: LocationOverview, teamMode?: boolean): string {
   const visitorLabel = teamMode ? TEAM_CHALLENGE_LABELS.visitorCounts : CHALLENGE_LABELS.visitorCounts;
 
   return `<div class="location-block">
-    <h2>${name} — <span class="${totalBonusCls}">${loc.totalBonus.toLocaleString()} ฿</span></h2>
+    <h2>${name} — <span class="${totalBonusCls}">${loc.totalBonus.toLocaleString()} ฿</span>${adjustedTag}</h2>
     ${gateHtml}
     <table class="detail-table">
       <thead><tr><th>${metricHeader}</th><th>${valueHeader}</th><th>${targetHeader}</th><th>Status</th><th>Bonus</th></tr></thead>
@@ -341,6 +343,7 @@ const PRINT_CSS = [
   ".locked{color:#b45309;font-weight:600}",
   ".warn{color:#d97706;font-weight:600}",
   ".muted{color:#9ca3af}",
+  ".adjusted-tag{display:inline-block;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:middle}",
   ".gate-unlocked{border:1px solid #16a34a;background:#f0fdf4;padding:6px 10px;border-radius:4px;margin-bottom:8px;font-size:9.5px}",
   ".gate-locked{border:1px solid #b45309;background:#fffbeb;padding:6px 10px;border-radius:4px;margin-bottom:8px;font-size:9.5px}",
   ".location-block{margin-top:0;padding-top:16px;page-break-inside:avoid;page-break-after:always;break-inside:avoid;break-after:page}",
@@ -415,6 +418,7 @@ const TEAM_PRINT_CSS = [
   ".advice-card .tip{font-size:7.5px;color:#4b5563;line-height:1.4}",
   ".footer{text-align:center;font-size:8.5px;font-style:italic;color:#9ca3af;padding-top:8px;border-top:1px solid #f3f4f6;margin-top:8px}",
   ".pass{color:#15803d}.warn{color:#92400e}.muted{color:#6b7280}",
+  ".adjusted-tag{display:inline-block;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle}",
   "@media print{@page{margin:8mm;size:portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.dashboard{page-break-after:always}.dashboard:last-child{page-break-after:auto}}",
 ].join("");
 
@@ -451,8 +455,9 @@ function salesTargetLabel(
 
 const MERCH_BONUS_BY_TIER = [0, 1500, 3000, 5000] as const;
 
-function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
+function buildTeamDashboardBlock(loc: LocationOverview, month: string, adjustedIds?: Set<string>): string {
   const name = escHtml(shortLocationName(loc.locationTitle));
+  const adjustedTag = adjustedIds?.has(loc.locationId) ? ' <span class="adjusted-tag">Adjusted</span>' : "";
   const { amount, threshold, unlocked, ratio } = loc.revenue;
   const salesReached = unlocked === true;
   const revenueLocked = threshold !== null && unlocked === false;
@@ -539,7 +544,7 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
 
   return `<div class="dashboard">
     <div class="dash-header">
-      <div><div class="dash-title">${name}</div><div class="dash-subtitle">Monthly Challenge — your bonus, simply explained</div></div>
+      <div><div class="dash-title">${name}${adjustedTag}</div><div class="dash-subtitle">Monthly Challenge — your bonus, simply explained</div></div>
       <div class="dash-logo">Capybara Coffee</div>
     </div>
 
@@ -583,7 +588,7 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
   </div>`;
 }
 
-function buildTeamPrintHtml(locations: LocationOverview[], month: string): string {
+function buildTeamPrintHtml(locations: LocationOverview[], month: string, adjustedIds?: Set<string>): string {
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
     month: "long",
     year: "numeric",
@@ -594,7 +599,7 @@ function buildTeamPrintHtml(locations: LocationOverview[], month: string): strin
     year: "numeric",
   });
   const title = `Monthly Challenge — ${monthLabel}`;
-  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc, month)).join("");
+  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc, month, adjustedIds)).join("");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${TEAM_PRINT_CSS}</style></head><body>
 <div class="page">
@@ -611,12 +616,13 @@ function buildTeamPrintHtml(locations: LocationOverview[], month: string): strin
 export function buildOverviewPrintHtml(
   locations: LocationOverview[],
   month: string,
-  opts?: { summaryOnly?: boolean; teamMode?: boolean },
+  opts?: { summaryOnly?: boolean; teamMode?: boolean; adjustedIds?: string[] },
 ): string {
   const teamMode = opts?.teamMode ?? false;
+  const adjustedIds = opts?.adjustedIds ? new Set(opts.adjustedIds) : undefined;
 
   if (teamMode && !opts?.summaryOnly) {
-    return buildTeamPrintHtml(locations, month);
+    return buildTeamPrintHtml(locations, month, adjustedIds);
   }
 
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
@@ -654,7 +660,7 @@ export function buildOverviewPrintHtml(
 
   const locationBlocks = summaryOnly
     ? ""
-    : locations.map((loc) => buildLocationBlock(loc, teamMode)).join("");
+    : locations.map((loc) => buildLocationBlock(loc, teamMode, adjustedIds)).join("");
 
   const headerTag = teamMode ? "Team — Performance" : "Internal — Performance";
   const summaryTableCls = summaryOnly ? "" : ' class="summary-table"';
@@ -671,7 +677,7 @@ export function buildOverviewPrintHtml(
 <div class="content">
   <table${summaryTableCls}>
     <thead><tr>${summaryHeaders}</tr></thead>
-    <tbody>${buildSummaryRows(locations, teamMode)}</tbody>
+    <tbody>${buildSummaryRows(locations, teamMode, adjustedIds)}</tbody>
   </table>
   ${locationBlocks}
   <div class="legend">${buildLegend(teamMode)}</div>

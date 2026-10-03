@@ -164,10 +164,13 @@ export function TeamLocationDashboard({
   loc,
   month,
   loading,
+  displayAdjusted,
 }: {
   loc?: LocationOverview;
   month?: string;
   loading: boolean;
+  /** True when owner print overrides are applied (display ≠ real values). */
+  displayAdjusted?: boolean;
 }) {
   if (loading || !loc) {
     return (
@@ -219,6 +222,14 @@ export function TeamLocationDashboard({
         <div>
           <h2 className="font-display text-2xl font-medium italic text-[var(--fg)]">
             {shortLocationName(loc.locationTitle)}
+            {displayAdjusted && (
+              <span
+                className="ml-2 inline-block whitespace-nowrap rounded-full bg-[var(--warn-soft)] px-2 py-0.5 align-middle text-[10px] font-bold not-italic text-[var(--warn)]"
+                title="Display adjusted for print — ask the owner for real values"
+              >
+                Adjusted
+              </span>
+            )}
           </h2>
           <p className="text-xs text-[var(--fg-4)]">Monthly Challenge — your bonus, simply explained</p>
         </div>

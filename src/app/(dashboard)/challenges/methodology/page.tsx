@@ -191,6 +191,29 @@ export default async function MethodologyPage() {
         </MetricCard>
       </Section>
 
+      {/* Display adjust (print-only overrides) */}
+      <Section title="Display adjust — print values (owner only)">
+        <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 flex flex-col gap-2.5">
+          <Field label="DB table"><Code>challenge_display_overrides</Code> (presentation layer only)</Field>
+          <Field label="Effect">
+            Replaces the displayed Current values (monthly sales + the 6 challenge metrics) on cards
+            and printed/exported PDFs. Statuses and bonuses shown are recomputed from the adjusted
+            values with the same thresholds above — including sales-target gating.
+          </Field>
+          <Field label="Sources">
+            Loyverse snapshots, <Code>daily_entries</Code>, <Code>challenge_counters</Code> and review
+            tables are never modified. Deleting an override (per-metric revert or Revert all) restores
+            the real computed value. All writes are owner-only and audit-logged
+            (<Code>challenges.display.override</Code> / <Code>challenges.display.revert</Code>).
+          </Field>
+          <Field label="UI">
+            Sliders button on the shop card → modal with real values shown for reference; adjusted
+            cards carry an “Adjusted” badge (real total shown underneath) and printed PDFs tag
+            adjusted shops.
+          </Field>
+        </div>
+      </Section>
+
       {/* Location ID resolution */}
       <Section title="Location ID resolution">
         <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 flex flex-col gap-2.5">

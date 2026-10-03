@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   CircleHelpIcon,
@@ -8,7 +8,9 @@ import {
   PencilIcon,
   PrinterIcon,
   RefreshCwIcon,
+  RotateCcwIcon,
   Settings2Icon,
+  SlidersHorizontalIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +19,12 @@ import { MonthSelector } from "./MonthSelector";
 import { SalesTargetSettings } from "./SalesTargetSettings";
 import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
+import {
+  applyDisplayOverrides,
+  type AdjustedMetric,
+  type DisplayOverrideInput,
+  type DisplayOverrideKey,
+} from "@/modules/challenges/lib/display-overrides";
 import {
   CHALLENGE_LABELS,
   PERIOD_LABELS,
@@ -41,6 +49,17 @@ import {
 
 interface OverviewData {
   locations: LocationOverview[];
+}
+
+interface OverridesData {
+  overrides: { location_id: string; metric_key: DisplayOverrideKey; display_value: number }[];
+}
+
+interface DisplayEntry {
+  real: LocationOverview;
+  display: LocationOverview;
+  adjusted: Partial<Record<DisplayOverrideKey, AdjustedMetric>>;
+  hasOverride: boolean;
 }
 
 function readStoredViewMode(isOwner: boolean): ViewMode {
@@ -590,25 +609,319 @@ function VisitorOverrideModal({
   );
 }
 
+/**
+ * Display adjust — end-of-month print tweaks (owner only).
+ *
+ * Edits the FINAL displayed numbers (cards + printed PDFs) WITHOUT touching
+ * any source of truth (Loyverse, accounting, counters, reviews). Each field
+ * writes one row to `challenge_display_overrides`; clearing a field or hitting
+ * revert deletes the row and the real computed value shows again.
+ */
+interface AdjustField {
+  key: DisplayOverrideKey;
+  label: string;
+  unit: string;
+  step: string;
+  /** Real value → user-unit input string. */
+  toInput: (loc: LocationOverview) => string;
+  /** User-unit input string → raw stored value (null = invalid). */
+  fromInput: (raw: string) => number | null;
+  /** Raw value → short user-unit hint (for the "Real:" line). */
+  toHint: (raw: number | null) => string;
+}
+
+const ADJUST_FIELDS: AdjustField[] = [
+  {
+    key: "sales_amount",
+    label: "Monthly sales",
+    unit: "฿",
+    step: "1000",
+    toInput: (loc) => (loc.salesNetIncVat !== null ? String(Math.round(loc.salesNetIncVat)) : ""),
+    fromInput: (raw) => {
+      const v = parseInt(raw, 10);
+      return isNaN(v) || v < 0 ? null : v;
+    },
+    toHint: (raw) => (raw !== null ? `${Math.round(raw).toLocaleString()} ฿` : "—"),
+  },
+  {
+    key: "merch_ratio",
+    label: "Merchandise",
+    unit: "% of sales",
+    step: "0.1",
+    toInput: (loc) => (loc.merchandising.ratio !== null ? (loc.merchandising.ratio * 100).toFixed(1) : ""),
+    fromInput: (raw) => {
+      const v = parseFloat(raw);
+      return isNaN(v) || v < 0 ? null : v / 100;
+    },
+    toHint: (raw) => (raw !== null ? `${(raw * 100).toFixed(1)}%` : "—"),
+  },
+  {
+    key: "snacks_ratio",
+    label: "Animal food",
+    unit: "/ visitor",
+    step: "0.01",
+    toInput: (loc) => (loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : ""),
+    fromInput: (raw) => {
+      const v = parseFloat(raw);
+      return isNaN(v) || v < 0 ? null : v;
+    },
+    toHint: (raw) => (raw !== null ? raw.toFixed(2) : "—"),
+  },
+  {
+    key: "panier_value",
+    label: "Spend per visit",
+    unit: "฿",
+    step: "1",
+    toInput: (loc) => (loc.panierMoyen.value !== null ? String(Math.round(loc.panierMoyen.value)) : ""),
+    fromInput: (raw) => {
+      const v = parseFloat(raw);
+      return isNaN(v) || v < 0 ? null : v;
+    },
+    toHint: (raw) => (raw !== null ? `${Math.round(raw).toLocaleString()} ฿` : "—"),
+  },
+  {
+    key: "opex_ratio",
+    label: "Running costs",
+    unit: "% of sales",
+    step: "0.1",
+    toInput: (loc) => (loc.opex.ratio !== null ? (loc.opex.ratio * 100).toFixed(1) : ""),
+    fromInput: (raw) => {
+      const v = parseFloat(raw);
+      return isNaN(v) || v < 0 ? null : v / 100;
+    },
+    toHint: (raw) => (raw !== null ? `${(raw * 100).toFixed(1)}%` : "—"),
+  },
+  {
+    key: "review_volume_ratio",
+    label: "Review volume",
+    unit: "% of visitors",
+    step: "0.1",
+    toInput: (loc) => (loc.reviews.volumeRatio !== null ? (loc.reviews.volumeRatio * 100).toFixed(1) : ""),
+    fromInput: (raw) => {
+      const v = parseFloat(raw);
+      return isNaN(v) || v < 0 ? null : v / 100;
+    },
+    toHint: (raw) => (raw !== null ? `${(raw * 100).toFixed(1)}%` : "—"),
+  },
+  {
+    key: "review_rating_avg",
+    label: "Review rating",
+    unit: "★",
+    step: "0.1",
+    toInput: (loc) => (loc.reviews.count > 0 ? loc.reviews.avgRating.toFixed(1) : ""),
+    fromInput: (raw) => {
+      const v = parseFloat(raw);
+      return isNaN(v) || v < 0 || v > 5 ? null : v;
+    },
+    toHint: (raw) => (raw !== null ? `${raw.toFixed(1)}★` : "—"),
+  },
+];
+
+function DisplayAdjustModal({
+  realLoc,
+  displayLoc,
+  adjusted,
+  month,
+  onChanged,
+  onClose,
+}: {
+  realLoc: LocationOverview;
+  displayLoc: LocationOverview;
+  adjusted: Partial<Record<DisplayOverrideKey, AdjustedMetric>>;
+  month: string;
+  onChanged: () => void;
+  onClose: () => void;
+}) {
+  // Drafts in user units, seeded from the CURRENTLY DISPLAYED values.
+  const [drafts, setDrafts] = useState<Record<DisplayOverrideKey, string>>(() => {
+    const init = {} as Record<DisplayOverrideKey, string>;
+    for (const f of ADJUST_FIELDS) init[f.key] = f.toInput(displayLoc);
+    return init;
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function saveField(key: DisplayOverrideKey, rawValue: number) {
+    const res = await fetch("/api/challenges/overrides", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationId: realLoc.locationId, month, metricKey: key, displayValue: rawValue }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function revertField(key: DisplayOverrideKey) {
+    const res = await fetch("/api/challenges/overrides", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationId: realLoc.locationId, month, metricKey: key }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      for (const f of ADJUST_FIELDS) {
+        const draft = (drafts[f.key] ?? "").trim();
+        const currentDisplay = f.toInput(displayLoc);
+        if (draft === currentDisplay) continue; // unchanged
+        if (draft === "") {
+          // Cleared → revert to real (only if an override existed).
+          if (adjusted[f.key]) await revertField(f.key);
+          continue;
+        }
+        const parsed = f.fromInput(draft);
+        if (parsed === null) {
+          toast.error(`Invalid value for ${f.label} — skipped`);
+          continue;
+        }
+        await saveField(f.key, parsed);
+      }
+      toast.success("Display adjusted — real data untouched");
+      onChanged();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRevertOne(key: DisplayOverrideKey) {
+    try {
+      await revertField(key);
+      toast.success("Reverted to the real value");
+      onChanged();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Revert failed");
+    }
+  }
+
+  async function handleRevertAll() {
+    try {
+      const res = await fetch("/api/challenges/overrides", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locationId: realLoc.locationId, month }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast.success("All adjustments reverted — showing real values");
+      onChanged();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Revert failed");
+    }
+  }
+
+  const hasAny = Object.keys(adjusted).length > 0;
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Adjust display — ${shortName(realLoc.locationTitle)}`}
+      description="Print tweaks only: cards + PDFs show these values, but Loyverse / accounting / counters / reviews stay untouched. Clear a field or revert to show the real value again."
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <Button size="sm" variant="secondary" onClick={handleRevertAll} disabled={saving || !hasAny} title="Delete all overrides for this shop + month">
+            <RotateCcwIcon size={13} />
+            Revert all
+          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save adjustments"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="flex flex-col">
+        {ADJUST_FIELDS.map((f) => {
+          const adj = adjusted[f.key];
+          return (
+            <div key={f.key} className="grid grid-cols-[minmax(0,1fr)_7rem_auto] items-center gap-2 border-b border-[var(--line)] py-2.5 last:border-b-0">
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-[var(--fg)]">
+                  {f.label}
+                  {adj && (
+                    <span className="ml-1.5 rounded-full bg-[var(--warn-soft)] px-1.5 py-px text-[10px] font-bold text-[var(--warn)]" title={`Real value: ${f.toHint(adj.real)}`}>
+                      Adjusted
+                    </span>
+                  )}
+                </p>
+                <p className="text-[11px] text-[var(--fg-4)]">
+                  Real: {f.toHint(adj ? adj.real : realValueFor(realLoc, f.key, f))} · {f.unit}
+                </p>
+              </div>
+              <input
+                type="number"
+                min={0}
+                step={f.step}
+                inputMode="decimal"
+                value={drafts[f.key] ?? ""}
+                onChange={(e) => setDrafts((d) => ({ ...d, [f.key]: e.target.value }))}
+                aria-label={`${f.label} display value`}
+                className="w-28 rounded-[var(--r-sm)] border border-[var(--line-strong)] bg-[var(--surface)] px-1.5 py-1 font-mono text-sm tabular-nums text-[var(--fg)] outline-none transition-colors hover:border-[var(--fg-4)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              />
+              {adj ? (
+                <button
+                  type="button"
+                  onClick={() => handleRevertOne(f.key)}
+                  title={`Revert ${f.label} to the real value (${f.toHint(adj.real)})`}
+                  aria-label={`Revert ${f.label} to real value`}
+                  className="flex h-7 w-7 items-center justify-center rounded-[var(--r-sm)] text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
+                >
+                  <RotateCcwIcon className="size-3.5" aria-hidden />
+                </button>
+              ) : (
+                <span className="w-7" aria-hidden />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Modal>
+  );
+}
+
+/** Raw real value for a field key (used for the "Real:" hint when not overridden). */
+function realValueFor(loc: LocationOverview, key: DisplayOverrideKey, f: AdjustField): number | null {
+  const parsed = f.fromInput(f.toInput(loc));
+  return parsed;
+}
+
 function LocationCard({
   loc,
+  realLoc,
+  adjusted,
+  hasOverride,
   month,
   loading,
   isOwner,
   viewMode,
   onEntryUpdated,
   onSnacksUpdated,
+  onOverridesChanged,
 }: {
+  /** Display location (real values + print overrides applied). */
   loc: LocationOverview;
+  /** Untouched real computed values (for "Real:" hints). */
+  realLoc: LocationOverview;
+  adjusted: Partial<Record<DisplayOverrideKey, AdjustedMetric>>;
+  hasOverride: boolean;
   month: string;
   loading: boolean;
   isOwner?: boolean;
   viewMode: ViewMode;
   onEntryUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
   onSnacksUpdated: (id: string, period: 1 | 2 | 3, val: number) => void;
+  onOverridesChanged: () => void;
 }) {
   const [shopTargetOpen, setShopTargetOpen] = useState(false);
   const [overrideOpen, setOverrideOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const isTeam = viewMode === "team";
   const totalBonus = loc.totalBonus;
   const hasBonusData = !loading && (loc.salesNetIncVat !== null || loc.reviews.count > 0);
@@ -664,20 +977,48 @@ function LocationCard({
     <Card className="overflow-visible p-5">
       {/* Header: shop identity + total bonus */}
       <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 truncate text-[17px] font-semibold tracking-tight text-[var(--fg)]">{shortName(loc.locationTitle)}</p>
+        <p className="flex min-w-0 items-center gap-1.5 truncate text-[17px] font-semibold tracking-tight text-[var(--fg)]">
+          <span className="min-w-0 truncate">{shortName(loc.locationTitle)}</span>
+          {hasOverride && !loading && (
+            <span
+              className="shrink-0 rounded-full bg-[var(--warn-soft)] px-1.5 py-px text-[10px] font-bold text-[var(--warn)]"
+              title="Display adjusted for print — real Loyverse/accounting data untouched. Revert available via the sliders button."
+            >
+              Adjusted
+            </span>
+          )}
+        </p>
         {loading ? (
           <div className="h-4 w-16 animate-pulse rounded bg-[var(--bg-2)]" />
         ) : (
-          <p
-            className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
-              totalBonus > 0 ? "text-[var(--fg)]" : "text-[var(--fg-4)]"
-            }`}
-            title="Total bonus currently earned by this shop"
-          >
-            {hasBonusData ? `${totalBonus.toLocaleString()} ฿` : "—"}
-          </p>
+          <div className="flex shrink-0 items-center gap-1">
+            <p
+              className={`font-mono text-sm font-semibold tabular-nums ${
+                totalBonus > 0 ? "text-[var(--fg)]" : "text-[var(--fg-4)]"
+              }`}
+              title={hasOverride ? `Print value (real total: ${realLoc.totalBonus.toLocaleString()} ฿)` : "Total bonus currently earned by this shop"}
+            >
+              {hasBonusData ? `${totalBonus.toLocaleString()} ฿` : "—"}
+            </p>
+            {isOwner && !isTeam && (
+              <button
+                type="button"
+                onClick={() => setAdjustOpen(true)}
+                title="Adjust display — tweak print values without touching real data"
+                aria-label="Adjust display values for print"
+                className="rounded p-1 text-[var(--fg-4)] transition-colors hover:bg-[var(--row-hover)] hover:text-[var(--fg)]"
+              >
+                <SlidersHorizontalIcon className="size-3" aria-hidden />
+              </button>
+            )}
+          </div>
         )}
       </div>
+      {hasOverride && !loading && hasBonusData && (
+        <p className="mt-0.5 text-right text-[11px] text-[var(--fg-4)]" title="Bonus computed from real (unadjusted) data">
+          Real: {realLoc.totalBonus.toLocaleString()} ฿
+        </p>
+      )}
 
       {/* Sales target — the only progress bar on the card */}
       <div className="mt-3">
@@ -817,6 +1158,16 @@ function LocationCard({
       {shopTargetOpen && (
         <ShopSalesTargetModal loc={loc} onClose={() => setShopTargetOpen(false)} />
       )}
+      {adjustOpen && (
+        <DisplayAdjustModal
+          realLoc={realLoc}
+          displayLoc={loc}
+          adjusted={adjusted}
+          month={month}
+          onChanged={onOverridesChanged}
+          onClose={() => setAdjustOpen(false)}
+        />
+      )}
       {overrideOpen && (
         <VisitorOverrideModal
           loc={loc}
@@ -840,6 +1191,7 @@ export function ChallengesOverview({
 } = {}) {
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState<OverviewData | null>(null);
+  const [overrideRows, setOverrideRows] = useState<OverridesData["overrides"]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(() => defaultViewMode(!!isOwner));
   const [teamLocationFilter, setTeamLocationFilter] = useState("all");
@@ -861,13 +1213,28 @@ export function ChallengesOverview({
   const fetchData = useCallback(async (m: string, opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
     try {
-      const res = await fetch(`/api/challenges/overview?month=${m}`);
-      if (!res.ok) throw new Error(await res.text());
-      setData((await res.json()) as OverviewData);
+      const [overviewRes, overridesRes] = await Promise.all([
+        fetch(`/api/challenges/overview?month=${m}`),
+        fetch(`/api/challenges/overrides?month=${m}`),
+      ]);
+      if (!overviewRes.ok) throw new Error(await overviewRes.text());
+      setData((await overviewRes.json()) as OverviewData);
+      if (overridesRes.ok) {
+        setOverrideRows(((await overridesRes.json()) as OverridesData).overrides ?? []);
+      }
     } catch (e) {
       console.error("[ChallengesOverview] fetch error:", e);
     } finally {
       if (!opts?.silent) setLoading(false);
+    }
+  }, []);
+
+  const fetchOverridesSilent = useCallback(async (m: string) => {
+    try {
+      const res = await fetch(`/api/challenges/overrides?month=${m}`);
+      if (res.ok) setOverrideRows(((await res.json()) as OverridesData).overrides ?? []);
+    } catch (e) {
+      console.error("[ChallengesOverview] overrides fetch error:", e);
     }
   }, []);
 
@@ -913,10 +1280,25 @@ export function ChallengesOverview({
     }
   }
 
-  const locations = data?.locations ?? [];
+  // Display overlay: real computed values + owner print overrides.
+  // Cards AND exported PDFs render `display`, so the printed numbers match
+  // the screen. Sources (Loyverse/accounting/counters/reviews) are untouched.
+  const entries: DisplayEntry[] = useMemo(() => {
+    const locations = data?.locations ?? [];
+    const byLoc = new Map<string, DisplayOverrideInput>();
+    for (const row of overrideRows) {
+      const map = byLoc.get(row.location_id) ?? {};
+      map[row.metric_key] = Number(row.display_value);
+      byLoc.set(row.location_id, map);
+    }
+    return locations.map((real) => {
+      const applied = applyDisplayOverrides(real, byLoc.get(real.locationId) ?? {});
+      return { real, display: applied.loc, adjusted: applied.adjusted, hasOverride: applied.hasOverride };
+    });
+  }, [data, overrideRows]);
 
-  // Summary stats
-  const totalEarned = locations.reduce((s, l) => s + l.totalBonus, 0);
+  // Summary stats (display values — what will be printed)
+  const totalEarned = entries.reduce((s, e) => s + e.display.totalBonus, 0);
 
   function openPrintHtml(html: string) {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -930,24 +1312,30 @@ export function ChallengesOverview({
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
-  function exportOverviewPdf(teamMode = false, locationsOverride?: LocationOverview[]) {
-    const exportLocations = locationsOverride ?? locations;
-    if (exportLocations.length === 0) return;
-    openPrintHtml(buildOverviewPrintHtml(exportLocations, month, { summaryOnly: false, teamMode }));
+  function exportOverviewPdf(teamMode = false, entriesOverride?: DisplayEntry[]) {
+    const exportEntries = entriesOverride ?? entries;
+    if (exportEntries.length === 0) return;
+    openPrintHtml(
+      buildOverviewPrintHtml(exportEntries.map((e) => e.display), month, {
+        summaryOnly: false,
+        teamMode,
+        adjustedIds: exportEntries.filter((e) => e.hasOverride).map((e) => e.display.locationId),
+      }),
+    );
   }
 
   function exportSelectedShopTeamPdf() {
     if (teamLocationFilter === "all") return;
-    const shop = locations.find((l) => l.locationId === teamLocationFilter);
-    if (!shop) return;
-    exportOverviewPdf(true, [shop]);
+    const entry = entries.find((e) => e.display.locationId === teamLocationFilter);
+    if (!entry) return;
+    exportOverviewPdf(true, [entry]);
   }
 
   const isTeamView = viewMode === "team";
-  const filteredLocations =
+  const filteredEntries =
     isTeamView && teamLocationFilter !== "all"
-      ? locations.filter((l) => l.locationId === teamLocationFilter)
-      : locations;
+      ? entries.filter((e) => e.display.locationId === teamLocationFilter)
+      : entries;
 
   return (
     <div className="flex flex-col gap-5">
@@ -955,7 +1343,7 @@ export function ChallengesOverview({
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <MonthSelector value={month} onChange={setMonth} />
-          {!loading && locations.length > 0 && (
+          {!loading && entries.length > 0 && (
             <p className="text-[13px] text-[var(--fg-3)]">
               <span className="font-mono font-semibold tabular-nums text-[var(--fg)]">
                 {totalEarned.toLocaleString()} ฿
@@ -1012,10 +1400,10 @@ export function ChallengesOverview({
       </div>
 
       {/* Team view — location filter */}
-      {isTeamView && locations.length > 1 && (
+      {isTeamView && entries.length > 1 && (
         <div className="flex flex-wrap items-center gap-3">
           <TeamLocationFilter
-            locations={locations}
+            locations={entries.map((e) => e.display)}
             value={teamLocationFilter}
             onChange={setTeamLocationFilter}
           />
@@ -1034,7 +1422,7 @@ export function ChallengesOverview({
       )}
 
       {/* Location content */}
-      {loading && locations.length === 0 ? (
+      {loading && entries.length === 0 ? (
         isTeamView ? (
           <div className="flex flex-col gap-8">
             {Array.from({ length: 2 }).map((_, i) => (
@@ -1048,28 +1436,38 @@ export function ChallengesOverview({
             ))}
           </div>
         )
-      ) : locations.length === 0 ? (
+      ) : entries.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-[var(--r-lg)] border border-[var(--line)] bg-transparent">
           <span className="text-sm text-[var(--fg-4)]">No data yet for this month.</span>
         </div>
       ) : isTeamView ? (
         <div className="flex flex-col gap-8">
-          {filteredLocations.map((loc) => (
-            <TeamLocationDashboard key={loc.locationId} loc={loc} month={month} loading={loading} />
+          {filteredEntries.map((entry) => (
+            <TeamLocationDashboard
+              key={entry.display.locationId}
+              loc={entry.display}
+              month={month}
+              loading={loading}
+              displayAdjusted={entry.hasOverride}
+            />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {locations.map((loc) => (
+          {entries.map((entry) => (
             <LocationCard
-              key={loc.locationId}
-              loc={loc}
+              key={entry.display.locationId}
+              loc={entry.display}
+              realLoc={entry.real}
+              adjusted={entry.adjusted}
+              hasOverride={entry.hasOverride}
               month={month}
               loading={loading}
               isOwner={isOwner}
               viewMode={viewMode}
               onEntryUpdated={(id, p, val) => handleEntryUpdated(id, p, val)}
               onSnacksUpdated={(id, p, val) => handleSnacksUpdated(id, p, val)}
+              onOverridesChanged={() => fetchOverridesSilent(month)}
             />
           ))}
         </div>
