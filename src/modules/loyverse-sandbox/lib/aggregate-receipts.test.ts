@@ -221,6 +221,24 @@ describe("snacks → Animal food rename (Sept 2026)", () => {
     expect(resolveSalesBucket("cat-m", "Merch", "A Capy 150")).toBe("goodies");
     expect(resolveSalesBucket("cat-s", "SNACKS", "AD CAPY SNACK")).toBe("snack");
   });
+
+  it("buckets uncategorized (deleted) merch items as goodies, not other (Silom 2026-09-28)", () => {
+    // "Football keychain" was deleted from the catalog (category_id null) and
+    // fell into unmapped/other → goodies read 2,540 instead of 2,740.
+    expect(resolveSalesBucket(null, null, "Football keychain")).toBe("goodies");
+    expect(resolveSalesBucket(null, null, "duck key")).toBe("goodies");
+    expect(resolveSalesBucket(null, null, "Capy Tote Bag")).toBe("goodies");
+    expect(resolveSalesBucket(null, null, "CAPY key chain mini")).toBe("goodies");
+    expect(resolveSalesBucket(null, null, "Capy Sticker")).toBe("goodies");
+  });
+
+  it("does not let merch fallback steal drinks/tickets/snacks", () => {
+    expect(resolveSalesBucket(null, null, "ANIMAL FOOD 100")).toBe("snack");
+    expect(resolveSalesBucket(null, null, "AD CAPY SNACK")).toBe("snack");
+    expect(resolveSalesBucket("cat-d", "Drink", "Cappuccino")).toBe("drinks");
+    expect(resolveSalesBucket(null, null, "Adult")).toBe("other");
+    expect(resolveSalesBucket(null, null, "B.Card Fee 3%")).toBe("surcharge");
+  });
 });
 
 describe("dateRangeForDay", () => {

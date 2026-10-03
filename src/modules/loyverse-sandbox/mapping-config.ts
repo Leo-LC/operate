@@ -25,6 +25,29 @@ export const CATEGORY_NAME_TO_BUCKET: Record<string, SalesBucket> = {
   merchandise: "goodies",
   souvenir: "goodies",
   capybara: "goodies",
+  // Item-name fallback for merch sold without a Loyverse category (e.g. deleted
+  // items resolve to category_id null). Checked after snack/ticket keywords, so
+  // "AD CAPY SNACK" still resolves to snack. Short/generic words use a leading
+  // space (" key" not "key") to avoid matching "monkey"/"turkey".
+  capy: "goodies",
+  keychain: "goodies",
+  "key chain": "goodies",
+  keyring: "goodies",
+  " key": "goodies",
+  tote: "goodies",
+  bag: "goodies",
+  magnet: "goodies",
+  sticker: "goodies",
+  postcard: "goodies",
+  plush: "goodies",
+  squishy: "goodies",
+  tshirt: "goodies",
+  "t-shirt": "goodies",
+  tumbler: "goodies",
+  mug: "goodies",
+  "blind box": "goodies",
+  "blind bag": "goodies",
+  doll: "goodies",
 };
 
 /**
