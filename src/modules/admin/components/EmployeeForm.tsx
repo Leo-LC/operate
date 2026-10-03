@@ -211,8 +211,8 @@ export function EmployeeForm({
       <div>
         <p className="eyebrow" style={{ ...sectionStyle, color: "var(--fg-4)" }}>Employment</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}><label className="eyebrow" style={{ color: "var(--fg-3)" }}>Start date</label><DateInput value={form.employment_start_date ?? ""} onChange={(e) => onChange("employment_start_date", e.target.value)} /></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}><label className="eyebrow" style={{ color: "var(--fg-3)" }}>End date</label><DateInput value={form.employment_end_date ?? ""} onChange={(e) => onChange("employment_end_date", e.target.value)} /></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}><label className="eyebrow" style={{ color: "var(--fg-3)" }}>Start date</label><DateInput value={form.employment_start_date ?? ""} onChange={(e) => onChange("employment_start_date", e.target.value)} className="w-full" /></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}><label className="eyebrow" style={{ color: "var(--fg-3)" }}>End date</label><DateInput value={form.employment_end_date ?? ""} onChange={(e) => onChange("employment_end_date", e.target.value)} className="w-full" /></div>
         </div>
       </div>
 
@@ -232,7 +232,7 @@ export function EmployeeForm({
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 150 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-3)" }}>Permit expires</label>
-                <DateInput value={form.work_permit_expires_at} onChange={(e) => onChange("work_permit_expires_at", e.target.value)} />
+                <DateInput value={form.work_permit_expires_at} onChange={(e) => onChange("work_permit_expires_at", e.target.value)} className="w-full" />
               </div>
             </>
           )}

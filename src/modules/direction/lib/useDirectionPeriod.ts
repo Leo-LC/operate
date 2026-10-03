@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-function bangkokToday(): string {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const o: Record<string, string> = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  return `${o.year}-${o.month}-${o.day}`;
-}
-function monthStart(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
+import { bangkokToday, monthStartToday } from "@/components/ui/filters/dates";
 
 const PERIOD_KEY = "direction-period";
 const SHOPS_KEY = "direction-shops";
@@ -26,7 +17,7 @@ export function useDirectionPeriod() {
         }
       } catch {}
     }
-    return monthStart();
+    return monthStartToday();
   });
   const [to, setTo] = useState(() => {
     if (typeof window !== "undefined") {

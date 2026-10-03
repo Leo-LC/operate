@@ -4,12 +4,9 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
-import { PillButton } from "@/components/ui/pill-button";
-import { StoreIcon, ClockIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChevronDownIcon, CopyIcon, CheckIcon, TableIcon } from "lucide-react";
-import { DayPicker } from "react-day-picker";
-import "react-day-picker/style.css";
-import { startOfMonth } from "date-fns";
-import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay, toDay } from "@/lib/loyverse/dates";
+import { ShopSingleSelect, SingleDatePicker } from "@/components/ui/filters";
+import { StoreIcon, ClockIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, CopyIcon, CheckIcon, TableIcon } from "lucide-react";
+import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay } from "@/lib/loyverse/dates";
 import { resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
 import { fmtNum, isZeroDiff, summarizeCashControl, summarizeCashMovements, summarizePayments, summarizeSales, type ShiftLike } from "@/modules/loyverse/lib/shift-summary";
 
@@ -28,94 +25,6 @@ function fmtDateTime(v: string | null | undefined): string {
 }
 function isMoneyKey(k: string): boolean {
   return /amount|total|money|cash|card|payment|revenue|sales|tax|surcharge|discount|price/i.test(k);
-}
-function formatSingleLabel(dateStr: string): string {
-  const d = parseDay(dateStr);
-  if (!d) return dateStr;
-  const thisYear = new Date().getFullYear();
-  return d.getFullYear() === thisYear ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-const triggerStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 7,
-  height: 32,
-  minWidth: 150,
-  padding: "0 var(--s-3)",
-  borderRadius: "var(--r-sm)",
-  border: "1px solid var(--line)",
-  background: "var(--bg)",
-  fontSize: 13,
-  color: "var(--fg)",
-  cursor: "pointer",
-  transition: "background var(--dur) var(--ease)",
-};
-const panelStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 6px)",
-  zIndex: 50,
-  width: "max-content",
-  maxWidth: "min(92vw, 340px)",
-  overflowX: "auto",
-  borderRadius: "var(--r-lg)",
-  border: "1px solid var(--line)",
-  background: "var(--surface)",
-  boxShadow: "var(--shadow-2)",
-  padding: "var(--s-4)",
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-function SingleDatePicker({ value, onChange, today }: { value: string; onChange: (v: string) => void; today: string }) {
-  const base = React.useMemo(() => parseDay(today) ?? new Date(), [today]);
-  const selected = parseDay(value) ?? base;
-  const [open, setOpen] = React.useState(false);
-  const [viewMonth, setViewMonth] = React.useState<Date>(() => startOfMonth(selected));
-  React.useEffect(() => {
-    if (!open) setViewMonth(startOfMonth(parseDay(value) ?? base));
-  }, [open, value, base]);
-  return (
-    <div style={{ position: "relative" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={triggerStyle}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg)")}
-      >
-        <CalendarDaysIcon size={13} style={{ color: "var(--fg-3)", flexShrink: 0 }} />
-        <span style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap" }}>{formatSingleLabel(value)}</span>
-        <ChevronDownIcon size={13} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
-      </button>
-      {open && (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-          <div style={{ ...panelStyle, left: 0 }}>
-            <div className="nexus-dp">
-              <DayPicker
-                mode="single"
-                required
-                weekStartsOn={1}
-                showOutsideDays
-                today={base}
-                month={viewMonth}
-                onMonthChange={setViewMonth}
-                selected={selected}
-                onSelect={(d) => {
-                  if (d) {
-                    onChange(toDay(d));
-                    setOpen(false);
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 // ── Shift cleaning helpers ──────────────────────────
@@ -905,7 +814,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
             <Button variant="secondary" size="sm" onClick={() => setDate((d) => addDays(d, -1))} className="px-2">
               <ChevronLeftIcon className="size-4" />
             </Button>
-            <SingleDatePicker value={date} onChange={setDate} today={todayStr} />
+            <SingleDatePicker value={date} onChange={setDate} />
             <Button variant="secondary" size="sm" onClick={() => setDate((d) => addDays(d, 1))} disabled={date >= todayStr} className="px-2">
               <ChevronRightIcon className="size-4" />
             </Button>
@@ -927,11 +836,11 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
               {shops.length === 0 ? (
                 <span className="text-xs text-[var(--fg-4)]">Chargement shops…</span>
               ) : (
-                shops.map((shop) => (
-                  <PillButton key={shop.store_id} active={selectedStore === shop.store_id} onClick={() => setSelectedStore(shop.store_id)} style={{ textTransform: "capitalize" }}>
-                    {capitalizeShop(shop.account_key)}
-                  </PillButton>
-                ))
+                <ShopSingleSelect
+                  options={shops.map((shop) => ({ id: shop.store_id, name: capitalizeShop(shop.account_key) }))}
+                  value={selectedStore ?? ""}
+                  onChange={setSelectedStore}
+                />
               )}
             </div>
           </div>

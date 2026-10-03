@@ -3,8 +3,8 @@ import { createPortal } from "react-dom"
 import { DayPicker } from "react-day-picker"
 import "react-day-picker/style.css"
 import { startOfMonth } from "date-fns"
-import { CalendarDaysIcon, ChevronDownIcon, XIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { XIcon } from "lucide-react"
+import { FilterTrigger } from "@/components/ui/filter-trigger"
 
 function parseDay(value: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -126,44 +126,16 @@ export function DateInput({ value = "", onChange, placeholder = "Select date", c
 
   return (
     <>
-      <button
+      <FilterTrigger
         ref={triggerRef}
-        type="button"
+        label={display || placeholder}
+        filled={!!value}
+        onClear={value ? () => emit("") : undefined}
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className={cn(
-          "flex h-8 w-full items-center gap-1.5 rounded-md border bg-background px-2.5 text-left text-xs",
-          "border-[var(--line)] bg-[var(--bg)] transition-colors hover:bg-[var(--row-hover)]",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          disabled && "opacity-50 cursor-not-allowed",
-          !value && "text-[var(--fg-4)]",
-          className
-        )}
-        style={{ fontSize: 13, color: value ? "var(--fg)" : "var(--fg-4)" }}
+        className={className}
         {...(rest as unknown as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-      >
-        <CalendarDaysIcon size={13} style={{ color: "var(--fg-3)", flexShrink: 0 }} />
-        <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {display || placeholder}
-        </span>
-        {value ? (
-          <span
-            role="button"
-            tabIndex={-1}
-            onClick={(e) => {
-              e.stopPropagation()
-              emit("")
-            }}
-            style={{ color: "var(--fg-4)", display: "flex", padding: 2, borderRadius: 4 }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--fg-3)")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--fg-4)")}
-          >
-            <XIcon style={{ width: 12, height: 12 }} />
-          </span>
-        ) : (
-          <ChevronDownIcon size={12} style={{ color: "var(--fg-4)", flexShrink: 0 }} />
-        )}
-      </button>
+      />
       {panel}
       {/* hidden input for form compatibility / tests */}
       <input type="hidden" value={value} readOnly {...rest} />

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { UsersIcon, RefreshCwIcon } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { DateInput } from "@/components/ui/date-input";
+import { ShopSingleSelect, SingleDatePicker } from "@/components/ui/filters";
 import { Stat } from "@/components/ui/stat";
 import { Button } from "@/components/ui/button";
 import type { CustomerInsightsSummary } from "../types";
@@ -139,27 +139,21 @@ export function CustomerInsightsClient() {
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-[var(--fg-4)]">From</span>
-          <DateInput value={from} onChange={(e) => handleFromChange(e.target.value)} />
+          <SingleDatePicker value={from} onChange={handleFromChange} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-[var(--fg-4)]">To</span>
-          <DateInput value={to} onChange={(e) => handleToChange(e.target.value)} />
+          <SingleDatePicker value={to} onChange={handleToChange} />
         </label>
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-xs text-[var(--fg-4)]">Shop</span>
-          <select
-            value={shop}
-            onChange={(e) => setShop(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-          >
-            <option value="all">All shops</option>
-            {(data?.meta.shops ?? []).map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+          <ShopSingleSelect
+            options={canonicalShops.map((s) => ({ id: s, name: s }))}
+            value={shop === "all" ? "" : shop}
+            onChange={(id) => setShop(id === "" ? "all" : id)}
+            allowAll
+          />
+        </div>
       </div>
 
       <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-5">

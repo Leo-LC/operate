@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { ShopSingleSelect, SingleDatePicker } from "@/components/ui/filters";
 import { toast } from "sonner";
 import {
   THB_DENOMINATIONS,
@@ -238,13 +239,6 @@ export function CashCounter({
     focusRing,
   ].join(" ");
 
-  const controlClass = [
-    "h-9 rounded-[var(--r-sm)] border border-[var(--line)]",
-    "bg-[var(--bg-2)] px-2 text-[13px] text-[var(--fg)]",
-    "hover:border-[var(--line-strong)]",
-    focusRing,
-  ].join(" ");
-
   return (
     <div ref={rootRef} className="scroll-mt-4">
       <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)]" style={{ boxShadow: "var(--shadow-1)" }}>
@@ -255,23 +249,13 @@ export function CashCounter({
             <p className="m-0 mt-0.5 text-[12px] text-[var(--fg-3)]">Count and record the cash in the till.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <ShopSingleSelect
+              options={locations}
               value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              className={controlClass}
-              aria-label="Shop"
-            >
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>{shortName(l.name)}</option>
-              ))}
-            </select>
-            <input
-              type="date"
-              value={countedAt}
-              onChange={(e) => setCountedAt(e.target.value)}
-              className={controlClass}
-              aria-label="Count date"
+              onChange={setLocationId}
+              getLabel={(l) => shortName(l.name)}
             />
+            <SingleDatePicker value={countedAt} onChange={setCountedAt} />
             <div ref={shortcutsRef} className="relative">
               <Button
                 size="sm"

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { PillButton } from "@/components/ui/pill-button";
+import { ShopSingleSelect } from "@/components/ui/filters";
 
 type Location = { id: string; name: string };
 type Setting = { id: string; location_id: string; service_charge_rate_pct: number };
@@ -44,10 +44,7 @@ export function ShopSettingsClient() {
   const selectedLocation = locations.find((location) => location.id === selectedId);
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader title="Shop settings" />
-    <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>View</span><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      <PillButton active={!selectedId} onClick={() => setSelectedId("")}>All shops</PillButton>
-      {locations.map((location) => <PillButton key={location.id} active={selectedId === location.id} onClick={() => setSelectedId(location.id)}>{location.name}</PillButton>)}
-    </div></Card>
+    <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>View</span><ShopSingleSelect options={locations} value={selectedId} onChange={setSelectedId} allowAll /></Card>
     {!selectedId ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 12 }}>{locations.map((location) => {
       const setting = settings.find((item) => item.location_id === location.id); const summary = summaries[location.id] ?? { employeeCount: 0, recurringMonthly: 0 };
       return <button key={location.id} type="button" onClick={() => setSelectedId(location.id)} style={{ textAlign: "left", padding: 0, border: 0, background: "transparent", cursor: "pointer" }}><Card style={{ height: "100%", gap: 10, transition: "border-color 150ms" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong>{location.name}</strong><ArrowRightIcon size={16} color="var(--fg-4)" /></div><span style={{ fontSize: 12, color: "var(--fg-4)" }}>{summary.employeeCount} employees</span><span className="mono" style={{ fontSize: 18 }}>฿{summary.recurringMonthly.toLocaleString()}<small style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--fg-4)" }}> / month</small></span><span style={{ fontSize: 12, color: "var(--fg-4)" }}>Service charge · {Number(setting?.service_charge_rate_pct ?? 0)}%</span></Card></button>;

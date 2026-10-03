@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PillButton } from "@/components/ui/pill-button";
+import { ShopSingleSelect } from "@/components/ui/filters";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import type { PillTone } from "@/components/ui/pill";
@@ -345,12 +345,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)} style={{ ...inputStyle, width: "auto" }}>
           {STATUS_FILTERS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <PillButton active={locationFilter === ""} onClick={() => setLocationFilter("")}>All shops</PillButton>
-          {locations.map((l) => (
-            <PillButton key={l.id} active={locationFilter === l.id} onClick={() => setLocationFilter(l.id)}>{l.name}</PillButton>
-          ))}
-        </div>
+        <ShopSingleSelect options={locations} value={locationFilter} onChange={setLocationFilter} allowAll />
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
           <option value="">All categories</option>
           {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -635,11 +630,11 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Issue date</label>
-                <DateInput value={form.issued_at} onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))} />
+                <DateInput value={form.issued_at} onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))} className="w-full" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Expiry / next due</label>
-                <DateInput value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} />
+                <DateInput value={form.expires_at} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} className="w-full" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Reminder days before</label>

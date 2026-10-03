@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MonthSelector } from "./MonthSelector";
+import { MonthPicker } from "@/components/ui/filters";
 import { buildSpotlightPrintHtml } from "@/modules/challenges/exportSpotlightHtml";
 import { SPOTLIGHT_LABELS } from "@/modules/challenges/labels";
 import type {
@@ -555,7 +555,7 @@ export function ShopSpotlight() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <div className="flex flex-wrap items-center gap-2">
-          <MonthSelector value={month} onChange={setMonth} />
+          <MonthPicker value={month} onChange={setMonth} />
           <Button
             size="sm"
             variant="secondary"

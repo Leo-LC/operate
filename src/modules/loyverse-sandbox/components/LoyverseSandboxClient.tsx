@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DateInput } from "@/components/ui/date-input";
+import { ShopSingleSelect, SingleDatePicker } from "@/components/ui/filters";
 import { toast } from "sonner";
 import type {
   CatalogEndpoint,
@@ -217,29 +217,26 @@ function ApiExplorerTab({
           {endpoint?.supportsStoreFilter && (
             <div>
               <label className="text-xs font-medium text-[var(--fg-mute)]">Store ID</label>
-              <select
-                value={storeId}
-                onChange={(e) => setStoreId(e.target.value)}
-                className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
-              >
-                <option value="">All stores</option>
-                {(status?.stores ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1">
+                <ShopSingleSelect
+                  options={status?.stores ?? []}
+                  value={storeId}
+                  onChange={setStoreId}
+                  allowAll
+                  allLabel="All stores"
+                />
+              </div>
             </div>
           )}
           {endpoint?.supportsDateFilter && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs font-medium text-[var(--fg-mute)]">From</label>
-                <DateInput value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1" />
+                <SingleDatePicker value={dateFrom} onChange={setDateFrom} className="mt-1" />
               </div>
               <div>
                 <label className="text-xs font-medium text-[var(--fg-mute)]">To</label>
-                <DateInput value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1" />
+                <SingleDatePicker value={dateTo} onChange={setDateTo} className="mt-1" />
               </div>
             </div>
           )}
@@ -356,19 +353,13 @@ function MappingPreviewTab({ stores }: { stores: { id: string; name: string }[] 
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label className="text-xs font-medium text-[var(--fg-mute)]">Store</label>
-          <select
-            value={storeId}
-            onChange={(e) => setStoreId(e.target.value)}
-            className="mt-1 block rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
-          >
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+          <div className="mt-1">
+            <ShopSingleSelect options={stores} value={storeId} onChange={setStoreId} />
+          </div>
         </div>
         <div>
           <label className="text-xs font-medium text-[var(--fg-mute)]">Date</label>
-          <DateInput value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" />
+          <SingleDatePicker value={date} onChange={setDate} className="mt-1" />
         </div>
         <Button onClick={loadSummary} disabled={loading || !storeId}>
           {loading ? "Loading…" : "Compare"}
@@ -594,15 +585,9 @@ function DemoReportTab({ stores }: { stores: { id: string; name: string }[] }) {
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label className="text-xs font-medium text-[var(--fg-mute)]">Store</label>
-          <select
-            value={storeId}
-            onChange={(e) => setStoreId(e.target.value)}
-            className="mt-1 block rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm"
-          >
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+          <div className="mt-1">
+            <ShopSingleSelect options={stores} value={storeId} onChange={setStoreId} />
+          </div>
         </div>
         <div>
           <label className="text-xs font-medium text-[var(--fg-mute)]">Days</label>

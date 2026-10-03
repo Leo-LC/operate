@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
-import { MonthSelector } from "@/modules/challenges/components/MonthSelector";
+import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
 import { calcPayroll } from "@/modules/finance/lib/hr";
 
 type Location = { id: string; name: string };
@@ -44,16 +44,8 @@ type Preview = {
   challenge_bonus_amount: number;
 };
 
-const ALL_SHOPS = "all";
 const NEW_CATEGORY = "__new__";
 const FIELD: React.CSSProperties = { height: 32, border: "1px solid var(--line)", borderRadius: "var(--r-sm)", background: "var(--surface)", color: "var(--fg)", padding: "0 10px", fontSize: 13, width: "100%" };
-
-function bangkokMonth(): string {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).formatToParts(new Date());
-  const y = parts.find((p) => p.type === "year")?.value ?? "2026";
-  const m = parts.find((p) => p.type === "month")?.value ?? "09";
-  return `${y}-${m}`;
-}
 
 export function RecurringCostsClient() {
   const [locationId, setLocationId] = useState("");
@@ -75,14 +67,14 @@ export function RecurringCostsClient() {
   const [savingSalary, setSavingSalary] = useState(false);
 
   // Month / snapshot state (auto-synced, no manual Figer)
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => bangkokMonth());
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => currentMonth());
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [preview, setPreview] = useState<Preview[]>([]);
 
   const categoryLabels = useMemo(() => Object.fromEntries(categories.map((c) => [c.value, c.label])), [categories]);
 
   const load = useCallback(async () => {
-    const isAll = locationId === ALL_SHOPS;
+    const isAll = locationId === "";
     const query = !locationId || isAll ? "" : `?location_id=${locationId}`;
     const response = await fetch(`/api/finance/recurring-costs${query}`, { cache: "no-store" });
     const json = await response.json();
@@ -96,7 +88,7 @@ export function RecurringCostsClient() {
     if (!locationId && json.locations?.length) {
       const requested = new URLSearchParams(window.location.search).get("shop");
       if (requested && json.locations.some((l: Location) => l.id === requested)) setLocationId(requested);
-      else setLocationId(ALL_SHOPS);
+      // otherwise keep "" (= all shops)
     }
   }, [locationId]);
 
@@ -121,8 +113,7 @@ export function RecurringCostsClient() {
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (locationId === ALL_SHOPS) { toast.error("Select a shop to add a cost"); return; }
-    if (!locationId) return;
+    if (!locationId) { toast.error("Select a shop to add a cost"); return; }
     const isNew = form.category === NEW_CATEGORY;
     if (isNew && !form.customCategory.trim()) { toast.error("Enter a category name"); return; }
     setSaving(true);
@@ -189,7 +180,6 @@ export function RecurringCostsClient() {
   }
 
   function openPayroll() {
-    if (locationId === ALL_SHOPS) return;
     if (!locationId) return;
     const next: Record<string, string> = {};
     for (const employee of employees) next[employee.id] = String(employee.base_salary_monthly || "");
@@ -225,7 +215,7 @@ export function RecurringCostsClient() {
   }
 
   const monthTotals = useMemo(() => {
-    const ids = locationId === ALL_SHOPS ? locations.map((l) => l.id) : locationId ? [locationId] : [];
+    const ids = !locationId ? locations.map((l) => l.id) : [locationId];
     let recurring = 0, salaries = 0, service = 0, bonus = 0, employeeCount = 0;
     for (const id of ids) {
       const d = getDisplayForLocation(id);
@@ -243,7 +233,7 @@ export function RecurringCostsClient() {
 
   const payrollTotal = employees.reduce((sum, employee) => sum + (Number(salaryDraft[employee.id] ?? "") || 0), 0);
   const locationName = locations.find((location) => location.id === locationId)?.name ?? "this shop";
-  const isAll = locationId === ALL_SHOPS;
+  const isAll = locationId === "";
 
   const costsByCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -259,14 +249,11 @@ export function RecurringCostsClient() {
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
     <PageHeader title="Recurring costs" actions={canManage ? <Button size="sm" onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null} />
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      <PillButton active={isAll} onClick={() => setLocationId(ALL_SHOPS)}>All shops</PillButton>
-      {locations.map((location) => <PillButton key={location.id} active={locationId === location.id} onClick={() => setLocationId(location.id)}>{location.name}</PillButton>)}
-    </div>
+    <ShopSingleSelect options={locations} value={locationId} onChange={setLocationId} allowAll />
 
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "var(--r-md)", background: "transparent", border: "1px solid var(--line)" }}>
       <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--fg-4)" }}>Month</span>
-      <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
+      <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
     </div>
 
     {showForm ? <Card><form onSubmit={save} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>

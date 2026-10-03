@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Pill } from "@/components/ui/pill";
-import { PillButton } from "@/components/ui/pill-button";
+import { DateRangePicker, ShopMultiSelect, bangkokToday } from "@/components/ui/filters";
 import { toast } from "sonner";
 import type { DailyProfitResponse, DailyProfitRow } from "@/modules/reports/daily-profit/types";
 import { DailyProfitManageDrawer } from "./DailyProfitManageDrawer";
-import { DateRangePicker } from "./DateRangePicker";
 import { FINANCE_SCOPE_STORAGE_KEY, type FinanceScope } from "@/modules/finance/scope";
 
 interface Props {
@@ -27,11 +26,6 @@ function money(value: number) {
 
 function pct(value: number) { return `${value.toFixed(1)}%`; }
 function shortDate(value: string) { return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
-function bangkokToday() {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
-}
 
 function ProfitRibbon({ rows, onSelect }: { rows: DailyProfitRow[]; onSelect: (row: DailyProfitRow) => void }) {
   const width = 900;
@@ -135,17 +129,6 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
   const scopeOptions = useMemo(() => (data?.locations ?? []).map((location) => ({ id: location.id, name: location.name })), [data]);
 
-  function toggleLocation(id: string) {
-    setSelectedLocationIds((current) => {
-      if (current.length === 0) return [id];
-      if (current.includes(id)) {
-        const next = current.filter((value) => value !== id);
-        return next.length === 0 ? [] : next;
-      }
-      return [...current, id];
-    });
-  }
-
   async function refreshMirror() {
     setSyncing(true);
     try {
@@ -171,10 +154,13 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
           {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>}
           {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            <PillButton active={selectedLocationIds.length === 0} onClick={() => setSelectedLocationIds([])}>Toutes les boutiques</PillButton>
-            {scopeOptions.map((option) => { const active = selectedLocationIds.includes(option.id); return <PillButton key={option.id} active={active} onClick={() => toggleLocation(option.id)}>{option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}</PillButton>; })}
-          </div>
+        <ShopMultiSelect
+          options={scopeOptions}
+          selected={selectedLocationIds}
+          onChange={setSelectedLocationIds}
+          allLabel="Toutes les boutiques"
+          getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
+        />
       </div>
 
       {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calcul du résultat quotidien…</Card>}

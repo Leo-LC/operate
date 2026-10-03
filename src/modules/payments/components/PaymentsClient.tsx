@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  ChevronLeftIcon, ChevronRightIcon, Loader2Icon, CalculatorIcon,
+  Loader2Icon, CalculatorIcon,
   PrinterIcon, XIcon, EyeIcon, ListIcon, PlusIcon, Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PillButton } from "@/components/ui/pill-button";
+import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
 import { PageHeader } from "@/components/ui/page-header";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { Stat } from "@/components/ui/stat";
@@ -136,15 +136,6 @@ export function PaymentsClient({ initialLocations }: Props) {
   const selectedEmployee = selectedRecord
     ? employees.find((e) => e.id === selectedRecord.employee_id) ?? null
     : null;
-
-  function prevMonth() {
-    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
-    else setMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
-    else setMonth((m) => m + 1);
-  }
 
   async function handleCalculate() {
     if (!locationId) return;
@@ -429,42 +420,16 @@ export function PaymentsClient({ initialLocations }: Props) {
 
       {/* Selectors row — date selector on top */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {initialLocations.map((l) => (
-            <PillButton key={l.id} active={locationId === l.id} onClick={() => setLocationId(l.id)}>{l.name}</PillButton>
-          ))}
-        </div>
+        <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
 
         <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
           {/* Month nav */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <button
-              onClick={prevMonth}
-              style={{
-                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
-                color: "var(--fg-3)", cursor: "pointer",
-              }}
-            >
-              <ChevronLeftIcon size={14} />
-            </button>
-            <span
-              className="mono tabular-nums"
-              style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
-            >
-              {monthName}
-            </span>
-            <button
-              onClick={nextMonth}
-              style={{
-                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
-                color: "var(--fg-3)", cursor: "pointer",
-              }}
-            >
-              <ChevronRightIcon size={14} />
-            </button>
-          </div>
+          <MonthPicker
+            value={`${year}-${String(month).padStart(2, "0")}`}
+            onChange={(m) => { const [y, mo] = m.split("-").map(Number); setYear(y); setMonth(mo); }}
+            minMonth="2000-01"
+            maxMonth={currentMonth()}
+          />
 
           {/* View toggle */}
           <ViewToggle

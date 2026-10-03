@@ -20,10 +20,9 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { ControlledTabs } from "@/components/ui/module-tabs";
 import { Pill } from "@/components/ui/pill";
-import { PillButton } from "@/components/ui/pill-button";
+import { DateRangePicker, ShopMultiSelect, bangkokToday, monthStartToday, shopMultiParam } from "@/components/ui/filters";
 import { Stat } from "@/components/ui/stat";
 import { DailyProfitView } from "@/modules/reports/components/DailyProfitView";
-import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
 import { RevenueComparisonView } from "@/modules/reports/components/RevenueComparisonView";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -127,15 +126,7 @@ function ppChangeParts(curr: number, prev: number): { delta: string; dir: "up" |
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
 function today() { return new Date().toISOString().slice(0, 10); }
-function bangkokToday() {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
-}
-function monthStart() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
+function monthStart() { return monthStartToday(); }
 function countDaysInRange(fromStr: string, toStr: string): number {
   const d1 = new Date(fromStr);
   const d2 = new Date(toStr);
@@ -171,23 +162,7 @@ function Controls({
         today={bangkokToday()}
       />
       {locations.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <PillButton
-            active={selectedShops.length === locations.length}
-            onClick={() => onShopsChange(selectedShops.length === locations.length ? [] : locations.map((l) => l.id))}
-          >
-            All shops
-          </PillButton>
-          {locations.map((loc) => (
-            <PillButton
-              key={loc.id}
-              active={selectedShops.includes(loc.id)}
-              onClick={() => onShopsChange(selectedShops.includes(loc.id) ? selectedShops.filter((s) => s !== loc.id) : [...selectedShops, loc.id])}
-            >
-              {loc.name}
-            </PillButton>
-          ))}
-        </div>
+        <ShopMultiSelect options={locations} selected={selectedShops} onChange={onShopsChange} />
       )}
     </div>
   );
@@ -1575,14 +1550,13 @@ export function ReportsClient() {
   const fetchData = useCallback(async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
     setLoading(true);
     try {
-      const locParam = shops.length === locs.length ? "all" : shops.join(",");
+      const locParam = shopMultiParam(shops);
       const res = await fetch(`/api/reports/accounting?from=${f}&to=${t}&locations=${locParam}`);
       if (!res.ok) return;
       const json = await res.json() as AccountingData;
       setData(json);
       if (locs.length === 0 && json.locations.length > 0) {
         setLocations(json.locations);
-        setSelectedShops(json.locations.map((l) => l.id));
       }
     } finally {
       setLoading(false);

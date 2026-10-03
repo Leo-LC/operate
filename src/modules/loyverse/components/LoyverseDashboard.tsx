@@ -8,7 +8,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
 import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, ReceiptIcon } from "lucide-react";
-import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
+import { DateRangePicker, ShopMultiSelect } from "@/components/ui/filters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 function fmtTHB(n: number) {
@@ -172,44 +172,6 @@ function Donut({ data, colors }: { data: { label: string; value: number; sublabe
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function ShopPills({
-  locations,
-  selected,
-  onChange,
-}: {
-  locations: { id: string; name: string }[];
-  selected: string[];
-  onChange: (ids: string[]) => void;
-}) {
-  function toggle(id: string) {
-    if (selected.length === 0) {
-      onChange([id]);
-      return;
-    }
-    if (selected.includes(id)) {
-      const next = selected.filter((s) => s !== id);
-      onChange(next.length === 0 ? [] : next);
-    } else {
-      onChange([...selected, id]);
-    }
-  }
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      <PillButton active={selected.length === 0} onClick={() => onChange([])}>
-        All shops
-      </PillButton>
-      {locations.map((loc) => {
-        const active = selected.includes(loc.id);
-        return (
-          <PillButton key={loc.id} active={active} onClick={() => toggle(loc.id)} style={{ textTransform: "capitalize" }}>
-            {capitalizeShop(loc.name)}
-          </PillButton>
-        );
-      })}
     </div>
   );
 }
@@ -589,7 +551,12 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <ShopPills locations={shopLocations} selected={selectedStores} onChange={setSelectedStores} />
+          <ShopMultiSelect
+            options={shopLocations}
+            selected={selectedStores}
+            onChange={setSelectedStores}
+            getLabel={(loc) => capitalizeShop(loc.name)}
+          />
         </div>
       </div>
 

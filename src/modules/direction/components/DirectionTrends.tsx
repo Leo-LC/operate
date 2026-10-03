@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PillButton } from "@/components/ui/pill-button";
+import { ShopMultiSelect } from "@/components/ui/filters";
 import { useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
 function fmtM(n: number) {
@@ -44,7 +44,6 @@ export function DirectionTrends() {
       .then((r) => r.json())
       .then((j: { locations: { id: string; name: string }[] }) => {
         setLocations(j.locations ?? []);
-        if (selectedShops.length === 0) setSelectedShops((j.locations ?? []).map((l) => l.id));
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,26 +57,13 @@ export function DirectionTrends() {
     <div className="flex flex-col gap-5">
       {/* Sélecteur boutiques */}
       {locations.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <PillButton active={selectedShops.length === locations.length} onClick={() => setSelectedShops(locations.map((l) => l.id))}>
-            Toutes les boutiques
-          </PillButton>
-          {locations.map((loc) => (
-            <PillButton
-              key={loc.id}
-              active={selectedShops.includes(loc.id)}
-              onClick={() => {
-                if (selectedShops.length === locations.length) {
-                  setSelectedShops([loc.id]);
-                  return;
-                }
-                setSelectedShops((prev) => (prev.includes(loc.id) ? prev.filter((s) => s !== loc.id) : [...prev, loc.id]));
-              }}
-            >
-              {shortName(loc.name)}
-            </PillButton>
-          ))}
-        </div>
+        <ShopMultiSelect
+          options={locations}
+          selected={selectedShops}
+          onChange={setSelectedShops}
+          allLabel="Toutes les boutiques"
+          getLabel={(loc) => shortName(loc.name)}
+        />
       )}
 
       {/* Cartes résumé — Ventes / Dépenses seulement, vs montant sous le % */}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { PillButton } from "@/components/ui/pill-button";
+import { DateRangePicker, ShopSingleSelect } from "@/components/ui/filters";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { ArrowLeftRightIcon, RefreshCwIcon, TableIcon } from "lucide-react";
 import {
@@ -41,18 +41,6 @@ const TABS: Array<{ id: ExportTab; label: string }> = [
 ];
 
 const MAX_DAYS = 31;
-
-const inputStyle: React.CSSProperties = {
-  height: 32,
-  borderRadius: "var(--r-sm)",
-  border: "1px solid var(--line)",
-  background: "transparent",
-  color: "var(--fg)",
-  padding: "0 var(--s-2)",
-  fontSize: 13,
-  fontFamily: "var(--font-sans)",
-  outline: "none",
-};
 
 export function LoyverseExportClient() {
   const today = bangkokToday();
@@ -219,32 +207,19 @@ export function LoyverseExportClient() {
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Shop</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {shops.length === 0 ? (
-              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
-            ) : (
-              shops.map((shop) => (
-                <PillButton
-                  key={shop.store_id}
-                  active={selectedStore === shop.store_id}
-                  onClick={() => setSelectedStore(shop.store_id)}
-                  style={{ textTransform: "capitalize" }}
-                >
-                  {capitalizeShop(shop.account_key)}
-                </PillButton>
-              ))
-            )}
-          </div>
+          {shops.length === 0 ? (
+            <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
+          ) : (
+            <ShopSingleSelect
+              options={shops.map((shop) => ({ id: shop.store_id, name: capitalizeShop(shop.account_key) }))}
+              value={selectedStore ?? ""}
+              onChange={(id) => setSelectedStore(id || null)}
+            />
+          )}
         </div>
-        <div style={{ display: "flex", alignItems: "end", gap: "var(--s-2)" }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Du</span>
-            <input type="date" value={from} max={to || today} onChange={(e) => setFrom(e.target.value)} style={inputStyle} />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Au</span>
-            <input type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} style={inputStyle} />
-          </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Période</span>
+          <DateRangePicker value={{ from, to }} onChange={(range) => { setFrom(range.from); setTo(range.to); }} today={today} />
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
           <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || forceSyncing || loading || days.length === 0}>

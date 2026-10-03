@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
-import { MonthSelector } from "./MonthSelector";
+import { MonthPicker, ShopSingleSelect } from "@/components/ui/filters";
 import { SalesTargetSettings } from "./SalesTargetSettings";
 import type { LocationOverview } from "@/modules/challenges/overview-data";
 import { buildOverviewPrintHtml } from "@/modules/challenges/exportOverviewHtml";
@@ -151,33 +151,12 @@ function TeamLocationFilter({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <button
-        type="button"
-        onClick={() => onChange("all")}
-        className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
-          value === "all"
-            ? "border-[var(--line-strong)] bg-[var(--row-hover)] text-[var(--fg)]"
-            : "border-transparent bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
-        }`}
-      >
-        All shops
-      </button>
-      {locations.map((loc) => (
-        <button
-          key={loc.locationId}
-          type="button"
-          onClick={() => onChange(loc.locationId)}
-          className={`rounded-[var(--r-sm)] border px-3 py-1.5 text-xs font-medium transition-colors ${
-            value === loc.locationId
-              ? "border-[var(--line-strong)] bg-[var(--row-hover)] text-[var(--fg)]"
-              : "border-transparent bg-transparent text-[var(--fg-3)] hover:text-[var(--fg)]"
-          }`}
-        >
-          {shortLocationName(loc.locationTitle)}
-        </button>
-      ))}
-    </div>
+    <ShopSingleSelect
+      options={locations.map((loc) => ({ id: loc.locationId, name: shortLocationName(loc.locationTitle) }))}
+      value={value === "all" ? "" : value}
+      onChange={(id) => onChange(id === "" ? "all" : id)}
+      allowAll
+    />
   );
 }
 
@@ -1342,7 +1321,7 @@ export function ChallengesOverview({
       {/* Light top controls: month + total earned, then view switch + actions */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <MonthSelector value={month} onChange={setMonth} />
+          <MonthPicker value={month} onChange={setMonth} />
           {!loading && entries.length > 0 && (
             <p className="text-[13px] text-[var(--fg-3)]">
               <span className="font-mono font-semibold tabular-nums text-[var(--fg)]">

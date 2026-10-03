@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { InfoIcon } from "lucide-react";
+import { DateRangePicker, ShopMultiSelect, bangkokToday, reconcileShopMulti } from "@/components/ui/filters";
 import { PillButton } from "@/components/ui/pill-button";
-import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
 import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -12,11 +12,6 @@ function fmtN(n: number) {
 }
 function fmtMoney(n: number) {
   return `฿${fmtN(Math.abs(n))}`;
-}
-function bangkokToday(): string {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const o: Record<string, string> = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  return `${o.year}-${o.month}-${o.day}`;
 }
 
 // ── Types mirroring /api/reports/accounting ───────────────────────────
@@ -132,14 +127,9 @@ export function DirectionOverview() {
   useEffect(() => {
     if (locations.length === 0) return;
     if (selectedShops.length === 0) return; // empty = all, keep as all
-    const allowed = new Set(locations.map((l) => l.id));
-    const filtered = selectedShops.filter((id) => allowed.has(id));
+    const filtered = reconcileShopMulti(selectedShops, locations.map((l) => l.id));
     if (filtered.length !== selectedShops.length) {
-      if (filtered.length === 0) {
-        setSelectedShops(locations.map((l) => l.id));
-      } else {
-        setSelectedShops(filtered);
-      }
+      setSelectedShops(filtered);
     }
   }, [locations.map((l) => l.id).join(",")]);
 
@@ -242,26 +232,13 @@ export function DirectionOverview() {
           </button>
         </div>
         {locations.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <PillButton active={selectedShops.length === locations.length} onClick={() => setSelectedShops(locations.map((l) => l.id))}>
-              Toutes les boutiques
-            </PillButton>
-            {locations.map((loc) => (
-              <PillButton
-                key={loc.id}
-                active={selectedShops.includes(loc.id)}
-                onClick={() => {
-                  if (selectedShops.length === locations.length) {
-                    setSelectedShops([loc.id]);
-                    return;
-                  }
-                  setSelectedShops((prev) => (prev.includes(loc.id) ? prev.filter((s) => s !== loc.id) : [...prev, loc.id]));
-                }}
-              >
-                {shortShopName(loc.name)}
-              </PillButton>
-            ))}
-          </div>
+          <ShopMultiSelect
+            options={locations}
+            selected={selectedShops}
+            onChange={setSelectedShops}
+            allLabel="Toutes les boutiques"
+            getLabel={(loc) => shortShopName(loc.name)}
+          />
         )}
       </div>
 

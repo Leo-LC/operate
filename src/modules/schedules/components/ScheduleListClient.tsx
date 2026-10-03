@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PillButton } from "@/components/ui/pill-button";
+import { ShopSingleSelect } from "@/components/ui/filters";
 import { PlusIcon, PencilIcon, TrashIcon, CalendarIcon, PrinterIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
 import type { Schedule } from "@/modules/schedules/types";
 import type { AdminLocation } from "@/modules/admin/types";
@@ -256,12 +256,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             {locations.length > 1 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <PillButton active={locationFilter === ""} onClick={() => setLocationFilter("")}>All shops</PillButton>
-                {locations.map((l) => (
-                  <PillButton key={l.id} active={locationFilter === l.id} onClick={() => setLocationFilter(l.id)}>{l.name}</PillButton>
-                ))}
-              </div>
+              <ShopSingleSelect options={locations} value={locationFilter} onChange={setLocationFilter} allowAll />
             )}
             <Button size="sm" variant="primary" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }}>
               <PlusIcon style={{ width: 14, height: 14 }} />
@@ -315,6 +310,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                   setCreateWeek(e.target.value);
                   setCreateNameOverride(null);
                 }}
+                className="w-full"
               />
             </div>
           </div>
@@ -447,6 +443,7 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
                   setDupWeek(e.target.value);
                   setDupName(defaultScheduleName(e.target.value));
                 }}
+                className="w-full"
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

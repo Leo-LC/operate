@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { PillButton } from "@/components/ui/pill-button";
+import { ShopSingleSelect } from "@/components/ui/filters";
 import { FINANCE_SCOPE_STORAGE_KEY, type FinanceScope } from "@/modules/finance/scope";
 
 export type FinanceLocationOption = { id: string; name: string };
-
-const style: React.CSSProperties = { height: 34, padding: "0 10px", border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", background: "var(--bg)", color: "var(--fg)", fontSize: 12 };
 
 export function FinanceScopeSelector({ value, locations, onChange }: { value: FinanceScope; locations: FinanceLocationOption[]; onChange: (scope: FinanceScope) => void }) {
   useEffect(() => {
@@ -23,13 +23,8 @@ export function FinanceScopeSelector({ value, locations, onChange }: { value: Fi
   }
 
   return <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-    <select aria-label="Finance scope" value={value.type} onChange={(event) => update({ type: event.target.value as FinanceScope["type"], locationId: event.target.value === "group" ? "" : value.locationId || locations[0]?.id || "" })} style={style}>
-      <option value="group">Global</option>
-      <option value="location">Par shop</option>
-    </select>
-    {value.type === "location" ? <select aria-label="Shop" value={value.locationId} onChange={(event) => update({ ...value, locationId: event.target.value })} style={{ ...style, minWidth: 170 }}>
-      <option value="">Select a shop…</option>
-      {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-    </select> : null}
+    <PillButton active={value.type === "group"} onClick={() => update({ type: "group", locationId: "" })}>Global</PillButton>
+    <PillButton active={value.type === "location"} onClick={() => update({ type: "location", locationId: value.locationId || locations[0]?.id || "" })}>Par shop</PillButton>
+    {value.type === "location" ? <ShopSingleSelect options={locations} value={value.locationId} onChange={(locationId) => update({ ...value, locationId })} /> : null}
   </div>;
 }

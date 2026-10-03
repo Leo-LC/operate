@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
+import { ShopSingleSelect } from "@/components/ui/filters";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon, DownloadIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
 import { buildEmployeeDocumentsCsv, collectMatrixDocTypes, getDocTypeLabel } from "@/modules/admin/lib/employee-documents";
@@ -828,10 +829,12 @@ export function EmployeesListClient({ locations }: Props) {
             </button>
           )}
         </div>
-        <PillButton active={shopFilter === null} onClick={() => setShopFilter(null)}>All shops</PillButton>
-        {locations.map((loc) => (
-          <PillButton key={loc.id} active={shopFilter === loc.id} onClick={() => setShopFilter(shopFilter === loc.id ? null : loc.id)}>{loc.name}</PillButton>
-        ))}
+        <ShopSingleSelect
+          options={locations}
+          value={shopFilter ?? ""}
+          onChange={(id) => setShopFilter(id === "" ? null : id)}
+          allowAll
+        />
       </div>
 
       {showAdd && (

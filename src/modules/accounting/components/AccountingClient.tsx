@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon, type LucideIcon } from "lucide-react";
+import { DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
 import { PageHeader } from "@/components/ui/page-header";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFocusDay";
@@ -83,13 +84,9 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
 
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
 
-  function prevMonth() {
-    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
-    else setMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
-    else setMonth((m) => m + 1);
+  function setMonthValue(m: string) {
+    const [y, mo] = m.split("-").map(Number);
+    setYear(y); setMonth(mo);
   }
 
   function handleEntryUpdate(entry: DailyEntry) {
@@ -283,49 +280,11 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-3)" }}>
           {/* Location selector */}
           {locations.length > 1 && (
-            <select
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              style={{
-                height: 34, borderRadius: "var(--r-sm)",
-                border: "1px solid var(--line)", background: "transparent",
-                color: "var(--fg)", padding: "0 var(--s-3)", fontSize: 13,
-                fontFamily: "var(--font-sans)", outline: "none",
-              }}
-            >
-              {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+            <ShopSingleSelect options={locations} value={locationId} onChange={setLocationId} />
           )}
 
           {/* Month navigation */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <button
-              onClick={prevMonth}
-              style={{
-                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
-                color: "var(--fg-3)", cursor: "pointer",
-              }}
-            >
-              <ChevronLeftIcon size={14} />
-            </button>
-            <span
-              className="mono tabular-nums"
-              style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", color: "var(--fg)" }}
-            >
-              {monthName}
-            </span>
-            <button
-              onClick={nextMonth}
-              style={{
-                width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "transparent",
-                color: "var(--fg-3)", cursor: "pointer",
-              }}
-            >
-              <ChevronRightIcon size={14} />
-            </button>
-          </div>
+          <MonthPicker value={monthStr} onChange={setMonthValue} minMonth="2000-01" maxMonth={currentMonth()} />
         </div>
 
       {/* Import confirmation banner */}

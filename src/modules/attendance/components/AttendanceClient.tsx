@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  ChevronLeftIcon, ChevronRightIcon,
   Loader2Icon, PrinterIcon, SettingsIcon, XIcon,
 } from "lucide-react";
 
@@ -16,7 +15,7 @@ function escHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 import { Button } from "@/components/ui/button";
-import { PillButton } from "@/components/ui/pill-button";
+import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
 import {
   type AttendanceRecord,
   type HrSettings,
@@ -202,15 +201,6 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
       }),
     [locationEmployees, records, settings, dayNumbers, year, month, schedMap, daysInMonth],
   );
-
-  function prevMonth() {
-    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
-    else setMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
-    else setMonth((m) => m + 1);
-  }
 
   function handleCellClick(emp: Employee, dateStr: string) {
     const exc = excMap.get(schedKey(emp.id, dateStr));
@@ -533,20 +523,13 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
         subtitle="Click any day cell to log overtime or leave."
         actions={
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {initialLocations.map((l) => (
-                <PillButton key={l.id} active={locationId === l.id} onClick={() => setLocationId(l.id)}>{l.name}</PillButton>
-              ))}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Button variant="ghost" size="sm" onClick={prevMonth}>
-                <ChevronLeftIcon style={{ width: 14, height: 14 }} />
-              </Button>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 500, width: 140, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{monthName}</span>
-              <Button variant="ghost" size="sm" onClick={nextMonth}>
-                <ChevronRightIcon style={{ width: 14, height: 14 }} />
-              </Button>
-            </div>
+            <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
+            <MonthPicker
+              value={monthStr}
+              onChange={(m) => { const [y, mo] = m.split("-").map(Number); setYear(y); setMonth(mo); }}
+              minMonth="2000-01"
+              maxMonth={currentMonth()}
+            />
             <Button size="sm" variant="secondary" onClick={exportMonthPdf} disabled={locationEmployees.length === 0}>
               <PrinterIcon style={{ width: 14, height: 14 }} />
               Export month

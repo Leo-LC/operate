@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
-import { MonthSelector } from "./MonthSelector";
+import { MonthPicker } from "@/components/ui/filters";
 
 interface LocationCard {
   locationId: string;
@@ -162,7 +162,7 @@ export function ReviewsAnalytics() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <MonthSelector value={month} onChange={setMonth} />
+        <MonthPicker value={month} onChange={setMonth} />
         <div className="flex items-center gap-3">
           {syncError && (
             <span className="text-xs text-[var(--bad)]">{syncError}</span>

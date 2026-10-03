@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { Pill } from "@/components/ui/pill";
-import { PillButton } from "@/components/ui/pill-button";
+import { ShopSingleSelect } from "@/components/ui/filters";
 import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon, CopyIcon, TrashIcon, CheckIcon, XIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Animal } from "@/modules/animals/types";
@@ -210,12 +210,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
       />
 
       {/* Shop selector */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <PillButton active={!shopFilter} onClick={() => setShopFilter("")}>All shops</PillButton>
-        {locations.map((l) => (
-          <PillButton key={l.id} active={shopFilter === l.id} onClick={() => setShopFilter(l.id)}>{l.name}</PillButton>
-        ))}
-      </div>
+      <ShopSingleSelect options={locations} value={shopFilter} onChange={setShopFilter} allowAll />
 
       {view === "animals" ? (
         /* ── Animals view ──────────────────────────────────────────────── */

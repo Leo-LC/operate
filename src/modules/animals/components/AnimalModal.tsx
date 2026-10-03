@@ -479,7 +479,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Est. birth date</label>
-                <DateInput value={form.estimated_birth_date} onChange={(e: { target: { value: string } }) => setForm((f) => (f ? { ...f, estimated_birth_date: e.target.value } : f))} />
+                <DateInput value={form.estimated_birth_date} onChange={(e: { target: { value: string } }) => setForm((f) => (f ? { ...f, estimated_birth_date: e.target.value } : f))} className="w-full" />
               </div>
             </div>
           </div>
@@ -514,7 +514,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
                 form.vaccination_dates.map((d, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <SyringeIcon style={{ width: 14, height: 14, color: "var(--fg-4)", flexShrink: 0 }} />
-                    <DateInput value={d} onChange={(e: { target: { value: string } }) => handleDateChange(i, e.target.value)} />
+                    <DateInput value={d} onChange={(e: { target: { value: string } }) => handleDateChange(i, e.target.value)} className="w-full" />
                     <button
                       type="button"
                       onClick={() => handleRemoveDate(i)}
@@ -542,7 +542,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>
                   Next vaccine {!nextOverridden && <span style={{ color: "var(--fg-4)" }}>(auto)</span>}
                 </label>
-                <DateInput value={form.next_vaccination_date} onChange={(e: { target: { value: string } }) => handleNextChange(e.target.value)} />
+                <DateInput value={form.next_vaccination_date} onChange={(e: { target: { value: string } }) => handleNextChange(e.target.value)} className="w-full" />
                 <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>
                   Auto: {suggestNextVaccine(form.vaccination_dates) ? "1 month after the first vaccine, then 1 year after each" : "—"}
                 </p>

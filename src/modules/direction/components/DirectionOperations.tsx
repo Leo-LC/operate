@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { OperationsView, type AccountingData } from "@/modules/reports/components/ReportsClient";
-import { DateRangePicker } from "@/modules/reports/components/DateRangePicker";
-import { PillButton } from "@/components/ui/pill-button";
+import { DateRangePicker, ShopMultiSelect, bangkokToday, shopMultiParam } from "@/components/ui/filters";
 import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
-
-function bangkokToday(): string {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const o: Record<string, string> = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  return `${o.year}-${o.month}-${o.day}`;
-}
 
 export function DirectionOperations() {
   const { from, to, setRange } = useDirectionPeriod();
@@ -22,14 +15,13 @@ export function DirectionOperations() {
   const fetchData = useCallback(async (f: string, t: string, shops: string[], locs: { id: string; name: string }[]) => {
     setLoading(true);
     try {
-      const locParam = shops.length === locs.length ? "all" : shops.join(",");
+      const locParam = shopMultiParam(shops);
       const res = await fetch(`/api/reports/accounting?from=${f}&to=${t}&locations=${locParam}`, { cache: "no-store" });
       if (!res.ok) return;
       const json = (await res.json()) as AccountingData;
       setData(json);
       if (locs.length === 0 && json.locations.length > 0) {
         setLocations(json.locations);
-        setSelectedShops(json.locations.map((l) => l.id));
       }
     } finally {
       setLoading(false);
@@ -52,14 +44,13 @@ export function DirectionOperations() {
       <div className="flex flex-col gap-3">
         <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
         {locations.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <PillButton active={selectedShops.length === locations.length} onClick={() => setSelectedShops(locations.map((l) => l.id))}>Toutes les boutiques</PillButton>
-            {locations.map((loc) => (
-              <PillButton key={loc.id} active={selectedShops.includes(loc.id)} onClick={() => setSelectedShops((prev) => prev.includes(loc.id) ? prev.filter((s) => s !== loc.id) : [...prev, loc.id])}>
-                {loc.name.replace(/^Capybara Coffee\s*/i, "").trim() || loc.name}
-              </PillButton>
-            ))}
-          </div>
+          <ShopMultiSelect
+            options={locations}
+            selected={selectedShops}
+            onChange={setSelectedShops}
+            allLabel="Toutes les boutiques"
+            getLabel={(loc) => loc.name.replace(/^Capybara Coffee\s*/i, "").trim() || loc.name}
+          />
         )}
       </div>
       {loading && <div className="py-10 text-center text-sm text-[var(--fg-4)]">Chargement…</div>}

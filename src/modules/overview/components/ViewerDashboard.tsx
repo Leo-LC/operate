@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
+import { bangkokToday } from "@/components/ui/filters";
 
 interface ShopAgg {
   locationId: string;
@@ -25,12 +26,6 @@ interface AccountingData {
 
 interface ViewerDashboardProps {
   name: string;
-}
-
-function bangkokToday() {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
 }
 
 function fmtN(n: number) {
