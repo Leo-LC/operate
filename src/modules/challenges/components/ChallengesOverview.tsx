@@ -1448,7 +1448,6 @@ export function ChallengesOverview({
               loc={entry.display}
               month={month}
               loading={loading}
-              displayAdjusted={entry.hasOverride}
             />
           ))}
         </div>

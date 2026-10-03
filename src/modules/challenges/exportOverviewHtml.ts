@@ -418,7 +418,6 @@ const TEAM_PRINT_CSS = [
   ".advice-card .tip{font-size:7.5px;color:#4b5563;line-height:1.4}",
   ".footer{text-align:center;font-size:8.5px;font-style:italic;color:#9ca3af;padding-top:8px;border-top:1px solid #f3f4f6;margin-top:8px}",
   ".pass{color:#15803d}.warn{color:#92400e}.muted{color:#6b7280}",
-  ".adjusted-tag{display:inline-block;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle}",
   "@media print{@page{margin:8mm;size:portrait}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.dashboard{page-break-after:always}.dashboard:last-child{page-break-after:auto}}",
 ].join("");
 
@@ -455,9 +454,8 @@ function salesTargetLabel(
 
 const MERCH_BONUS_BY_TIER = [0, 1500, 3000, 5000] as const;
 
-function buildTeamDashboardBlock(loc: LocationOverview, month: string, adjustedIds?: Set<string>): string {
+function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
   const name = escHtml(shortLocationName(loc.locationTitle));
-  const adjustedTag = adjustedIds?.has(loc.locationId) ? ' <span class="adjusted-tag">Adjusted</span>' : "";
   const { amount, threshold, unlocked, ratio } = loc.revenue;
   const salesReached = unlocked === true;
   const revenueLocked = threshold !== null && unlocked === false;
@@ -544,7 +542,7 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string, adjustedI
 
   return `<div class="dashboard">
     <div class="dash-header">
-      <div><div class="dash-title">${name}${adjustedTag}</div><div class="dash-subtitle">Monthly Challenge — your bonus, simply explained</div></div>
+      <div><div class="dash-title">${name}</div><div class="dash-subtitle">Monthly Challenge — your bonus, simply explained</div></div>
       <div class="dash-logo">Capybara Coffee</div>
     </div>
 
@@ -588,7 +586,7 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string, adjustedI
   </div>`;
 }
 
-function buildTeamPrintHtml(locations: LocationOverview[], month: string, adjustedIds?: Set<string>): string {
+function buildTeamPrintHtml(locations: LocationOverview[], month: string): string {
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
     month: "long",
     year: "numeric",
@@ -599,7 +597,7 @@ function buildTeamPrintHtml(locations: LocationOverview[], month: string, adjust
     year: "numeric",
   });
   const title = `Monthly Challenge — ${monthLabel}`;
-  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc, month, adjustedIds)).join("");
+  const dashboards = locations.map((loc) => buildTeamDashboardBlock(loc, month)).join("");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escHtml(title)}</title><style>${TEAM_PRINT_CSS}</style></head><body>
 <div class="page">
@@ -622,7 +620,7 @@ export function buildOverviewPrintHtml(
   const adjustedIds = opts?.adjustedIds ? new Set(opts.adjustedIds) : undefined;
 
   if (teamMode && !opts?.summaryOnly) {
-    return buildTeamPrintHtml(locations, month, adjustedIds);
+    return buildTeamPrintHtml(locations, month);
   }
 
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString("en", {
