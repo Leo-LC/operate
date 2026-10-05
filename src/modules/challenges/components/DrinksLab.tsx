@@ -10,7 +10,7 @@ function currentMonth(): string {
 
 function fmtRate(rate: number | null): string {
   if (rate === null) return "—";
-  return rate.toFixed(2);
+  return `${(rate * 100).toFixed(1)}%`;
 }
 
 function fmtInt(n: number): string {
@@ -106,7 +106,7 @@ export function DrinksLab() {
         Expérimentation — source <span className="font-mono">loyverse_daily_sales.sales_by_item</span> (quantités
         Loyverse, remboursements déduits). Adultes = items d&apos;entrée contenant « adult » (Adult, AA ADULT, A.Adult,
         A ENTRY adult — enfants Kid/Child exclus, merch « Tshirt Adult » exclu). Boissons = items{" "}
-        <span className="font-mono">drinks</span> (règles Samui dédiées). « — » = aucun adulte sur la période.
+        <span className="font-mono">drinks</span> (règles Samui dédiées, lignes de frais carte « 3% Card » exclues). « — » = aucun adulte sur la période.
       </p>
     </div>
   );

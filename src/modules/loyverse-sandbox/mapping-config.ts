@@ -132,8 +132,9 @@ export function resolveSalesBucket(
   }
 
   const haystack = `${categoryName ?? ""} ${itemName ?? ""}`.toLowerCase();
-  // Card surcharge must be checked first — e.g. "Card Fee 3%" should not be bucketed as ticket/drinks
-  if (haystack.includes("surcharge") || haystack.includes("card fee") || haystack.includes("cardfee") || haystack.includes("fee 3%")) {
+  // Card surcharge must be checked first — e.g. "Card Fee 3%" should not be bucketed as ticket/drinks.
+  // "3% Card" (Samui files it under Drinks, others under Goodies/Fee) is the same fee, reversed wording.
+  if (haystack.includes("surcharge") || haystack.includes("card fee") || haystack.includes("cardfee") || haystack.includes("fee 3%") || (haystack.includes("card") && haystack.includes("3%"))) {
     return "surcharge";
   }
   for (const [keyword, bucket] of Object.entries(CATEGORY_NAME_TO_BUCKET)) {

@@ -240,6 +240,13 @@ describe("snacks → Animal food rename (Sept 2026)", () => {
     expect(resolveSalesBucket(null, null, "B.Card Fee 3%")).toBe("surcharge");
   });
 
+  it("buckets '3% Card' fee lines as surcharge in any category (Samui files them under Drinks)", () => {
+    expect(resolveSalesBucket("cat-d", "Drinks", "3% Card")).toBe("surcharge");
+    expect(resolveSalesBucket("cat-g", "Goodies", "3% Card")).toBe("surcharge");
+    expect(resolveSalesBucket("cat-f", "Fee", "3% Card")).toBe("surcharge");
+    expect(resolveSalesBucketForSamui("cat-d", "Drinks", "3% Card")).toBe("surcharge");
+  });
+
   it("detects adult entries across shop naming variants (drinks-rate lab, Sept 2026)", () => {
     // Adultes — observed POS names per shop.
     expect(isAdultEntryItem("Adult", "cat-t", "Ticket")).toBe(true);
