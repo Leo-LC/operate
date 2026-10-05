@@ -8,6 +8,7 @@ const BASE_TABS = [
 
 const OWNER_TABS = [
   ...BASE_TABS,
+  { label: "Labo", href: "/challenges/labo" },
   { label: "Methodology", href: "/challenges/methodology" },
 ] as const;
 
