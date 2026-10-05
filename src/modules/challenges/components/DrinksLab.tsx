@@ -104,9 +104,9 @@ export function DrinksLab() {
 
       <p className="max-w-3xl text-[11px] leading-relaxed text-[var(--fg-4)]">
         Expérimentation — source <span className="font-mono">loyverse_daily_sales.sales_by_item</span> (quantités
-        Loyverse, remboursements déduits). Adultes = « A ENTRY adult » seul à Samui (enfants exclus), items{" "}
-        <span className="font-mono">ticket</span> ailleurs. Boissons = items <span className="font-mono">drinks</span>{" "}
-        (règles Samui dédiées). « — » = aucun adulte sur la période.
+        Loyverse, remboursements déduits). Adultes = items d&apos;entrée contenant « adult » (Adult, AA ADULT, A.Adult,
+        A ENTRY adult — enfants Kid/Child exclus, merch « Tshirt Adult » exclu). Boissons = items{" "}
+        <span className="font-mono">drinks</span> (règles Samui dédiées). « — » = aucun adulte sur la période.
       </p>
     </div>
   );

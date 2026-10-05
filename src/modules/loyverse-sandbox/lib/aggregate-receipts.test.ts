@@ -6,7 +6,7 @@ import {
   computeCoverage,
   dateRangeForDay,
 } from "./aggregate-receipts";
-import { isSamuiSnackItem, resolveSalesBucket, resolveSalesBucketForSamui } from "../mapping-config";
+import { isSamuiSnackItem, resolveSalesBucket, resolveSalesBucketForSamui, isAdultEntryItem } from "../mapping-config";
 import type { LoyverseReceipt } from "../types";
 
 function mkReceipt(overrides: Partial<LoyverseReceipt> = {}): LoyverseReceipt {
@@ -238,6 +238,26 @@ describe("snacks → Animal food rename (Sept 2026)", () => {
     expect(resolveSalesBucket("cat-d", "Drink", "Cappuccino")).toBe("drinks");
     expect(resolveSalesBucket(null, null, "Adult")).toBe("other");
     expect(resolveSalesBucket(null, null, "B.Card Fee 3%")).toBe("surcharge");
+  });
+
+  it("detects adult entries across shop naming variants (drinks-rate lab, Sept 2026)", () => {
+    // Adultes — observed POS names per shop.
+    expect(isAdultEntryItem("Adult", "cat-t", "Ticket")).toBe(true);
+    expect(isAdultEntryItem("AA ADULT", "cat-t", "TICKETS")).toBe(true);
+    expect(isAdultEntryItem("A.Adult", "cat-t", "Ticket")).toBe(true);
+    expect(isAdultEntryItem("A ENTRY adult", "cat-d", "Drinks")).toBe(true);
+    expect(isAdultEntryItem("Adult 20%", "cat-t", "Ticket")).toBe(true);
+    // Enfants exclus.
+    expect(isAdultEntryItem("Kid", "cat-t", "Ticket")).toBe(false);
+    expect(isAdultEntryItem("A.Kid", "cat-t", "Ticket")).toBe(false);
+    expect(isAdultEntryItem("AB CHILDREN", "cat-t", "TICKETS")).toBe(false);
+    expect(isAdultEntryItem("A ENTRY child", "cat-d", "Drinks")).toBe(false);
+    expect(isAdultEntryItem("Kid Free", "cat-t", "Ticket")).toBe(false);
+    expect(isAdultEntryItem("Kid 20%", "cat-t", "Ticket")).toBe(false);
+    // Pièges exclus : merch et ticket ambigu sans "adult".
+    expect(isAdultEntryItem("Tshirt Adult", "cat-m", "Merch")).toBe(false);
+    expect(isAdultEntryItem("Birthday party", "cat-t", "TICKETS")).toBe(false);
+    expect(isAdultEntryItem("Latte", "cat-d", "Drink")).toBe(false);
   });
 });
 

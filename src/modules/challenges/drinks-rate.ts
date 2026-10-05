@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import {
+  isAdultEntryItem,
   normalizeItemName,
   resolveSalesBucket,
   resolveSalesBucketForSamui,
@@ -50,9 +51,10 @@ function shortName(title: string): string {
  * Source : `loyverse_daily_sales.sales_by_item` (quantités Loyverse par jour/store,
  * remboursements déjà signés négatifs). Aucune nouvelle colonne, aucun resync.
  *
- * Adultes = "vrais adultes uniquement" :
- * - Samui (ou ligne contenant des marqueurs adult/child) : quantité de "A ENTRY adult" seul.
- * - Autres shops : quantité des items bucket `ticket` (= adultes, pas de distinction enfant).
+ * Adultes = "vrais adultes uniquement" : items d'entrée contenant "adult"
+ * (Adult, AA ADULT, A.Adult, A ENTRY adult, Adult 20% — voir isAdultEntryItem).
+ * Enfants (Kid, A.Kid, AB CHILDREN, A ENTRY child, Kid Free) et merch
+ * ("Tshirt Adult") exclus.
  * Boissons : quantité des items bucket `drinks` (règles Samui dédiées si Samui).
  */
 export async function getDrinksRate(month: string): Promise<DrinksRateRow[]> {
@@ -120,17 +122,18 @@ export async function getDrinksRate(month: string): Promise<DrinksRateRow[]> {
     for (const it of items) {
       const qty = Number(it.quantity ?? 0);
       if (!qty) continue;
+      // Adultes vrais uniquement : l'item doit contenir "adult" (Adult, AA ADULT,
+      // A.Adult, A ENTRY adult, Adult 20%). Kid / Child / Children / Kid Free
+      // exclus ; merch "Tshirt Adult" exclu (voir isAdultEntryItem).
+      if (isAdultEntryItem(it.item_name, it.category_id, it.category_name)) adults += qty;
       if (isSamui) {
-        const n = normalizeItemName(it.item_name);
-        if (n === "a entry adult") adults += qty;
-        // "a entry child" exclu volontairement (adultes uniquement).
         if (resolveSalesBucketForSamui(it.category_id, it.category_name, it.item_name) === "drinks") {
           drinks += qty;
         }
       } else {
-        const bucket = resolveSalesBucket(it.category_id, it.category_name, it.item_name);
-        if (bucket === "ticket") adults += qty;
-        else if (bucket === "drinks") drinks += qty;
+        if (resolveSalesBucket(it.category_id, it.category_name, it.item_name) === "drinks") {
+          drinks += qty;
+        }
       }
     }
 

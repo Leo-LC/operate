@@ -93,6 +93,35 @@ export function isSamuiEntryItem(itemName: string | null | undefined): boolean {
   return SAMUI_ENTRY_ITEM_NORMALIZED.has(normalizeItemName(itemName));
 }
 
+/**
+ * Adult entry detection for the drinks-rate lab (and future use).
+ *
+ * Ticket buckets mix adults + children ("Kid", "A.Kid", "AB CHILDREN",
+ * "A ENTRY child"), and shops rename items freely ("Adult", "AA ADULT",
+ * "A.Adult", "A ENTRY adult", "Adult 20%"). The invariant observed across
+ * shops (Sept 2026) is that adult entries always contain "adult" in the
+ * item name — so: entry-like item AND "adult" in the name.
+ *
+ * Guards:
+ * - "A ENTRY adult" is exact-matched (Samui miscategorizes it under Drinks,
+ *   so the ticket-bucket check alone would miss it).
+ * - merch containing "adult" ("Tshirt Adult") is excluded via the merch-name
+ *   guard + the ticket-bucket requirement.
+ * - ticket-category items without "adult" ("Birthday party", all Kid/child
+ *   variants) are NOT counted — negligible volume, ambiguous meaning.
+ */
+export function isAdultEntryItem(
+  itemName: string | null | undefined,
+  categoryId: string | null | undefined,
+  categoryName: string | null | undefined,
+): boolean {
+  const normalized = normalizeItemName(itemName);
+  if (!normalized.includes("adult")) return false;
+  if (normalized === "a entry adult") return true;
+  if (/tshirt|t-shirt|merch/.test(normalized)) return false;
+  return resolveSalesBucket(categoryId, categoryName, itemName) === "ticket";
+}
+
 export function resolveSalesBucket(
   categoryId: string | null | undefined,
   categoryName: string | null | undefined,
