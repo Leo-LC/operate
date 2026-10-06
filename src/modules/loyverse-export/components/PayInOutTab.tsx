@@ -101,8 +101,6 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
   }, [days, shiftRows, selectedStore]);
 
   const movementCount = rows.reduce((a, r) => a + r.payIn.length + r.payOut.length, 0);
-  const totalInAll = rows.reduce((a, r) => a + r.totalIn, 0);
-  const totalOutAll = rows.reduce((a, r) => a + r.totalOut, 0);
 
   async function handleCopyCsv() {
     const lines = ["date,type,reason,amount"];
@@ -117,11 +115,7 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
-        <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>
-          Pay in / Pay out Loyverse — {movementCount} mouvement{movementCount > 1 ? "s" : ""} sur la plage
-          {` · OUT ${formatDisplayAmount(totalOutAll)} · IN ${formatDisplayAmount(totalInAll)}`}.
-        </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "var(--s-3)", flexWrap: "wrap" }}>
         <Button size="sm" variant="secondary" onClick={handleCopyCsv} disabled={movementCount === 0} title="Copier les mouvements en CSV (date,type,motif,montant brut)">
           {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
           {copied ? "copié" : "CSV"}
@@ -149,14 +143,23 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ date, payIn, payOut, hasData, shiftWarning }) => (
+              {rows.map(({ date, payIn, payOut, totalIn, totalOut, hasData, shiftWarning }) => {
+                const delta = totalIn - totalOut;
+                return (
                 <tr key={date} style={{ borderTop: "1px solid var(--line)", background: hasData ? "var(--surface)" : "var(--bg-2)", opacity: hasData ? 1 : 0.75 }}>
                   <td className="mono tabular-nums" style={{ whiteSpace: "nowrap", padding: "8px 10px", fontWeight: 500, verticalAlign: "top" }}>
+                    <div>
                     {formatDateDDMMYYYY(date)}
                     {shiftWarning ? (
                       <span title={shiftWarning} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="shift incohérent">
                         ⚠️
                       </span>
+                    ) : null}
+                    </div>
+                    {hasData ? (
+                      <div style={{ fontSize: 11, fontWeight: 400, color: "var(--fg-4)", marginTop: 2 }}>
+                        Δ {formatDisplayAmount(delta)}
+                      </div>
                     ) : null}
                   </td>
                   <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top", borderLeft: "1px solid var(--line-2)" }}>
@@ -174,7 +177,8 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
