@@ -1,9 +1,9 @@
 import { resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
+import { detectDayShiftAnomalies } from "./shift-anomalies";
 
 // ── Accounting copy-row config — same order as Google Sheets DAILY_ENTRIES ──
-// Duplicated from ShiftsPreview (src/modules/loyverse/components/ShiftsPreview.tsx)
-// which must stay untouched. This shared lib powers the multi-day "Copy" tab
-// in accounting with the exact same single-line format.
+// Shared lib powering the "copy" line in Shift & Sales (ShiftsPreview) and the
+// multi-day "Copy" tab of Loyverse Export, with the exact same single-line format.
 
 export const TEMPLATE_COLUMNS = [
   "date",
@@ -129,11 +129,36 @@ export function buildAccountingValues(
   date: string,
   paymentMap: Map<string, string>,
 ): Record<string, string> {
+  return buildAccountingValuesFromShifts(
+    shift ? [shift] : [],
+    snapshot,
+    date,
+    paymentMap,
+  ).values;
+}
+
+/**
+ * Multi-shift version — aggregates ALL shifts of the day (fixes the old
+ * `shifts[0]`-only behaviour) and falls back to the receipt-based snapshot
+ * for payments/VAT/surcharge when a shift is incoherent (spans midnight,
+ * excessive duration — e.g. closed then immediately reopened for the next
+ * day). Shift data of an overnight shift mixes two calendar days, while the
+ * snapshot is day-correct.
+ */
+export function buildAccountingValuesFromShifts(
+  shifts: Record<string, unknown>[],
+  snapshot: SnapshotLike | null,
+  date: string,
+  paymentMap: Map<string, string>,
+): { values: Record<string, string>; warning: string | null; paymentsFromSnapshot: boolean } {
   const out: Record<string, string> = {};
   for (const c of TEMPLATE_COLUMNS) out[c] = "";
   out["date"] = date;
 
-  if (!shift && !snapshot) return out;
+  if (shifts.length === 0 && !snapshot) return { values: out, warning: null, paymentsFromSnapshot: false };
+
+  const anomaly = detectDayShiftAnomalies(shifts, date);
+  const useShiftFigures = shifts.length > 0 && !anomaly.hasAnomaly;
 
   // Sales — prefer snapshot (correct bucket mapping), fallback 0
   if (snapshot) {
@@ -141,40 +166,54 @@ export function buildAccountingValues(
     out["sales_ticket_net"] = formatCopyNumber(n(snapshot.sales_ticket_net));
     out["sales_snack_net"] = formatCopyNumber(n(snapshot.sales_snack_net));
     out["sales_goodies_net"] = formatCopyNumber(n(snapshot.sales_goodies_net));
-    // surcharge: prefer shift.surcharge, fallback snapshot
-    const shiftSurcharge = shift ? n((shift as Record<string, unknown>)["surcharge"]) : 0;
+    // surcharge: prefer aggregated shift surcharge, fallback snapshot
+    const shiftSurcharge = useShiftFigures
+      ? shifts.reduce((acc, s) => acc + n((s as Record<string, unknown>)["surcharge"]), 0)
+      : 0;
     const val = shiftSurcharge !== 0 ? shiftSurcharge : n(snapshot.sales_card_surcharge);
     out["sales_card_surcharge"] = formatCopyNumber(val);
-  } else if (shift) {
-    // No snapshot — try shift net_sales as fallback? Leave sales_* empty since shift has no breakdown
-    const s = n((shift as Record<string, unknown>)["surcharge"]);
+  } else if (useShiftFigures) {
+    // No snapshot — try shift surcharge as fallback? Leave sales_* empty since shift has no breakdown
+    const s = shifts.reduce((acc, sh) => acc + n((sh as Record<string, unknown>)["surcharge"]), 0);
     if (s) out["sales_card_surcharge"] = formatCopyNumber(s);
   }
 
-  // VAT — sum of shift.taxes[].money_amount, fallback snapshot vat_7
-  if (shift && Array.isArray(shift["taxes"])) {
-    const sum = (shift["taxes"] as Record<string, unknown>[]).reduce(
-      (acc, t) => acc + n(t["money_amount"] ?? t["amount"] ?? t["tax_amount"]),
-      0,
-    );
-    if (sum !== 0 || (shift["taxes"] as unknown[]).length > 0) out["vat_7"] = formatCopyNumber(sum);
+  // VAT — sum of shift.taxes[].money_amount across all shifts, fallback snapshot vat_7
+  if (useShiftFigures && shifts.some((s) => Array.isArray(s["taxes"]))) {
+    let sum = 0;
+    let count = 0;
+    for (const s of shifts) {
+      if (!Array.isArray(s["taxes"])) continue;
+      count += (s["taxes"] as unknown[]).length;
+      sum += (s["taxes"] as Record<string, unknown>[]).reduce(
+        (acc, t) => acc + n(t["money_amount"] ?? t["amount"] ?? t["tax_amount"]),
+        0,
+      );
+    }
+    if (sum !== 0 || count > 0) out["vat_7"] = formatCopyNumber(sum);
     else if (snapshot) out["vat_7"] = formatCopyNumber(n(snapshot.vat_7));
   } else if (snapshot) {
     out["vat_7"] = formatCopyNumber(n(snapshot.vat_7));
   }
 
-  // Payments — from shift.payments bucketed, fallback snapshot
-  if (shift && Array.isArray(shift["payments"]) && (shift["payments"] as unknown[]).length > 0) {
+  // Payments — from aggregated shift.payments bucketed, fallback snapshot
+  const shiftPaymentsCount = useShiftFigures
+    ? shifts.reduce((acc, s) => acc + (Array.isArray(s["payments"]) ? (s["payments"] as unknown[]).length : 0), 0)
+    : 0;
+  if (useShiftFigures && shiftPaymentsCount > 0) {
     const buckets: Record<string, number> = { cash: 0, scan: 0, credit_card: 0 };
-    for (const p of shift["payments"] as Record<string, unknown>[]) {
-      const pid = String(p["payment_type_id"] ?? "");
-      const name = paymentMap.get(pid) ?? pid;
-      const type = p["type"] as string | undefined;
-      const bucket = resolvePaymentBucket(type ?? null, name ?? null);
-      const amt = n(p["money_amount"]);
-      if (bucket === "cash") buckets.cash += amt;
-      else if (bucket === "scan") buckets.scan += amt;
-      else if (bucket === "credit_card") buckets.credit_card += amt;
+    for (const s of shifts) {
+      if (!Array.isArray(s["payments"])) continue;
+      for (const p of s["payments"] as Record<string, unknown>[]) {
+        const pid = String(p["payment_type_id"] ?? "");
+        const name = paymentMap.get(pid) ?? pid;
+        const type = p["type"] as string | undefined;
+        const bucket = resolvePaymentBucket(type ?? null, name ?? null);
+        const amt = n(p["money_amount"]);
+        if (bucket === "cash") buckets.cash += amt;
+        else if (bucket === "scan") buckets.scan += amt;
+        else if (bucket === "credit_card") buckets.credit_card += amt;
+      }
     }
     out["payment_cash"] = formatCopyNumber(buckets.cash);
     out["payment_scan"] = formatCopyNumber(buckets.scan);
@@ -189,7 +228,11 @@ export function buildAccountingValues(
   COMPUTED_COLS.forEach((c) => {
     out[c] = "";
   });
-  return out;
+  return {
+    values: out,
+    warning: anomaly.warning,
+    paymentsFromSnapshot: !useShiftFigures && shifts.length > 0 && snapshot !== null,
+  };
 }
 
 /** Single-day copy line — same format as Shift & Sales "copy" button. */

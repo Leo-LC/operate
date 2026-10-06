@@ -7,7 +7,7 @@ import {
   COMPUTED_COLS,
   COLUMN_LABELS,
   VISIBLE_COLUMNS,
-  buildAccountingValues,
+  buildAccountingValuesFromShifts,
   buildCopyLine,
   buildCopyText,
   formatDateDDMMYYYY,
@@ -70,14 +70,20 @@ export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, pa
     return days.map((date) => {
       const sRows = shiftByDate.get(date) ?? [];
       const snapshot: SnapshotLike | null = snapshotByDate.get(date) ?? null;
-      const rawShift = (sRows[0]?.shifts?.[0] as Record<string, unknown> | undefined) ?? null;
-      const values = buildAccountingValues(rawShift, snapshot, date, paymentMap);
-      return { date, values, line: buildCopyLine(values), hasData: Boolean(rawShift || snapshot) };
+      // Aggregate ALL shifts of the day (a day can have several shifts); the
+      // shared builder falls back to the receipt-based snapshot when a shift
+      // is incoherent (e.g. spans midnight after a bad reopen).
+      const allShifts = sRows.flatMap((r) => (Array.isArray(r.shifts) ? r.shifts : []) as Record<string, unknown>[]);
+      const { values, warning, paymentsFromSnapshot } = buildAccountingValuesFromShifts(allShifts, snapshot, date, paymentMap);
+      const rawShift = allShifts[0] as Record<string, unknown> | undefined ?? null;
+      void rawShift;
+      return { date, values, line: buildCopyLine(values), hasData: Boolean(allShifts.length > 0 || snapshot), warning, paymentsFromSnapshot };
     });
   }, [days, shiftByDate, snapshotByDate, paymentMap]);
 
   const dataRows = rows.filter((r) => r.hasData);
   const missingCount = rows.length - dataRows.length;
+  const warnedRows = rows.filter((r) => r.warning);
 
   async function handleCopyAll() {
     if (dataRows.length === 0) return;
@@ -104,12 +110,17 @@ export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, pa
         </Button>
       </div>
 
+      {warnedRows.length > 0 && selectedStore && !loading && (
+        <div style={{ borderRadius: "var(--r-sm)", border: "1px solid var(--warn)", background: "var(--warn-soft)", padding: "8px 12px", fontSize: 12, color: "var(--warn)" }}>
+          ⚠️ Shift incohérent détecté ({warnedRows.map((r) => formatDateDDMMYYYY(r.date)).join(", ")}) — paiements affichés depuis les reçus, pas depuis le shift. Vérifiez la fermeture en caisse avant de copier.
+        </div>
+      )}
+
       {!selectedStore ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
           Sélectionne un shop ci-dessus.
         </p>
-      ) : loading ? (
-        <div className="animate-pulse" style={{ height: 120, borderRadius: "var(--r-md)", background: "var(--line-2)" }} />
+      ) : loading ? (        <div className="animate-pulse" style={{ height: 120, borderRadius: "var(--r-md)", background: "var(--line-2)" }} />
       ) : rows.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
           Choisis une plage de dates.
@@ -130,10 +141,15 @@ export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, pa
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ date, values, line, hasData }) => (
+              {rows.map(({ date, values, line, hasData, warning, paymentsFromSnapshot }) => (
                 <tr key={date} style={{ borderTop: "1px solid var(--line)", background: hasData ? "var(--surface)" : "var(--bg-2)", opacity: hasData ? 1 : 0.75 }}>
                   <td className="mono tabular-nums" style={{ whiteSpace: "nowrap", padding: "8px 10px", fontWeight: 500 }}>
                     {formatDateDDMMYYYY(date)}
+                    {warning ? (
+                      <span title={`${warning}${paymentsFromSnapshot ? " (paiements depuis les reçus)" : ""}`} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="shift incohérent">
+                        ⚠️
+                      </span>
+                    ) : null}
                   </td>
                   {VISIBLE.map((c) => {
                     const v = values[c] ?? "";

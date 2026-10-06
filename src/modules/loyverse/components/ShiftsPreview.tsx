@@ -7,8 +7,9 @@ import { Pill } from "@/components/ui/pill";
 import { ShopSingleSelect, SingleDatePicker } from "@/components/ui/filters";
 import { StoreIcon, ClockIcon, TagIcon, PackageIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, CopyIcon, CheckIcon, TableIcon } from "lucide-react";
 import { bangkokToday, bangkokYesterday, addDays, capitalizeShop, parseDay } from "@/lib/loyverse/dates";
-import { resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
 import { fmtNum, isZeroDiff, summarizeCashControl, summarizeCashMovements, summarizePayments, summarizeSales, type ShiftLike } from "@/modules/loyverse/lib/shift-summary";
+import { buildAccountingValuesFromShifts } from "@/modules/loyverse/lib/accounting-copy";
+import { detectDayShiftAnomalies } from "@/modules/loyverse/lib/shift-anomalies";
 
 function fmtTHB(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "THB", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -524,84 +525,8 @@ function CollapsibleSection({ title, icon, defaultOpen = true, children }: { tit
   );
 }
 
-// ── Accounting copy helpers ───────────────────────
-function n(v: unknown): number {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string") { const p = parseFloat(v.replace(/,/g, "")); return Number.isFinite(p) ? p : 0; }
-  return 0;
-}
-function formatCopyNumber(v: number): string {
-  // raw number, no thousands sep, dot decimal — matches parseNumeric() in import-sheets/lib.ts
-  if (!Number.isFinite(v) || v === 0) return v === 0 ? "0" : "";
-  // keep 2 decimals if needed but strip trailing zeros
-  const s = String(v);
-  // ensure we don't produce exponential notation for large ints
-  return s;
-}
-function buildAccountingValues(
-  shift: Record<string, unknown> | null,
-  snapshot: SnapshotRow | null,
-  date: string,
-  paymentMap: Map<string, string>,
-): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const c of TEMPLATE_COLUMNS) out[c] = "";
-  out["date"] = date;
-
-  if (!shift && !snapshot) return out;
-
-  // Sales — prefer snapshot (correct bucket mapping), fallback 0
-  if (snapshot) {
-    out["sales_drinks_net"] = formatCopyNumber(n(snapshot.sales_drinks_net));
-    out["sales_ticket_net"] = formatCopyNumber(n(snapshot.sales_ticket_net));
-    out["sales_snack_net"] = formatCopyNumber(n(snapshot.sales_snack_net));
-    out["sales_goodies_net"] = formatCopyNumber(n(snapshot.sales_goodies_net));
-    // surcharge: prefer shift.surcharge, fallback snapshot
-    const shiftSurcharge = shift ? n((shift as Record<string, unknown>)["surcharge"]) : 0;
-    const val = shiftSurcharge !== 0 ? shiftSurcharge : n(snapshot.sales_card_surcharge);
-    out["sales_card_surcharge"] = formatCopyNumber(val);
-  } else if (shift) {
-    // No snapshot — try shift net_sales as fallback? Leave sales_* empty since shift has no breakdown
-    const s = n((shift as Record<string, unknown>)["surcharge"]);
-    if (s) out["sales_card_surcharge"] = formatCopyNumber(s);
-  }
-
-  // VAT — sum of shift.taxes[].money_amount, fallback snapshot vat_7
-  if (shift && Array.isArray(shift["taxes"])) {
-    const sum = (shift["taxes"] as Record<string, unknown>[]).reduce((acc, t) => acc + n(t["money_amount"] ?? t["amount"] ?? t["tax_amount"]), 0);
-    if (sum !== 0 || (shift["taxes"] as unknown[]).length > 0) out["vat_7"] = formatCopyNumber(sum);
-    else if (snapshot) out["vat_7"] = formatCopyNumber(n(snapshot.vat_7));
-  } else if (snapshot) {
-    out["vat_7"] = formatCopyNumber(n(snapshot.vat_7));
-  }
-
-  // Payments — from shift.payments bucketed, fallback snapshot
-  if (shift && Array.isArray(shift["payments"]) && (shift["payments"] as unknown[]).length > 0) {
-    const buckets: Record<string, number> = { cash: 0, scan: 0, credit_card: 0 };
-    for (const p of shift["payments"] as Record<string, unknown>[]) {
-      const pid = String(p["payment_type_id"] ?? "");
-      const name = paymentMap.get(pid) ?? pid;
-      const type = p["type"] as string | undefined;
-      const bucket = resolvePaymentBucket(type ?? null, name ?? null);
-      const amt = n(p["money_amount"]);
-      if (bucket === "cash") buckets.cash += amt;
-      else if (bucket === "scan") buckets.scan += amt;
-      else if (bucket === "credit_card") buckets.credit_card += amt;
-    }
-    out["payment_cash"] = formatCopyNumber(buckets.cash);
-    out["payment_scan"] = formatCopyNumber(buckets.scan);
-    out["payment_credit_card"] = formatCopyNumber(buckets.credit_card);
-  } else if (snapshot) {
-    out["payment_cash"] = formatCopyNumber(n(snapshot.payment_cash));
-    out["payment_scan"] = formatCopyNumber(n(snapshot.payment_scan));
-    out["payment_credit_card"] = formatCopyNumber(n(snapshot.payment_credit_card));
-  }
-
-  // computed + manual expense/HR/treasury stay "" (sheet formulas / manual input)
-  COMPUTED_COLS.forEach((c) => { out[c] = ""; });
-  // explicit empties for manual groups (already "")
-  return out;
-}
+// ── Accounting copy — shared builder (src/modules/loyverse/lib/accounting-copy.ts)
+// aggregates all shifts of the day and falls back to the snapshot on incoherent shifts.
 
 function AccountingCopySection({
   shiftRows,
@@ -619,11 +544,19 @@ function AccountingCopySection({
 }) {
   const [copied, setCopied] = React.useState(false);
   const snapshot = snapshotRows[0] ?? null;
-  // single shift per day assumption — take first
-  const rawShift = shiftRows[0]?.shifts?.[0] as Record<string, unknown> | undefined ?? null;
+  // Aggregate ALL shifts of the day (a day can hold several shifts); the
+  // shared builder falls back to the snapshot when a shift is incoherent.
+  const allShifts = React.useMemo(
+    () => shiftRows.flatMap((r) => (Array.isArray(r.shifts) ? r.shifts : []) as Record<string, unknown>[]),
+    [shiftRows],
+  );
 
-  const values = React.useMemo(() => buildAccountingValues(rawShift, snapshot, date, paymentMap), [rawShift, snapshot, date, paymentMap]);
-  const hasAnyData = Boolean(rawShift || snapshot);
+  const { values, warning } = React.useMemo(
+    () => buildAccountingValuesFromShifts(allShifts, snapshot, date, paymentMap),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allShifts, snapshotRows, date, paymentMap],
+  );
+  const hasAnyData = Boolean(allShifts.length > 0 || snapshot);
 
   const handleCopy = async () => {
     const line = (VISIBLE_COLUMNS as unknown as string[]).map((c) => values[c] ?? "").join("\t");
@@ -656,6 +589,11 @@ function AccountingCopySection({
 
   return (
     <div className="flex flex-col gap-2">
+      {warning && (
+        <div className="rounded border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2 text-xs text-[var(--warn)]">
+          ⚠️ {warning}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={handleCopy} className="gap-1.5">
           {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
@@ -887,6 +825,15 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                 <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
               ) : (
                 <>
+                  {(() => {
+                    const all = shiftForStore.flatMap((r) => r.shifts as ShiftLike[]);
+                    const anomaly = detectDayShiftAnomalies(all, date);
+                    return anomaly.warning ? (
+                      <div className="rounded border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2 text-xs text-[var(--warn)]">
+                        ⚠️ {anomaly.warning}
+                      </div>
+                    ) : null;
+                  })()}
                   <ShiftSummary shifts={shiftForStore.flatMap((r) => r.shifts as ShiftLike[])} paymentMap={paymentMap} />
                   {totalShifts > 1 && (
                     <p className="px-1 text-[11px] text-[var(--fg-4)]">{totalShifts} shifts aggregated for this day.</p>

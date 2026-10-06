@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { formatDateDDMMYYYY, formatDisplayAmount } from "@/modules/loyverse/lib/accounting-copy";
+import { detectDayShiftAnomalies } from "@/modules/loyverse/lib/shift-anomalies";
 import { summarizeCashMovements, type CashMovementLine } from "@/modules/loyverse/lib/shift-summary";
 import type { ShiftRow } from "./LoyverseExportClient";
 
@@ -40,6 +41,7 @@ interface DayPay {
   totalIn: number;
   totalOut: number;
   hasData: boolean;
+  shiftWarning: string | null;
 }
 
 interface Props {
@@ -85,6 +87,7 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
       const hasData = dayRows.length > 0;
       const shifts = dayRows.flatMap((r) => (Array.isArray(r.shifts) ? r.shifts : []) as Record<string, unknown>[]);
       const movements = hasData ? summarizeCashMovements(shifts) : [];
+      const shiftWarning = hasData ? (detectDayShiftAnomalies(shifts, date).warning ?? null) : null;
       // "other" kinds (unexpected Loyverse types) are shown under Pay out with
       // their raw label so no movement is ever hidden; totals only sum IN/OUT.
       const payIn = movements.filter((m) => m.kind === "in");
@@ -93,7 +96,7 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
       let totalOut = 0;
       for (const m of payIn) totalIn += m.amount;
       for (const m of movements) if (m.kind === "out") totalOut += m.amount;
-      return { date, payIn, payOut, totalIn, totalOut, hasData };
+      return { date, payIn, payOut, totalIn, totalOut, hasData, shiftWarning };
     });
   }, [days, shiftRows, selectedStore]);
 
@@ -146,10 +149,15 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ date, payIn, payOut, hasData }) => (
+              {rows.map(({ date, payIn, payOut, hasData, shiftWarning }) => (
                 <tr key={date} style={{ borderTop: "1px solid var(--line)", background: hasData ? "var(--surface)" : "var(--bg-2)", opacity: hasData ? 1 : 0.75 }}>
                   <td className="mono tabular-nums" style={{ whiteSpace: "nowrap", padding: "8px 10px", fontWeight: 500, verticalAlign: "top" }}>
                     {formatDateDDMMYYYY(date)}
+                    {shiftWarning ? (
+                      <span title={shiftWarning} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="shift incohérent">
+                        ⚠️
+                      </span>
+                    ) : null}
                   </td>
                   <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top", borderLeft: "1px solid var(--line-2)" }}>
                     {!hasData ? (
