@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { id: "direction",  label: "Direction",  href: "/direction",  icon: CrownIcon,        module: "direction" },
   { id: "loyverse",   label: "Loyverse",   href: "/loyverse",   icon: PlugIcon,         module: "loyverse" },
   { id: "reviews",    label: "Reviews",    href: "/reviews",    icon: StarIcon,         module: "reviews" },
-  { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+  { id: "scheduling", label: "Scheduling", href: "/scheduling/annual", icon: CalendarDaysIcon, module: "schedules" },
   { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
   { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
   { id: "employees",  label: "Employees",  href: "/employees",  icon: UsersIcon,        module: "admin" },

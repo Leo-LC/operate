@@ -66,7 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "employees",  label: "Employees",  href: "/employees",  icon: UsersIcon,        module: "admin" },
       { id: "attendance", label: "Attendance", href: "/attendance", icon: ClockIcon,        module: "attendance" },
-      { id: "scheduling", label: "Scheduling", href: "/scheduling", icon: CalendarDaysIcon, module: "schedules" },
+      { id: "scheduling", label: "Scheduling", href: "/scheduling/annual", icon: CalendarDaysIcon, module: "schedules" },
       { id: "payments",   label: "Payments",   href: "/payments",   icon: BanknoteIcon,     module: "payments" },
     ],
   },
@@ -213,7 +213,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
           o: "/loyverse",
           l: "/loyverse",
           r: "/reviews",
-          s: "/scheduling",
+          s: "/scheduling/annual",
           a: "/attendance",
           p: "/payments",
           n: "/animals",

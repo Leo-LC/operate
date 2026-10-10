@@ -212,3 +212,6 @@
 .nexus-dp .rdp-day_button:not(:disabled):hover { background: var(--row-hover); }
 .nexus-dp .rdp-chevron { fill: var(--fg-3); }
 .nexus-dp .rdp-weekday { font-size: 10px; letter-spacing: 0.05em; }
+.nexus-dp .rdp-in-week .rdp-day_button { background: var(--accent-soft); border-radius: 0; }
+.nexus-dp .rdp-in-week_first .rdp-day_button { border-radius: 6px 0 0 6px; }
+.nexus-dp .rdp-in-week_last .rdp-day_button { border-radius: 0 6px 6px 0; }
