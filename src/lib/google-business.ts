@@ -17,15 +17,18 @@ export async function getActiveLocationExternalIds(): Promise<Set<string>> {
   return new Set((data ?? []).map((row) => row.external_id as string));
 }
 
-type GbpAccount = { name?: string | null; accountName?: string | null };
+export type GbpAccount = { name?: string | null; accountName?: string | null };
 
-function normalizeAccountId(name: string | null | undefined): string | null {
-  if (!name || typeof name !== "string") return null;
-  if (!name.startsWith("accounts/")) return null;
-  return name.replace("accounts/", "");
+export interface GbpLocationWithAccount {
+  loc: Location;
+  accountId: string;
 }
 
-export async function getPreferredAccountId(accessToken: string): Promise<string> {
+export function gbpShortName(fullName: string): string {
+  return fullName.replace(/^accounts\/[^/]+\//, "");
+}
+
+export async function listGbpAccounts(accessToken: string): Promise<GbpAccount[]> {
   const res = await fetch(
     "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
     {
@@ -39,7 +42,27 @@ export async function getPreferredAccountId(accessToken: string): Promise<string
   const data = (await res.json()) as {
     accounts?: GbpAccount[];
   };
-  const accounts = data.accounts ?? [];
+  return data.accounts ?? [];
+}
+
+function sortAccountsCapybaraFirst(accounts: GbpAccount[]): GbpAccount[] {
+  return [...accounts].sort((a, b) => {
+    const aName = (a.accountName ?? "").toLowerCase();
+    const bName = (b.accountName ?? "").toLowerCase();
+    const aCap = aName.includes("capybara") ? 1 : 0;
+    const bCap = bName.includes("capybara") ? 1 : 0;
+    return bCap - aCap;
+  });
+}
+
+function normalizeAccountId(name: string | null | undefined): string | null {
+  if (!name || typeof name !== "string") return null;
+  if (!name.startsWith("accounts/")) return null;
+  return name.replace("accounts/", "");
+}
+
+export async function getPreferredAccountId(accessToken: string): Promise<string> {
+  const accounts = await listGbpAccounts(accessToken);
   if (accounts.length === 0) {
     throw new Error("No Business Profile accounts found for this Google user.");
   }
@@ -55,13 +78,7 @@ export async function getPreferredAccountId(accessToken: string): Promise<string
   // 2) Try each account until we find one that actually has locations.
   //    Prefer account names mentioning "Capybara", but fall back to any account
   //    that returns at least one location.
-  const sorted = [...accounts].sort((a, b) => {
-    const aName = (a.accountName ?? "").toLowerCase();
-    const bName = (b.accountName ?? "").toLowerCase();
-    const aCap = aName.includes("capybara") ? 1 : 0;
-    const bCap = bName.includes("capybara") ? 1 : 0;
-    return bCap - aCap;
-  });
+  const sorted = sortAccountsCapybaraFirst(accounts);
 
   let fallbackId: string | null = null;
 
@@ -110,5 +127,63 @@ export async function fetchAllLocations(
   } while (pageToken);
 
   return locations;
+}
+
+/**
+ * Fetch GBP locations across ALL accessible accounts (not just the preferred
+ * one). Karon was invisible because getPreferredAccountId() stopped at the
+ * first account with locations — a shop living under a second account was
+ * silently dropped everywhere (reviews list, sync, challenges).
+ *
+ * With GOOGLE_BUSINESS_ACCOUNT_ID set, behaves like before (single account).
+ * Otherwise merges every account, deduped by GBP short id (Capybara-named
+ * accounts win on conflict).
+ */
+export async function fetchAllLocationsAcrossAccounts(
+  accessToken: string
+): Promise<GbpLocationWithAccount[]> {
+  const envAccount = (process.env.GOOGLE_BUSINESS_ACCOUNT_ID ?? "").trim();
+  if (envAccount) {
+    const normalized = envAccount.startsWith("accounts/") ? envAccount : `accounts/${envAccount}`;
+    const explicitId = normalizeAccountId(normalized);
+    if (explicitId) {
+      const locations = await fetchAllLocations(accessToken, explicitId);
+      return locations.map((loc) => ({ loc, accountId: explicitId }));
+    }
+  }
+
+  const accounts = sortAccountsCapybaraFirst(await listGbpAccounts(accessToken));
+  const merged = new Map<string, GbpLocationWithAccount>();
+  for (const acc of accounts) {
+    const id = normalizeAccountId(acc.name);
+    if (!id) continue;
+    let locations: Location[];
+    try {
+      locations = await fetchAllLocations(accessToken, id);
+    } catch (e) {
+      console.error("[gbp] failed to list locations for account", id, e instanceof Error ? e.message : e);
+      continue;
+    }
+    for (const loc of locations) {
+      const short = gbpShortName(loc.name);
+      if (!merged.has(short)) merged.set(short, { loc, accountId: id });
+    }
+  }
+  return Array.from(merged.values());
+}
+
+/** Owning account for one GBP short id (scans all accounts). Null when absent. */
+export async function findAccountForLocation(
+  accessToken: string,
+  shortName: string
+): Promise<string | null> {
+  const envAccount = (process.env.GOOGLE_BUSINESS_ACCOUNT_ID ?? "").trim();
+  if (envAccount) {
+    const normalized = envAccount.startsWith("accounts/") ? envAccount : `accounts/${envAccount}`;
+    const explicitId = normalizeAccountId(normalized);
+    if (explicitId) return explicitId;
+  }
+  const all = await fetchAllLocationsAcrossAccounts(accessToken);
+  return all.find((e) => gbpShortName(e.loc.name) === shortName)?.accountId ?? null;
 }
 

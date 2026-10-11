@@ -466,6 +466,35 @@ async function syncAccount(
             });
             if (datesForStore.length === 0) datesForStore = [bangkokToday];
           }
+
+          // Store migration guard: when this (account, store) pair is new
+          // (e.g. Pattaya switched to a new Loyverse account with a different
+          // store_id), the 30d backfill above would duplicate history — the
+          // old store's rows for the same location_id are still in DB and
+          // downstream aggregates (challenges, accounting) sum by
+          // location_id across stores. So drop backfill dates already
+          // covered by ANY store for this location (today always refreshes).
+          if (location_id && datesForStore.length > dates.length) {
+            try {
+              const range = datesForStore.length > 0 ? [...datesForStore].sort() : [];
+              const { data: covered } = await supabase
+                .from("loyverse_daily_snapshots")
+                .select("date")
+                .eq("location_id", location_id)
+                .gte("date", range[0])
+                .lte("date", range[range.length - 1]);
+              const coveredSet = new Set((covered ?? []).map((r) => r.date as string));
+              // Exclude the current store's own rows from the guard — those
+              // are legitimately re-synced, not duplicates.
+              for (const d of Array.from(existingSnapSet)) coveredSet.delete(d);
+              const filtered = datesForStore.filter(
+                (d) => d === bangkokToday || !coveredSet.has(d)
+              );
+              datesForStore = filtered.length > 0 ? filtered : [bangkokToday];
+            } catch {
+              // non-blocking: keep the computed dates on lookup failure
+            }
+          }
         } catch {
           datesForStore = dates;
         }

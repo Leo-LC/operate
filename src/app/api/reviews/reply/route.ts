@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { REVIEWS_BASE } from "@/lib/constants";
-import { getPreferredAccountId } from "@/lib/google-business";
+import { findAccountForLocation, getPreferredAccountId } from "@/lib/google-business";
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
@@ -29,7 +29,9 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const accountId = await getPreferredAccountId(accessToken);
+    const accountId =
+      (await findAccountForLocation(accessToken, locationName)) ??
+      (await getPreferredAccountId(accessToken));
     const url = `${REVIEWS_BASE}/accounts/${accountId}/${locationName}/reviews/${reviewId}/reply`;
     const res = await fetch(url, {
       method: "PUT",

@@ -1,6 +1,6 @@
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES, DEFAULT_ORG_ID, REVIEWS_BASE, EXCLUDED_LOCATION_IDS } from "@/lib/constants";
-import { fetchAllLocations, getActiveLocationExternalIds, getPreferredAccountId } from "@/lib/google-business";
+import { fetchAllLocationsAcrossAccounts, gbpShortName, getActiveLocationExternalIds } from "@/lib/google-business";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import type { Review } from "@/types/review";
 
@@ -64,9 +64,8 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
     throw new Error("Google token not configured — sign in with Google first");
   }
 
-  const accountId = await getPreferredAccountId(accessToken);
-  const [locations, activeExternalIds] = await Promise.all([
-    fetchAllLocations(accessToken, accountId),
+  const [gbpEntries, activeExternalIds] = await Promise.all([
+    fetchAllLocationsAcrossAccounts(accessToken),
     getActiveLocationExternalIds(),
   ]);
   const supabase = getSupabaseServerClient();
@@ -91,11 +90,11 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
   const locationStats = new Map<string, { title: string; ratingSum: number; count: number }>();
 
   const concurrency = 4;
-  for (let i = 0; i < locations.length; i += concurrency) {
-    const batch = locations.slice(i, i + concurrency);
+  for (let i = 0; i < gbpEntries.length; i += concurrency) {
+    const batch = gbpEntries.slice(i, i + concurrency);
     await Promise.all(
-      batch.map(async (loc) => {
-        const shortName = loc.name.replace(/^accounts\/[^/]+\//, "");
+      batch.map(async ({ loc, accountId }) => {
+        const shortName = gbpShortName(loc.name);
         if (EXCLUDED_LOCATION_IDS.has(shortName)) return;
         if (!activeExternalIds.has(shortName)) return;
         const locationTitle = LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
@@ -203,5 +202,5 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
       .upsert(ratingRows, { onConflict: "location_id,organization_id" });
   }
 
-  return { synced: totalSynced, locations: locations.length, syncedAt };
+  return { synced: totalSynced, locations: gbpEntries.length, syncedAt };
 }
