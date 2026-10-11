@@ -23,6 +23,7 @@ function fmtDelta(pct: number | null) {
   return `${sign}${pct.toFixed(1)}%`;
 }
 import { bangkokToday, parseDay, capitalizeShop } from "@/lib/loyverse/dates";
+import { groupStoresByLocation, type GroupedStore } from "@/modules/loyverse/lib/group-stores";
 
 function daysBetween(from: string, to: string): number {
   const a = parseDay(from);
@@ -307,13 +308,29 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     fetchStatus();
   }, [effectiveEnd, rangeDays, fetchDashboard, fetchStatus]);
 
+  const allStoresRaw = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
+  // One card per SHOP (location): old + new POS of the same shop merge here,
+  // keeping continuous history. Unmapped rows group by store (as before).
+  // Declared before the hourly effects (used inside them).
+  const groupedStores: GroupedStore[] = React.useMemo(
+    () => groupStoresByLocation(allStoresRaw),
+    [allStoresRaw],
+  );
+  // RULE: the only shops are Nexus locations (admin/locations). Rows without a
+  // location (unknown/new POS not yet attached) are hidden from this view —
+  // they stay visible in the mapping/unmapped tools until attached.
+  // Declared before the hourly effects (used inside them).
+  const mappedStores: GroupedStore[] = React.useMemo(
+    () => groupedStores.filter((g) => g.location_id),
+    [groupedStores],
+  );
+
   React.useEffect(() => {
     if (rangeDays !== 1 || !data?.per_store.length) {
       setHourlyData(null);
       return;
     }
-    const allStoresRaw = data.per_store;
-    const storesToFetch = selectedStores.length === 0 ? allStoresRaw : allStoresRaw.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
+    const storesToFetch = selectedStores.length === 0 ? mappedStores : mappedStores.filter((s) => selectedStores.includes(s.groupKey) || selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
     if (storesToFetch.length === 0) {
       setHourlyData(null);
       return;
@@ -348,7 +365,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
         setHourlyData(hasData ? hourly : hourly);
       })
       .finally(() => setHourlyLoading(false));
-  }, [effectiveEnd, rangeDays, selectedStores, data]);
+  }, [effectiveEnd, rangeDays, selectedStores, data, mappedStores]);
 
   // Multi-jours, vue Par heure : 1 appel / shop sur toute la période (from/to),
   // cumulé côté API. La moyenne = cumulé / nb jours (journée type).
@@ -357,8 +374,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       setRangeHourlyData(null);
       return;
     }
-    const allStoresRaw = data.per_store;
-    const storesToFetch = selectedStores.length === 0 ? allStoresRaw : allStoresRaw.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
+    const storesToFetch = selectedStores.length === 0 ? mappedStores : mappedStores.filter((s) => selectedStores.includes(s.groupKey) || selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
     if (storesToFetch.length === 0) {
       setRangeHourlyData(null);
       return;
@@ -393,7 +409,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
         );
       })
       .finally(() => setRangeHourlyLoading(false));
-  }, [chartView, dateRange.from, dateRange.to, rangeDays, selectedStores, data]);
+  }, [chartView, dateRange.from, dateRange.to, rangeDays, selectedStores, data, mappedStores]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -417,40 +433,76 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     }
   };
 
-  const allStoresRaw = React.useMemo(() => data?.per_store ?? [], [data?.per_store]);
   const shopLocations = React.useMemo(() => {
-    // When we have data, derive strictly from per_store (already filtered to allowed shops)
+    // When we have data, derive strictly from mapped stores (already filtered to allowed shops)
     // so direction with 2 allowed shops only sees 2 pills, not all 9 from status.accounts
-    if (allStoresRaw.length > 0) {
-      const map = new Map<string, string>();
-      for (const s of allStoresRaw) map.set(s.store_id, s.account_key);
-      return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+    if (mappedStores.length > 0) {
+      return mappedStores.map((s) => ({ id: s.groupKey, name: s.account_key }));
     }
     // Fallback when no data yet: show accounts from status, but they will be filtered by API on next fetch
     const map = new Map<string, string>();
     for (const a of status?.accounts ?? []) map.set(a.key, a.label);
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [allStoresRaw, status]);
+  }, [mappedStores, status]);
 
-  const perStore = React.useMemo(() => {
-    if (selectedStores.length === 0) return allStoresRaw;
-    return allStoresRaw.filter((s) => selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key));
-  }, [selectedStores, allStoresRaw]);
+  const perStore: GroupedStore[] = React.useMemo(() => {
+    if (selectedStores.length === 0) return mappedStores;
+    return mappedStores.filter(
+      (s) => selectedStores.includes(s.groupKey) || selectedStores.includes(s.store_id) || selectedStores.includes(s.account_key),
+    );
+  }, [selectedStores, mappedStores]);
+
+  // Snapshot-level match keys for the current selection (spans member stores).
+  // Null = no selection (match every attached row).
+  const selectedMatchKeys = React.useMemo(() => {
+    if (selectedStores.length === 0) return null;
+    const keys = new Set<string>();
+    for (const g of mappedStores) {
+      if (selectedStores.includes(g.groupKey) || selectedStores.includes(g.store_id) || selectedStores.includes(g.account_key)) {
+        for (const id of g.store_ids) keys.add(id);
+        keys.add(g.account_key);
+        if (g.location_id) keys.add(g.location_id);
+      }
+    }
+    return keys;
+  }, [selectedStores, mappedStores]);
+
+  const allSnapshots = React.useMemo(
+    () => (data?.snapshots ?? []) as Array<Record<string, unknown>>,
+    [data?.snapshots],
+  );
+  const hiddenSnapCount = React.useMemo(() => {
+    const startStr = data?.date_range.start ?? effectiveEnd;
+    const endStr = data?.date_range.end ?? effectiveEnd;
+    return allSnapshots.filter((r) => {
+      const d = String((r as { date?: string }).date ?? "");
+      if (d < startStr || d > endStr) return false;
+      return !(r as { location_id?: string | null }).location_id;
+    }).length;
+  }, [allSnapshots, data?.date_range.start, data?.date_range.end, effectiveEnd]);
 
   const filteredKpis = React.useMemo(() => {
     const kpis = data?.kpis ?? null;
     if (!kpis) return null;
-    if (selectedStores.length === 0) return kpis;
+    // Fast path (identical to before): no filter and nothing hidden.
+    if (selectedStores.length === 0 && hiddenSnapCount === 0) return kpis;
     const rev = perStore.reduce((s, r) => s + r.revenue_total, 0);
-    const snapshots = (data?.snapshots ?? []) as Array<Record<string, unknown>>;
+    const snapshots = allSnapshots;
     const startStr = data?.date_range.start ?? effectiveEnd;
     const endStr = data?.date_range.end ?? effectiveEnd;
+    const inSelection = (r: Record<string, unknown>) => {
+      // Only attached rows count as shops.
+      if (!(r as { location_id?: string | null }).location_id) return false;
+      if (!selectedMatchKeys) return true;
+      const sid = String((r as { store_id?: string }).store_id ?? "");
+      const ak = String((r as { account_key?: string }).account_key ?? "");
+      const lid = String((r as { location_id?: string | null }).location_id ?? "");
+      return selectedMatchKeys.has(sid) || selectedMatchKeys.has(ak) || (lid !== "" && selectedMatchKeys.has(lid));
+    };
     const filteredCurrentSnaps = snapshots.filter((r) => {
       const d = String((r as { date?: string }).date ?? "");
       if (d < startStr || d > endStr) return false;
-      const sid = String((r as { store_id?: string }).store_id ?? "");
-      const ak = String((r as { account_key?: string }).account_key ?? "");
-      return selectedStores.includes(sid) || selectedStores.includes(ak);
+      return inSelection(r);
     });
     const filteredVat = filteredCurrentSnaps.reduce((a, b) => a + Number((b as unknown as { vat_7?: number }).vat_7 ?? 0), 0);
     const filteredSnacks = perStore.reduce((s, r) => s + r.snacks_sold, 0);
@@ -463,9 +515,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       const filteredPrevSnaps = snapshots.filter((r) => {
         const d = String((r as { date?: string }).date ?? "");
         if (d < prevStart || d > prevEnd) return false;
-        const sid = String((r as { store_id?: string }).store_id ?? "");
-        const ak = String((r as { account_key?: string }).account_key ?? "");
-        return selectedStores.includes(sid) || selectedStores.includes(ak);
+        return inSelection(r);
       });
       const prevRev = filteredPrevSnaps.reduce((s, r) => s + Number((r as { revenue_total?: number }).revenue_total ?? 0), 0);
       if (prevRev > 0) deltaFiltered = ((rev - prevRev) / prevRev) * 100;
@@ -484,7 +534,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       delta_vs_week_ago_pct: deltaFiltered,
       delta_vs_prev_period_pct: deltaFiltered,
     } as DashboardKpis;
-  }, [selectedStores, perStore, data, effectiveEnd]);
+  }, [perStore, data, effectiveEnd, selectedMatchKeys, selectedStores.length, hiddenSnapCount, allSnapshots]);
 
 
 
@@ -508,11 +558,12 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const merchAmount = perStore.reduce((s, r) => s + r.buckets.goodies, 0);
 
   const dailyChartData = (() => {
-    const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string }>;
+    const snaps = (data?.snapshots ?? []) as Array<{ date: string; revenue_total: number; store_id: string; account_key: string; location_id?: string | null }>;
     const byDate = new Map<string, number>();
     for (const s of snaps) {
       if (s.date < dateRange.from || s.date > dateRange.to) continue;
-      if (selectedStores.length > 0 && !selectedStores.includes(s.store_id) && !selectedStores.includes(s.account_key)) continue;
+      if (!s.location_id) continue;
+      if (selectedMatchKeys && !selectedMatchKeys.has(s.store_id) && !selectedMatchKeys.has(s.account_key) && !selectedMatchKeys.has(s.location_id)) continue;
       byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue_total ?? 0));
     }
     return Array.from(byDate.entries())
@@ -520,14 +571,14 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       .map(([date, revenue]) => ({ date, revenue }));
   })();
 
-  const toggleShop = (store: PerStore) => {
-    const isSelected = selectedStores.includes(store.store_id) || selectedStores.includes(store.account_key);
+  const toggleShop = (store: GroupedStore) => {
+    const isSelected = selectedStores.includes(store.groupKey) || selectedStores.includes(store.store_id) || selectedStores.includes(store.account_key);
     if (isSelected) {
-      setSelectedStores((prev) => prev.filter((id) => id !== store.store_id && id !== store.account_key));
+      setSelectedStores((prev) => prev.filter((id) => id !== store.groupKey && id !== store.store_id && id !== store.account_key));
     } else {
       // single select behavior like pills: if All selected, switch to single; if some selected, add
-      if (selectedStores.length === 0) setSelectedStores([store.store_id]);
-      else setSelectedStores([...selectedStores, store.store_id]);
+      if (selectedStores.length === 0) setSelectedStores([store.groupKey]);
+      else setSelectedStores([...selectedStores, store.groupKey]);
     }
   };
 
@@ -558,6 +609,11 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             getLabel={(loc) => capitalizeShop(loc.name)}
           />
         </div>
+        {hiddenSnapCount > 0 && (
+          <p className="text-xs text-[var(--warn)]">
+            {hiddenSnapCount} ligne(s) Loyverse sans shop rattaché sur la période — masquées ici. Rattachez-les dans Admin › Locations (Loyverse : account key + store ID).
+          </p>
+        )}
       </div>
 
       {syncError && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{syncError}</div>}
@@ -790,7 +846,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               .filter((b) => b.value > 0)
               .sort((a, b) => b.value - a.value);
             const bucketMax = Math.max(...bucketEntries.map((b) => b.value), 1);
-            const isSelected = selectedStores.includes(store.store_id) || selectedStores.includes(store.account_key);
+            const isSelected = selectedStores.includes(store.groupKey) || selectedStores.includes(store.store_id) || selectedStores.includes(store.account_key);
             const checkReason = (() => {
               if (failingAccount?.error) return failingAccount.error;
               if (store.unmapped.line_items > 0 || store.unmapped.payments > 0) return `Unmapped: ${store.unmapped.line_items} items · ${store.unmapped.payments} payments`;
@@ -798,7 +854,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             })();
             return (
               <Card
-                key={`${store.account_key}-${store.store_id}-${store.date}`}
+                key={`${store.groupKey}-${store.date}`}
                 flush
                 onClick={() => toggleShop(store)}
                 className={cn(
@@ -810,6 +866,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
+                    {store.store_ids.length > 1 && (
+                      <p className="mt-1 text-[11px] text-[var(--fg-4)]">{store.store_ids.length} caisses unifiées</p>
+                    )}
                   </div>
                   {isDegraded && (
                     <span title={checkReason} className="inline-flex">

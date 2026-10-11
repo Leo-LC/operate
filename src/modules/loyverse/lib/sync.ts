@@ -421,7 +421,7 @@ async function syncAccount(
     const samuiIds = await getSamuiLocationIds(supabase);
 
     for (const store of stores) {
-      const location_id = await getLocationIdForStoreAsync(store.id);
+      const location_id = await getLocationIdForStoreAsync(store.id, account.key);
       const isSamui = isSamuiStore(store, account, location_id, samuiIds);
 
       let datesForStore = dates;
