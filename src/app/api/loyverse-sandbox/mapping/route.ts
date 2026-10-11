@@ -1,4 +1,4 @@
-import { getDefaultAccount } from "@/lib/loyverse/accounts";
+import { getDefaultAccountAsync } from "@/lib/loyverse/accounts-server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { loyverseFetch } from "@/lib/loyverse/client";
@@ -20,7 +20,7 @@ export async function GET() {
     .order("name");
 
   let loyverseStores: { id: string; name: string }[] = [];
-  const account = getDefaultAccount();
+  const account = await getDefaultAccountAsync();
   if (account) {
     try {
       const data = await loyverseFetch<{ stores: LoyverseStore[] }>(account, "/stores", { limit: 50 });

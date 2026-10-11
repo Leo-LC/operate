@@ -12,7 +12,7 @@ export async function GET() {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("locations")
-    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id")
+    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id, loyverse_account_key")
     .order("name");
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (!["owner", "admin"].includes(session.user.role ?? "")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { name, slug, external_id, is_active = true, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id } = body;
+  const { name, slug, external_id, is_active = true, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id, loyverse_account_key } = body;
 
   if (!name?.trim()) return Response.json({ error: "name is required" }, { status: 400 });
   if (!slug?.trim()) return Response.json({ error: "slug is required" }, { status: 400 });
@@ -48,8 +48,9 @@ export async function POST(req: Request) {
       notes: notes?.trim() || null,
       default_service_charge_pct: default_service_charge_pct ?? 1,
       loyverse_store_id: loyverse_store_id?.trim() || null,
+      loyverse_account_key: loyverse_account_key?.trim() || null,
     })
-    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id")
+    .select("id, name, slug, external_id, is_active, created_at, updated_at, address_en, address_th, phone, vat_number, google_maps_url, google_sheet_id, notes, default_service_charge_pct, loyverse_store_id, loyverse_account_key")
     .single();
 
   if (error) return Response.json({ error: error.message }, { status: 500 });

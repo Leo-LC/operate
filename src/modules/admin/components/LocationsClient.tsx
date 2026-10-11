@@ -54,6 +54,7 @@ const EMPTY_FORM = {
   google_maps_url: "",
   google_sheet_id: "",
   loyverse_store_id: "",
+  loyverse_account_key: "",
   notes: "",
   default_service_charge_pct: "1",
 };
@@ -80,6 +81,21 @@ function InfoRow({
         <p style={{ fontSize: 13, color: "var(--fg)", whiteSpace: multiline ? "pre-wrap" : undefined, wordBreak: "break-word" }}>{value}</p>
       </div>
     </div>
+  );
+}
+
+function SectionTitle({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
+  return (
+    <p
+      className="eyebrow"
+      style={
+        first
+          ? { color: "var(--fg-4)" }
+          : { color: "var(--fg-4)", borderTop: "1px solid var(--line)", paddingTop: 12 }
+      }
+    >
+      {children}
+    </p>
   );
 }
 
@@ -214,7 +230,8 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       vat_number: loc.vat_number ?? "",
       google_maps_url: loc.google_maps_url ?? "",
       google_sheet_id: loc.google_sheet_id ?? "",
-      loyverse_store_id: (loc as unknown as { loyverse_store_id?: string | null }).loyverse_store_id ?? "",
+      loyverse_store_id: loc.loyverse_store_id ?? "",
+      loyverse_account_key: loc.loyverse_account_key ?? "",
       notes: loc.notes ?? "",
       default_service_charge_pct: loc.default_service_charge_pct != null ? String(loc.default_service_charge_pct) : "1",
     });
@@ -241,6 +258,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           google_maps_url: form.google_maps_url.trim() || null,
           google_sheet_id: form.google_sheet_id.trim() || null,
           loyverse_store_id: form.loyverse_store_id.trim() || null,
+          loyverse_account_key: form.loyverse_account_key.trim() || null,
           notes: form.notes.trim() || null,
           default_service_charge_pct: form.default_service_charge_pct ? parseFloat(form.default_service_charge_pct) : 1,
         }),
@@ -282,6 +300,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           google_maps_url: form.google_maps_url.trim() || null,
           google_sheet_id: form.google_sheet_id.trim() || null,
           loyverse_store_id: form.loyverse_store_id.trim() || null,
+          loyverse_account_key: form.loyverse_account_key.trim() || null,
           notes: form.notes.trim() || null,
           default_service_charge_pct: form.default_service_charge_pct ? parseFloat(form.default_service_charge_pct) : 1,
         }),
@@ -384,6 +403,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
+        <SectionTitle first>Général</SectionTitle>
         <FormField
           label="Name"
           name="name"
@@ -407,14 +427,9 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
             onChange={(v) => setField("vat_number", v)}
             placeholder="0105XXXXXXXXX"
           />
-          <FormField
-            label="Default service charge %"
-            name="default_service_charge_pct"
-            value={form.default_service_charge_pct}
-            onChange={(v) => setField("default_service_charge_pct", v)}
-            placeholder="1"
-          />
         </div>
+
+        <SectionTitle>Adresse</SectionTitle>
         <FormField
           label="Address (English)"
           name="address_en"
@@ -432,18 +447,20 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           multiline
         />
         <FormField
-          label="GBP Location ID"
-          name="external_id"
-          value={form.external_id}
-          onChange={(v) => setField("external_id", v)}
-          placeholder="locations/1234567890123456789"
-        />
-        <FormField
           label="Google Maps URL"
           name="google_maps_url"
           value={form.google_maps_url}
           onChange={(v) => setField("google_maps_url", v)}
           placeholder="https://maps.google.com/…"
+        />
+
+        <SectionTitle>Comptabilité</SectionTitle>
+        <FormField
+          label="Default service charge %"
+          name="default_service_charge_pct"
+          value={form.default_service_charge_pct}
+          onChange={(v) => setField("default_service_charge_pct", v)}
+          placeholder="1"
         />
         <FormField
           label="Accounting Sheet ID"
@@ -452,13 +469,35 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           onChange={(v) => setField("google_sheet_id", v)}
           placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
         />
+
+        <SectionTitle>Google Business Profile</SectionTitle>
         <FormField
-          label="Loyverse Store ID"
-          name="loyverse_store_id"
-          value={form.loyverse_store_id}
-          onChange={(v) => setField("loyverse_store_id", v)}
-          placeholder="17b18698-229b-4436-9c04-... (from Loyverse /stores)"
+          label="GBP Location ID"
+          name="external_id"
+          value={form.external_id}
+          onChange={(v) => setField("external_id", v)}
+          placeholder="locations/1234567890123456789"
         />
+
+        <SectionTitle>Loyverse</SectionTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+          <FormField
+            label="Account key"
+            name="loyverse_account_key"
+            value={form.loyverse_account_key}
+            onChange={(v) => setField("loyverse_account_key", v)}
+            placeholder="pattaya"
+          />
+          <FormField
+            label="Loyverse Store ID"
+            name="loyverse_store_id"
+            value={form.loyverse_store_id}
+            onChange={(v) => setField("loyverse_store_id", v)}
+            placeholder="17b18698-229b-4436-9c04-... (from Loyverse /stores)"
+          />
+        </div>
+
+        <SectionTitle>Notes</SectionTitle>
         <FormField
           label="Notes"
           name="notes"
@@ -528,16 +567,16 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
       </div>
 
       <div style={{ overflowY: "auto", flex: 1 }}>
-        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.external_id && !selected.google_maps_url && !selected.google_sheet_id && !selected.notes && (
+        {!selected.address_en && !selected.address_th && !selected.phone && !selected.vat_number && !selected.external_id && !selected.google_maps_url && !selected.google_sheet_id && !selected.loyverse_store_id && !selected.loyverse_account_key && !selected.notes && (
           <p style={{ fontSize: 13, color: "var(--fg-4)", padding: "16px 0", textAlign: "center" }}>
             No information added yet. Click Edit to fill in the details.
           </p>
         )}
 
+        <SectionTitle first>Contact</SectionTitle>
         <InfoRow icon={PhoneIcon} label="Phone" value={selected.phone} />
-        <InfoRow icon={ReceiptIcon} label="VAT number" value={selected.vat_number} />
-        <InfoRow icon={ReceiptIcon} label="Default service charge" value={selected.default_service_charge_pct != null ? `${selected.default_service_charge_pct}%` : null} />
-        <InfoRow icon={LinkIcon} label="GBP Location ID" value={selected.external_id} />
+
+        <SectionTitle>Adresse</SectionTitle>
         <InfoRow icon={MapPinIcon} label="Address (English)" value={selected.address_en} multiline />
         <InfoRow icon={MapPinIcon} label="Address (Thai)" value={selected.address_th} multiline />
         {selected.google_maps_url && (
@@ -556,8 +595,20 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
             </div>
           </div>
         )}
+
+        <SectionTitle>Comptabilité</SectionTitle>
+        <InfoRow icon={ReceiptIcon} label="VAT number" value={selected.vat_number} />
+        <InfoRow icon={ReceiptIcon} label="Default service charge" value={selected.default_service_charge_pct != null ? `${selected.default_service_charge_pct}%` : null} />
         <InfoRow icon={FileTextIcon} label="Accounting Sheet ID" value={selected.google_sheet_id} />
-        <InfoRow icon={LinkIcon} label="Loyverse Store ID" value={(selected as unknown as { loyverse_store_id?: string | null }).loyverse_store_id ?? null} />
+
+        <SectionTitle>Google Business Profile</SectionTitle>
+        <InfoRow icon={LinkIcon} label="GBP Location ID" value={selected.external_id} />
+
+        <SectionTitle>Loyverse</SectionTitle>
+        <InfoRow icon={LinkIcon} label="Account key" value={selected.loyverse_account_key ?? null} />
+        <InfoRow icon={LinkIcon} label="Loyverse Store ID" value={selected.loyverse_store_id ?? null} />
+
+        <SectionTitle>Notes</SectionTitle>
         <InfoRow icon={FileTextIcon} label="Notes" value={selected.notes} multiline />
 
         <div style={{ paddingTop: 8 }}>

@@ -1,5 +1,5 @@
-import { getAccounts } from "@/lib/loyverse/accounts";
-import { isLoyverseConfigured, LoyverseApiError } from "@/lib/loyverse/client";
+import { getAccountsAsync, isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
+import { LoyverseApiError } from "@/lib/loyverse/client";
 import { requireLoyverseSync } from "@/modules/loyverse/lib/guard";
 import { syncAllLoyverse } from "@/modules/loyverse/lib/sync";
 
@@ -7,9 +7,9 @@ export async function POST(request: Request) {
   const guard = await requireLoyverseSync();
   if (!guard.ok) return guard.response;
 
-  if (!isLoyverseConfigured()) {
+  if (!(await isLoyverseConfiguredAsync())) {
     return Response.json(
-      { error: "Loyverse not configured. Set LOYVERSE_ACCOUNTS or LOYVERSE_ACCESS_TOKEN." },
+      { error: "Loyverse not configured. Add accounts via /api/loyverse/accounts or LOYVERSE_ACCOUNTS." },
       { status: 503 },
     );
   }
@@ -42,12 +42,12 @@ export async function GET(request: Request) {
   const backfill = url.searchParams.get("backfill") === "true";
   const force = url.searchParams.get("force") === "true";
 
-  if (!isLoyverseConfigured()) {
+  if (!(await isLoyverseConfiguredAsync())) {
     return Response.json({ error: "Loyverse not configured" }, { status: 503 });
   }
 
   try {
-    const accounts = getAccounts();
+    const accounts = await getAccountsAsync();
     if (accounts.length === 0) {
       return Response.json({ error: "No accounts" }, { status: 503 });
     }

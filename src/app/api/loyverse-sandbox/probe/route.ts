@@ -1,4 +1,4 @@
-import { getDefaultAccount } from "@/lib/loyverse/accounts";
+import { getDefaultAccountAsync } from "@/lib/loyverse/accounts-server";
 import { loyverseFetch, loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
 import { getCatalogEndpoint } from "@/modules/loyverse-sandbox/catalog";
 import { requireLoyverseSandboxOwner } from "@/modules/loyverse-sandbox/lib/guard";
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   if (createdAtMin) params.created_at_min = createdAtMin;
   if (createdAtMax) params.created_at_max = createdAtMax;
 
-  const account = getDefaultAccount();
+  const account = await getDefaultAccountAsync();
   if (!account) {
     return Response.json({ error: "Loyverse account not configured" }, { status: 503 });
   }

@@ -1,4 +1,4 @@
-import { getAccounts } from "@/lib/loyverse/accounts";
+import { getAccountsAsync } from "@/lib/loyverse/accounts-server";
 import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetchAll } from "@/lib/loyverse/client";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   // If no snapshots, fallback to default account stores (still show frequencies live)
   const fallbackAccounts: typeof storeEntries = [];
   if (storeEntries.length === 0 && !storeFilter) {
-    const accounts = getAccounts();
+    const accounts = await getAccountsAsync();
     for (const acc of accounts.slice(0, 1)) {
       // fetch stores live for fallback
       const { fetchCatalogWithCache: _unused } = await import("@/lib/loyverse/catalog-cache");
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
   }> = [];
 
   for (const [accountKey, entries] of Array.from(byAccount.entries())) {
-    const account = getAccounts().find((a) => a.key === accountKey);
+    const account = (await getAccountsAsync()).find((a) => a.key === accountKey);
     if (!account) continue;
     let catalog: Awaited<ReturnType<typeof fetchCatalogWithCache>> | null = null;
     try {

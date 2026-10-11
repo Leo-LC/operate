@@ -1,4 +1,5 @@
-import { getAccounts, type Account } from "@/lib/loyverse/accounts";
+import type { Account } from "@/lib/loyverse/accounts";
+import { getAccountsAsync } from "@/lib/loyverse/accounts-server";
 import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetch, loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
@@ -553,9 +554,9 @@ export async function syncAllLoyverse(opts?: {
   const startMs = Date.now();
   const supabase = getSupabaseServerClient();
 
-  const accounts = getAccounts();
+  const accounts = await getAccountsAsync();
   if (accounts.length === 0) {
-    throw new LoyverseApiError("No Loyverse accounts configured (LOYVERSE_ACCOUNTS / LOYVERSE_ACCESS_TOKEN)", 503);
+    throw new LoyverseApiError("No Loyverse accounts configured (table loyverse_accounts or LOYVERSE_ACCOUNTS env)", 503);
   }
 
   // Insert running row

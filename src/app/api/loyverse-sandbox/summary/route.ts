@@ -1,4 +1,4 @@
-import { getDefaultAccount } from "@/lib/loyverse/accounts";
+import { getDefaultAccountAsync } from "@/lib/loyverse/accounts-server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "date and store_id are required" }, { status: 400 });
   }
 
-  const account = getDefaultAccount();
+  const account = await getDefaultAccountAsync();
   if (!account) {
     return Response.json({ error: "Loyverse account not configured" }, { status: 503 });
   }

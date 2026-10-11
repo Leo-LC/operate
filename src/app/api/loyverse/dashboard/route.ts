@@ -1,4 +1,4 @@
-import { isLoyverseConfigured } from "@/lib/loyverse/client";
+import { isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 
@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
 
-  if (!isLoyverseConfigured()) {
+  if (!(await isLoyverseConfiguredAsync())) {
     return Response.json({ error: "Loyverse not configured" }, { status: 503 });
   }
 

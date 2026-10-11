@@ -1,5 +1,4 @@
-import { getAccounts } from "@/lib/loyverse/accounts";
-import { isLoyverseConfigured } from "@/lib/loyverse/client";
+import { getAccountsAsync, isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 import { loyverseFetchAll } from "@/lib/loyverse/client";
 import { dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
@@ -9,7 +8,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 export async function GET(request: Request) {
   const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
-  if (!isLoyverseConfigured()) return Response.json({ error: "Not configured" }, { status: 503 });
+  if (!(await isLoyverseConfiguredAsync())) return Response.json({ error: "Not configured" }, { status: 503 });
 
   const url = new URL(request.url);
   const date = url.searchParams.get("date");
@@ -61,7 +60,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const accounts = getAccounts();
+  const accounts = await getAccountsAsync();
   const account = accountKey ? accounts.find((a) => a.key === accountKey) : accounts[0];
   if (!account) return Response.json({ error: "Account not found" }, { status: 404 });
 

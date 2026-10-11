@@ -48,6 +48,7 @@ export interface AdminLocation {
   notes?: string | null;
   default_service_charge_pct?: number;
   loyverse_store_id?: string | null;
+  loyverse_account_key?: string | null;
 }
 
 export interface EmployeeLocationRow {

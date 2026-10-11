@@ -1,5 +1,5 @@
-import { getAccounts } from "@/lib/loyverse/accounts";
-import { isLoyverseConfigured } from "@/lib/loyverse/client";
+import { getAccountsAsync } from "@/lib/loyverse/accounts-server";
+import { isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 
@@ -7,8 +7,8 @@ export async function GET() {
   const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
 
-  const configured = isLoyverseConfigured();
-  const accounts = getAccounts().map((a) => ({ key: a.key, label: a.label }));
+  const configured = await isLoyverseConfiguredAsync();
+  const accounts = (await getAccountsAsync()).map((a) => ({ key: a.key, label: a.label }));
 
   let lastRun: Record<string, unknown> | null = null;
   let snapshotCount = 0;

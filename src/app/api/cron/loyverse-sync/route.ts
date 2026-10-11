@@ -1,4 +1,4 @@
-import { isLoyverseConfigured } from "@/lib/loyverse/client";
+import { isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
 import { syncAllLoyverse } from "@/modules/loyverse/lib/sync";
 import { isWriteBackEnabled, writeBackForDates } from "@/modules/loyverse/lib/write-back";
 
@@ -28,7 +28,7 @@ async function handleCron(request: Request) {
   const authErr = checkAuth(request);
   if (authErr) return authErr;
 
-  if (!isLoyverseConfigured()) {
+  if (!(await isLoyverseConfiguredAsync())) {
     return Response.json({ error: "Loyverse not configured" }, { status: 503 });
   }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAccounts } from "@/lib/loyverse/accounts";
+import { getAccountsAsync } from "@/lib/loyverse/accounts-server";
 import { loyverseFetchAll } from "@/lib/loyverse/client";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
 
@@ -8,7 +8,7 @@ type PaymentTypeRaw = { id: string; name?: string; type?: string };
 export async function GET() {
   const guard = await requireLoyverseAccess();
   if (!guard.ok) return guard.response;
-  const accounts = getAccounts();
+  const accounts = await getAccountsAsync();
   if (accounts.length === 0) return NextResponse.json({ payment_types: [] });
   // Use first account's payment types - ids are global enough, merge across accounts
   const map = new Map<string, PaymentTypeRaw>();

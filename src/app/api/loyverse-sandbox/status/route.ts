@@ -1,5 +1,5 @@
-import { getDefaultAccount } from "@/lib/loyverse/accounts";
-import { isLoyverseConfigured, loyverseFetch, LoyverseApiError } from "@/lib/loyverse/client";
+import { getDefaultAccountAsync, isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
+import { loyverseFetch, LoyverseApiError } from "@/lib/loyverse/client";
 import { requireLoyverseSandboxOwner } from "@/modules/loyverse-sandbox/lib/guard";
 import type { LoyverseStore } from "@/modules/loyverse-sandbox/types";
 
@@ -7,15 +7,15 @@ export async function GET() {
   const guard = await requireLoyverseSandboxOwner();
   if (!guard.ok) return guard.response;
 
-  if (!isLoyverseConfigured()) {
+  if (!(await isLoyverseConfiguredAsync())) {
     return Response.json({
       configured: false,
       connected: false,
-      message: "LOYVERSE_ACCESS_TOKEN is not set in environment variables.",
+      message: "No Loyverse account configured (table loyverse_accounts or env).",
     });
   }
 
-  const account = getDefaultAccount();
+  const account = await getDefaultAccountAsync();
   if (!account) {
     return Response.json(
       { configured: true, connected: false, message: "No Loyverse account resolved" },
