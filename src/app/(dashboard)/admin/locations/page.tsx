@@ -26,11 +26,11 @@ export default async function AdminLocationsPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <LoyverseAccountsCard />
       <LocationsClient
         initialLocations={(locations ?? []) as AdminLocation[]}
         employees={employees ?? []}
       />
+      <LoyverseAccountsCard />
     </div>
   );
 }

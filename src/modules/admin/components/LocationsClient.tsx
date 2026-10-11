@@ -30,6 +30,14 @@ interface StaffMember {
   active: boolean;
 }
 
+interface LoyverseApiAccount {
+  key: string;
+  label: string;
+  source: "db" | "env";
+  is_active: boolean;
+  masked: string | null;
+}
+
 interface LocationsClientProps {
   initialLocations: AdminLocation[];
   employees: StaffMember[];
@@ -120,6 +128,8 @@ function FormField({
   placeholder,
   multiline = false,
   required = false,
+  listOptions,
+  hint,
 }: {
   label: string;
   name: string;
@@ -128,7 +138,10 @@ function FormField({
   placeholder?: string;
   multiline?: boolean;
   required?: boolean;
+  listOptions?: string[];
+  hint?: string;
 }) {
+  const listId = listOptions ? `${name}-suggestions` : undefined;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <label className="eyebrow" style={{ color: "var(--fg-3)" }}>
@@ -152,8 +165,17 @@ function FormField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
+          list={listId}
         />
       )}
+      {listId && (
+        <datalist id={listId}>
+          {listOptions!.map((opt) => (
+            <option key={opt} value={opt} />
+          ))}
+        </datalist>
+      )}
+      {hint && <p style={{ fontSize: 11, color: "var(--fg-4)" }}>{hint}</p>}
     </div>
   );
 }
@@ -203,6 +225,19 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
 
   const selected = locations.find((l) => l.id === selectedId) ?? null;
   const locationStaff = employees.filter((e) => e.location_id === selectedId);
+  const [apiAccounts, setApiAccounts] = useState<LoyverseApiAccount[]>([]);
+
+  React.useEffect(() => {
+    fetch("/api/loyverse/accounts", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.accounts) setApiAccounts(j.accounts as LoyverseApiAccount[]);
+      })
+      .catch(() => {});
+  }, []);
+
+  const accountKeys = React.useMemo(() => apiAccounts.map((a) => a.key), [apiAccounts]);
+  const accountByKey = React.useMemo(() => new Map(apiAccounts.map((a) => [a.key, a])), [apiAccounts]);
 
   function setField(key: keyof FormState, val: string) {
     setForm((prev) => {
@@ -479,21 +514,24 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           placeholder="locations/1234567890123456789"
         />
 
-        <SectionTitle>Loyverse</SectionTitle>
+        <SectionTitle>Loyverse — rattachement de ce shop</SectionTitle>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
           <FormField
-            label="Account key"
+            label="Compte API (token global du compte)"
             name="loyverse_account_key"
             value={form.loyverse_account_key}
             onChange={(v) => setField("loyverse_account_key", v)}
             placeholder="pattaya"
+            listOptions={accountKeys}
+            hint="Le token se gère dans « Comptes API Loyverse » en bas de page."
           />
           <FormField
-            label="Loyverse Store ID"
+            label="Store ID (la caisse de ce shop)"
             name="loyverse_store_id"
             value={form.loyverse_store_id}
             onChange={(v) => setField("loyverse_store_id", v)}
-            placeholder="17b18698-229b-4436-9c04-... (from Loyverse /stores)"
+            placeholder="17b18698-229b-4436-9c04-... (visible après ajout du token)"
+            hint="Un compte = une ou plusieurs caisses ; ici, celle de ce shop."
           />
         </div>
 
@@ -604,9 +642,27 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
         <SectionTitle>Google Business Profile</SectionTitle>
         <InfoRow icon={LinkIcon} label="GBP Location ID" value={selected.external_id} />
 
-        <SectionTitle>Loyverse</SectionTitle>
-        <InfoRow icon={LinkIcon} label="Account key" value={selected.loyverse_account_key ?? null} />
-        <InfoRow icon={LinkIcon} label="Loyverse Store ID" value={selected.loyverse_store_id ?? null} />
+        <SectionTitle>Loyverse — rattachement de ce shop</SectionTitle>
+        {(() => {
+          const acc = selected.loyverse_account_key ? accountByKey.get(selected.loyverse_account_key) : undefined;
+          const attached = Boolean(selected.loyverse_store_id && acc);
+          const accountValue = selected.loyverse_account_key
+            ? acc
+              ? `${selected.loyverse_account_key} (${acc.label}) · token ${acc.masked ?? "configuré"} · ${acc.source === "db" ? "DB" : "env"}${acc.is_active ? "" : " · désactivé"}`
+              : `${selected.loyverse_account_key} · compte inconnu — créez-le dans « Comptes API Loyverse » ci-dessous`
+            : null;
+          return (
+            <>
+              <InfoRow icon={LinkIcon} label="Compte API" value={accountValue} />
+              <InfoRow icon={LinkIcon} label="Store ID (caisse du shop)" value={selected.loyverse_store_id ?? null} />
+              <InfoRow
+                icon={attached ? CheckIcon : XIcon}
+                label="Rattachement"
+                value={attached ? "Rattaché — ce shop reçoit les ventes de cette caisse" : "Non rattaché — aucun chiffre Loyverse pour ce shop"}
+              />
+            </>
+          );
+        })()}
 
         <SectionTitle>Notes</SectionTitle>
         <InfoRow icon={FileTextIcon} label="Notes" value={selected.notes} multiline />
