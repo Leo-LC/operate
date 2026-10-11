@@ -50,6 +50,7 @@ export async function GET() {
           address: loc.storefrontAddress?.addressLines?.join(", ") ?? null,
           locality: loc.storefrontAddress?.locality ?? null,
           placeId: loc.metadata?.placeId ?? null,
+          missingFromGbp: false as boolean,
         };
       });
 
@@ -69,6 +70,7 @@ export async function GET() {
         address: null,
         locality: null,
         placeId: null,
+        missingFromGbp: true as boolean,
       });
       seen.add(externalId);
     });

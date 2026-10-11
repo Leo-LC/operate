@@ -123,10 +123,19 @@ export function SyncButton({
         toast.error(message);
         return;
       }
-      const data = (await res.json()) as { reviews: ReviewWithLocation[] };
+      const data = (await res.json()) as {
+        reviews: ReviewWithLocation[];
+        details?: { id: string; title: string; status: string; count: number; error?: string }[];
+      };
       onSynced(data.reviews ?? []);
       const count = (data.reviews ?? []).length;
-      toast.success(`Synced ${count} unreplied review${count === 1 ? "" : "s"}`);
+      const problems = (data.details ?? []).filter((d) => d.status !== "ok");
+      if (problems.length > 0) {
+        const names = problems.map((d) => d.title).join(", ");
+        toast.warning(`Synced ${count} unreplied reviews. No data for: ${names} — check Google access / GBP ID.`);
+      } else {
+        toast.success(`Synced ${count} unreplied review${count === 1 ? "" : "s"}`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sync failed");
     } finally {

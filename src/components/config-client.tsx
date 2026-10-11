@@ -34,7 +34,7 @@ interface ConfigClientProps {
 export function ConfigClient({ user, initialSection = "templates" }: ConfigClientProps) {
   const activeSection = initialSection;
   const [locations, setLocations] = useState<
-    { id: string; title: string; locality: string | null }[]
+    { id: string; title: string; locality: string | null; missingFromGbp?: boolean }[]
   >([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loadingLocations, setLoadingLocations] = useState(false);
@@ -138,7 +138,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           return;
         }
         const data = (await res.json()) as {
-          locations?: { id: string; title: string; locality: string | null }[];
+          locations?: { id: string; title: string; locality: string | null; missingFromGbp?: boolean }[];
         };
         if (cancelled) return;
         const mapped =
@@ -146,6 +146,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
             id: l.id,
             title: l.title,
             locality: l.locality ?? null,
+            missingFromGbp: l.missingFromGbp ?? false,
           })) ?? [];
         setLocations(mapped);
         // If there is no stored selection yet, default to “all locations selected”
@@ -203,7 +204,10 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           setSyncingFromConfig(false);
           return;
         }
-        const data = (await res.json()) as { reviews: ReviewWithLocation[] };
+        const data = (await res.json()) as {
+          reviews: ReviewWithLocation[];
+          details?: { id: string; title: string; status: string; count: number; error?: string }[];
+        };
         const reviews = Array.isArray(data.reviews) ? data.reviews : [];
         const sorted = [...reviews].sort((a, b) => {
           const aTime = a.createTime ? Date.parse(a.createTime as string) : 0;
@@ -253,6 +257,12 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
         toast.success(
           `Synced ${sorted.length} unreplied review${sorted.length === 1 ? "" : "s"}. Redirecting…`
         );
+        const problems = (data.details ?? []).filter((d) => d.status !== "ok");
+        if (problems.length > 0) {
+          toast.warning(
+            `No Google data for: ${problems.map((d) => d.title).join(", ")} — check GBP ID / account access.`
+          );
+        }
         router.push("/reviews/inbox");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Sync failed");
@@ -744,7 +754,14 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                             }}
                           >
                             <span style={{ display: "flex", flexDirection: "column" }}>
-                              <span style={{ fontWeight: 500 }}>{loc.title}</span>
+                              <span style={{ fontWeight: 500 }}>
+                                {loc.title}
+                                {loc.missingFromGbp && (
+                                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: "var(--warn)" }}>
+                                    Not found on Google — check GBP ID
+                                  </span>
+                                )}
+                              </span>
                               <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
                                 {loc.locality ? `${loc.locality} · ` : ""}
                                 {loc.id}

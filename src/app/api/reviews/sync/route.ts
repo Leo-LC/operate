@@ -50,6 +50,14 @@ async function fetchUnrepliedReviewsForLocation(
   return out;
 }
 
+export interface SyncLocationDetail {
+  id: string;
+  title: string;
+  status: "ok" | "no-gbp-entry" | "error";
+  count: number;
+  error?: string;
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -98,6 +106,7 @@ export async function GET(request: Request) {
         : Array.from(selectableShorts).filter((s) => gbpByShort.has(s) || wantedShorts.includes(s));
 
     const allUnreplied: ReviewWithLocation[] = [];
+    const details: SyncLocationDetail[] = [];
     const concurrency = 4;
 
     for (let i = 0; i < filteredShorts.length; i += concurrency) {
@@ -109,11 +118,10 @@ export async function GET(request: Request) {
             LOCATION_NAMES[shortName] ?? entry?.loc.title ?? shortName;
           const placeId = entry?.loc.metadata?.placeId;
           if (!entry) {
-            console.error(
-              "[sync] no GBP entry for selected location (absent from Business Profile API)",
-              shortName
-            );
-            return [] as ReviewWithLocation[];
+            const error =
+              "Absent from Business Profile API — check the GBP location ID in Admin → Shops and the Google account access";
+            console.error("[sync] no GBP entry for selected location", shortName);
+            return { reviews: [] as ReviewWithLocation[], detail: { id: shortName, title, status: "no-gbp-entry", count: 0, error } as SyncLocationDetail };
           }
           try {
             const reviews = await fetchUnrepliedReviewsForLocation(
@@ -123,23 +131,21 @@ export async function GET(request: Request) {
               title,
               placeId
             );
-            return reviews;
+            return { reviews, detail: { id: shortName, title, status: "ok", count: reviews.length } as SyncLocationDetail };
           } catch (e) {
-            console.error(
-              "[sync] failed to fetch reviews for location",
-              shortName,
-              e instanceof Error ? e.message : e
-            );
-            return [] as ReviewWithLocation[];
+            const error = e instanceof Error ? e.message : String(e);
+            console.error("[sync] failed to fetch reviews for location", shortName, error);
+            return { reviews: [] as ReviewWithLocation[], detail: { id: shortName, title, status: "error", count: 0, error } as SyncLocationDetail };
           }
         })
       );
-      for (const list of results) {
-        allUnreplied.push(...list);
+      for (const { reviews, detail } of results) {
+        allUnreplied.push(...reviews);
+        details.push(detail);
       }
     }
 
-    return Response.json({ reviews: allUnreplied });
+    return Response.json({ reviews: allUnreplied, details });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Sync failed";
     return Response.json({ error: message }, { status: 500 });
