@@ -5,16 +5,30 @@ import type { Location } from "@/types/review";
 // Google Business Profile locations whose corresponding `locations` row is missing
 // (e.g. deleted, like the old resort) or not yet active (e.g. "opening soon", like
 // Laguna pre-launch) must stay out of reviews/challenges entirely.
-export async function getActiveLocationExternalIds(): Promise<Set<string>> {
+// Active `locations` rows: GBP external id → Admin display name.
+// Display resolution everywhere (reviews list, sync, challenges) must prefer
+// this map so a rename in Admin → Shops applies without a code change.
+// LOCATION_NAMES in src/lib/constants.ts stays as fallback for GBP locations
+// with no DB row (reviews-only) and for stale cached ids.
+export async function getActiveLocations(): Promise<Map<string, string>> {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("locations")
-    .select("external_id")
+    .select("name, external_id")
     .eq("organization_id", DEFAULT_ORG_ID)
     .eq("is_active", true)
     .not("external_id", "is", null);
   if (error) throw new Error(`Failed to load active locations: ${error.message}`);
-  return new Set((data ?? []).map((row) => row.external_id as string));
+  return new Map(
+    ((data ?? []) as Array<{ name: string; external_id: string }>).map((row) => [
+      row.external_id,
+      row.name,
+    ])
+  );
+}
+
+export async function getActiveLocationExternalIds(): Promise<Set<string>> {
+  return new Set(Array.from((await getActiveLocations()).keys()));
 }
 
 export type GbpAccount = { name?: string | null; accountName?: string | null };
@@ -153,6 +167,7 @@ export async function fetchAllLocationsAcrossAccounts(
   }
 
   const accounts = sortAccountsCapybaraFirst(await listGbpAccounts(accessToken));
+  console.log(`[gbp] ${accounts.length} account(s) accessible`);
   const merged = new Map<string, GbpLocationWithAccount>();
   for (const acc of accounts) {
     const id = normalizeAccountId(acc.name);
@@ -164,6 +179,10 @@ export async function fetchAllLocationsAcrossAccounts(
       console.error("[gbp] failed to list locations for account", id, e instanceof Error ? e.message : e);
       continue;
     }
+    console.log(
+      `[gbp] account ${id} (${acc.accountName ?? "?"}): ${locations.length} location(s):`,
+      locations.map((l) => gbpShortName(l.name)).join(", ")
+    );
     for (const loc of locations) {
       const short = gbpShortName(loc.name);
       if (!merged.has(short)) merged.set(short, { loc, accountId: id });

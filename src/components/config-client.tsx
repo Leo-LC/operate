@@ -149,10 +149,15 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
             missingFromGbp: l.missingFromGbp ?? false,
           })) ?? [];
         setLocations(mapped);
-        // If there is no stored selection yet, default to “all locations selected”
+        // If there is no stored selection yet, default to “all locations selected”.
+        // A stored selection is intersected with the fetched ids so ids that
+        // no longer exist (e.g. a corrected GBP id) disappear instead of
+        // lingering as ghost entries.
         setSelectedIds((prev) => {
-          if (prev.size > 0) return prev;
-          return new Set(mapped.map((l) => l.id));
+          if (prev.size === 0) return new Set(mapped.map((l) => l.id));
+          const fetched = new Set(mapped.map((l) => l.id));
+          const kept = Array.from(prev).filter((id) => fetched.has(id));
+          return kept.length > 0 ? new Set(kept) : new Set(mapped.map((l) => l.id));
         });
       } catch (e) {
         if (!cancelled) {

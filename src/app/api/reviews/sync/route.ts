@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES, REVIEWS_BASE, REVIEWS_ONLY_LOCATION_IDS } from "@/lib/constants";
-import { fetchAllLocationsAcrossAccounts, gbpShortName, getActiveLocationExternalIds } from "@/lib/google-business";
+import { fetchAllLocationsAcrossAccounts, gbpShortName, getActiveLocations } from "@/lib/google-business";
 import type { Review } from "@/types/review";
 import type { ReviewWithLocation } from "@/types/review";
 
@@ -79,9 +79,9 @@ export async function GET(request: Request) {
             .filter(Boolean)
         : null;
 
-    const [gbpEntries, activeExternalIds] = await Promise.all([
+    const [gbpEntries, activeLocations] = await Promise.all([
       fetchAllLocationsAcrossAccounts(accessToken),
-      getActiveLocationExternalIds(),
+      getActiveLocations(),
     ]);
     const gbpByShort = new Map(gbpEntries.map((e) => [gbpShortName(e.loc.name), e]));
     // Shops selectable = every active DB shop (plus reviews-only), even when
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
     // without a GBP entry resolve to 0 reviews with a logged error instead of
     // being silently dropped (the Karon bug).
     const selectableShorts = new Set<string>(
-      Array.from(activeExternalIds).concat(Array.from(REVIEWS_ONLY_LOCATION_IDS))
+      Array.from(activeLocations.keys()).concat(Array.from(REVIEWS_ONLY_LOCATION_IDS))
     );
     const wantedShorts =
       selectedIds && selectedIds.length > 0
@@ -114,8 +114,10 @@ export async function GET(request: Request) {
       const results = await Promise.all(
         batch.map(async (shortName) => {
           const entry = gbpByShort.get(shortName);
+          // Admin → Shops name wins (rename without code change), then the
+          // hardcoded map, then the live GBP title.
           const title =
-            LOCATION_NAMES[shortName] ?? entry?.loc.title ?? shortName;
+            activeLocations.get(shortName) ?? LOCATION_NAMES[shortName] ?? entry?.loc.title ?? shortName;
           const placeId = entry?.loc.metadata?.placeId;
           if (!entry) {
             const error =

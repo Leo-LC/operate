@@ -22,7 +22,7 @@ export const LOCATION_NAMES: Record<string, string> = {
   "locations/1605645991793886964": "Pattaya",
   "locations/1389494344977514093": "Chiang Mai",
   "locations/5348429606642712133": "Laguna",
-  "locations/14579586495106768485": "Karon",
+  "locations/18305472203516651414": "Karon",
 };
 
 export type ReplyRatingBucket = 4 | 5;

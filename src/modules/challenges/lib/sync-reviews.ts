@@ -1,6 +1,6 @@
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { LOCATION_NAMES, DEFAULT_ORG_ID, REVIEWS_BASE, EXCLUDED_LOCATION_IDS } from "@/lib/constants";
-import { fetchAllLocationsAcrossAccounts, gbpShortName, getActiveLocationExternalIds } from "@/lib/google-business";
+import { fetchAllLocationsAcrossAccounts, gbpShortName, getActiveLocationExternalIds, getActiveLocations } from "@/lib/google-business";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import type { Review } from "@/types/review";
 
@@ -64,9 +64,10 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
     throw new Error("Google token not configured — sign in with Google first");
   }
 
-  const [gbpEntries, activeExternalIds] = await Promise.all([
+  const [gbpEntries, activeExternalIds, dbNames] = await Promise.all([
     fetchAllLocationsAcrossAccounts(accessToken),
     getActiveLocationExternalIds(),
+    getActiveLocations(),
   ]);
   const supabase = getSupabaseServerClient();
   // Internal UUID per GBP short id, for the location_uuid join key
@@ -97,7 +98,9 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
         const shortName = gbpShortName(loc.name);
         if (EXCLUDED_LOCATION_IDS.has(shortName)) return;
         if (!activeExternalIds.has(shortName)) return;
-        const locationTitle = LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
+        // Admin → Shops name wins (rename without code change), then the
+        // hardcoded map, then the live GBP title.
+        const locationTitle = dbNames.get(shortName) ?? LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
 
         try {
           const reviews = await fetchAllReviewsForLocation(accessToken, accountId, shortName);

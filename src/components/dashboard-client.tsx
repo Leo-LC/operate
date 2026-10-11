@@ -201,9 +201,13 @@ export function DashboardClient({ user }: DashboardClientProps) {
       id;
 
     if (saved && saved.length > 0) {
+      // Drop saved ids that no longer resolve (e.g. a corrected GBP id) so
+      // they don't linger as ghost entries alongside the real location.
+      const valid = saved.filter((id) => catalogMap.has(id) || reviewMap.has(id));
+      const base = valid.length > 0 ? valid : [];
       const out: LocationOption[] = [];
       const seen = new Set<string>();
-      for (const id of saved) {
+      for (const id of base) {
         out.push({ id, title: titleFor(id) });
         seen.add(id);
       }

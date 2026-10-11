@@ -46,7 +46,9 @@ export async function GET() {
         const shortName = gbpShortName(loc.name);
         return {
           id: shortName,
-          title: LOCATION_NAMES[shortName] ?? loc.title ?? shortName,
+          // Admin → Shops name wins so renames apply without a code change;
+          // hardcoded map is fallback for GBP locations with no DB row.
+          title: dbNameByExternalId.get(shortName) ?? LOCATION_NAMES[shortName] ?? loc.title ?? shortName,
           address: loc.storefrontAddress?.addressLines?.join(", ") ?? null,
           locality: loc.storefrontAddress?.locality ?? null,
           placeId: loc.metadata?.placeId ?? null,
@@ -66,7 +68,7 @@ export async function GET() {
       // a DB name — never invent entries.
       items.push({
         id: externalId,
-        title: LOCATION_NAMES[externalId] ?? name ?? externalId,
+        title: name ?? LOCATION_NAMES[externalId] ?? externalId,
         address: null,
         locality: null,
         placeId: null,
