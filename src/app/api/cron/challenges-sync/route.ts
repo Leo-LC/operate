@@ -1,18 +1,12 @@
 import { syncAllChallenges } from "@/modules/challenges/lib/sync-all";
-
-function checkAuth(request: Request): Response | null {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return Response.json({ error: "CRON_SECRET not configured" }, { status: 500 });
-  const auth = request.headers.get("Authorization") ?? "";
-  if (auth !== `Bearer ${cronSecret}`) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  return null;
-}
+import { verifyCronAuth, recordCronRun } from "@/lib/cron";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 /**
- * Nightly sequential pipeline for challenges (replaces the 3 parallel crons
- * loyverse-sync / loyverse-challenges / reviews-sync).
- * Order: sheets (costs) → loyverse snapshots → write-back sales →
- * challenge counters → reviews.
+ * THE app's nightly cron — the only one in vercel.json (23:30 Thailand time,
+ * i.e. after shops close at ~21:00). Sequential pipeline for challenges and
+ * every other daily sync: sheets → Loyverse → write-back → counters → reviews
+ * → finance mirror.
  *
  * Optional `?since=YYYY-MM-DD` (Bangkok): retroactive mode — rewrites Loyverse
  * snapshots with force=true from `since` to today and replays the write-back
@@ -20,8 +14,9 @@ function checkAuth(request: Request): Response | null {
  * `POST /api/cron/challenges-sync?since=2026-09-01`.
  */
 async function handleCron(request: Request) {
-  const authErr = checkAuth(request);
+  const authErr = verifyCronAuth(request);
   if (authErr) return authErr;
+  const startedAt = new Date();
   const url = new URL(request.url);
   const since = url.searchParams.get("since") ?? undefined;
   if (since && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
@@ -29,9 +24,13 @@ async function handleCron(request: Request) {
   }
   try {
     const result = await syncAllChallenges({ triggeredBy: "cron", since });
+    // Best effort: Vercel never reads this JSON, so a failed nightly run would
+    // otherwise be silent. Never throws (see recordCronRun).
+    await recordCronRun(getSupabaseServerClient(), { job: "challenges-sync", ok: result.ok, startedAt, result });
     return Response.json(result, { status: result.ok ? 200 : 500 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    await recordCronRun(getSupabaseServerClient(), { job: "challenges-sync", ok: false, startedAt, result: { error: msg } });
     return Response.json({ error: msg }, { status: 500 });
   }
 }
@@ -39,6 +38,7 @@ async function handleCron(request: Request) {
 export async function GET(request: Request) {
   return handleCron(request);
 }
+
 export async function POST(request: Request) {
   return handleCron(request);
 }

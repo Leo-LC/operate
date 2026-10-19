@@ -1,10 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
 import { MERCH_TIERS, normalizeLocationKey, PANIER_THRESHOLD, REVENUE_THRESHOLDS, SNACKS_THRESHOLD } from "@/modules/challenges/constants";
-
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
+import { bangkokToday } from "@/lib/dates";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseOwner();

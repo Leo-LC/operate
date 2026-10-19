@@ -2,32 +2,11 @@
 
 import { useMemo } from "react";
 import type { ActivityRow } from "@/app/api/admin/activity/route";
+import { bangkokDates, bangkokToday } from "@/lib/dates";
 
-function bangkokToday(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
+/** Last `count` Bangkok dates, oldest first. */
 function bangkokDays(count: number): string[] {
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = count - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    out.push(
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Bangkok",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(d),
-    );
-  }
-  return out;
+  return bangkokDates(count).reverse();
 }
 
 function bangkokTime(iso: string): string {

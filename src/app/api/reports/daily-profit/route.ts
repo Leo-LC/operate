@@ -5,14 +5,9 @@ import { getAllowedLocationIds, getUserPermissionsFromDb } from "@/core/permissi
 import { canManageDailyProfit, canReadDailyProfit } from "@/modules/reports/daily-profit/access";
 import { getDailyProfitData } from "@/modules/reports/daily-profit/server";
 import type { FinanceScopeType } from "@/modules/reports/daily-profit/types";
+import { bangkokToday } from "@/lib/dates";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function bangkokToday() {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
-}
 
 function previousDay(value: string) {
   const [year, month, day] = value.split("-").map(Number);

@@ -3,6 +3,7 @@ import { getAccountsAsync } from "@/lib/loyverse/accounts-server";
 import { fetchCatalogWithCache } from "@/lib/loyverse/catalog-cache";
 import { loyverseFetch, loyverseFetchAll, LoyverseApiError } from "@/lib/loyverse/client";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { bangkokDates as getBangkokDates } from "@/lib/dates";
 import { aggregateReceipts, dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
 import { getLocationIdForStoreAsync } from "./store-mapping";
 import type { LoyverseReceipt, LoyverseStore } from "@/modules/loyverse-sandbox/types";
@@ -35,20 +36,6 @@ function isSamuiStore(store: LoyverseStore, account: Account, locationId: string
   const hay = `${store.name ?? ""} ${account.key ?? ""} ${store.id ?? ""}`.toLowerCase();
   if (hay.includes("samui")) return true;
   return false;
-}
-
-function getBangkokDates(count: number): string[] {
-  const dates: string[] = [];
-  const bangkokNowMs = Date.now() + 7 * 60 * 60 * 1000;
-  for (let i = 0; i < count; i++) {
-    const ms = bangkokNowMs - i * 24 * 60 * 60 * 1000;
-    const d = new Date(ms);
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(d.getUTCDate()).padStart(2, "0");
-    dates.push(`${y}-${m}-${day}`);
-  }
-  return dates;
 }
 
 async function getMissingDatesForBackfill(): Promise<string[]> {

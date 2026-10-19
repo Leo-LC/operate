@@ -4,17 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { ActivityClient } from "@/modules/admin/components/ActivityClient";
 import type { ActivityRow } from "@/app/api/admin/activity/route";
-
-function bangkokDate(offsetDays = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-}
+import { bangkokOffsetDate } from "@/lib/dates";
 
 export default async function AdminActivityPage() {
   const session = await getServerSession(authOptions);
@@ -25,7 +15,7 @@ export default async function AdminActivityPage() {
   const { data } = await supabase
     .from("module_visits")
     .select("id, user_id, module_key, visited_on, first_seen_at, last_seen_at, visit_count, users ( email )")
-    .gte("visited_on", bangkokDate(-29))
+    .gte("visited_on", bangkokOffsetDate(-29))
     .order("visited_on", { ascending: false })
     .order("last_seen_at", { ascending: false })
     .limit(2000);

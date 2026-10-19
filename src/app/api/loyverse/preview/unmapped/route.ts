@@ -6,10 +6,7 @@ import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
 import { dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
 import { resolvePaymentBucket, resolveSalesBucket } from "@/modules/loyverse-sandbox/mapping-config";
 import type { LoyverseReceipt } from "@/modules/loyverse-sandbox/types";
-
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
+import { bangkokToday } from "@/lib/dates";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseOwner();

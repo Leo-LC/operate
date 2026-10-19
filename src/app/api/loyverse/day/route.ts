@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
-
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
+import { bangkokToday } from "@/lib/dates";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseAccess();

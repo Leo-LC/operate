@@ -3,8 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-import { parseDate, parseNumeric, importLocationFromSheet } from "./lib";
-import { REQUIRED_IMPORT_HEADERS, IMPORT_COLUMNS } from "@/app/api/accounting/import/columns";
+import { importLocationFromSheet } from "./lib";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -44,105 +43,39 @@ export async function POST(request: Request) {
   const accessToken = await getOrganizationAccessToken();
   if (!accessToken) return Response.json({ error: "Google account not connected or token expired. Please sign out and back in." }, { status: 400 });
 
-  // Preview mode — parse sheet without writing, compare with existing DB entries
+  // Preview mode — parse the sheet without writing, compare with existing DB
+  // entries. Same code path as the real import (importLocationFromSheet), which
+  // already supports preview: this used to be a third copy of the parser loop.
   if (preview) {
     const supabase = getSupabaseServerClient();
     const { data: loc } = await supabase.from("locations").select("id, name, google_sheet_id").eq("id", locationId).eq("organization_id", DEFAULT_ORG_ID).single();
     if (!loc) return Response.json({ error: "Location not found" }, { status: 400 });
     if (!loc.google_sheet_id) return Response.json({ error: "No Google Sheet ID configured for this location." }, { status: 400 });
 
-    const sheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(loc.google_sheet_id as string)}/values/DAILY_ENTRIES`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!sheetRes.ok) {
-      if (sheetRes.status === 403 || sheetRes.status === 401) return Response.json({ error: "Cannot access the spreadsheet. Make sure the Google account has access, then sign out and back in to grant the spreadsheets permission." }, { status: 400 });
-      if (sheetRes.status === 404) return Response.json({ error: "Spreadsheet or tab 'DAILY_ENTRIES' not found. Check the Sheet ID in Admin → Locations." }, { status: 400 });
-      return Response.json({ error: `Google Sheets API error: ${sheetRes.status}` }, { status: 500 });
+    const result = await importLocationFromSheet(locationId, session.user.userId ?? null, accessToken, supabase, true);
+    if (result.error) return Response.json({ error: result.error }, { status: 400 });
+
+    if (result.would_insert) {
+      return Response.json({
+        preview: true,
+        would_insert: result.would_insert,
+        date_from: result.date_from,
+        date_to: result.date_to,
+        skipped_existing: result.skipped_existing,
+        skipped_empty: result.skipped_empty,
+        skipped_future: result.skipped_future,
+        errors: result.errors,
+      });
     }
-
-    const rows = ((await sheetRes.json()) as { values?: string[][] }).values ?? [];
-    if (rows.length < 2) return Response.json({ error: "Sheet has no data rows." }, { status: 400 });
-    const headerRowIndex = rows.slice(0, 5).findIndex((row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date"));
-    if (headerRowIndex === -1) return Response.json({ error: "Header row with 'date' not found." }, { status: 400 });
-    const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
-    const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !headers.includes(h));
-    if (missing.length > 0) return Response.json({ error: `Sheet is missing required columns: ${missing.join(", ")}` }, { status: 400 });
-
-    const idx = (name: string) => headers.indexOf(name);
-    const errors: string[] = [];
-    type ParsedRow = { dateVal: string; row: Record<string, unknown> };
-    const parsed: ParsedRow[] = [];
-    let skippedEmpty = 0;
-
-    for (let i = headerRowIndex + 1; i < rows.length; i++) {
-      const cells = rows[i];
-      const get = (name: string) => ((cells[idx(name)] ?? "") as string).trim();
-      const rawDate = get("date");
-      if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
-      const dateVal = parseDate(rawDate);
-      if (!dateVal) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
-
-      const row: Record<string, unknown> = {
-        organization_id: DEFAULT_ORG_ID,
-        location_id: locationId,
-        entry_date: dateVal,
-      };
-      for (const col of IMPORT_COLUMNS) {
-        if (col.db === "date") continue;
-        row[col.db] = parseNumeric(get(col.csv));
-      }
-      const notesIdx = idx("notes");
-      row["notes"] = notesIdx >= 0 ? (cells[notesIdx] ?? "").toString().trim() || null : null;
-      const meaningful = IMPORT_COLUMNS.some((col) => col.db !== "date" && Number(row[col.db] ?? 0) !== 0);
-      if (!meaningful) { skippedEmpty++; continue; }
-      parsed.push({ dateVal, row });
-    }
-
-    if (parsed.length === 0) return Response.json({ inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, errors, batch_id: null, preview: false });
-
-    // Skip today and future dates (today's shift isn't done / data not entered yet)
-    const today = new Date().toISOString().split("T")[0];
-    const pastOrToday = parsed.filter((p) => p.dateVal < today);
-    const skippedFuture = parsed.length - pastOrToday.length;
-
-    // Fetch existing entries for comparison (only past/today dates)
-    const parsedDates = Array.from(new Set(pastOrToday.map((p) => p.dateVal)));
-    const { data: existingEntries } = await supabase
-      .from("daily_entries")
-      .select("entry_date, " + IMPORT_COLUMNS.filter((c) => c.db !== "date").map((c) => c.db).join(", ") + ", notes")
-      .eq("location_id", locationId)
-      .in("entry_date", parsedDates);
-
-    type ExistingEntry = {
-      entry_date: string;
-      notes: string | null;
-    } & Record<string, number | null>;
-
-    const entries = (existingEntries ?? []) as unknown as ExistingEntry[];
-    const existingMap = new Map(
-      entries.map((e) => [e.entry_date, e])
-    );
-
-    // Filter: keep only new rows or rows where values differ
-    const toImport = pastOrToday.filter((p) => {
-      const existing = existingMap.get(p.dateVal);
-      if (!existing) return true;
-      for (const col of IMPORT_COLUMNS) {
-        if (col.db === "date") continue;
-        const sheetVal = Number(p.row[col.db] ?? 0);
-        const dbVal = Number(existing[col.db] ?? 0);
-        if (sheetVal !== dbVal) return true;
-      }
-      const sheetNotes = p.row.notes as string | null;
-      const dbNotes = existing.notes as string | null;
-      if (sheetNotes !== dbNotes) return true;
-      return false;
+    return Response.json({
+      inserted: 0,
+      skipped_existing: result.skipped_existing,
+      skipped_empty: result.skipped_empty,
+      skipped_future: result.skipped_future,
+      errors: result.errors,
+      batch_id: null,
+      preview: false,
     });
-
-    const skippedExisting = pastOrToday.length - toImport.length;
-
-    if (toImport.length === 0) return Response.json({ inserted: 0, skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors, batch_id: null, preview: false });
-
-    const dates = toImport.map((p) => p.dateVal).sort();
-    return Response.json({ preview: true, would_insert: toImport.length, date_from: dates[0], date_to: dates[dates.length - 1], skipped_existing: skippedExisting, skipped_empty: skippedEmpty, skipped_future: skippedFuture, errors });
   }
 
   // Real import — delegate to shared lib

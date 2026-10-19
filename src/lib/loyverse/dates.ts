@@ -1,8 +1,10 @@
+import { toBangkokDate } from "@/lib/dates";
+
 export function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return toBangkokDate(new Date());
 }
 export function bangkokYesterday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
+  return addDays(bangkokToday(), -1);
 }
 export function addDays(dateStr: string, delta: number): string {
   const d = new Date(dateStr + "T00:00:00Z");

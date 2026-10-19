@@ -24,6 +24,33 @@ interface AutomationsClientProps {
   initialEnabled: boolean;
   lastRunAt: string | null;
   lastRunResult: LastRunResult | null;
+  recentRuns?: RecentRun[];
+}
+
+export interface RecentRun {
+  id: string;
+  job: string;
+  triggered_by: string;
+  started_at: string;
+  finished_at: string | null;
+  ok: boolean;
+  result: Record<string, unknown> | null;
+}
+
+/** One-line summary of a stored run payload, per job shape. */
+function runSummary(run: RecentRun): string {
+  const r = run.result ?? {};
+  if (typeof r.error === "string" && r.error) return r.error;
+  if (typeof r.total_inserted === "number") {
+    const failed = typeof r.failed_count === "number" ? r.failed_count : 0;
+    return `${r.total_inserted} row(s) imported${failed > 0 ? ` — ${failed} location(s) failed` : ""}`;
+  }
+  const steps = r.steps as Record<string, { ok?: boolean; skipped?: boolean }> | undefined;
+  if (steps) {
+    const failed = Object.entries(steps).filter(([, s]) => s?.ok === false).map(([name]) => name);
+    return failed.length > 0 ? `failed: ${failed.join(", ")}` : `ok — ${Object.keys(steps).length} steps`;
+  }
+  return run.ok ? "ok" : "failed";
 }
 
 function formatRunAt(iso: string) {
@@ -34,7 +61,7 @@ function formatRunAt(iso: string) {
   }) + " (Thailand time)";
 }
 
-export function AutomationsClient({ initialEnabled, lastRunAt, lastRunResult }: AutomationsClientProps) {
+export function AutomationsClient({ initialEnabled, lastRunAt, lastRunResult, recentRuns = [] }: AutomationsClientProps) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
   const [runResult, setRunResult] = useState<LastRunResult | null>(lastRunResult);
@@ -116,9 +143,9 @@ export function AutomationsClient({ initialEnabled, lastRunAt, lastRunResult }: 
               <ClockIcon size={16} color="var(--bronze)" />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Daily Google Sheets import</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Google Sheets import</div>
               <div style={{ fontSize: 12, color: "var(--fg-3)", marginTop: 2 }}>
-                Runs every day at 5:00 AM Thailand time — pulls data from all connected sheets and syncs to accounting.
+                Runs nightly at 23:30 Thailand time, as step 1 of the global pipeline (sheets &rarr; Loyverse &rarr; write-back &rarr; counters &rarr; reviews &rarr; finance mirror). This switch turns off the Sheets import only.
               </div>
             </div>
           </div>
@@ -221,6 +248,45 @@ export function AutomationsClient({ initialEnabled, lastRunAt, lastRunResult }: 
           </div>
         )}
       </div>
+
+      {/* Recent runs of every background automation (cron_runs table, written by src/lib/cron.ts) */}
+      {recentRuns.length > 0 && (
+        <div style={{
+          background: "transparent",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--r-lg)",
+          padding: 20,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Recent scheduled runs</div>
+            <div style={{ fontSize: 12, color: "var(--fg-3)", marginTop: 2 }}>
+              Last runs of every background automation — the nightly global pipeline (sheets &rarr; Loyverse &rarr; write-back &rarr; counters &rarr; reviews &rarr; finance mirror).
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {recentRuns.map((run) => (
+              <div key={run.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                padding: "4px 8px", borderRadius: "var(--r-sm)",
+                background: run.ok ? "var(--bg)" : "var(--red-1, rgba(229,62,62,0.06))",
+                fontSize: 12,
+              }}>
+                <span style={{ color: "var(--fg-2)", fontWeight: 500, minWidth: 120 }}>{run.job.replace(/-/g, " ")}</span>
+                <span style={{ color: run.ok ? "var(--fg-3)" : "var(--red, #e53e3e)", flex: 1 }}>{runSummary(run)}</span>
+                <span style={{ color: "var(--fg-4)", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                  {run.ok
+                    ? <CheckCircleIcon size={12} color="var(--green, #38a169)" />
+                    : <XCircleIcon size={12} color="var(--red, #e53e3e)" />}
+                  {formatRunAt(run.started_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

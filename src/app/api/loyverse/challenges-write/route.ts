@@ -1,10 +1,6 @@
 import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
 import { syncChallengesFromLoyverse } from "@/modules/challenges/lib/sync-from-loyverse";
-
-function bangkokMonth(): string {
-  const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
+import { bangkokMonth } from "@/lib/dates";
 
 export async function POST(request: Request) {
   const guard = await requireLoyverseOwner();

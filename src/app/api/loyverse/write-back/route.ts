@@ -1,9 +1,6 @@
 import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
 import { isWriteBackEnabled, writeBackForDate } from "@/modules/loyverse/lib/write-back";
-
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
+import { bangkokToday } from "@/lib/dates";
 
 export async function POST(request: Request) {
   const guard = await requireLoyverseOwner();

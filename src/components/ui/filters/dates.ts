@@ -1,4 +1,7 @@
 import type { DateRangeValue } from "./types";
+import { bangkokToday } from "@/lib/dates";
+
+export { bangkokToday };
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_RE = /^(\d{4})-(\d{2})$/;
@@ -22,17 +25,7 @@ export function toDay(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Today in Asia/Bangkok as `YYYY-MM-DD`. */
-export function bangkokToday(): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const o: Record<string, string> = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  return `${o.year}-${o.month}-${o.day}`;
-}
+/** Today in Asia/Bangkok as `YYYY-MM-DD` — canonical implementation in @/lib/dates. */
 
 export function bangkokYesterday(): string {
   return addDaysStr(bangkokToday(), -1);

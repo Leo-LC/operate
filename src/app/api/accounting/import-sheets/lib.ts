@@ -41,6 +41,69 @@ export function parseDate(raw: string): string | null {
   return null;
 }
 
+export type ParsedDailyEntryRow = {
+  entryDate: string;
+  /** IMPORT_COLUMNS values keyed by their db column name (date excluded). */
+  values: Record<string, number>;
+  notes: string | null;
+};
+
+export type ParseDailyEntriesTab =
+  | { error: string }
+  | {
+      headers: string[];
+      rows: ParsedDailyEntryRow[];
+      skippedEmpty: number;
+      errors: string[];
+    };
+
+/**
+ * Single parser for the `DAILY_ENTRIES` tab, shared by the accounting import
+ * (`importLocationFromSheet`) and the Daily P&L sheet mirror
+ * (`/api/reports/daily-profit/sync`). Both used to duplicate this loop —
+ * header sniffing, date parsing, numeric coercion, empty-row skip — and had
+ * already started to drift. One implementation, one behaviour.
+ */
+export function parseDailyEntriesTab(rows: string[][]): ParseDailyEntriesTab {
+  if (rows.length < 2) return { error: "Sheet has no data rows" };
+
+  const headerRowIndex = rows.slice(0, 5).findIndex(
+    (row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date"),
+  );
+  if (headerRowIndex === -1) return { error: "Header row with 'date' not found in first 5 rows" };
+
+  const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
+  const idx = (name: string) => headers.indexOf(name);
+  const notesIdx = idx("notes");
+  const columns = IMPORT_COLUMNS.filter((c) => c.db !== "date");
+
+  const errors: string[] = [];
+  const parsed: ParsedDailyEntryRow[] = [];
+  let skippedEmpty = 0;
+
+  for (let i = headerRowIndex + 1; i < rows.length; i++) {
+    const cells = rows[i] ?? [];
+    const rawDate = String(cells[idx("date")] ?? "").trim();
+    if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
+    const entryDate = parseDate(rawDate);
+    if (!entryDate) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
+
+    const values: Record<string, number> = {};
+    for (const col of columns) {
+      values[col.db] = parseNumeric(String(cells[idx(col.csv)] ?? ""));
+    }
+    const notes = notesIdx >= 0 ? String(cells[notesIdx] ?? "").trim() || null : null;
+
+    // A row that is entirely zero (notes alone don't count) carries no data.
+    const meaningful = columns.some((col) => Number(values[col.db] ?? 0) !== 0);
+    if (!meaningful) { skippedEmpty++; continue; }
+
+    parsed.push({ entryDate, values, notes });
+  }
+
+  return { headers, rows: parsed, skippedEmpty, errors };
+}
+
 export type ImportLocationResult = {
   location_id: string;
   location_name: string;
@@ -87,51 +150,30 @@ export async function importLocationFromSheet(
   }
 
   const sheetData = (await sheetRes.json()) as { values?: string[][] };
-  const rows = sheetData.values ?? [];
+  const tab = parseDailyEntriesTab(sheetData.values ?? []);
+  if ("error" in tab) {
+    return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: tab.error };
+  }
 
-  if (rows.length < 2) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "Sheet has no data rows" };
-
-  const headerRowIndex = rows.slice(0, 5).findIndex(
-    (row) => row.some((cell) => (cell ?? "").trim().toLowerCase() === "date")
-  );
-  if (headerRowIndex === -1) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: "Header row with 'date' not found in first 5 rows" };
-
-  const headers = rows[headerRowIndex].map((h) => (h ?? "").trim().toLowerCase());
-  const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !headers.includes(h));
+  const missing = REQUIRED_IMPORT_HEADERS.filter((h) => !tab.headers.includes(h));
   if (missing.length > 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: 0, skipped_future: 0, errors: [], batch_id: null, error: `Missing columns: ${missing.join(", ")}` };
 
-  const idx = (name: string) => headers.indexOf(name);
-  const errors: string[] = [];
+  const errors = tab.errors;
+  const skippedEmpty = tab.skippedEmpty;
   type ParsedRow = { dateVal: string; row: Record<string, unknown> };
-  const parsed: ParsedRow[] = [];
-  let skippedEmpty = 0;
-
-  for (let i = headerRowIndex + 1; i < rows.length; i++) {
-    const cells = rows[i];
-    const get = (name: string) => ((cells[idx(name)] ?? "") as string).trim();
-    const rawDate = get("date");
-    if (!rawDate || rawDate === "YYYY-MM-DD") { skippedEmpty++; continue; }
-    const dateVal = parseDate(rawDate);
-    if (!dateVal) { errors.push(`Row ${i + 1}: unrecognised date "${rawDate}"`); continue; }
-
-    const row: Record<string, unknown> = {
+  const parsed: ParsedRow[] = tab.rows.map(({ entryDate, values, notes }) => ({
+    dateVal: entryDate,
+    row: {
       organization_id: DEFAULT_ORG_ID,
       location_id: locationId,
-      entry_date: dateVal,
+      entry_date: entryDate,
       updated_by: userId,
       created_by: userId,
       updated_at: new Date().toISOString(),
-    };
-    for (const col of IMPORT_COLUMNS) {
-      if (col.db === "date") continue;
-      row[col.db] = parseNumeric(get(col.csv));
-    }
-    const notesIdx = idx("notes");
-    row["notes"] = notesIdx >= 0 ? (cells[notesIdx] ?? "").toString().trim() || null : null;
-    const meaningful = IMPORT_COLUMNS.some((col) => col.db !== "date" && Number(row[col.db] ?? 0) !== 0);
-    if (!meaningful) { skippedEmpty++; continue; }
-    parsed.push({ dateVal, row });
-  }
+      ...values,
+      notes,
+    },
+  }));
 
   if (parsed.length === 0) return { location_id: locationId, location_name: loc.name as string, inserted: 0, skipped_existing: 0, skipped_empty: skippedEmpty, skipped_future: 0, errors, batch_id: null };
 

@@ -1,6 +1,7 @@
 import { isLoyverseConfiguredAsync } from "@/lib/loyverse/accounts-server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
+import { bangkokToday } from "@/lib/dates";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseAccess();
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
 
   // Compute date range ending at `date` or today (Bangkok)
-  const bangkokEnd = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const bangkokEnd = bangkokToday();
   const effectiveEnd = date ?? bangkokEnd;
   const end = new Date(effectiveEnd + "T00:00:00Z");
   const start = new Date(end);

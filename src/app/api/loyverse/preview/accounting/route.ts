@@ -1,10 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
 import { buildFieldDiffs } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
-
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
+import { bangkokToday } from "@/lib/dates";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseOwner();

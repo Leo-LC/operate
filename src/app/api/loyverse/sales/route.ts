@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
-
-function bangkokDate(offsetDays = 0): string {
-  const ms = Date.now() + 7 * 60 * 60 * 1000 + offsetDays * 86400000;
-  return new Date(ms).toISOString().slice(0, 10);
-}
+import { bangkokOffsetDate } from "@/lib/dates";
 
 export async function GET(request: Request) {
   const guard = await requireLoyverseAccess();
@@ -34,7 +30,7 @@ export async function GET(request: Request) {
     from = dateParam!;
     to = dateParam!;
   } else {
-    const d = bangkokDate(-1);
+    const d = bangkokOffsetDate(-1);
     from = d;
     to = d;
   }

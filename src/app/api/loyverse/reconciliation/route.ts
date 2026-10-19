@@ -1,19 +1,9 @@
 import { requireLoyverseOwner } from "@/modules/loyverse/lib/guard";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { bangkokDates } from "@/lib/dates";
 
 const TOLERANCE = 1; // ฿ — en dessous = match (arrondis)
-
-function bangkokDates(count: number): string[] {
-  const out: string[] = [];
-  const nowMs = Date.now() + 7 * 60 * 60 * 1000;
-  // Jour en cours exclu (accounting pas encore rempli) : on part de J-1.
-  for (let i = 1; i <= count; i++) {
-    const d = new Date(nowMs - i * 86400000);
-    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`);
-  }
-  return out;
-}
 
 function snapTotal(s: Record<string, unknown>): number {
   return (
@@ -43,7 +33,8 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const days = Math.min(14, Math.max(1, Number(url.searchParams.get("days") ?? 7) || 7));
-  const dates = bangkokDates(days);
+  // Jour en cours exclu (accounting pas encore rempli) : on part de J-1.
+  const dates = bangkokDates(days + 1).slice(1);
   const from = dates[dates.length - 1];
   const to = dates[0];
 

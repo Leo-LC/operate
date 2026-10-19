@@ -1,35 +1,13 @@
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { bangkokNow, bangkokToday, bangkokDates, bangkokMonth, previousMonth } from "@/lib/dates";
 import { importLocationFromSheet } from "@/app/api/accounting/import-sheets/lib";
 import { syncAllLoyverse } from "@/modules/loyverse/lib/sync";
 import { isWriteBackEnabled, writeBackForDates } from "@/modules/loyverse/lib/write-back";
 import { syncChallengesFromLoyverse } from "@/modules/challenges/lib/sync-from-loyverse";
 import { syncReviews } from "@/modules/challenges/lib/sync-reviews";
-
-function bangkokNow(): Date {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000);
-}
-
-function bangkokMonth(d = bangkokNow()): string {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function bangkokDates(count: number): string[] {
-  const out: string[] = [];
-  const nowMs = Date.now() + 7 * 60 * 60 * 1000;
-  for (let i = 0; i < count; i++) {
-    const d = new Date(nowMs - i * 86400000);
-    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`);
-  }
-  return out;
-}
-
-function prevMonth(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  if (m === 1) return `${y - 1}-12`;
-  return `${y}-${String(m - 1).padStart(2, "0")}`;
-}
+import { syncDailyProfitMirror, isMirrorEnabled } from "@/modules/reports/daily-profit/sheet-mirror";
 
 /** All Bangkok dates from `since` (inclusive) to today, ascending, capped at 30. */
 function datesSince(since: string, today: string): string[] {
@@ -63,22 +41,25 @@ export type SyncAllResult = {
     writeBack: SyncStepStatus;
     counters: SyncStepStatus;
     reviews: SyncStepStatus;
+    mirror: SyncStepStatus;
   };
 };
 
 /**
- * Sequential nightly pipeline for challenges — single orchestrator, fixed order.
+ * Sequential nightly pipeline — the single orchestrator, fixed order.
+ * It is the app's only scheduled job (see vercel.json).
  *
  * 1. sheets     — Google Sheets → daily_entries (costs/opex source; sales draft).
  * 2. loyverse   — receipts/shifts → snapshots (sales source of truth).
  * 3. writeBack  — Loyverse sales overwrite daily_entries sales fields (costs preserved).
  * 4. counters   — snapshots → challenge_counters (entries/snacks, force=true).
  * 5. reviews    — Google GBP → reviews_cache + ratings.
+ * 6. mirror     — Google Sheets → finance_sheet_entries (Daily P&L snapshot + revisions).
  *
  * Order matters: sheets BEFORE write-back so Loyverse sales always win over
  * the Sheets draft, while manual costs from Sheets are preserved.
- * Sheets/reviews failures are non-fatal (noted in result); loyverse/writeBack/
- * counters failures mark the run as failed.
+ * Sheets/reviews/mirror failures are non-fatal (noted in result); loyverse/
+ * writeBack/counters failures mark the run as failed.
  */
 export async function syncAllChallenges(opts?: {
   triggeredBy?: "cron" | "manual";
@@ -95,7 +76,7 @@ export async function syncAllChallenges(opts?: {
   const triggeredBy = opts?.triggeredBy ?? "cron";
   const respectSheetConfig = opts?.respectSheetConfig ?? triggeredBy === "cron";
   const supabase = getSupabaseServerClient();
-  const todayBkk = bangkokDates(1)[0];
+  const todayBkk = bangkokToday();
   const retroDates = opts?.since ? datesSince(opts.since, todayBkk) : null;
 
   const steps: SyncAllResult["steps"] = {
@@ -104,6 +85,7 @@ export async function syncAllChallenges(opts?: {
     writeBack: { ok: true },
     counters: { ok: true },
     reviews: { ok: true },
+    mirror: { ok: true },
   };
 
   // ——— 1. Sheets → daily_entries (costs) ———
@@ -137,6 +119,17 @@ export async function syncAllChallenges(opts?: {
       }
       steps.sheets = { ok: failed === 0, summary: { locations: locations?.length ?? 0, inserted, failed } };
       if (failed > 0) steps.sheets.error = `${failed} location(s) failed`;
+
+      // Keep Admin > Automations "last run" truthful: the dedicated sheet-sync
+      // crons are gone, this pipeline is now the only Sheets importer.
+      await supabase
+        .from("sheet_sync_config")
+        .update({
+          last_run_at: new Date().toISOString(),
+          last_run_result: { total_inserted: inserted, failed_count: failed, location_count: locations?.length ?? 0 },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("organization_id", DEFAULT_ORG_ID);
     }
   } catch (e) {
     steps.sheets = { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -191,7 +184,7 @@ export async function syncAllChallenges(opts?: {
       // current month (+ previous when early-month, as J-1 belongs to it).
       const months = retroDates
         ? Array.from(new Set(retroDates.map((d) => d.slice(0, 7))))
-        : [month, ...(bangkokNow().getUTCDate() <= 3 ? [prevMonth(month)] : [])];
+        : [month, ...(bangkokNow().getUTCDate() <= 3 ? [previousMonth(month)] : [])];
       let upserted = 0;
       const errors: string[] = [];
       for (const m of months) {
@@ -215,6 +208,24 @@ export async function syncAllChallenges(opts?: {
     steps.reviews = { ok: true, summary: { synced: r.synced, locations: r.locations } };
   } catch (e) {
     steps.reviews = { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // ——— 6. Sheets → finance_sheet_entries (Daily P&L mirror + revisions) ———
+  // Non-fatal: without it the report falls back to daily_entries for new dates.
+  try {
+    if (!(await isMirrorEnabled())) {
+      steps.mirror = { ok: true, skipped: true, skipReason: "finance mirror disabled" };
+    } else {
+      const { status, body } = await syncDailyProfitMirror({ userId: null, source: triggeredBy === "manual" ? "manual" : "cron" });
+      const summary = body as { error?: string; inserted?: number; updated?: number; unchanged?: number; errors?: number };
+      steps.mirror = {
+        ok: status === 200 && !summary.error,
+        error: summary.error,
+        summary: { inserted: summary.inserted ?? 0, updated: summary.updated ?? 0, unchanged: summary.unchanged ?? 0, errors: summary.errors ?? 0 },
+      };
+    }
+  } catch (e) {
+    steps.mirror = { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 
   const ok = steps.loyverse.ok && steps.writeBack.ok && steps.counters.ok;

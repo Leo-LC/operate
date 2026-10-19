@@ -3,17 +3,13 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import { isCronRequest } from "@/lib/cron";
 import { importLocationFromSheet, type ImportLocationResult } from "../lib";
 
 // Accepts either owner session auth (UI button) or CRON_SECRET bearer token (automated runs)
 function isAuthorized(request: Request, role: string | undefined): boolean {
   if (role === "owner") return true;
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = request.headers.get("Authorization") ?? "";
-    if (auth === `Bearer ${cronSecret}`) return true;
-  }
-  return false;
+  return isCronRequest(request);
 }
 
 export async function POST(request: Request) {

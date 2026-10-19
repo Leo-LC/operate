@@ -9,13 +9,7 @@ import { ReconciliationPanel } from "./ReconciliationPanel";
 import { UnmappedPanel } from "./UnmappedPanel";
 import { LoyverseSandboxClient } from "@/modules/loyverse-sandbox/components/LoyverseSandboxClient";
 import { ShiftsPreview } from "./ShiftsPreview";
-
-function bangkokToday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-function bangkokYesterday(): string {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000 - 86400000).toISOString().slice(0, 10);
-}
+import { bangkokToday, bangkokYesterday } from "@/lib/dates";
 
 const TABS = [
   { value: "shifts", label: "Shifts (veille)", icon: ClockIcon },
