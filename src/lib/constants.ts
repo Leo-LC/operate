@@ -125,11 +125,6 @@ export const REPLY_TEMPLATES: {
       "We really appreciate your 4-star rating. Knowing what you enjoyed (and what we can do better) helps us keep improving. Thank you for visiting us.",
       "Thank you for taking the time to leave a 4-star review! We hope your next visit can be a full 5-star experience. Feel free to share any ideas with us.",
       "Thanks for the 4 stars! We're happy you had a nice time and we're always working on the little details to make every visit even better.",
-      "Thank you for your 4-star review! We appreciate your feedback and hope to see you again soon!",
-      "Thanks a lot for the 4 stars! We're glad you had a good experience and we're always trying to improve—if you have suggestions, we'd love to hear them.",
-      "We really appreciate your 4-star rating. Knowing what you enjoyed (and what we can do better) helps us keep improving. Thank you for visiting us.",
-      "Thank you for taking the time to leave a 4-star review! We hope your next visit can be a full 5-star experience. Feel free to share any ideas with us.",
-      "Thanks for the 4 stars! We're happy you had a nice time and we're always working on the little details to make every visit even better.",
     ],
     staff: [
       "Thank you for your 4-star review and for mentioning our staff. We're happy to hear they helped make your visit enjoyable and we'll keep doing our best for next time.",
