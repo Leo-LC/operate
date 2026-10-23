@@ -432,7 +432,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           if (!review) return;
                           const n = starNum(review);
                           if (n === 5 || n === 4) {
-                            const nextTemplate = pickRandomTemplate(n as 4 | 5, category);
+                            const nextTemplate = pickRandomTemplate(n as 4 | 5, category, templateConfig);
                             setDraft(id, nextTemplate);
                           }
                         }}
@@ -450,7 +450,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 // Treat `""` as a valid saved draft (user cleared the template).
                                 if (existing != null) return existing;
                                 const category = replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
-                                return pickRandomTemplate(5, category);
+                                return pickRandomTemplate(5, category, templateConfig);
                               }}
                               onCommentChange={setDraft}
                               onReplySent={handleReplySent}
@@ -462,7 +462,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 setCategory(id, category);
                                 const review = fiveDisplayed.find((r) => r.reviewId === id);
                                 if (!review) return;
-                                const nextTemplate = pickRandomTemplate(5, category);
+                                const nextTemplate = pickRandomTemplate(5, category, templateConfig);
                                 setDraft(id, nextTemplate);
                               }}
                               onShuffleTemplate={shuffleTemplateForReview}
@@ -479,7 +479,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 // Treat `""` as a valid saved draft (user cleared the template).
                                 if (existing != null) return existing;
                                 const category = replyCategories[id] ?? DEFAULT_REPLY_CATEGORY_ID;
-                                return pickRandomTemplate(4, category);
+                                return pickRandomTemplate(4, category, templateConfig);
                               }}
                               onCommentChange={setDraft}
                               onReplySent={handleReplySent}
@@ -491,7 +491,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 setCategory(id, category);
                                 const review = fourDisplayed.find((r) => r.reviewId === id);
                                 if (!review) return;
-                                const nextTemplate = pickRandomTemplate(4, category);
+                                const nextTemplate = pickRandomTemplate(4, category, templateConfig);
                                 setDraft(id, nextTemplate);
                               }}
                               onShuffleTemplate={shuffleTemplateForReview}
