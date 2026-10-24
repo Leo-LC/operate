@@ -8,6 +8,10 @@ export interface ModuleTab {
   label: string;
   href: string;
   icon?: React.ElementType;
+  /** Extra control rendered next to the label (e.g. eye toggle). */
+  extra?: React.ReactNode;
+  /** Rendered muted (e.g. hidden for the target audience but visible to privileged users). */
+  dimmed?: boolean;
 }
 
 export interface ControlledTab {
@@ -123,27 +127,36 @@ export function ModuleTabs({ tabs, ariaLabel }: { tabs: readonly ModuleTab[]; ar
           const active = i === activeIndex;
           const Icon = tab.icon;
           return (
-            <Link
+            <div
               key={tab.href}
-              ref={setTabRef(i) as React.Ref<HTMLAnchorElement>}
-              href={tab.href}
-              aria-current={active ? "page" : undefined}
               style={{
-                ...TAB_STYLE,
-                fontWeight: active ? 600 : 500,
-                color: active ? "var(--fg)" : "var(--fg-4)",
-                transition: "color 150ms",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.color = "var(--fg-2)";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.color = "var(--fg-4)";
+                display: "inline-flex",
+                alignItems: "center",
+                opacity: tab.dimmed ? 0.55 : 1,
               }}
             >
-              {Icon ? <Icon size={14} /> : null}
-              {tab.label}
-            </Link>
+              <Link
+                ref={setTabRef(i) as React.Ref<HTMLAnchorElement>}
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                style={{
+                  ...TAB_STYLE,
+                  fontWeight: active ? 600 : 500,
+                  color: active ? "var(--fg)" : "var(--fg-4)",
+                  transition: "color 150ms",
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.color = "var(--fg-2)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.color = "var(--fg-4)";
+                }}
+              >
+                {Icon ? <Icon size={14} /> : null}
+                {tab.label}
+              </Link>
+              {tab.extra}
+            </div>
           );
         })}
         <Indicator {...indicator} />

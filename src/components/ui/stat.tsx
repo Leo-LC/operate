@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 interface StatProps extends React.ComponentProps<"div"> {
   label: string
   value: React.ReactNode
-  delta?: string
+  delta?: React.ReactNode
   deltaDir?: "up" | "down" | "neutral"
   hint?: string
   sparkline?: React.ReactNode
