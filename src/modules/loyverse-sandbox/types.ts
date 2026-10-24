@@ -39,6 +39,7 @@ export interface LoyverseLineItem {
   item_name?: string;
   quantity?: number;
   total_money?: number;
+  unit_price?: number;
 }
 
 export interface LoyversePayment {

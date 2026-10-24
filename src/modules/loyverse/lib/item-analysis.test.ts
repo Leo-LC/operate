@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateItemSales,
+  aggregatePrices,
   dayCountInclusive,
   monthRange,
   normalizeName,
@@ -103,5 +104,21 @@ describe("aggregateItemSales", () => {
   it("accepts not-a-month-long ranges and skips absurd spans", () => {
     const res = aggregateItemSales([], "2026-09-30", "2026-09-01");
     expect(res.dates).toEqual([]);
+  });
+});
+
+describe("aggregatePrices", () => {
+  it("merges buckets by normalized name and sorts price asc", () => {
+    const res = aggregatePrices([
+      { prices_by_item: { "Postcard A5": [{ p: 40, n: 2, q: 2, m: 80 }, { p: 20, n: 1, q: 1, m: 20 }] } },
+      { prices_by_item: { "postcard a5": [{ p: 40, n: 3, q: 3, m: 120 }] } },
+    ]);
+    expect(Object.keys(res)).toHaveLength(1);
+    const buckets = res["Postcard A5"]!;
+    expect(buckets.map((b) => b.p)).toEqual([20, 40]);
+    expect(buckets.find((b) => b.p === 40)).toEqual({ p: 40, n: 5, q: 5, m: 200 });
+  });
+  it("handles empty/missing prices", () => {
+    expect(aggregatePrices([{ prices_by_item: null }, {}])).toEqual({});
   });
 });

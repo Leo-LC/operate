@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { requireLoyverseAccess } from "@/modules/loyverse/lib/guard";
-import { aggregateItemSales, dayCountInclusive, type RawSalesRow } from "@/modules/loyverse/lib/item-analysis";
+import { aggregateItemSales, aggregatePrices, dayCountInclusive, type RawSalesRow } from "@/modules/loyverse/lib/item-analysis";
 
 const MAX_SPAN_DAYS = 400;
 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from("loyverse_daily_sales")
-      .select("location_id, date, sales_by_item")
+      .select("location_id, date, sales_by_item, prices_by_item")
       .gte("date", from)
       .lte("date", to)
       .order("date", { ascending: true })
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
     if (guard.allowedLocationIds !== null) {
       if (guard.allowedLocationIds.length === 0) {
-        return NextResponse.json({ from, to, items: [], series: {}, dates: [], days_with_rows: [], locations: {} });
+        return NextResponse.json({ from, to, items: [], series: {}, dates: [], days_with_rows: [], prices: {}, locations: {} });
       }
       query = query.in("location_id", guard.allowedLocationIds);
     }
@@ -64,8 +64,9 @@ export async function GET(request: Request) {
     for (const l of locations ?? []) locationMap[(l as { id: string }).id] = (l as { id: string; name: string }).name;
 
     const result = aggregateItemSales((rows ?? []) as unknown as RawSalesRow[], from, to);
+    const prices = aggregatePrices((rows ?? []) as unknown as RawSalesRow[]);
 
-    return NextResponse.json({ from, to, ...result, locations: locationMap });
+    return NextResponse.json({ from, to, ...result, prices, locations: locationMap });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

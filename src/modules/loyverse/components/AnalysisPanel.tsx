@@ -19,6 +19,8 @@ type ItemSalesData = {
   series: Record<string, Record<string, { q: number; m: number }>>;
   dates: string[];
   days_with_rows: string[];
+  /** { item_name: [{ p, n, q, m }] } — détail par prix tapé (si backfill/sync fait). */
+  prices: Record<string, { p: number; n: number; q: number; m: number }[]>;
   locations: Record<string, string>;
 };
 
@@ -79,13 +81,15 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
 
   // Filtre catégories (Set vide = toutes) : clé = catKey(catégorie)
   const [selectedCats, setSelectedCats] = React.useState<Set<string>>(new Set());
-  // Liste d'articles : ouverte quand la recherche est focus OU que la souris est
-  // dessus (les clicks checkbox font blur l'input) OU quand une recherche/filtre
-  // est actif. Sinon repliée pour ne pas occuper l'écran.
+  // Liste d'articles : ouverte au focus de la recherche, ou en auto tant qu'une
+  // recherche/filtre est actif. listOpen = null (auto) / true / false (chevron
+  // ou Échap forcent l'état).
   const selectorRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [inputFocused, setInputFocused] = React.useState(false);
-  const [hoverList, setHoverList] = React.useState(false);
-  const [forcedOpen, setForcedOpen] = React.useState(false);
+  const [listOpen, setListOpen] = React.useState<boolean | null>(null);
+  // Drill-down "prix tapés" par article (vue Par article)
+  const [expandedPrices, setExpandedPrices] = React.useState<Set<string>>(new Set());
 
   // Groupes sauvegardés
   const [groups, setGroups] = React.useState<ItemGroup[]>([]);
@@ -146,8 +150,8 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
 
   const catsActive = selectedCats.size > 0;
   const listShown = React.useMemo(
-    () => inputFocused || hoverList || forcedOpen || query.trim().length > 0 || catsActive,
-    [inputFocused, hoverList, forcedOpen, query, catsActive],
+    () => (listOpen ?? (inputFocused || query.trim().length > 0 || catsActive)),
+    [listOpen, inputFocused, query, catsActive],
   );
 
   const filteredItems = React.useMemo(
@@ -428,17 +432,13 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
           )}
 
           {/* Recherche + liste (repliée quand la recherche n'est pas focus) */}
-          <div
-            ref={selectorRef}
-            className="flex flex-col gap-2"
-            onMouseEnter={() => setHoverList(true)}
-            onMouseLeave={() => setHoverList(false)}
-          >
+          <div ref={selectorRef} className="flex flex-col gap-2">
             <div className="relative">
               <SearchIcon
                 style={{ width: 14, height: 14, position: "absolute", left: 10, top: 9, color: "var(--fg-4)", pointerEvents: "none" }}
               />
               <input
+                ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setInputFocused(true)}
@@ -447,18 +447,30 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                   if (e.relatedTarget && selectorRef.current?.contains(e.relatedTarget as Node)) return;
                   setInputFocused(false);
                 }}
+                onKeyDown={(e) => {
+                  // Échap : vide la recherche/filtre et replie la liste
+                  if (e.key === "Escape") {
+                    setQuery("");
+                    setSelectedCats(new Set());
+                    setListOpen(false);
+                    setInputFocused(false);
+                    inputRef.current?.blur();
+                  }
+                }}
                 placeholder='Rechercher… ex. "postcard", "carte post", "iced latte"'
                 className="h-9 w-full rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--bg-2)] pl-8 pr-16 text-sm outline-none focus:border-[var(--accent)]"
               />
-              {/* Toggle manuel de la liste */}
+              {/* Toggle manuel : remporte sur l'auto (focus/recherche) */}
               <button
                 type="button"
-                tabIndex={-1}
-                onClick={() => setForcedOpen((v) => !v)}
+                onClick={() => setListOpen(!listShown)}
+                onMouseDown={(e) => e.preventDefault()}
                 className="absolute right-2 top-2 inline-flex items-center gap-0.5 text-[10px] text-[var(--fg-4)] hover:text-[var(--fg-2)]"
-                aria-label={forcedOpen ? "Replier la liste" : "Afficher la liste"}
+                aria-label={listShown ? "Replier la liste" : "Afficher la liste"}
+                title={listShown ? "Replier la liste" : "Afficher la liste"}
               >
-                {filteredItems.length} <ChevronDownIcon style={{ width: 12, height: 12, transform: forcedOpen ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
+                {filteredItems.length}{" "}
+                <ChevronDownIcon style={{ width: 12, height: 12, transform: listShown ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
               </button>
             </div>
 
@@ -625,24 +637,80 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                         const pct = totals.money !== 0 ? (it.total_money / totals.money) * 100 : 0;
                         const shops = Object.entries(it.by_location)
                           .sort((a, b) => b[1] - a[1]);
+                        const priceBuckets = data?.prices?.[it.item_name] ?? [];
+                        const expanded = expandedPrices.has(it.item_name);
                         return (
-                          <tr key={it.item_name} className="border-b border-[var(--line-2)]">
-                            <td className="py-1.5 pr-3 font-medium text-[var(--fg)]">{it.item_name}</td>
-                            <td className="py-1.5 pr-3 text-xs text-[var(--fg-4)]">{it.category_name ?? "—"}</td>
-                            <td className="py-1.5 pr-3 text-right font-mono tabular-nums">{fmtQty(it.quantity)}</td>
-                            <td className="py-1.5 pr-3 text-right font-mono tabular-nums">฿{fmtMoney(it.total_money)}</td>
-                            <td className="py-1.5 pr-3 text-right font-mono tabular-nums text-[var(--fg-2)]">{fmtQty(pct)}%</td>
-                            <td className="py-1.5">
-                              <span className="flex flex-wrap gap-1">
-                                {shops.slice(0, 3).map(([loc, m]) => (
-                                  <Pill key={loc} tone="outline" size="sm">
-                                    {locationName(loc)} ฿{fmtMoney(m)}
-                                  </Pill>
-                                ))}
-                                {shops.length > 3 && <Pill tone="neutral" size="sm">+{shops.length - 3}</Pill>}
-                              </span>
-                            </td>
-                          </tr>
+                          <React.Fragment key={it.item_name}>
+                            <tr className="border-b border-[var(--line-2)]">
+                              <td className="py-1.5 pr-3 font-medium text-[var(--fg)]">{it.item_name}</td>
+                              <td className="py-1.5 pr-3 text-xs text-[var(--fg-4)]">{it.category_name ?? "—"}</td>
+                              <td className="py-1.5 pr-3 text-right font-mono tabular-nums">{fmtQty(it.quantity)}</td>
+                              <td className="py-1.5 pr-3 text-right font-mono tabular-nums">฿{fmtMoney(it.total_money)}</td>
+                              <td className="py-1.5 pr-3 text-right font-mono tabular-nums text-[var(--fg-2)]">{fmtQty(pct)}%</td>
+                              <td className="py-1.5">
+                                <span className="flex flex-wrap items-center gap-1">
+                                  {shops.slice(0, 3).map(([loc, m]) => (
+                                    <Pill key={loc} tone="outline" size="sm">
+                                      {locationName(loc)} ฿{fmtMoney(m)}
+                                    </Pill>
+                                  ))}
+                                  {shops.length > 3 && <Pill tone="neutral" size="sm">+{shops.length - 3}</Pill>}
+                                  {priceBuckets.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedPrices((prev) => {
+                                          const next = new Set(prev);
+                                          if (next.has(it.item_name)) next.delete(it.item_name);
+                                          else next.add(it.item_name);
+                                          return next;
+                                        })
+                                      }
+                                      className={
+                                        expanded
+                                          ? "inline-flex items-center gap-0.5 rounded-[var(--r-pill)] bg-[var(--accent-soft)] px-1.5 text-[11px] font-medium text-[var(--accent)]"
+                                          : "inline-flex items-center gap-0.5 rounded-[var(--r-pill)] border border-[var(--line)] px-1.5 text-[11px] text-[var(--fg-3)] hover:text-[var(--fg-2)]"
+                                      }
+                                      title="Détail par prix tapé en caisse"
+                                    >
+                                      {priceBuckets.length > 1 ? `${priceBuckets.length} prix` : "1 prix"}{" "}
+                                      <ChevronDownIcon style={{ width: 10, height: 10, transform: expanded ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
+                                    </button>
+                                  )}
+                                </span>
+                              </td>
+                            </tr>
+                            {expanded && (
+                              <tr className="border-b border-[var(--line-2)] bg-[var(--bg-2)]">
+                                <td colSpan={6} className="px-3 py-2">
+                                  {priceBuckets.length > 0 ? (
+                                    <table className="w-full text-xs">
+                                      <thead>
+                                        <tr className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">
+                                          <th className="py-1 pr-3 text-left">Prix tapé</th>
+                                          <th className="py-1 pr-3 text-right">Lignes</th>
+                                          <th className="py-1 pr-3 text-right">Unités</th>
+                                          <th className="py-1 text-right">Total (THB)</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {priceBuckets.map((b) => (
+                                          <tr key={b.p} className="border-t border-[var(--line-2)]">
+                                            <td className="py-1 pr-3 font-mono tabular-nums text-[var(--fg)]">฿{fmtQty(b.p)}</td>
+                                            <td className="py-1 pr-3 text-right font-mono tabular-nums">{fmtQty(b.n)}</td>
+                                            <td className="py-1 pr-3 text-right font-mono tabular-nums">{fmtQty(b.q)}</td>
+                                            <td className="py-1 text-right font-mono tabular-nums">฿{fmtMoney(b.m)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  ) : (
+                                    <p className="text-[11px] text-[var(--fg-4)]">Pas encore de détail par prix pour cet article (backfill 30j en cours ou article ancien).</p>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                   </tbody>

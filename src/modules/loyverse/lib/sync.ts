@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { bangkokDates as getBangkokDates } from "@/lib/dates";
 import { aggregateReceipts, dateRangeForDay } from "@/modules/loyverse-sandbox/lib/aggregate-receipts";
 import { getLocationIdForStoreAsync } from "./store-mapping";
+import { normalizeName, type PriceBucket } from "./item-analysis";
 import type { LoyverseReceipt, LoyverseStore } from "@/modules/loyverse-sandbox/types";
 import { LOYVERSE_SYNC_CONCURRENCY } from "../config";
 import type { SyncAllResult, SyncPerAccountResult, SyncPerStoreResult } from "../types";
@@ -45,11 +46,16 @@ async function getMissingDatesForBackfill(): Promise<string[]> {
     const [snapRes, shiftsRes, salesRes] = await Promise.all([
       supabase.from("loyverse_daily_snapshots").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
       supabase.from("loyverse_shifts_raw").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
-      supabase.from("loyverse_daily_sales").select("date").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
+      // prices_by_item vide = enrichissement "prix tapés" absent → date à re-fetcher
+      supabase.from("loyverse_daily_sales").select("date, prices_by_item").gte("date", last30[last30.length - 1]).lte("date", last30[0]),
     ]);
     const existingSnap = new Set((snapRes.data ?? []).map((r) => r.date as string));
     const existingShifts = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
-    const existingSales = new Set((salesRes.data ?? []).map((r) => r.date as string));
+    const existingSales = new Set(
+      (salesRes.data ?? [])
+        .filter((r) => r.prices_by_item && Object.keys(r.prices_by_item).length > 0)
+        .map((r) => r.date as string),
+    );
     const missing = last30.filter((d) => !existingSnap.has(d) || !existingShifts.has(d) || !existingSales.has(d));
     const mustInclude = getBangkokDates(2);
     for (const d of mustInclude) if (!missing.includes(d)) missing.push(d);
@@ -181,9 +187,15 @@ function computeSalesAggregates(
   storeId: string,
   itemCategoryMap: Map<string, string | null>,
   categoryNames: Map<string, string>,
-): { sales_by_category: { category_id: string | null; category_name: string; quantity: number; total_money: number }[]; sales_by_item: { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }[] } {
+): {
+  sales_by_category: { category_id: string | null; category_name: string; quantity: number; total_money: number }[];
+  sales_by_item: { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }[];
+  prices_by_item: Record<string, PriceBucket[]>;
+} {
   const byCat = new Map<string, { category_id: string | null; category_name: string; quantity: number; total_money: number }>();
   const byItem = new Map<string, { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }>();
+  // Prix tapés (merch prix libre etc.) : name normalisé → prix → { p, n, q, m }
+  const pricesByNorm = new Map<string, { display: string; buckets: Map<number, PriceBucket> }>();
   for (const r of receipts) {
     const localDate = (r.receipt_date ?? r.created_at ?? "").slice(0, 10);
     if (localDate !== date) continue;
@@ -191,26 +203,51 @@ function computeSalesAggregates(
     if (r.cancelled_at) continue;
     const mult = r.receipt_type === "REFUND" ? -1 : 1;
     for (const line of r.line_items ?? []) {
+      const qty = line.quantity ?? 0;
+      const total = line.total_money ?? 0;
       const itemId = line.item_id ?? null;
       const categoryId = itemId ? (itemCategoryMap.get(itemId) ?? null) : null;
       const categoryName = categoryId ? (categoryNames.get(categoryId) ?? "Unknown") : line.item_name ? "Uncategorized" : "Unknown";
-      const total = (line.total_money ?? 0) * mult;
-      const qty = (line.quantity ?? 0) * mult;
       const catKey = categoryId ?? `__uncat_${line.item_name ?? "unknown"}`;
       const catEntry = byCat.get(catKey);
       if (catEntry) {
-        catEntry.quantity += qty;
-        catEntry.total_money += total;
+        catEntry.quantity += qty * mult;
+        catEntry.total_money += total * mult;
       } else {
-        byCat.set(catKey, { category_id: categoryId, category_name: categoryName, quantity: qty, total_money: total });
+        byCat.set(catKey, { category_id: categoryId, category_name: categoryName, quantity: qty * mult, total_money: total * mult });
       }
       const itemKey = itemId ?? `__name_${line.item_name ?? "unknown"}`;
       const itemEntry = byItem.get(itemKey);
       if (itemEntry) {
-        itemEntry.quantity += qty;
-        itemEntry.total_money += total;
+        itemEntry.quantity += qty * mult;
+        itemEntry.total_money += total * mult;
       } else {
-        byItem.set(itemKey, { item_id: itemId, item_name: line.item_name ?? "Unknown", category_id: categoryId, category_name: categoryId ? (categoryNames.get(categoryId) ?? null) : null, quantity: qty, total_money: total });
+        byItem.set(itemKey, { item_id: itemId, item_name: line.item_name ?? "Unknown", category_id: categoryId, category_name: categoryId ? (categoryNames.get(categoryId) ?? null) : null, quantity: qty * mult, total_money: total * mult });
+      }
+
+      // Prix unitaire tapé — pour les articles prix libre, chaque vente porte son
+      // unit_price (ou total/unité). Absolu : le prix tapé est toujours positif,
+      // le REFUND ne signe que q/m (dédoublonné des remises négatives).
+      const rawName = (line.item_name ?? "").trim();
+      if (rawName) {
+        const qtyAbs = Math.abs(qty) || 1;
+        const unit =
+          line.unit_price != null && line.unit_price !== 0
+            ? Math.abs(line.unit_price)
+            : Math.abs(total) / qtyAbs;
+        const p = Math.round(unit * 100) / 100;
+        let entry = pricesByNorm.get(normalizeName(rawName));
+        if (!entry) {
+          entry = { display: rawName, buckets: new Map() };
+          pricesByNorm.set(normalizeName(rawName), entry);
+        } else if (countUppercase(rawName) > countUppercase(entry.display)) {
+          entry.display = rawName;
+        }
+        const bucket = entry.buckets.get(p) ?? { p, n: 0, q: 0, m: 0 };
+        bucket.n += 1;
+        bucket.q += qty * mult;
+        bucket.m += total * mult;
+        entry.buckets.set(p, bucket);
       }
     }
   }
@@ -220,12 +257,22 @@ function computeSalesAggregates(
   const sales_by_item = Array.from(byItem.values())
     .filter((c) => c.quantity !== 0 || c.total_money !== 0)
     .sort((a, b) => b.total_money - a.total_money);
-  return { sales_by_category, sales_by_item };
+  const prices_by_item: Record<string, PriceBucket[]> = {};
+  for (const entry of Array.from(pricesByNorm.values())) {
+    prices_by_item[entry.display] = Array.from(entry.buckets.values()).sort((a, b) => a.p - b.p) as PriceBucket[];
+  }
+  return { sales_by_category, sales_by_item, prices_by_item };
+}
+
+function countUppercase(name: string): number {
+  let n = 0;
+  for (const c of name) if (c >= "A" && c <= "Z") n++;
+  return n;
 }
 
 async function upsertDailySales(
   supabase: ReturnType<typeof getSupabaseServerClient>,
-  row: { account_key: string; store_id: string; location_id: string | null; date: string; sales_by_category: unknown[]; sales_by_item: unknown[]; receipt_count: number },
+  row: { account_key: string; store_id: string; location_id: string | null; date: string; sales_by_category: unknown[]; sales_by_item: unknown[]; prices_by_item: Record<string, PriceBucket[]>; receipt_count: number },
 ) {
   const { error } = await supabase.from("loyverse_daily_sales").upsert(
     {
@@ -235,6 +282,7 @@ async function upsertDailySales(
       date: row.date,
       sales_by_category: row.sales_by_category as unknown as never,
       sales_by_item: row.sales_by_item as unknown as never,
+      prices_by_item: row.prices_by_item as unknown as never,
       receipt_count: row.receipt_count,
       fetched_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -309,9 +357,9 @@ async function syncStoreDate(
 
     await upsertSnapshot(supabase, row);
 
-    // Dérivé sales by category/item — best-effort, ne fait pas échouer le snapshot
+    // Dérivé sales by category/item + prix tapés — best-effort, ne fait pas échouer le snapshot
     try {
-      const { sales_by_category, sales_by_item } = computeSalesAggregates(receipts, date, storeId, catalog.itemCategoryMap, catalog.categoryNames);
+      const { sales_by_category, sales_by_item, prices_by_item } = computeSalesAggregates(receipts, date, storeId, catalog.itemCategoryMap, catalog.categoryNames);
       await upsertDailySales(supabase, {
         account_key: account.key,
         store_id: storeId,
@@ -319,6 +367,7 @@ async function syncStoreDate(
         date,
         sales_by_category,
         sales_by_item,
+        prices_by_item,
         receipt_count: meta.receipt_count,
       });
     } catch {
@@ -428,16 +477,21 @@ async function syncAccount(
               .eq("account_key", account.key)
               .eq("store_id", store.id)
               .in("date", dates),
+            // prices_by_item vide = enrichissement "prix tapés" absent → date à re-fetcher
             supabase
               .from("loyverse_daily_sales")
-              .select("date")
+              .select("date, prices_by_item")
               .eq("account_key", account.key)
               .eq("store_id", store.id)
               .in("date", dates),
           ]);
           const existingSnapSet = new Set((snapRes.data ?? []).map((r) => r.date as string));
           const existingShiftSet = new Set((shiftsRes.data ?? []).map((r) => r.date as string));
-          const existingSalesSet = new Set((salesRes.data ?? []).map((r) => r.date as string));
+          const existingSalesSet = new Set(
+            (salesRes.data ?? [])
+              .filter((r) => r.prices_by_item && Object.keys(r.prices_by_item).length > 0)
+              .map((r) => r.date as string),
+          );
 
           if ((existingShiftSet.size === 0 || existingSalesSet.size === 0) && dates.length <= 2) {
             const backfill = getBangkokDates(30);

@@ -97,6 +97,9 @@ export type LoyverseShiftRawRow = {
   updated_at: string;
 };
 
+export type { PriceBucket } from "./lib/item-analysis";
+import type { PriceBucket } from "./lib/item-analysis";
+
 export type LoyverseDailySalesRow = {
   id: string;
   account_key: string;
@@ -105,6 +108,7 @@ export type LoyverseDailySalesRow = {
   date: string;
   sales_by_category: { category_id: string | null; category_name: string; quantity: number; total_money: number }[];
   sales_by_item: { item_id: string | null; item_name: string; category_id: string | null; category_name: string | null; quantity: number; total_money: number }[];
+  prices_by_item: Record<string, PriceBucket[]>;
   receipt_count: number;
   fetched_at: string;
   created_at: string;

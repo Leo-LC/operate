@@ -30,6 +30,54 @@ export type ItemAggregate = {
   by_location: Record<string, number>;
 };
 
+export type PriceBucket = { p: number; n: number; q: number; m: number };
+
+/** rows incluant la colonne prices_by_item du sync. */
+export type PriceRow = {
+  prices_by_item?: Record<string, { p: number; n: number; q: number; m: number }[]> | null;
+} & Record<string, unknown>;
+
+/**
+ * Fusionne les buckets "par prix tapé" de toutes les lignes/périodes :
+ * { [item_name display]: PriceBucket[] trié par prix asc }. n = nb de lignes
+ * (~transactions), q/m gardent le signe (REFUND).
+ */
+export function aggregatePrices(rows: PriceRow[]): Record<string, PriceBucket[]> {
+  type Acc = { display: string; buckets: Map<number, PriceBucket> };
+  const byNorm = new Map<string, Acc>();
+  for (const row of rows) {
+    for (const rawName of Object.keys(row.prices_by_item ?? {})) {
+      const key = normalizeName(rawName);
+      let acc = byNorm.get(key);
+      if (!acc) {
+        acc = { display: rawName, buckets: new Map() };
+        byNorm.set(key, acc);
+      } else if (countUppercaseNames(rawName) > countUppercaseNames(acc.display)) {
+        acc.display = rawName;
+      }
+      for (const b of row.prices_by_item?.[rawName] ?? []) {
+        if (typeof b?.p !== "number") continue;
+        const cur = acc.buckets.get(b.p) ?? { p: b.p, n: 0, q: 0, m: 0 };
+        cur.n += b.n ?? 0;
+        cur.q += b.q ?? 0;
+        cur.m += b.m ?? 0;
+        acc.buckets.set(b.p, cur);
+      }
+    }
+  }
+  const out: Record<string, PriceBucket[]> = {};
+  for (const acc of Array.from(byNorm.values())) {
+    out[acc.display] = Array.from(acc.buckets.values()).sort((a, b) => a.p - b.p) as PriceBucket[];
+  }
+  return out;
+}
+
+function countUppercaseNames(name: string): number {
+  let n = 0;
+  for (const c of name) if (c >= "A" && c <= "Z") n++;
+  return n;
+}
+
 export type ItemSalesResult = {
   items: ItemAggregate[];
   /** item_name display -> { date -> { q, m } } (toutes locations confondues). */
