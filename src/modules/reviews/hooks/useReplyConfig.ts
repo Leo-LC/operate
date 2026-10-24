@@ -27,7 +27,7 @@ export function useReplyConfig(): ReplyConfig {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/config/shared");
+        const res = await fetch("/api/reviews/config");
         if (!res.ok) return;
         const data = (await res.json()) as {
           templates?: ReplyTemplateMap;

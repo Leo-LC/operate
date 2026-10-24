@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDownIcon } from "lucide-react";
+import { ArrowUpDownIcon, ShuffleIcon } from "lucide-react";
 import type { ReviewWithLocation } from "@/types/review";
 
 const LIMIT_OPTIONS = [10, 25, 50, 100] as const;
@@ -14,6 +14,8 @@ interface ReviewsControlsBarProps {
   allRatingsMode: boolean;
   singleRatingMode: boolean;
   bulkSending: boolean;
+  /** Re-roll every template draft in view (top-level, next to Send all). */
+  onShuffleAll: () => void;
   fiveAllowBulk: boolean;
   fourAllowBulk: boolean;
   activeRatings: Set<string>;
@@ -43,6 +45,7 @@ export function ReviewsControlsBar({
   fiveDisplayed,
   fourDisplayed,
   onBulkConfirm,
+  onShuffleAll,
 }: ReviewsControlsBarProps) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -60,6 +63,17 @@ export function ReviewsControlsBar({
           <span style={{ fontSize: 12 }}>
             {sortOrder === "desc" ? "Newest first" : "Oldest first"}
           </span>
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onShuffleAll}
+          disabled={bulkSending}
+          aria-label="Shuffle all template replies to a random template"
+        >
+          <ShuffleIcon className="size-4" />
+          <span style={{ fontSize: 12 }}>Shuffle all</span>
         </Button>
         <span style={{ fontSize: 13, color: "var(--fg-3)" }}>Limit:</span>
         <select

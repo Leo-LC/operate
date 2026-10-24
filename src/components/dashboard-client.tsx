@@ -75,6 +75,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
     setDraft,
     setCategory,
     shuffleTemplateForReview,
+    shuffleAllTemplates,
   } = useReviews({
     email: user?.email,
     ratingRules,
@@ -396,6 +397,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                 fiveDisplayed={fiveDisplayed}
                 fourDisplayed={fourDisplayed}
                 onBulkConfirm={openBulkConfirm}
+                onShuffleAll={shuffleAllTemplates}
               />
 
               {/* Row 3: actual filter panel + reviews content */}

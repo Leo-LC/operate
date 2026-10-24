@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/challenges-sync",
       "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/reviews-auto-reply",
+      "schedule": "0 2 * * *"
     }
   ]
 }

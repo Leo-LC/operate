@@ -74,7 +74,7 @@ Open [http://localhost:3000](http://localhost:3000), sign in with Google (e.g. l
    - Deploy the project on Vercel.
    - Visit `https://<your-vercel-domain>.vercel.app`, sign in with an allowed Google account, and confirm:
      - Dashboard loads and reviews appear.
-     - Reply templates/categories load correctly (coming from Supabase `shared_config`).
+      - Reply templates/categories load correctly (coming from the `reply_templates` / `reply_categories` / `rating_rules` tables — the old `shared_config` JSON blob is retired).
 
 ## App structure
 

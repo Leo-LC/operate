@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   DEFAULT_REPLY_CATEGORY_ID,
+  STAR_ONLY_CATEGORY_ID,
   type Rating,
   type RatingRule,
   type ReplyCategoryId,
@@ -21,6 +22,11 @@ const STAR_RATINGS = {
 
 export function starNum(r: ReviewWithLocation): number {
   return STAR_RATINGS[r.starRating as keyof typeof STAR_RATINGS] ?? 0;
+}
+
+/** Star-only review: just stars, no written text. */
+export function isStarOnly(r: ReviewWithLocation): boolean {
+  return !(r.comment ?? "").trim();
 }
 
 export function readSavedLocationIds(storageKey: string): string[] | null {
@@ -65,6 +71,10 @@ export interface UseReviewsReturn {
   setDraft: (reviewId: string, comment: string) => void;
   setCategory: (reviewId: string, category: ReplyCategoryId) => void;
   shuffleTemplateForReview: (reviewId: string) => void;
+  /** Re-roll every template draft currently loaded (top-level "Shuffle all").
+   *  Only touches 4★/5★ in "Use templates" mode; textless reviews re-roll
+   *  within star_only, written ones within generic (or their chosen theme). */
+  shuffleAllTemplates: () => void;
 }
 
 export function useReviews({
@@ -195,12 +205,10 @@ export function useReviews({
         if (n === 5 || n === 4) {
           const rule = ratingRules[n as Rating];
           if (rule?.mode === "template") {
-            initialDrafts[r.reviewId] = pickRandomTemplate(
-              n as 4 | 5,
-              DEFAULT_REPLY_CATEGORY_ID,
-              templateConfig
-            );
-            initialCategories[r.reviewId] = DEFAULT_REPLY_CATEGORY_ID;
+            // Star-only reviews get a dedicated no-text template.
+            const initialCategory = isStarOnly(r) ? STAR_ONLY_CATEGORY_ID : DEFAULT_REPLY_CATEGORY_ID;
+            initialDrafts[r.reviewId] = pickRandomTemplate(n as 4 | 5, initialCategory, templateConfig);
+            initialCategories[r.reviewId] = initialCategory;
           } else {
             initialDrafts[r.reviewId] = "";
           }
@@ -267,6 +275,21 @@ export function useReviews({
     [reviews, replyCategories, templateConfig, setDraft]
   );
 
+  const shuffleAllTemplates = useCallback(() => {
+    const next = { ...replyDrafts };
+    for (const r of reviews) {
+      const n = starNum(r);
+      if (n !== 5 && n !== 4) continue; // 1–3★ stays manual
+      if (ratingRules[n as Rating]?.mode !== "template") continue;
+      // Textless reviews keep their star-only pool (unless explicitly themed);
+      // written ones use their assigned theme (generic by default).
+      const stored = replyCategories[r.reviewId] ?? DEFAULT_REPLY_CATEGORY_ID;
+      const category = isStarOnly(r) && stored === DEFAULT_REPLY_CATEGORY_ID ? STAR_ONLY_CATEGORY_ID : stored;
+      next[r.reviewId] = pickRandomTemplate(n as 4 | 5, category, templateConfig);
+    }
+    setReplyDrafts(next);
+  }, [reviews, replyCategories, replyDrafts, templateConfig, ratingRules]);
+
   return {
     reviews,
     replyDrafts,
@@ -276,5 +299,6 @@ export function useReviews({
     setDraft,
     setCategory,
     shuffleTemplateForReview,
+    shuffleAllTemplates,
   };
 }

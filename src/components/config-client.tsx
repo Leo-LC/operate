@@ -14,6 +14,7 @@ import type { ReviewWithLocation } from "@/types/review";
 import {
   DEFAULT_RATING_RULES,
   DEFAULT_REPLY_CATEGORY_ID,
+  STAR_ONLY_CATEGORY_ID,
   REPLY_CATEGORIES,
   REPLY_TEMPLATES,
   type Rating,
@@ -61,6 +62,8 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
   const [activeCategoryId, setActiveCategoryId] = useState<ReplyCategoryId>("generic");
   const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
   const [sharedConfigLoading, setSharedConfigLoading] = useState(true);
+  const [autoSendEnabled, setAutoSendEnabled] = useState(false);
+  const [autoSendLoading, setAutoSendLoading] = useState(true);
 
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
   const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
@@ -74,6 +77,51 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
         .forEach((el) => autoGrowTextarea(el));
     });
   }, [activeCategoryId, templateConfig]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/reviews/auto-config");
+        if (!res.ok) return;
+        const data = (await res.json()) as { enabled?: boolean };
+        if (!cancelled) setAutoSendEnabled(data.enabled === true);
+      } catch {
+        // default OFF
+      } finally {
+        if (!cancelled) setAutoSendLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleAutoSend = async (checked: boolean) => {
+    if (!isOwner) return;
+    setAutoSendEnabled(checked);
+    try {
+      const res = await fetch("/api/reviews/auto-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: checked }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error((data as { error?: string }).error ?? "Failed to save automation setting");
+        setAutoSendEnabled(!checked);
+        return;
+      }
+      toast.success(
+        checked
+          ? "Automatic replies ON — the daily job will send templated replies for you."
+          : "Automatic replies OFF — the daily job only counts unreplied reviews."
+      );
+    } catch {
+      toast.error("Failed to save automation setting.");
+      setAutoSendEnabled(!checked);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -92,7 +140,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/config/shared");
+        const res = await fetch("/api/reviews/config");
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           const message = (data as { error?: string }).error ?? "Failed to load shared settings";
@@ -237,12 +285,9 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           if (n === 5 || n === 4) {
             const rule = ratingRules[n as Rating];
             if (rule?.mode === "template") {
-              drafts[r.reviewId] = pickRandomTemplate(
-                n as 4 | 5,
-                DEFAULT_REPLY_CATEGORY_ID,
-                templateConfig
-              );
-              categories[r.reviewId] = DEFAULT_REPLY_CATEGORY_ID;
+              const initialCategory = !(r.comment ?? "").trim() ? STAR_ONLY_CATEGORY_ID : DEFAULT_REPLY_CATEGORY_ID;
+              drafts[r.reviewId] = pickRandomTemplate(n as 4 | 5, initialCategory, templateConfig);
+              categories[r.reviewId] = initialCategory;
             } else {
               drafts[r.reviewId] = "";
             }
@@ -357,7 +402,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     if (!isOwner) return;
     void (async () => {
       try {
-        const res = await fetch("/api/config/shared", {
+        const res = await fetch("/api/reviews/config", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -386,7 +431,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     if (!isOwner) return;
     void (async () => {
       try {
-        const res = await fetch("/api/config/shared", {
+        const res = await fetch("/api/reviews/config", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -508,6 +553,33 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
       <main style={{ width: "100%", paddingTop: 8, paddingBottom: 8 }}>
         {activeSection === "templates" ? (
           <section aria-label="Reply templates" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={CARD_STYLE}>
+              <div style={CARD_HEADER}>
+                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Automatic replies</h2>
+                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
+                  A daily job checks unreplied reviews at 09:00 (Thailand time) and logs how many it found — visible in Admin → Automations, no sending.
+                </p>
+              </div>
+              <div style={{ ...CARD_BODY, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Send replies automatically</p>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4, maxWidth: 560 }}>
+                    ON: the daily job replies to every unreplied 5★/4★ review using your templates — generic theme for written reviews, the Star-only theme for reviews without text. Use this when you&apos;re on holiday.
+                    OFF (default): you draft and send replies yourself from the inbox.
+                  </p>
+                </div>
+                {autoSendLoading ? (
+                  <Loader2Icon className="size-4 animate-spin" style={{ color: "var(--fg-4)" }} />
+                ) : (
+                  <Checkbox
+                    id="auto-send-toggle"
+                    checked={autoSendEnabled}
+                    onCheckedChange={(checked) => void toggleAutoSend(Boolean(checked))}
+                    disabled={!isOwner}
+                  />
+                )}
+              </div>
+            </div>
             <div style={CARD_STYLE}>
               <div style={CARD_HEADER}>
                 <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Pre-written messages</h2>

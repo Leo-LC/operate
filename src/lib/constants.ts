@@ -44,6 +44,12 @@ export const REPLY_CATEGORIES: ReplyCategory[] = [
     ratings: [4, 5],
   },
   {
+    id: "star_only",
+    label: "Star-only / No Comment",
+    description: "For 4★/5★ reviews that left just stars and no written text.",
+    ratings: [4, 5],
+  },
+  {
     id: "staff",
     label: "Staff & Service",
     description: "When guests mention friendly or helpful staff.",
@@ -84,6 +90,30 @@ export const REPLY_TEMPLATES: {
       "Thank you for sharing your experience! We're glad you had an enjoyable visit and hope to see you again at Capybara Coffee.",
       "Thanks for taking the time to leave us a review! Your support means a lot to our team, and we hope your next visit will be just as enjoyable.",
       "We're happy to hear you enjoyed your time with us! Thank you for the kind review, and we hope to welcome you back soon!",
+      "A big thank you from all of us at Capybara Coffee! We're so glad your visit was a delightful one. Come back and see us (and the capybaras) anytime!",
+      "Reviews like yours make our day! Thank you for the support and for spending part of your day with us. We can't wait to welcome you back!",
+      "We're grateful for your five stars! It was a pleasure having you, and we hope every visit with us leaves you smiling. See you next time!",
+      "Thank you for the kind words! Our whole team is happy you enjoyed your time with us. Wishing you a wonderful day — and hopefully another visit soon!",
+      "So glad we could be part of your day! Thank you for the lovely review and for supporting our little café. You're welcome here anytime!",
+      "Your review truly brightened our day! Thank you for choosing us. We hope your next cup of coffee is just as enjoyable as your visit!",
+      "Thank you for the wonderful five stars! Nothing makes us happier than knowing our guests leave happy. We look forward to seeing you again!",
+      "What a lovely surprise to read your review! Thank you for visiting and for the support. The capybaras and the team hope to see you again soon!",
+      "We're delighted your visit was an enjoyable one! Thank you for sharing your experience — it means the world to our small team. See you soon!",
+      "Thank you for visiting us and for the great review! We hope our coffee, space, and animals made your day a little brighter. Come back anytime!",
+      "We appreciate you taking the time to review your visit! Knowing you left happy is the best thank-you our team could ask for. Hope to see you again!",
+      "Thank you for the five stars and the kind words! We'll keep doing our best to make every visit special. You're always welcome at Capybara Coffee!",
+      "So happy to hear you had a lovely experience! Thanks a million for the review and for supporting what we do. We hope to greet you again soon!",
+      "Your kind review is the perfect encouragement for our team! Thank you for visiting, and we hope your next experience is just as good!",
+      "We're thrilled you enjoyed your time with us! Thank you for the support — reviews like this keep our little community growing. See you soon!",
+      "Thank you for the wonderful words! We hope the relaxed vibe and friendly faces made your visit memorable. Wishing you many more happy café moments!",
+      "Delighted to hear everything was to your liking! Thank you for the review and for choosing to spend time with us. You're welcome back any time!",
+      "We're grateful for your visit and your review! It's guests like you that make this place special. We look forward to your next visit!",
+      "Thank you for spreading the good word! We're happy your time with us was enjoyable and we hope the rest of your day was too. See you again soon!",
+      "Thank you for the stars and the support! We hope you'll come say hello again soon — the capybaras will be waiting!",
+    ],
+    star_only: [
+      "Thank you for the five stars! We're so glad your visit earned a full rating — we hope to welcome you back to Capybara Coffee soon!",
+      "Thank you for rating us five stars! Short and sweet — just like we hope your visit was. Hope to see you again soon!",
     ],
     staff: [
       "Thank you for your wonderful words about our team! Our staff love making every visit special, and your feedback will mean so much to them. We hope to see you again soon!",
@@ -125,6 +155,35 @@ export const REPLY_TEMPLATES: {
       "We really appreciate your 4-star rating. Knowing what you enjoyed (and what we can do better) helps us keep improving. Thank you for visiting us.",
       "Thank you for taking the time to leave a 4-star review! We hope your next visit can be a full 5-star experience. Feel free to share any ideas with us.",
       "Thanks for the 4 stars! We're happy you had a nice time and we're always working on the little details to make every visit even better.",
+      "Thank you for the four stars and your honest feedback! We're always working to make each visit a little better, and yours helps us do exactly that. Hope to see you again!",
+      "We appreciate your rating and your visit! Thanks for taking the time to give feedback — it genuinely helps us improve. Hope your next visit is just as pleasant.",
+      "Thanks for stopping by and for the four stars! We're glad you enjoyed your time with us and we'd love to welcome you back for an even better one.",
+      "Thank you for the positive rating! If there was anything missing from your visit, we'd genuinely like to know — contact@capybaracoffeethailand.com. We hope to see you again!",
+      "Really appreciate the four stars! We're always tweaking the little details to make visits smoother. Thanks for your patience and support — see you next time!",
+      "Glad you had a nice time with us! Thank you for the rating — feedback like yours helps us polish the whole experience. Hope to welcome you back soon!",
+      "Thank you for your rating and your visit! We're happy you enjoyed it overall and we're always keen to hear what could make it five. Every visit is a chance to improve!",
+      "Thanks for the solid four stars! We hope to keep earning a little more with every visit. Come back soon and see what's new at the café!",
+      "We're glad your visit was a pleasant one! Thank you for the honest rating — we take all feedback on board as we grow. Hope to see you again!",
+      "Appreciate you taking the time to rate your visit! If anything fell short, we'd love the chance to get it right next time. Thanks for the support!",
+      "Thank you for the four stars and for visiting us! We're always improving, and we hope we can surprise you positively on your next visit.",
+      "Thanks a lot for your rating! It's encouraging to know you had a good time. We'll keep working on the details that turn a good visit into a great one.",
+      "We value your feedback, thank you! Glad you enjoyed your visit, and we're sorry if anything wasn't perfect. We hope your next experience earns that extra star!",
+      "Thank you for spending time with us and for the rating! We're always happy to hear suggestions that would make your visits even better. See you soon!",
+      "Thanks for the lovely rating! We hope the atmosphere and company made up for any small shortcomings. Looking forward to welcoming you again!",
+      "Four stars — thank you! We're glad you enjoyed your visit and we're always striving to earn that fifth one. Hope you'll come back and check our progress!",
+      "We really appreciate your review and your visit! If anything could be improved, we'd love to hear it. Thank you for the support and hope to see you again!",
+      "Thank you for rating your visit! We're glad you had a pleasant time, and we're always grateful to know how we can make the next one even better.",
+      "Thanks so much for the four stars! Hearing what you enjoyed keeps us going, and knowing what to improve keeps us humble. Hope to welcome you back!",
+      "Thank you for your visit and your feedback! We're continuously polishing the experience and would love to show you a five-star visit next time.",
+      "We're happy you enjoyed your time with us — thank you for the rating! Your support and suggestions help shape the café we're building. See you again soon!",
+      "Thanks for taking the time to leave your rating! We'd love to know anything that would make your visit perfect — reach out anytime. Hope to see you soon!",
+      "Glad your visit was a good one, and thank you for the rating! We're always adding small touches to make each visit better than the last.",
+      "Thank you for the rating and for supporting us! We hope we can keep improving and welcoming you back again and again.",
+      "Thank you for the four stars! Your visit and your feedback matter to us — we'll keep refining the experience so every next visit feels even better.",
+    ],
+    star_only: [
+      "Thank you for the four stars! We'd love to know what would make your next visit a five-star one — feel free to reach out at contact@capybaracoffeethailand.com.",
+      "Thank you for the four stars! We're glad you had a good experience and we're always working to make the next one even better. Hope to see you again!",
     ],
     staff: [
       "Thank you for your 4-star review and for mentioning our staff. We're happy to hear they helped make your visit enjoyable and we'll keep doing our best for next time.",
@@ -145,6 +204,7 @@ export const REPLY_TEMPLATES: {
 };
 
 export const DEFAULT_REPLY_CATEGORY_ID: ReplyCategoryId = "generic";
+export const STAR_ONLY_CATEGORY_ID: ReplyCategoryId = "star_only";
 
 export type ReplyTemplateMap = typeof REPLY_TEMPLATES;
 
