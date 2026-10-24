@@ -11,5 +11,8 @@ export default async function LoyversePreviewPage() {
   const perms = await getUserPermissionsFromDb(session!.user!.userId, session!.user!.role);
   const canAccess = perms.global_role === "owner" || perms.global_role === "admin" || hasModuleAccess(perms, "loyverse_preview");
   if (!canAccess) redirect("/loyverse");
-  return <LoyverseModuleClient />;
+  // Sync réservé owner/admin/direction (même règle que /loyverse).
+  const role = session!.user!.role ?? "";
+  const canSync = ["owner", "admin", "direction"].includes(role);
+  return <LoyverseModuleClient canSync={canSync} />;
 }
