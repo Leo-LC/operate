@@ -3,17 +3,20 @@ import { verifyCronAuth, recordCronRun } from "@/lib/cron";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 /**
- * Daily reviews automation (09:00 Bangkok, see vercel.json):
+ * Reviews automation: detect-only counts, or auto-send replies when the
+ * reviews_auto_config.auto_send_enabled toggle is ON.
+ *
+ * ⚠ Not currently scheduled: the entry was removed from vercel.json (Vercel
+ * Hobby allows only 1 cron job — challenges-sync kept its slot). To enable,
+ * add {"path": "/api/cron/reviews-auto-reply", "schedule": "0 2 * * *"} back to
+ * vercel.json (09:00 Bangkok) and redeploy. Manual trigger works today:
+ * POST/GET with the same `Bearer ${CRON_SECRET}` header the Vercel cron uses.
  *
  * 1. Always: fetch every unreplied review and record the per-rating counts in
- *    cron history (Admin → Automations) so the owner sees how many new 5★/4★
- *    (and star-only) reviews arrived without opening the module.
- * 2. If `reviews_auto_config.auto_send_enabled` is ON (the holiday toggle in
- *    Reviews → Templates): also send templated replies — random generic
+ *    cron history (Admin → Automations).
+ * 2. If the toggle is ON: also send templated replies — random generic
  *    template for written 4★/5★ reviews, star-only template for blank ones.
  *    Self-deduping: replied reviews disappear from the unreplied fetch.
- *
- * Manual trigger: POST with the same `Bearer ${CRON_SECRET}` header.
  */
 async function handleCron(request: Request) {
   const authErr = verifyCronAuth(request);

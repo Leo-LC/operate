@@ -557,14 +557,14 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
               <div style={CARD_HEADER}>
                 <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Automatic replies</h2>
                 <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
-                  A daily job checks unreplied reviews at 09:00 (Thailand time) and logs how many it found — visible in Admin → Automations, no sending.
+                  Optional: a scheduled daily job checks unreplied reviews and logs the counts in Admin → Automations, no sending.
                 </p>
               </div>
               <div style={{ ...CARD_BODY, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Send replies automatically</p>
                   <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4, maxWidth: 560 }}>
-                    ON: the daily job replies to every unreplied 5★/4★ review using your templates — generic theme for written reviews, the Star-only theme for reviews without text. Use this when you&apos;re on holiday.
+                    ON: whenever the job runs, it replies to every unreplied 5★/4★ review using your templates — generic theme for written reviews, the Star-only theme for reviews without text. Use this when you&apos;re on holiday. The cron schedule is currently disabled in vercel.json — turn it on there (and/or trigger the endpoint manually) for this to have effect.
                     OFF (default): you draft and send replies yourself from the inbox.
                   </p>
                 </div>
