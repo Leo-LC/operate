@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import type { Session } from "next-auth";
-import { Loader2Icon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { ReviewWithLocation } from "@/types/review";
 import {
@@ -29,7 +29,7 @@ import { dashboardStateStorageKey, selectedLocationsStorageKey } from "@/lib/sto
 
 interface ConfigClientProps {
   user: Session["user"] | null;
-  initialSection?: "templates" | "rules" | "locations";
+  initialSection?: "templates" | "locations";
 }
 
 export function ConfigClient({ user, initialSection = "templates" }: ConfigClientProps) {
@@ -50,6 +50,10 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
   const [addMessageOpen, setAddMessageOpen] = useState(false);
   const [newMessageText, setNewMessageText] = useState("");
   const [addMessageRating, setAddMessageRating] = useState<4 | 5>(5);
+  // Templates editor: which star rating's list is on screen (5★ / 4★ pills).
+  const [activeRating, setActiveRating] = useState<4 | 5>(5);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const autoGrowTextarea = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
@@ -62,8 +66,6 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
   const [activeCategoryId, setActiveCategoryId] = useState<ReplyCategoryId>("generic");
   const [ratingRules, setRatingRules] = useState<Record<Rating, RatingRule>>(DEFAULT_RATING_RULES);
   const [sharedConfigLoading, setSharedConfigLoading] = useState(true);
-  const [autoSendEnabled, setAutoSendEnabled] = useState(false);
-  const [autoSendLoading, setAutoSendLoading] = useState(true);
 
   const SELECTED_LOCATIONS_KEY = selectedLocationsStorageKey(user?.email);
   const DASHBOARD_STATE_KEY = dashboardStateStorageKey(user?.email);
@@ -77,51 +79,6 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
         .forEach((el) => autoGrowTextarea(el));
     });
   }, [activeCategoryId, templateConfig]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/reviews/auto-config");
-        if (!res.ok) return;
-        const data = (await res.json()) as { enabled?: boolean };
-        if (!cancelled) setAutoSendEnabled(data.enabled === true);
-      } catch {
-        // default OFF
-      } finally {
-        if (!cancelled) setAutoSendLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const toggleAutoSend = async (checked: boolean) => {
-    if (!isOwner) return;
-    setAutoSendEnabled(checked);
-    try {
-      const res = await fetch("/api/reviews/auto-config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: checked }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        toast.error((data as { error?: string }).error ?? "Failed to save automation setting");
-        setAutoSendEnabled(!checked);
-        return;
-      }
-      toast.success(
-        checked
-          ? "Automatic replies ON — the daily job will send templated replies for you."
-          : "Automatic replies OFF — the daily job only counts unreplied reviews."
-      );
-    } catch {
-      toast.error("Failed to save automation setting.");
-      setAutoSendEnabled(!checked);
-    }
-  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -398,8 +355,9 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     setDeleteConfirm(null);
   };
 
-  const saveTemplates = () => {
+  const saveSettings = () => {
     if (!isOwner) return;
+    setSaving(true);
     void (async () => {
       try {
         const res = await fetch("/api/reviews/config", {
@@ -413,7 +371,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          const message = (data as { error?: string }).error ?? "Failed to save templates";
+          const message = (data as { error?: string }).error ?? "Failed to save reply settings";
           toast.error(message);
           return;
         }
@@ -422,36 +380,9 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           window.localStorage.removeItem(DASHBOARD_STATE_KEY);
         }
       } catch {
-        toast.error("Failed to save templates.");
-      }
-    })();
-  };
-
-  const saveRules = () => {
-    if (!isOwner) return;
-    void (async () => {
-      try {
-        const res = await fetch("/api/reviews/config", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templates: templateConfig,
-            rules: ratingRules,
-            categories,
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          const message = (data as { error?: string }).error ?? "Failed to save rating rules";
-          toast.error(message);
-          return;
-        }
-        toast.success("Rating rules saved for all users.");
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem(DASHBOARD_STATE_KEY);
-        }
-      } catch {
-        toast.error("Failed to save rating rules.");
+        toast.error("Failed to save reply templates.");
+      } finally {
+        setSaving(false);
       }
     })();
   };
@@ -552,238 +483,162 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     <>
       <main style={{ width: "100%", paddingTop: 8, paddingBottom: 8 }}>
         {activeSection === "templates" ? (
-          <section aria-label="Reply templates" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={CARD_STYLE}>
-              <div style={CARD_HEADER}>
-                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Automatic replies</h2>
-                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
-                  Optional: a scheduled daily job checks unreplied reviews and logs the counts in Admin → Automations, no sending.
-                </p>
-              </div>
-              <div style={{ ...CARD_BODY, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Send replies automatically</p>
-                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4, maxWidth: 560 }}>
-                    ON: whenever the job runs, it replies to every unreplied 5★/4★ review using your templates — generic theme for written reviews, the Star-only theme for reviews without text. Use this when you&apos;re on holiday. The cron schedule is currently disabled in vercel.json — turn it on there (and/or trigger the endpoint manually) for this to have effect.
-                    OFF (default): you draft and send replies yourself from the inbox.
+          <section aria-label="Reply templates" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Sticky action bar: Save is always in reach — with 30 templates you
+                never scroll to the bottom just to save an edit made at the top.
+                Rating rules live here too as a small dropdown. */}
+            <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", padding: "6px 0 10px", display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <Button type="button" size="sm" onClick={saveSettings} disabled={!isOwner || sharedConfigLoading || saving}>
+                {saving ? <Loader2Icon className="size-3.5 animate-spin" /> : null}
+                Save
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setRulesOpen((o) => !o)}>
+                Rating rules
+                <ChevronDownIcon className={`size-4 transition-transform ${rulesOpen ? "rotate-180" : ""}`} />
+              </Button>
+              {rulesOpen && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16, boxShadow: "var(--shadow-drawer)", maxHeight: "60vh", overflowY: "auto" }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Rating rules</p>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2, marginBottom: 10 }}>
+                    Which reviews get pre-filled templates and which can be bulk-sent.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                      const rule = ratingRules[rating as Rating];
+                      return (
+                        <div
+                          key={rating}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: "8px 12px", fontSize: 12 }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ display: "inline-flex", width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--bg)", fontSize: 12, fontWeight: 600, color: "var(--fg)" }}>
+                              {rating}★
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Reply mode</span>
+                              <select
+                                style={SELECT_SM}
+                                value={rule?.mode ?? "custom"}
+                                onChange={(e) => updateRule(rating as Rating, "mode", e.target.value as RatingRule["mode"])}
+                                disabled={!isOwner}
+                              >
+                                <option value="template">Use templates</option>
+                                <option value="custom">Custom replies only</option>
+                              </select>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <Checkbox
+                                id={`bulk-${rating}`}
+                                checked={rule?.allowBulk ?? false}
+                                onCheckedChange={(checked) => updateRule(rating as Rating, "allowBulk", Boolean(checked) as RatingRule["allowBulk"])}
+                                disabled={!isOwner}
+                              />
+                              <Label htmlFor={`bulk-${rating}`} style={{ fontSize: 11, color: "var(--fg-4)", cursor: "pointer" }}>
+                                Bulk send
+                              </Label>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 12 }}>
+                    On the dashboard these settings change which reviews are pre-filled and which can be bulk-sent.
                   </p>
                 </div>
-                {autoSendLoading ? (
-                  <Loader2Icon className="size-4 animate-spin" style={{ color: "var(--fg-4)" }} />
-                ) : (
-                  <Checkbox
-                    id="auto-send-toggle"
-                    checked={autoSendEnabled}
-                    onCheckedChange={(checked) => void toggleAutoSend(Boolean(checked))}
-                    disabled={!isOwner}
-                  />
-                )}
-              </div>
+              )}
             </div>
-            <div style={CARD_STYLE}>
-              <div style={CARD_HEADER}>
-                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Pre-written messages</h2>
-                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
-                  Default reply text per rating &amp; theme. Staff can still edit each reply before sending.
-                </p>
-              </div>
-              <div style={CARD_BODY}>
-                <div style={{ display: "grid", gridTemplateColumns: "12rem 1px 1fr", alignItems: "start", gap: 16 }}>
-                  <div>
-                    <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 6 }}>Themes</p>
-                    <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
-                      Choose the theme used for your 4★ and 5★ template sets.
-                    </p>
-                  </div>
-                  <div style={{ width: 1, alignSelf: "stretch", background: "var(--line)" }} aria-hidden="true" />
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>5★ templates</p>
-                    <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4 }}>
-                      These are used for 5-star reviews when &quot;Use templates&quot; is enabled for 5 stars.
-                    </p>
-                  </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setActiveCategoryId(cat.id)}
-                        style={{
-                          width: "100%", borderRadius: "var(--r-sm)",
-                          border: `1px solid ${activeCategoryId === cat.id ? "var(--line)" : "var(--line)"}`,
-                          padding: "6px 10px", textAlign: "left", fontSize: 12, cursor: "pointer",
-                          background: activeCategoryId === cat.id ? "var(--bg-2)" : "transparent",
-                          color: activeCategoryId === cat.id ? "var(--fg)" : "var(--fg-4)",
-                          transition: "background var(--dur) var(--ease)",
+            <div style={{ ...CARD_STYLE }}>
+              <div style={{ ...CARD_BODY, padding: "16px 20px 20px" }}>
+                {/* Theme pills — labels only, no sidebar */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setActiveCategoryId(cat.id)}
+                      style={{
+                        borderRadius: "var(--r-pill)",
+                        border: `1px solid ${activeCategoryId === cat.id ? "var(--fg-3)" : "var(--line)"}`,
+                        padding: "5px 12px", fontSize: 12, cursor: "pointer",
+                        background: activeCategoryId === cat.id ? "var(--bg-2)" : "transparent",
+                        color: activeCategoryId === cat.id ? "var(--fg)" : "var(--fg-4)",
+                        transition: "background var(--dur) var(--ease)",
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                  {isOwner && (
+                    <button type="button" onClick={addCategory} style={{ ...GHOST_BTN, borderRadius: "var(--r-pill)", height: 26 }}>
+                      + Add theme
+                    </button>
+                  )}
+                </div>
+
+                {/* Star pills — which rating's list you're editing */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                  {[5, 4].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => setActiveRating(rating as 4 | 5)}
+                      style={{
+                        borderRadius: "var(--r-pill)",
+                        border: `1px solid ${activeRating === rating ? "var(--fg-3)" : "var(--line)"}`,
+                        padding: "5px 12px", fontSize: 12, cursor: "pointer",
+                        background: activeRating === rating ? "var(--bg-2)" : "transparent",
+                        color: activeRating === rating ? "var(--fg)" : "var(--fg-4)",
+                        transition: "background var(--dur) var(--ease)",
+                      }}
+                    >
+                      {rating}★
+                    </button>
+                  ))}
+                </div>
+
+                {/* Template texts for the selected theme + rating */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                  {(templateConfig[activeRating]?.[activeCategoryId] ?? []).map((t, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Textarea
+                        rows={2}
+                        data-autogrow="true"
+                        style={{ minHeight: 64, resize: "none", overflow: "hidden", fontSize: 13, flex: 1 }}
+                        value={t}
+                        onChange={(e) => {
+                          handleTemplateChange(activeRating as 4 | 5, activeCategoryId, idx, e.target.value);
+                          autoGrowTextarea(e.currentTarget);
                         }}
-                      >
-                        <span style={{ display: "block", fontWeight: 500, fontSize: 13 }}>{cat.label}</span>
-                        {cat.description && (
-                          <span style={{ display: "block", fontSize: 11, color: "var(--fg-4)" }}>
-                            {cat.description}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                    {isOwner && (
-                      <button type="button" onClick={addCategory} style={{ ...GHOST_BTN, marginTop: 4, alignSelf: "flex-start" }}>
-                        + Add theme
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ width: 1, alignSelf: "stretch", background: "var(--line)" }} aria-hidden="true" />
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingLeft: 16 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {(templateConfig[5]?.[activeCategoryId] ?? []).map((t, idx) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Textarea
-                            rows={2}
-                            data-autogrow="true"
-                            style={{ minHeight: 64, resize: "none", overflow: "hidden", fontSize: 13, flex: 1 }}
-                            value={t}
-                            onChange={(e) => {
-                              handleTemplateChange(5, activeCategoryId, idx, e.target.value);
-                              autoGrowTextarea(e.currentTarget);
-                            }}
-                            disabled={!isOwner}
-                          />
-                          {isOwner && (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              style={{ width: 28, height: 28, color: "var(--fg-4)", borderRadius: "var(--r-pill)" }}
-                              onClick={() => setDeleteConfirm({ rating: 5, index: idx })}
-                              aria-label="Delete this template"
-                            >
-                              <Trash2Icon className="size-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        disabled={!isOwner}
+                      />
                       {isOwner && (
-                        <button type="button" style={{ ...GHOST_BTN, alignSelf: "flex-start" }} onClick={() => openAddMessage(5)} disabled={syncingFromConfig}>
-                          + Add message
-                        </button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          style={{ width: 28, height: 28, color: "var(--fg-4)", borderRadius: "var(--r-pill)" }}
+                          onClick={() => setDeleteConfirm({ rating: activeRating as 4 | 5, index: idx })}
+                          aria-label="Delete this template"
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </Button>
                       )}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ marginBottom: 4 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>4★ templates</p>
-                        <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 4 }}>
-                          These are used for 4-star reviews when &quot;Use templates&quot; is enabled for 4 stars.
-                        </p>
-                      </div>
-                      {(templateConfig[4]?.[activeCategoryId] ?? []).map((t, idx) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Textarea
-                            rows={2}
-                            data-autogrow="true"
-                            style={{ minHeight: 64, resize: "none", overflow: "hidden", fontSize: 13, flex: 1 }}
-                            value={t}
-                            onChange={(e) => {
-                              handleTemplateChange(4, activeCategoryId, idx, e.target.value);
-                              autoGrowTextarea(e.currentTarget);
-                            }}
-                            disabled={!isOwner}
-                          />
-                          {isOwner && (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              style={{ width: 28, height: 28, color: "var(--fg-4)", borderRadius: "var(--r-pill)" }}
-                              onClick={() => setDeleteConfirm({ rating: 4, index: idx })}
-                              aria-label="Delete this template"
-                            >
-                              <Trash2Icon className="size-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      {isOwner && (
-                        <button type="button" style={{ ...GHOST_BTN, alignSelf: "flex-start" }} onClick={() => openAddMessage(4)} disabled={syncingFromConfig}>
-                          + Add message
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  ))}
+                  {isOwner && (
+                    <button type="button" style={{ ...GHOST_BTN, alignSelf: "flex-start" }} onClick={() => openAddMessage(activeRating as 4 | 5)} disabled={syncingFromConfig}>
+                      + Add message
+                    </button>
+                  )}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 16, marginTop: 16, borderTop: "1px solid var(--line)" }}>
-                  <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
-                    Only owners can change templates. Staff always see the latest version when replying.
-                  </p>
-                  <Button type="button" size="sm" onClick={saveTemplates} disabled={!isOwner || sharedConfigLoading}>
-                    Save templates
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : activeSection === "rules" ? (
-          <section aria-label="Rating rules" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={CARD_STYLE}>
-              <div style={CARD_HEADER}>
-                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Rating rules</h2>
-                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
-                  For each rating, choose whether to pre-fill with templates or require custom replies, and whether bulk sending is allowed.
+
+                <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 14 }}>
+                  Only owners can change templates. Staff always see the latest version when replying.
                 </p>
-              </div>
-              <div style={CARD_BODY}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {[5, 4, 3, 2, 1].map((rating) => {
-                    const rule = ratingRules[rating as Rating];
-                    return (
-                      <div
-                        key={rating}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: "8px 12px", fontSize: 12 }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ display: "inline-flex", width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--bg)", fontSize: 12, fontWeight: 600, color: "var(--fg)" }}>
-                            {rating}★
-                          </span>
-                          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
-                            {rating >= 4 ? "Positive" : "Needs attention"}
-                          </span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Reply mode</span>
-                            <select
-                              style={SELECT_SM}
-                              value={rule?.mode ?? "custom"}
-                              onChange={(e) => updateRule(rating as Rating, "mode", e.target.value as RatingRule["mode"])}
-                              disabled={!isOwner}
-                            >
-                              <option value="template">Use templates</option>
-                              <option value="custom">Custom replies only</option>
-                            </select>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <Checkbox
-                              id={`bulk-${rating}`}
-                              checked={rule?.allowBulk ?? false}
-                              onCheckedChange={(checked) => updateRule(rating as Rating, "allowBulk", Boolean(checked) as RatingRule["allowBulk"])}
-                              disabled={!isOwner}
-                            />
-                            <Label htmlFor={`bulk-${rating}`} style={{ fontSize: 11, color: "var(--fg-4)", cursor: "pointer" }}>
-                              Allow bulk send
-                            </Label>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, marginTop: 12, borderTop: "1px solid var(--line)" }}>
-                  <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
-                    Rating rules affect which reviews are pre-filled and which can be bulk-sent on the dashboard.
-                  </p>
-                  <Button type="button" size="sm" onClick={saveRules} disabled={!isOwner || sharedConfigLoading}>
-                    Save rules
-                  </Button>
-                </div>
               </div>
             </div>
           </section>
@@ -890,7 +745,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
           <div style={MODAL_PANEL}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete this template?</h2>
             <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
-              Are you sure you want to delete this reply template? This action only affects this browser and can’t be undone.
+              The template is removed from this page immediately, and for everyone once you press Save.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <Button size="sm" variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>

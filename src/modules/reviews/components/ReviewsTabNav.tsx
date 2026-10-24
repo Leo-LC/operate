@@ -85,7 +85,6 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
     ...(isOwner
       ? [
           { label: "Templates", href: "/reviews/templates" },
-          { label: "Rating Rules", href: "/reviews/rules" },
         ]
       : []),
     // Hidden-from-everyone tabs still show for privileged users (dimmed,
