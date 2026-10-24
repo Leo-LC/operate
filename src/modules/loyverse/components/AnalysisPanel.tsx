@@ -6,7 +6,7 @@ import { Pill } from "@/components/ui/pill";
 import { DateInput } from "@/components/ui/date-input";
 import { Stat } from "@/components/ui/stat";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SearchIcon, SaveIcon, XIcon, Loader2Icon } from "lucide-react";
+import { SearchIcon, SaveIcon, XIcon, Loader2Icon, ChevronDownIcon } from "lucide-react";
 import { bangkokToday, previousMonth } from "@/lib/dates";
 import { monthRange, searchMatch, NO_LOCATION_KEY, type ItemAggregate } from "../lib/item-analysis";
 
@@ -23,6 +23,14 @@ type ItemSalesData = {
 };
 
 type ItemGroup = { id: string; name: string; item_names: string[] };
+
+/** Clé de catégorie côté UI : null → "__none__" (articles hors catalogue). */
+function catKey(category_name: string | null): string {
+  return category_name ?? "__none__";
+}
+function catLabel(category_name: string | null): string {
+  return category_name ?? "Sans catégorie";
+}
 
 // ── Format helpers ────────────────────────────────────────────────────────────
 
@@ -68,6 +76,16 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [query, setQuery] = React.useState("");
   const [view, setView] = React.useState<"items" | "daily">("items");
+
+  // Filtre catégories (Set vide = toutes) : clé = catKey(catégorie)
+  const [selectedCats, setSelectedCats] = React.useState<Set<string>>(new Set());
+  // Liste d'articles : ouverte quand la recherche est focus OU que la souris est
+  // dessus (les clicks checkbox font blur l'input) OU quand une recherche/filtre
+  // est actif. Sinon repliée pour ne pas occuper l'écran.
+  const selectorRef = React.useRef<HTMLDivElement>(null);
+  const [inputFocused, setInputFocused] = React.useState(false);
+  const [hoverList, setHoverList] = React.useState(false);
+  const [forcedOpen, setForcedOpen] = React.useState(false);
 
   // Groupes sauvegardés
   const [groups, setGroups] = React.useState<ItemGroup[]>([]);
@@ -126,15 +144,36 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
     [data],
   );
 
+  const catsActive = selectedCats.size > 0;
+  const listShown = React.useMemo(
+    () => inputFocused || hoverList || forcedOpen || query.trim().length > 0 || catsActive,
+    [inputFocused, hoverList, forcedOpen, query, catsActive],
+  );
+
   const filteredItems = React.useMemo(
-    () => (query.trim() ? items.filter((i) => searchMatch(query, i.item_name)) : items),
-    [items, query],
+    () =>
+      items.filter(
+        (i) => (selectedCats.size === 0 || selectedCats.has(catKey(i.category_name))) && searchMatch(query, i.item_name),
+      ),
+    [items, query, selectedCats],
   );
 
   const selectedItems = React.useMemo(
     () => items.filter((i) => selected.has(i.item_name)),
     [items, selected],
   );
+
+  const categories = React.useMemo(() => {
+    const map = new Map<string, { key: string; label: string; items_count: number; money: number }>();
+    for (const it of items) {
+      const key = catKey(it.category_name);
+      const cur = map.get(key) ?? { key, label: catLabel(it.category_name), items_count: 0, money: 0 };
+      cur.items_count += 1;
+      cur.money += it.total_money;
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.money - a.money);
+  }, [items]);
 
   // Agrégats de la sélection
   const totals = React.useMemo(() => {
@@ -234,6 +273,15 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
   }
 
   // Période custom vs mois prédéfini : dès qu'une plage custom est posée, les pills de mois sont désactivées
+  function toggleCat(key: string) {
+    setSelectedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   function setPresetMonth(m: string) {
     setFrom("");
     setTo("");
@@ -379,58 +427,131 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
             </div>
           )}
 
-          {/* Recherche + liste */}
-          <div className="relative">
-            <SearchIcon style={{ width: 14, height: 14, position: "absolute", left: 10, top: 9, color: "var(--fg-4)", pointerEvents: "none" }} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder='Rechercher… ex. "postcard", "carte post", "iced latte"'
-              className="h-9 w-full rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--bg-2)] pl-8 pr-8 text-sm outline-none focus:border-[var(--accent)]"
-            />
-            {query && (
+          {/* Recherche + liste (repliée quand la recherche n'est pas focus) */}
+          <div
+            ref={selectorRef}
+            className="flex flex-col gap-2"
+            onMouseEnter={() => setHoverList(true)}
+            onMouseLeave={() => setHoverList(false)}
+          >
+            <div className="relative">
+              <SearchIcon
+                style={{ width: 14, height: 14, position: "absolute", left: 10, top: 9, color: "var(--fg-4)", pointerEvents: "none" }}
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setInputFocused(true)}
+                onBlur={(e) => {
+                  // Pas de collapse si le focus passe dans la liste (checkbox, pill…)
+                  if (e.relatedTarget && selectorRef.current?.contains(e.relatedTarget as Node)) return;
+                  setInputFocused(false);
+                }}
+                placeholder='Rechercher… ex. "postcard", "carte post", "iced latte"'
+                className="h-9 w-full rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--bg-2)] pl-8 pr-16 text-sm outline-none focus:border-[var(--accent)]"
+              />
+              {/* Toggle manuel de la liste */}
               <button
                 type="button"
-                onClick={() => setQuery("")}
-                className="absolute right-2 top-2 text-[var(--fg-4)] hover:text-[var(--fg-2)]"
-                aria-label="Effacer la recherche"
+                tabIndex={-1}
+                onClick={() => setForcedOpen((v) => !v)}
+                className="absolute right-2 top-2 inline-flex items-center gap-0.5 text-[10px] text-[var(--fg-4)] hover:text-[var(--fg-2)]"
+                aria-label={forcedOpen ? "Replier la liste" : "Afficher la liste"}
               >
-                <XIcon style={{ width: 14, height: 14 }} />
+                {filteredItems.length} <ChevronDownIcon style={{ width: 12, height: 12, transform: forcedOpen ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
               </button>
+            </div>
+
+            {listShown && (
+              <>
+                {/* Filtre catégories */}
+                {categories.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">Catégorie</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCats(new Set())}
+                      className={
+                        selectedCats.size === 0
+                          ? "rounded-[var(--r-pill)] border border-[var(--line-strong)] bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]"
+                          : "rounded-[var(--r-pill)] border border-[var(--line)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--fg-3)] hover:text-[var(--fg-2)]"
+                      }
+                    >
+                      Toutes
+                    </button>
+                    {categories.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => toggleCat(c.key)}
+                        className={
+                          selectedCats.has(c.key)
+                            ? "rounded-[var(--r-pill)] border border-[var(--line-strong)] bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]"
+                            : "rounded-[var(--r-pill)] border border-[var(--line)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--fg-3)] hover:text-[var(--fg-2)]"
+                        }
+                        title={`฿${fmtMoney(c.money)} · ${c.items_count} article${c.items_count > 1 ? "s" : ""}`}
+                      >
+                        {c.label} <span className="text-[var(--fg-4)]">{c.items_count}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {loading ? (
+                  <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">Chargement…</p>
+                ) : error ? (
+                  <p className="rounded bg-[var(--bad-soft)] px-3 py-6 text-center text-xs text-[var(--bad)]">{error}</p>
+                ) : filteredItems.length === 0 ? (
+                  <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">
+                    {items.length === 0
+                      ? "Aucune donnée d\u2019articles pour cette période."
+                      : "Aucun article ne correspond à la recherche/filtre."}
+                  </p>
+                ) : (
+                  <div className="max-h-[320px] overflow-y-auto rounded border border-[var(--line)] bg-[var(--bg-2)] p-1">
+                    {filteredItems.slice(0, 60).map((it) => {
+                      const checked = selected.has(it.item_name);
+                      return (
+                        <label
+                          key={it.item_name}
+                          className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 hover:bg-[var(--surface-2)]"
+                        >
+                          <Checkbox checked={checked} onCheckedChange={() => toggleItem(it.item_name)} aria-label={it.item_name} />
+                          <span className="flex-1 truncate text-[13px] text-[var(--fg)]">{it.item_name}</span>
+                          {it.category_name && <span className="text-[11px] text-[var(--fg-4)]">{it.category_name}</span>}
+                          <span className="w-[90px] text-right font-mono text-xs tabular-nums text-[var(--fg-2)]">฿{fmtMoney(it.total_money)}</span>
+                        </label>
+                      );
+                    })}
+                    {filteredItems.length > 60 && (
+                      <p className="px-2 py-1.5 text-[11px] text-[var(--fg-4)]">
+                        … {filteredItems.length - 60} autres articles — affine la recherche.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Récap de la sélection quand la liste est repliée */}
+            {!listShown && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">Sélection</span>
+                {selectedItems.slice(0, 8).map((it) => (
+                  <button
+                    key={it.item_name}
+                    type="button"
+                    onClick={() => toggleItem(it.item_name)}
+                    title="Cliquer pour retirer"
+                    className="inline-flex items-center gap-1 rounded-[var(--r-pill)] border border-[var(--line)] bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]"
+                  >
+                    {it.item_name} <XIcon style={{ width: 9, height: 9 }} />
+                  </button>
+                ))}
+                {selectedItems.length > 8 && <Pill size="sm" tone="outline">+{selectedItems.length - 8} autres</Pill>}
+              </div>
             )}
           </div>
-
-          {loading ? (
-            <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">Chargement…</p>
-          ) : error ? (
-            <p className="rounded bg-[var(--bad-soft)] px-3 py-6 text-center text-xs text-[var(--bad)]">{error}</p>
-          ) : filteredItems.length === 0 ? (
-            <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">
-              {items.length === 0 ? "Aucune donnée d\u2019articles pour cette période." : "Aucun article ne correspond à la recherche."}
-            </p>
-          ) : (
-            <div className="max-h-[320px] overflow-y-auto rounded border border-[var(--line)] bg-[var(--bg-2)] p-1">
-              {filteredItems.slice(0, 60).map((it) => {
-                const checked = selected.has(it.item_name);
-                return (
-                  <label
-                    key={it.item_name}
-                    className="flex cursor-pointer items-center gap-2.5 rounded px-2 py-1.5 hover:bg-[var(--surface-2)]"
-                  >
-                    <Checkbox checked={checked} onCheckedChange={() => toggleItem(it.item_name)} aria-label={it.item_name} />
-                    <span className="flex-1 truncate text-[13px] text-[var(--fg)]">{it.item_name}</span>
-                    {it.category_name && <span className="text-[11px] text-[var(--fg-4)]">{it.category_name}</span>}
-                    <span className="w-[90px] text-right font-mono text-xs tabular-nums text-[var(--fg-2)]">฿{fmtMoney(it.total_money)}</span>
-                  </label>
-                );
-              })}
-              {filteredItems.length > 60 && (
-                <p className="px-2 py-1.5 text-[11px] text-[var(--fg-4)]">
-                  … {filteredItems.length - 60} autres articles — affine la recherche.
-                </p>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
