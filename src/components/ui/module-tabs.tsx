@@ -121,7 +121,7 @@ export function ModuleTabs({
   ariaLabel?: string;
   /**
    * Opt-in visual variant. Default stays the app-wide underline style; the
-   * pill variant is used by the Reviews Stats pilot only.
+   * pill variant is used by Reviews Stats and is available to later modules.
    */
   variant?: "underline" | "pills";
 }) {
@@ -134,20 +134,20 @@ export function ModuleTabs({
 
   if (variant === "pills") {
     return (
-      <nav aria-label={ariaLabel} className="rs-pillnav">
+      <nav aria-label={ariaLabel} className="ui-pillnav">
         {tabs.map((tab, i) => {
           const active = i === activeIndex;
           const Icon = tab.icon;
           return (
             <div
               key={tab.href}
-              className="rs-pillnav-item"
+              className="ui-pillnav-item"
               data-dimmed={tab.dimmed ? "true" : undefined}
             >
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className="rs-pillnav-link"
+                className="ui-pillnav-link"
                 data-active={active ? "true" : undefined}
               >
                 {Icon ? <Icon size={14} /> : null}

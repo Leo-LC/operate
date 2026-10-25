@@ -1,5 +1,6 @@
 "use client";
 
+import { Panel, PanelBody, PanelHead, PanelSub, PanelTitle } from "@/components/ui/panel";
 import type { StatsSummary } from "../../lib/stats";
 import {
   describeStarRow,
@@ -27,19 +28,19 @@ export function ReviewsStatsDistribution({ distribution, count, loading, unavail
   const lowCount = lowStarCount(distribution);
 
   return (
-    <section className="rs-panel rs-dist-panel" aria-label="Overall rating distribution">
-      <div className="rs-panel-head">
+    <Panel className="rs-dist-panel" aria-label="Overall rating distribution">
+      <PanelHead>
         <div>
-          <h2 className="rs-panel-title">Rating distribution</h2>
+          <PanelTitle>Rating distribution</PanelTitle>
           {count === 0 && !loading && (
-            <p className="rs-panel-sub">
+            <PanelSub>
               {unavailable ? "Stats unavailable" : "No reviews in this period"}
-            </p>
+            </PanelSub>
           )}
         </div>
-      </div>
+      </PanelHead>
 
-      <div className="rs-panel-body">
+      <PanelBody>
         {loading && count === 0 ? (
           <div className="flex flex-col gap-3" aria-hidden>
             {[0, 1, 2, 3, 4].map((i) => (
@@ -47,7 +48,7 @@ export function ReviewsStatsDistribution({ distribution, count, loading, unavail
             ))}
           </div>
         ) : count === 0 ? (
-          <p className="rs-kpi-note">
+          <p className="ui-kpi-note">
             {unavailable ? "Stats unavailable. Retry above." : "Nothing to distribute yet."}
           </p>
         ) : (
@@ -82,7 +83,7 @@ export function ReviewsStatsDistribution({ distribution, count, loading, unavail
             </div>
           </>
         )}
-      </div>
-    </section>
+      </PanelBody>
+    </Panel>
   );
 }

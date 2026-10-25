@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
+import { Panel, PanelBody, PanelFoot, PanelHead, PanelSub, PanelTitle } from "@/components/ui/panel";
 import type { Granularity, ShopStats } from "../../lib/stats";
 import {
   countComparison,
@@ -16,11 +17,11 @@ import {
 import { ReviewsStatsTrend } from "./ReviewsStatsTrend";
 
 const MIX_COLORS = [
-  "var(--rs-negative)",
-  "var(--rs-negative)",
-  "var(--rs-warn)",
-  "var(--rs-bar)",
-  "var(--rs-bar)",
+  "var(--ui-negative)",
+  "var(--ui-negative)",
+  "var(--ui-warn)",
+  "var(--ui-series-primary)",
+  "var(--ui-series-primary)",
 ];
 
 type SortKey = "count" | "avg" | "replyRate" | "lowShare";
@@ -139,60 +140,60 @@ export function ReviewsStatsTable({ shops, granularity, periodLabel, loading, un
 
   if (loading && shops.length === 0) {
     return (
-      <section className="rs-panel" aria-label="Branch comparison">
-        <div className="rs-panel-head">
+      <Panel aria-label="Branch comparison">
+        <PanelHead>
           <div>
-            <h2 className="rs-panel-title">Branch comparison</h2>
-            <p className="rs-panel-sub">Loading branch stats…</p>
+            <PanelTitle>Branch comparison</PanelTitle>
+            <PanelSub>Loading branch stats…</PanelSub>
           </div>
-        </div>
-        <div className="rs-panel-body">
+        </PanelHead>
+        <PanelBody>
           <div className="flex flex-col gap-2" aria-hidden>
             {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} className="rs-skeleton" style={{ height: 36 }} />
             ))}
           </div>
-        </div>
-      </section>
+        </PanelBody>
+      </Panel>
     );
   }
 
   if (shops.length === 0) {
     return (
-      <section className="rs-panel" aria-label="Branch comparison">
-        <div className="rs-panel-head">
+      <Panel aria-label="Branch comparison">
+        <PanelHead>
           <div>
-            <h2 className="rs-panel-title">Branch comparison</h2>
-            <p className="rs-panel-sub">
+            <PanelTitle>Branch comparison</PanelTitle>
+            <PanelSub>
               {unavailable ? "Stats unavailable." : "No branch data synced yet."}
-            </p>
+            </PanelSub>
           </div>
-        </div>
-        <div className="rs-panel-body">
-          <p className="rs-kpi-note" style={{ paddingBottom: 8 }}>
+        </PanelHead>
+        <PanelBody>
+          <p className="ui-kpi-note" style={{ paddingBottom: 8 }}>
             {unavailable
               ? "Use Retry above to load the cached stats again."
               : "Use Sync now to import Google reviews, then these stats will appear."}
           </p>
-        </div>
-      </section>
+        </PanelBody>
+      </Panel>
     );
   }
 
   return (
-    <section className="rs-panel" aria-label="Branch comparison">
-      <div className="rs-panel-head">
+    <Panel aria-label="Branch comparison">
+      <PanelHead>
         <div>
-          <h2 className="rs-panel-title">Branch comparison</h2>
-          <p className="rs-panel-sub">
+          <PanelTitle>Branch comparison</PanelTitle>
+          <PanelSub>
             {shops.length} {shops.length === 1 ? "branch" : "branches"} · deltas vs previous{" "}
             {periodLabel}
-          </p>
+          </PanelSub>
           <p className="rs-scroll-hint">Swipe for more columns →</p>
         </div>
-      </div>
+      </PanelHead>
 
-      <div className="rs-panel-body rs-panel-body-flush">
+      <PanelBody flush>
         <div
           className="rs-table-wrap"
           role="region"
@@ -243,12 +244,12 @@ export function ReviewsStatsTable({ shops, granularity, periodLabel, loading, un
             </tbody>
           </table>
         </div>
-      </div>
+      </PanelBody>
 
-      <p className="rs-panel-foot">
+      <PanelFoot>
         Rating mix reads 1★ → 5★ · sort any column · expand a row for the branch trend.
-      </p>
-    </section>
+      </PanelFoot>
+    </Panel>
   );
 }
 

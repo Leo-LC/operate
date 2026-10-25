@@ -43,6 +43,256 @@
   }
 }
 
+@layer components {
+  /* ── UI foundation primitives (opt-in) ─────────────────────────────────── */
+
+  .ui-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--ui-panel);
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    box-shadow: var(--ui-shadow);
+  }
+
+  .ui-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: var(--ui-panel-pad-y) var(--ui-panel-pad-x) 0;
+  }
+
+  .ui-panel-title {
+    margin: 0;
+    font-size: var(--ui-text-title);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ui-fg-1);
+  }
+
+  .ui-panel-sub {
+    margin: 3px 0 0;
+    font-size: var(--ui-text-note);
+    color: var(--ui-fg-3);
+  }
+
+  .ui-panel-body {
+    position: relative;
+    padding: 12px var(--ui-panel-pad-x) 16px;
+    min-width: 0;
+  }
+
+  .ui-panel-body-flush {
+    padding: 12px 0 0;
+  }
+
+  .ui-panel-foot {
+    margin-top: auto;
+    padding: 9px var(--ui-panel-pad-x);
+    border-top: var(--ui-line-width) solid var(--ui-line);
+    font-size: var(--ui-text-caption);
+    color: var(--ui-fg-3);
+  }
+
+  .ui-kpi {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--ui-kpi-gap);
+    min-width: 0;
+    padding: 16px var(--ui-panel-pad-x);
+    background: var(--ui-panel);
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    box-shadow: var(--ui-shadow);
+  }
+
+  .ui-kpi-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .ui-kpi-label {
+    margin: 0;
+    font-size: var(--ui-text-sm);
+    font-weight: 500;
+    color: var(--ui-fg-3);
+  }
+
+  .ui-kpi-value {
+    margin: 0;
+    font-size: var(--ui-text-value);
+    line-height: 1.05;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ui-fg-1);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-kpi-unit {
+    margin-left: 2px;
+    font-size: var(--ui-text-body);
+    font-weight: 500;
+    color: var(--ui-fg-3);
+  }
+
+  .ui-kpi-note {
+    margin: 0;
+    font-size: var(--ui-text-note);
+    color: var(--ui-fg-3);
+  }
+
+  @media (max-width: 767px) {
+    .ui-kpi {
+      gap: 10px;
+      padding: 13px 14px;
+    }
+
+    .ui-kpi-body {
+      gap: 4px;
+    }
+
+    .ui-kpi-value {
+      font-size: 28px;
+    }
+
+    .ui-kpi-note {
+      font-size: var(--ui-text-caption);
+    }
+  }
+
+  /* Pill module navigation — opt-in ModuleTabs variant. */
+  .ui-pillnav {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .ui-pillnav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .ui-pillnav-item[data-dimmed="true"] .ui-pillnav-link:not([data-active="true"]) {
+    opacity: 0.55;
+  }
+
+  .ui-pillnav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--ui-control-h);
+    padding: 0 12px;
+    border: var(--ui-line-width) solid var(--ui-control-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ui-fg-2);
+    font-size: var(--ui-text-body);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
+  }
+
+  .ui-pillnav-link:hover {
+    background: var(--ui-panel-2);
+    border-color: var(--ui-fg-3);
+    color: var(--ui-fg-1);
+  }
+
+  .ui-pillnav-link:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+  }
+
+  .ui-pillnav-link[data-active="true"] {
+    background: var(--ui-accent);
+    border-color: var(--ui-accent);
+    color: var(--ui-accent-fg);
+    font-weight: 600;
+  }
+
+  .ui-pillnav-link[data-active="true"]:hover {
+    background: var(--ui-accent);
+    color: var(--ui-accent-fg);
+  }
+
+  /* Accent preference control. */
+  .ui-accent-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-panel);
+    color: var(--ui-fg-2);
+    font-size: var(--ui-text-body);
+    cursor: pointer;
+    transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
+  }
+
+  .ui-accent-option:hover {
+    border-color: var(--ui-control-line);
+    background: var(--ui-panel-2);
+    color: var(--ui-fg-1);
+  }
+
+  .ui-accent-option[data-active="true"] {
+    border-color: var(--ui-accent);
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent-text);
+    font-weight: 600;
+  }
+
+  .ui-accent-option:has(input:focus-visible) {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+  }
+
+  /* The visible label carries the focus ring; the clipped native input must
+     not paint a second default ring. */
+  .ui-accent-option input:focus-visible {
+    outline: none;
+  }
+
+  .ui-accent-swatch {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    border: var(--ui-line-width) solid var(--ui-line-strong);
+  }
+
+  .ui-accent-swatch[data-swatch="default"] {
+    background: linear-gradient(135deg, #2c6f4c 0 50%, #b45309 50% 100%);
+  }
+
+  .ui-accent-swatch[data-swatch="green"] {
+    background: #2c6f4c;
+  }
+
+  .ui-accent-swatch[data-swatch="orange"] {
+    background: #b45309;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-pillnav-link,
+    .ui-accent-option {
+      transition: none;
+    }
+  }
+}
+
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
 
@@ -100,6 +350,62 @@
     --chart-1: #2563eb; --chart-2: #0ea5e9; --chart-3: #16a34a; --chart-4: #f59e0b; --chart-5: #ef4444; --chart-6: #7c3aed; --chart-7: #06b6d4; --chart-8: #ec4899;
     --sidebar-foreground: var(--fg); --sidebar-primary: var(--accent); --sidebar-primary-foreground: #fff;
     --sidebar-accent: var(--row-active); --sidebar-accent-foreground: var(--fg); --sidebar-border: var(--line); --sidebar-ring: var(--focus-ring);
+
+    /* ── UI foundation (opt-in) ─────────────────────────────────────────────
+       Shared semantic layer extracted from the accepted Reviews Stats pilot.
+       Nothing consumes these until a component or route opts in, so the rest
+       of the app keeps the legacy --canvas/--surface/--fg/--line scale. */
+    --ui-canvas: #f7f6f2;
+    --ui-panel: #ffffff;
+    --ui-panel-2: #f4f2ec;
+    --ui-line: #e2ded4;
+    --ui-line-strong: #c9c2b4;
+    --ui-control-line: #7d8a82;
+    --ui-row-hover: #f2f5f2;
+    --ui-veil: rgba(255, 255, 255, 0.62);
+    --ui-skeleton: #ece9e2;
+
+    --ui-fg-1: #191d1b;
+    --ui-fg-2: #454f49;
+    --ui-fg-3: #5f6b64;
+    --ui-fg-4: #7a857e;
+
+    /* Green is the default accent for both company themes. */
+    --ui-accent: #2c6f4c;
+    --ui-accent-fg: #ffffff;
+    --ui-accent-text: #24624a;
+    --ui-accent-soft: #e9f2ec;
+    --ui-focus: #2c6f4c;
+    --ui-series-primary: #2c6f4c;
+    --ui-series-track: #e9e6df;
+    --ui-series-neutral: #55605a;
+
+    /* Semantic status colors never derive from the accent. */
+    --ui-positive: #1f6b45;
+    --ui-negative: #a63b30;
+    --ui-negative-soft: #fbebe8;
+    --ui-warn: #8a5a17;
+    --ui-warn-soft: #fbf3e4;
+
+    --ui-line-width: 1px;
+    --ui-radius: 10px;
+    --ui-radius-sm: 6px;
+    --ui-shadow: 0 1px 2px rgba(25, 29, 27, 0.05);
+    --ui-shadow-raised: 0 10px 24px -14px rgba(25, 29, 27, 0.35);
+
+    --ui-section-gap: 24px;
+    --ui-panel-pad-x: 18px;
+    --ui-panel-pad-y: 16px;
+    --ui-control-h: 30px;
+    --ui-kpi-gap: 14px;
+
+    --ui-text-note: 12px;
+    --ui-text-caption: 11.5px;
+    --ui-text-sm: 12.5px;
+    --ui-text-body: 13px;
+    --ui-text-title: 14px;
+    --ui-text-page: 20px;
+    --ui-text-value: 30px;
   }
 
   .dark {
@@ -143,6 +449,58 @@
     --sidebar: #1e1e20; --sidebar-foreground: var(--fg); --sidebar-primary: var(--accent); --sidebar-primary-foreground: #fff;
     --sidebar-accent: var(--row-active); --sidebar-accent-foreground: var(--fg); --sidebar-border: var(--line); --sidebar-ring: var(--focus-ring);
     --card-bg: transparent;
+
+    --ui-canvas: #16181a;
+    --ui-panel: #1d2022;
+    --ui-panel-2: #24282a;
+    --ui-line: #2e3335;
+    --ui-line-strong: #414a4c;
+    --ui-control-line: #66736c;
+    --ui-row-hover: #222726;
+    --ui-veil: rgba(29, 32, 34, 0.62);
+    --ui-skeleton: #2a3033;
+
+    --ui-fg-1: #eef1ef;
+    --ui-fg-2: #c3ccc7;
+    --ui-fg-3: #9aa6a0;
+    --ui-fg-4: #7f8a85;
+
+    --ui-accent: #2f7a52;
+    --ui-accent-fg: #ffffff;
+    --ui-accent-text: #7fc7a1;
+    --ui-accent-soft: #1c2b23;
+    --ui-focus: #7fc7a1;
+    --ui-series-primary: #3f9268;
+    --ui-series-track: #2a3033;
+    --ui-series-neutral: #aab5af;
+
+    --ui-positive: #7fc7a1;
+    --ui-negative: #f0938a;
+    --ui-negative-soft: #2a1513;
+    --ui-warn: #e3b06a;
+    --ui-warn-soft: #2a2114;
+
+    --ui-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --ui-shadow-raised: 0 12px 28px -16px rgba(0, 0, 0, 0.8);
+  }
+
+  /* User accent override. No attribute means the company default (green). */
+  [data-accent="orange"] {
+    --ui-accent: #b45309;
+    --ui-accent-fg: #ffffff;
+    --ui-accent-text: #9a3412;
+    --ui-accent-soft: #fdf0e7;
+    --ui-focus: #b45309;
+    --ui-series-primary: #c2410c;
+  }
+
+  [data-accent="orange"].dark {
+    --ui-accent: #c2410c;
+    --ui-accent-fg: #ffffff;
+    --ui-accent-text: #fdba74;
+    --ui-accent-soft: #2a1a12;
+    --ui-focus: #fdba74;
+    --ui-series-primary: #fb923c;
   }
 
   [data-theme="forest"] { --company-accent: oklch(0.60 0.13 145); }

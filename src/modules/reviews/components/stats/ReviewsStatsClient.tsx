@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCwIcon } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import type { ShopOption } from "@/components/ui/filters/types";
 import {
   DEFAULT_PRESET,
@@ -57,7 +58,8 @@ function isAbortError(error: unknown): boolean {
   );
 }
 
-function ComparisonText({ comparison }: { comparison: Comparison }) {
+function ComparisonText({ comparison }: { comparison: Comparison | null }) {
+  if (!comparison) return null;
   const arrow =
     comparison.direction === "up" ? "▲" : comparison.direction === "down" ? "▼" : null;
   const srDirection =
@@ -79,42 +81,6 @@ function ComparisonText({ comparison }: { comparison: Comparison }) {
         {note && <span className="sr-only"> ({note})</span>}
       </span>
     </p>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  unit,
-  comparison,
-  hint,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  comparison?: Comparison | null;
-  hint?: string;
-}) {
-  return (
-    <article className="rs-kpi">
-      <h3 className="rs-kpi-label">{label}</h3>
-      <div className="rs-kpi-body">
-        <p className="rs-kpi-value">
-          {value}
-          {unit && value !== "—" && <span className="rs-kpi-unit">{unit}</span>}
-        </p>
-        {comparison ? (
-          <ComparisonText comparison={comparison} />
-        ) : hint ? (
-          <p className="rs-kpi-note">{hint}</p>
-        ) : (
-          <p className="rs-kpi-note" aria-hidden>
-            &nbsp;
-          </p>
-        )}
-        {comparison && hint && <p className="rs-kpi-note">{hint}</p>}
-      </div>
-    </article>
   );
 }
 
@@ -364,20 +330,20 @@ export function ReviewsStatsClient() {
 
         <div className="rs-top">
           <div className="rs-kpis">
-            <KpiCard
+            <KpiStat
               label="Reviews"
               value={overall ? formatCount(overall.count) : "—"}
-              comparison={overall ? countComparison(overall.count, overall.priorCount, periodLabel) : null}
+              comparison={overall ? <ComparisonText comparison={countComparison(overall.count, overall.priorCount, periodLabel)} /> : null}
               hint={hasCurrent ? priorCountHint : emptyHint}
             />
-            <KpiCard
+            <KpiStat
               label="Average rating"
               value={formatRating(overall?.avg ?? null)}
               unit="/5"
-              comparison={overall ? ratingComparison(overall.avg, overall.priorAvg, periodLabel) : null}
+              comparison={overall ? <ComparisonText comparison={ratingComparison(overall.avg, overall.priorAvg, periodLabel)} /> : null}
               hint={hasCurrent ? priorRatingHint : emptyHint}
             />
-            <KpiCard
+            <KpiStat
               label="Public reply rate"
               value={formatPercent(overall?.replyRate ?? null)}
               hint={
@@ -386,10 +352,10 @@ export function ReviewsStatsClient() {
                   : emptyHint
               }
             />
-            <KpiCard
+            <KpiStat
               label="1–3★ share"
               value={formatPercent(lowShare)}
-              comparison={overall ? sharePointComparison(lowShare, priorLowShare, periodLabel) : null}
+              comparison={overall ? <ComparisonText comparison={sharePointComparison(lowShare, priorLowShare, periodLabel)} /> : null}
               hint={
                 hasCurrent && overall
                   ? `${formatCount(lowCount)} of ${formatCount(overall.count)} · lower is better`

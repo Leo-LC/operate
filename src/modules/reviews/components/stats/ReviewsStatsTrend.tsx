@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ElementType } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Panel, PanelBody, PanelFoot, PanelHead, PanelTitle } from "@/components/ui/panel";
 import type { Granularity, StatsPoint } from "../../lib/stats";
 import { formatCount, formatRating, granularityNoun } from "../../lib/stats-view";
 
@@ -85,20 +86,29 @@ export function ReviewsStatsTrend({
   const heading = compact ? `Reviews per ${noun}` : "Review volume and average rating";
 
   if (loading && points.length === 0) {
+    const LoadingOuter: ElementType = compact ? "div" : Panel;
     return (
-      <div className={compact ? "" : "rs-panel"}>
-        <div className="rs-panel-body">
+      <LoadingOuter>
+        <PanelBody>
           <div className="rs-skeleton" style={{ height }} aria-hidden />
-        </div>
-      </div>
+        </PanelBody>
+      </LoadingOuter>
     );
   }
 
+  const Outer: ElementType = compact ? "div" : Panel;
+  const Head: ElementType = compact ? "div" : PanelHead;
+  const Body: ElementType = compact ? "div" : PanelBody;
+
   return (
-    <div className={compact ? "" : "rs-panel"}>
-      <div className={compact ? "" : "rs-panel-head"}>
+    <Outer>
+      <Head>
         <div>
-          <h2 className={compact ? "rs-expanded-title" : "rs-panel-title"}>{heading}</h2>
+          {compact ? (
+            <h2 className="rs-expanded-title">{heading}</h2>
+          ) : (
+            <PanelTitle>{heading}</PanelTitle>
+          )}
         </div>
         <div className="rs-legend" aria-label="Chart legend">
           <span className="rs-legend-item">
@@ -110,9 +120,9 @@ export function ReviewsStatsTrend({
             Avg rating /5
           </span>
         </div>
-      </div>
+      </Head>
 
-      <div className={compact ? "" : "rs-panel-body"}>
+      <Body>
         {isEmpty ? (
           <div className="rs-empty-chart" style={{ height }}>
             <p>{unavailable ? "Stats unavailable. Retry above." : "No reviews in this period."}</p>
@@ -129,10 +139,10 @@ export function ReviewsStatsTrend({
           >
             <ResponsiveContainer width="100%" height={height}>
               <ComposedChart data={data} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--rs-border)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--ui-line)" vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 11, fill: "var(--rs-fg-3)" }}
+                  tick={{ fontSize: 11, fill: "var(--ui-fg-3)" }}
                   axisLine={false}
                   tickLine={false}
                   tickMargin={8}
@@ -144,7 +154,7 @@ export function ReviewsStatsTrend({
                   orientation="left"
                   width={38}
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "var(--rs-fg-3)" }}
+                  tick={{ fontSize: 11, fill: "var(--ui-fg-3)" }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -154,7 +164,7 @@ export function ReviewsStatsTrend({
                   width={30}
                   domain={[1, 5]}
                   ticks={[1, 2, 3, 4, 5]}
-                  tick={{ fontSize: 11, fill: "var(--rs-fg-3)" }}
+                  tick={{ fontSize: 11, fill: "var(--ui-fg-3)" }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -162,13 +172,13 @@ export function ReviewsStatsTrend({
                   content={(props) => (
                     <TrendTooltip {...(props as unknown as TrendTooltipProps)} />
                   )}
-                  cursor={{ fill: "var(--rs-row-hover)" }}
+                  cursor={{ fill: "var(--ui-row-hover)" }}
                 />
                 <Bar
                   yAxisId="count"
                   dataKey="reviews"
                   name="Reviews"
-                  fill="var(--rs-bar)"
+                  fill="var(--ui-series-primary)"
                   radius={[3, 3, 0, 0]}
                   maxBarSize={36}
                   isAnimationActive={false}
@@ -178,10 +188,10 @@ export function ReviewsStatsTrend({
                   dataKey="rating"
                   name="Avg rating /5"
                   type="monotone"
-                  stroke="var(--rs-neutral-mark)"
+                  stroke="var(--ui-series-neutral)"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "var(--rs-panel)", stroke: "var(--rs-neutral-mark)", strokeWidth: 2 }}
-                  activeDot={{ r: 4, fill: "var(--rs-neutral-mark)", stroke: "var(--rs-panel)", strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "var(--ui-panel)", stroke: "var(--ui-series-neutral)", strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: "var(--ui-series-neutral)", stroke: "var(--ui-panel)", strokeWidth: 2 }}
                   connectNulls={false}
                   isAnimationActive={false}
                 />
@@ -211,13 +221,13 @@ export function ReviewsStatsTrend({
             ))}
           </tbody>
         </table>
-      </div>
+      </Body>
 
       {!compact && (
-        <p className="rs-panel-foot">
+        <PanelFoot>
           Bars: reviews per {noun} (left). Line: average rating /5 (right); a gap means no reviews.
-        </p>
+        </PanelFoot>
       )}
-    </div>
+    </Outer>
   );
 }

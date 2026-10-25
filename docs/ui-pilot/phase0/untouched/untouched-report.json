@@ -1,0 +1,149 @@
+{
+  "results": [
+    {
+      "route": "accounting",
+      "accent": "green",
+      "file": "accounting-green-light.png",
+      "url": "/accounting",
+      "title": "Operate",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "legacy": {
+        "accent": "#2563eb",
+        "canvas": "#f8fafc",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "fg": "#0f172a",
+        "fg2": "#334155",
+        "fg3": "#64748b",
+        "line": "#e2e8f0",
+        "lineStrong": "#cbd5e1",
+        "rowHover": "#f1f5f9"
+      },
+      "uiAccent": "#2c6f4c",
+      "dataAccent": null,
+      "bodyText": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | E"
+    },
+    {
+      "route": "accounting",
+      "accent": "orange",
+      "file": "accounting-orange-light.png",
+      "url": "/accounting",
+      "title": "Operate",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "legacy": {
+        "accent": "#2563eb",
+        "canvas": "#f8fafc",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "fg": "#0f172a",
+        "fg2": "#334155",
+        "fg3": "#64748b",
+        "line": "#e2e8f0",
+        "lineStrong": "#cbd5e1",
+        "rowHover": "#f1f5f9"
+      },
+      "uiAccent": "#b45309",
+      "dataAccent": "orange",
+      "bodyText": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | E"
+    },
+    {
+      "route": "scheduling-annual",
+      "accent": "green",
+      "file": "scheduling-annual-green-light.png",
+      "url": "/scheduling/annual",
+      "title": "Operate",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "legacy": {
+        "accent": "#2563eb",
+        "canvas": "#f8fafc",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "fg": "#0f172a",
+        "fg2": "#334155",
+        "fg3": "#64748b",
+        "line": "#e2e8f0",
+        "lineStrong": "#cbd5e1",
+        "rowHover": "#f1f5f9"
+      },
+      "uiAccent": "#2c6f4c",
+      "dataAccent": null,
+      "bodyText": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | E"
+    },
+    {
+      "route": "scheduling-annual",
+      "accent": "orange",
+      "file": "scheduling-annual-orange-light.png",
+      "url": "/scheduling/annual",
+      "title": "Operate",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "legacy": {
+        "accent": "#2563eb",
+        "canvas": "#f8fafc",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "fg": "#0f172a",
+        "fg2": "#334155",
+        "fg3": "#64748b",
+        "line": "#e2e8f0",
+        "lineStrong": "#cbd5e1",
+        "rowHover": "#f1f5f9"
+      },
+      "uiAccent": "#b45309",
+      "dataAccent": "orange",
+      "bodyText": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | E"
+    },
+    {
+      "route": "admin-appearance",
+      "accent": "green",
+      "file": "admin-appearance-green-light.png",
+      "url": "/admin/appearance",
+      "title": "Operate",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "legacy": {
+        "accent": "#2563eb",
+        "canvas": "#f8fafc",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "fg": "#0f172a",
+        "fg2": "#334155",
+        "fg3": "#64748b",
+        "line": "#e2e8f0",
+        "lineStrong": "#cbd5e1",
+        "rowHover": "#f1f5f9"
+      },
+      "uiAccent": "#2c6f4c",
+      "dataAccent": null,
+      "bodyText": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | E"
+    },
+    {
+      "route": "admin-appearance",
+      "accent": "orange",
+      "file": "admin-appearance-orange-light.png",
+      "url": "/admin/appearance",
+      "title": "Operate",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "legacy": {
+        "accent": "#2563eb",
+        "canvas": "#f8fafc",
+        "surface": "#ffffff",
+        "surface2": "#f1f5f9",
+        "fg": "#0f172a",
+        "fg2": "#334155",
+        "fg3": "#64748b",
+        "line": "#e2e8f0",
+        "lineStrong": "#cbd5e1",
+        "rowHover": "#f1f5f9"
+      },
+      "uiAccent": "#b45309",
+      "dataAccent": "orange",
+      "bodyText": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | E"
+    }
+  ],
+  "errors": []
+}

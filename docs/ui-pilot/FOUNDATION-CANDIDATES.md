@@ -1,9 +1,12 @@
 # Foundation candidates from the Reviews Stats pilot
 
-Status: **inventory only — nothing here is a global default yet.**
-Source: `src/app/(dashboard)/reviews/stats/reviews-stats.css` and the pilot
-components on `ui/reviews-stats-pilot`. The tokens below are scoped under
-`.revstats` / `.revstats-header` and are imported by the Stats page only.
+Status: **partially promoted.** Phase 0 promoted the semantic token layer, the panel/KPI
+anatomy and the pill-nav prefix into opt-in `--ui-*` / `ui-*` foundations (see
+`ROLLOUT.md` and `REPORT.md`). The rest of this list is still a candidate, not a global
+default.
+Source (historical): `src/app/(dashboard)/reviews/stats/reviews-stats.css` and the pilot
+components on `ui/reviews-stats-pilot`. The token names below are the pre-extraction
+`--rs-*` names; the shipped names are `--ui-*`.
 
 Use this list to decide what is worth promoting after the real screen is
 approved. Do not copy the whole file into `globals.css`.

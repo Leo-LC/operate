@@ -1,0 +1,1113 @@
+{
+  "results": [
+    {
+      "vp": "desktop-1440",
+      "accent": "green",
+      "theme": "light",
+      "file": "desktop-1440-green-light.png",
+      "dark": false,
+      "dataAccent": null,
+      "scrollW": 1440,
+      "clientW": 1440,
+      "tokens": {
+        "accent": "#2c6f4c",
+        "accentText": "#24624a",
+        "accentSoft": "#e9f2ec",
+        "accentFg": "#ffffff",
+        "focus": "#2c6f4c",
+        "series": "#2c6f4c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        168.63,
+        168.63,
+        168.63,
+        168.63
+      ],
+      "top": {
+        "h": 353.25,
+        "y": 235
+      },
+      "bottom": {
+        "h": 610.5,
+        "y": 612
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(233, 242, 236)",
+        "color": "rgb(36, 98, 74)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "activeNav": {
+        "background-color": "rgb(44, 111, 76)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(44, 111, 76)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 353,
+      "tablePanelH": 262
+    },
+    {
+      "vp": "laptop-1024",
+      "accent": "green",
+      "theme": "light",
+      "file": "laptop-1024-green-light.png",
+      "dark": false,
+      "dataAccent": null,
+      "scrollW": 1024,
+      "clientW": 1024,
+      "tokens": {
+        "accent": "#2c6f4c",
+        "accentText": "#24624a",
+        "accentSoft": "#e9f2ec",
+        "accentFg": "#ffffff",
+        "focus": "#2c6f4c",
+        "series": "#2c6f4c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        177.44,
+        177.44,
+        177.44,
+        177.44
+      ],
+      "top": {
+        "h": 370.88,
+        "y": 235
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 630
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(233, 242, 236)",
+        "color": "rgb(36, 98, 74)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "activeNav": {
+        "background-color": "rgb(44, 111, 76)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(44, 111, 76)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 371,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "tablet-768",
+      "accent": "green",
+      "theme": "light",
+      "file": "tablet-768-green-light.png",
+      "dark": false,
+      "dataAccent": null,
+      "scrollW": 768,
+      "clientW": 768,
+      "tokens": {
+        "accent": "#2c6f4c",
+        "accentText": "#24624a",
+        "accentSoft": "#e9f2ec",
+        "accentFg": "#ffffff",
+        "focus": "#2c6f4c",
+        "series": "#2c6f4c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        143.84,
+        143.84,
+        143.84,
+        143.84
+      ],
+      "top": {
+        "h": 680.94,
+        "y": 277
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 982
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(233, 242, 236)",
+        "color": "rgb(36, 98, 74)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "activeNav": {
+        "background-color": "rgb(44, 111, 76)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(44, 111, 76)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 353,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "mobile-390",
+      "accent": "green",
+      "theme": "light",
+      "file": "mobile-390-green-light.png",
+      "dark": false,
+      "dataAccent": null,
+      "scrollW": 390,
+      "clientW": 390,
+      "tokens": {
+        "accent": "#2c6f4c",
+        "accentText": "#24624a",
+        "accentSoft": "#e9f2ec",
+        "accentFg": "#ffffff",
+        "focus": "#2c6f4c",
+        "series": "#2c6f4c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        158.52,
+        158.52,
+        158.52,
+        158.52
+      ],
+      "top": {
+        "h": 748.78,
+        "y": 341
+      },
+      "bottom": {
+        "h": 920.55,
+        "y": 1114
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(233, 242, 236)",
+        "color": "rgb(36, 98, 74)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "activeNav": {
+        "background-color": "rgb(44, 111, 76)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(44, 111, 76)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(44, 111, 76)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 396,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "desktop-1440",
+      "accent": "orange",
+      "theme": "light",
+      "file": "desktop-1440-orange-light.png",
+      "dark": false,
+      "dataAccent": "orange",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "tokens": {
+        "accent": "#b45309",
+        "accentText": "#9a3412",
+        "accentSoft": "#fdf0e7",
+        "accentFg": "#ffffff",
+        "focus": "#b45309",
+        "series": "#c2410c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        168.63,
+        168.63,
+        168.63,
+        168.63
+      ],
+      "top": {
+        "h": 353.25,
+        "y": 235
+      },
+      "bottom": {
+        "h": 610.5,
+        "y": 612
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(253, 240, 231)",
+        "color": "rgb(154, 52, 18)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "activeNav": {
+        "background-color": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(194, 65, 12)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 353,
+      "tablePanelH": 262
+    },
+    {
+      "vp": "laptop-1024",
+      "accent": "orange",
+      "theme": "light",
+      "file": "laptop-1024-orange-light.png",
+      "dark": false,
+      "dataAccent": "orange",
+      "scrollW": 1024,
+      "clientW": 1024,
+      "tokens": {
+        "accent": "#b45309",
+        "accentText": "#9a3412",
+        "accentSoft": "#fdf0e7",
+        "accentFg": "#ffffff",
+        "focus": "#b45309",
+        "series": "#c2410c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        177.44,
+        177.44,
+        177.44,
+        177.44
+      ],
+      "top": {
+        "h": 370.88,
+        "y": 235
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 630
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(253, 240, 231)",
+        "color": "rgb(154, 52, 18)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "activeNav": {
+        "background-color": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(194, 65, 12)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 371,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "tablet-768",
+      "accent": "orange",
+      "theme": "light",
+      "file": "tablet-768-orange-light.png",
+      "dark": false,
+      "dataAccent": "orange",
+      "scrollW": 768,
+      "clientW": 768,
+      "tokens": {
+        "accent": "#b45309",
+        "accentText": "#9a3412",
+        "accentSoft": "#fdf0e7",
+        "accentFg": "#ffffff",
+        "focus": "#b45309",
+        "series": "#c2410c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        143.84,
+        143.84,
+        143.84,
+        143.84
+      ],
+      "top": {
+        "h": 680.94,
+        "y": 277
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 982
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(253, 240, 231)",
+        "color": "rgb(154, 52, 18)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "activeNav": {
+        "background-color": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(194, 65, 12)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 353,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "mobile-390",
+      "accent": "orange",
+      "theme": "light",
+      "file": "mobile-390-orange-light.png",
+      "dark": false,
+      "dataAccent": "orange",
+      "scrollW": 390,
+      "clientW": 390,
+      "tokens": {
+        "accent": "#b45309",
+        "accentText": "#9a3412",
+        "accentSoft": "#fdf0e7",
+        "accentFg": "#ffffff",
+        "focus": "#b45309",
+        "series": "#c2410c",
+        "positive": "#1f6b45",
+        "negative": "#a63b30",
+        "warn": "#8a5a17",
+        "warnSoft": "#fbf3e4"
+      },
+      "kpis": [
+        158.52,
+        158.52,
+        158.52,
+        158.52
+      ],
+      "top": {
+        "h": 748.78,
+        "y": 341
+      },
+      "bottom": {
+        "h": 920.55,
+        "y": 1114
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(253, 240, 231)",
+        "color": "rgb(154, 52, 18)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "activeNav": {
+        "background-color": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(180, 83, 9)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(194, 65, 12)"
+      },
+      "warnFill": {
+        "background-color": "rgb(138, 90, 23)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(166, 59, 48)"
+      },
+      "positiveText": {
+        "color": "rgb(31, 107, 69)"
+      },
+      "negativeText": {
+        "color": "rgb(166, 59, 48)"
+      },
+      "callout": {
+        "background-color": "rgb(251, 243, 228)",
+        "color": "rgb(69, 79, 73)"
+      },
+      "panelH": 396,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "desktop-1440",
+      "accent": "green",
+      "theme": "dark",
+      "file": "desktop-1440-green-dark.png",
+      "dark": true,
+      "dataAccent": null,
+      "scrollW": 1440,
+      "clientW": 1440,
+      "tokens": {
+        "accent": "#2f7a52",
+        "accentText": "#7fc7a1",
+        "accentSoft": "#1c2b23",
+        "accentFg": "#ffffff",
+        "focus": "#7fc7a1",
+        "series": "#3f9268",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        168.63,
+        168.63,
+        168.63,
+        168.63
+      ],
+      "top": {
+        "h": 353.25,
+        "y": 235
+      },
+      "bottom": {
+        "h": 610.5,
+        "y": 612
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(28, 43, 35)",
+        "color": "rgb(127, 199, 161)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "activeNav": {
+        "background-color": "rgb(47, 122, 82)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(63, 146, 104)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 353,
+      "tablePanelH": 262
+    },
+    {
+      "vp": "laptop-1024",
+      "accent": "green",
+      "theme": "dark",
+      "file": "laptop-1024-green-dark.png",
+      "dark": true,
+      "dataAccent": null,
+      "scrollW": 1024,
+      "clientW": 1024,
+      "tokens": {
+        "accent": "#2f7a52",
+        "accentText": "#7fc7a1",
+        "accentSoft": "#1c2b23",
+        "accentFg": "#ffffff",
+        "focus": "#7fc7a1",
+        "series": "#3f9268",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        177.44,
+        177.44,
+        177.44,
+        177.44
+      ],
+      "top": {
+        "h": 370.88,
+        "y": 235
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 630
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(28, 43, 35)",
+        "color": "rgb(127, 199, 161)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "activeNav": {
+        "background-color": "rgb(47, 122, 82)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(63, 146, 104)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 371,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "tablet-768",
+      "accent": "green",
+      "theme": "dark",
+      "file": "tablet-768-green-dark.png",
+      "dark": true,
+      "dataAccent": null,
+      "scrollW": 768,
+      "clientW": 768,
+      "tokens": {
+        "accent": "#2f7a52",
+        "accentText": "#7fc7a1",
+        "accentSoft": "#1c2b23",
+        "accentFg": "#ffffff",
+        "focus": "#7fc7a1",
+        "series": "#3f9268",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        143.84,
+        143.84,
+        143.84,
+        143.84
+      ],
+      "top": {
+        "h": 680.94,
+        "y": 277
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 982
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(28, 43, 35)",
+        "color": "rgb(127, 199, 161)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "activeNav": {
+        "background-color": "rgb(47, 122, 82)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(63, 146, 104)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 353,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "mobile-390",
+      "accent": "green",
+      "theme": "dark",
+      "file": "mobile-390-green-dark.png",
+      "dark": true,
+      "dataAccent": null,
+      "scrollW": 390,
+      "clientW": 390,
+      "tokens": {
+        "accent": "#2f7a52",
+        "accentText": "#7fc7a1",
+        "accentSoft": "#1c2b23",
+        "accentFg": "#ffffff",
+        "focus": "#7fc7a1",
+        "series": "#3f9268",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        158.52,
+        158.52,
+        158.52,
+        158.52
+      ],
+      "top": {
+        "h": 748.78,
+        "y": 341
+      },
+      "bottom": {
+        "h": 920.55,
+        "y": 1114
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(28, 43, 35)",
+        "color": "rgb(127, 199, 161)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "activeNav": {
+        "background-color": "rgb(47, 122, 82)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(47, 122, 82)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(63, 146, 104)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 396,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "desktop-1440",
+      "accent": "orange",
+      "theme": "dark",
+      "file": "desktop-1440-orange-dark.png",
+      "dark": true,
+      "dataAccent": "orange",
+      "scrollW": 1440,
+      "clientW": 1440,
+      "tokens": {
+        "accent": "#c2410c",
+        "accentText": "#fdba74",
+        "accentSoft": "#2a1a12",
+        "accentFg": "#ffffff",
+        "focus": "#fdba74",
+        "series": "#fb923c",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        168.63,
+        168.63,
+        168.63,
+        168.63
+      ],
+      "top": {
+        "h": 353.25,
+        "y": 235
+      },
+      "bottom": {
+        "h": 610.5,
+        "y": 612
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(42, 26, 18)",
+        "color": "rgb(253, 186, 116)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "activeNav": {
+        "background-color": "rgb(194, 65, 12)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(251, 146, 60)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 353,
+      "tablePanelH": 262
+    },
+    {
+      "vp": "laptop-1024",
+      "accent": "orange",
+      "theme": "dark",
+      "file": "laptop-1024-orange-dark.png",
+      "dark": true,
+      "dataAccent": "orange",
+      "scrollW": 1024,
+      "clientW": 1024,
+      "tokens": {
+        "accent": "#c2410c",
+        "accentText": "#fdba74",
+        "accentSoft": "#2a1a12",
+        "accentFg": "#ffffff",
+        "focus": "#fdba74",
+        "series": "#fb923c",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        177.44,
+        177.44,
+        177.44,
+        177.44
+      ],
+      "top": {
+        "h": 370.88,
+        "y": 235
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 630
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(42, 26, 18)",
+        "color": "rgb(253, 186, 116)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "activeNav": {
+        "background-color": "rgb(194, 65, 12)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(251, 146, 60)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 371,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "tablet-768",
+      "accent": "orange",
+      "theme": "dark",
+      "file": "tablet-768-orange-dark.png",
+      "dark": true,
+      "dataAccent": "orange",
+      "scrollW": 768,
+      "clientW": 768,
+      "tokens": {
+        "accent": "#c2410c",
+        "accentText": "#fdba74",
+        "accentSoft": "#2a1a12",
+        "accentFg": "#ffffff",
+        "focus": "#fdba74",
+        "series": "#fb923c",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        143.84,
+        143.84,
+        143.84,
+        143.84
+      ],
+      "top": {
+        "h": 680.94,
+        "y": 277
+      },
+      "bottom": {
+        "h": 880.05,
+        "y": 982
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(42, 26, 18)",
+        "color": "rgb(253, 186, 116)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "activeNav": {
+        "background-color": "rgb(194, 65, 12)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(251, 146, 60)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 353,
+      "tablePanelH": 246
+    },
+    {
+      "vp": "mobile-390",
+      "accent": "orange",
+      "theme": "dark",
+      "file": "mobile-390-orange-dark.png",
+      "dark": true,
+      "dataAccent": "orange",
+      "scrollW": 390,
+      "clientW": 390,
+      "tokens": {
+        "accent": "#c2410c",
+        "accentText": "#fdba74",
+        "accentSoft": "#2a1a12",
+        "accentFg": "#ffffff",
+        "focus": "#fdba74",
+        "series": "#fb923c",
+        "positive": "#7fc7a1",
+        "negative": "#f0938a",
+        "warn": "#e3b06a",
+        "warnSoft": "#2a2114"
+      },
+      "kpis": [
+        158.52,
+        158.52,
+        158.52,
+        158.52
+      ],
+      "top": {
+        "h": 748.78,
+        "y": 341
+      },
+      "bottom": {
+        "h": 920.55,
+        "y": 1114
+      },
+      "gap": 24,
+      "selectedPill": {
+        "background-color": "rgb(42, 26, 18)",
+        "color": "rgb(253, 186, 116)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "activeNav": {
+        "background-color": "rgb(194, 65, 12)",
+        "color": "rgb(255, 255, 255)",
+        "border-color": "rgb(194, 65, 12)"
+      },
+      "barFill": "var(--ui-series-primary)",
+      "distributionFill": {
+        "background-color": "rgb(251, 146, 60)"
+      },
+      "warnFill": {
+        "background-color": "rgb(227, 176, 106)"
+      },
+      "negativeFill": {
+        "background-color": "rgb(240, 147, 138)"
+      },
+      "positiveText": {
+        "color": "rgb(127, 199, 161)"
+      },
+      "negativeText": {
+        "color": "rgb(240, 147, 138)"
+      },
+      "callout": {
+        "background-color": "rgb(42, 33, 20)",
+        "color": "rgb(195, 204, 199)"
+      },
+      "panelH": 396,
+      "tablePanelH": 246
+    }
+  ],
+  "focusProbe": {
+    "outline": "rgb(253, 186, 116) none 3px",
+    "boxShadow": "rgb(253, 186, 116) 0px 0px 0px 3px"
+  },
+  "pageErrors": []
+}

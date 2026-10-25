@@ -1,15 +1,101 @@
-# Handoff — Reviews Stats pilot checkpoint
+# Handoff — Reviews Stats pilot + Phase 0 foundations
+
+## Phase 0 checkpoint — shared foundations + accent preference
+
+Checkpoint: the **latest commit on `ui/reviews-stats-pilot`** (Phase 0), parent `0d264e6`.
+Branch: **`ui/reviews-stats-pilot`**. Local commit; **not pushed, merged, deployed or
+migrated**. The exact SHA is the tip of the branch (`git log --oneline -1`).
+
+Scope: shared semantic tokens, `Panel`/`KpiStat`, the opt-in pill nav, and a
+browser-local green/orange accent preference. `/reviews/stats` is the first consumer.
+**No other module was migrated.**
+
+### Decisions resolved
+
+1. **Green is the default accent** for both company themes (`capybara` and `forest`).
+2. The accent choice lives in the existing user area: the sidebar user footer opens a
+   **Preferences** dialog with **Company default / Green / Orange**. No new permanent
+   toolbar control and no new route.
+3. **Orange is allowed with either company theme**, including `forest`.
+4. The accent applies to **selected controls, primary actions and the primary chart
+   series**. Success/warning/error stay semantic and independent; multi-series charts
+   keep distinguishable non-accent colors.
+
+### Phase 0 files
+
+| Area | File |
+| --- | --- |
+| Tokens + primitives CSS | `src/app/globals.css` (additive `--ui-*`, `.ui-panel*`, `.ui-kpi*`, `.ui-pillnav*`, `.ui-accent-option*`) |
+| Accent state + test | `src/lib/accent.ts`, `src/lib/accent.test.ts` |
+| Accent UI | `src/components/accent-preference.tsx` |
+| Pre-paint | `src/app/layout.tsx` |
+| Entry point | `src/components/dashboard-shell.tsx` |
+| Providers | `src/components/providers.tsx` |
+| Panel primitive | `src/components/ui/panel.tsx` |
+| KPI primitive | `src/components/ui/kpi-stat.tsx` |
+| Pill nav | `src/components/ui/module-tabs.tsx` |
+| First consumer | `src/app/(dashboard)/reviews/stats/reviews-stats.css`, `src/modules/reviews/components/stats/ReviewsStats{Client,Trend,Table,Distribution}.tsx` |
+| Evidence | `docs/ui-pilot/phase0/` — 16 Stats captures, 5 Preferences captures, 6 untouched-route captures, `capture-report.json`, `untouched/untouched-report.json` |
+
+### Accent behavior
+
+- Precedence: explicit `localStorage["operate.accent"]` (`green`/`orange`) → company
+  default (green for both themes) → green fallback.
+- "Company default" removes the key and the `data-accent` attribute.
+- Cross-tab changes sync through the `storage` event; the pre-paint script in
+  `layout.tsx` applies the stored choice before first paint.
+- Light/dark remains `localStorage["operate.theme"]`; the company theme remains
+  `app_settings.theme` on `/admin/appearance`.
+- **Limitation:** the accent is browser-local. It is not stored in the database, not
+  synced across devices/browsers, and never changes another person's screen. No DB
+  migration was made.
+
+### Phase 0 verification
+
+| Check | Result |
+| --- | --- |
+| `npm run test` | **251 passed / 38 files** (was 248 / 37; +3 accent tests) |
+| `npx tsc --noEmit` | **Clean**, exit 0 |
+| `npm run lint` | 20 errors / 3 warnings, all in pre-existing files; **0 findings in Phase 0 files** |
+| `npm run build` | Exit 0 |
+| Stats parity vs `e6e59c3` | 390/768/1024/1440 × light/dark: **16–18 px diff** per capture (0.001–0.002%), consistent with the live timestamp |
+| Accent persistence | Orange survives reload; Company default removes storage and reverts to green |
+| Theme toggle | Light ↔ dark works with either accent |
+| Semantic independence | `--ui-positive`, `--ui-negative`, `--ui-warn` identical in green and orange for each mode |
+| Contrast | Text, selected controls, focus and chart elements pass AA / 3:1 in all four combinations |
+| Untouched routes | `/accounting`, `/scheduling/annual`, `/admin/appearance`: **0 diff pixels** green vs orange; legacy tokens unchanged |
+| Overflow | `scrollWidth === clientWidth` at all 16 Stats combinations |
+| Console | No new page errors; only the pre-existing `DashboardShell` theme-toggle hydration warning |
+
+### Phase 0 limitations / pending
+
+1. The accent is browser-local only (no server sync, no DB field).
+2. Staff-role runtime was not exercised; only the preview owner account is available.
+   Role/visibility code is unchanged.
+3. A real organization `forest` theme switch was not performed; `forest` was verified
+   through computed styles and the existing theme contract.
+4. Physical touch devices were not used; verification is Playwright emulation.
+5. A full automated WCAG AA sweep was not run; contrast was sampled/calculated and
+   keyboard focus was checked on the accent control and Stats controls.
+6. The dev server was restarted after the production build; use `npm run dev` for the
+   local URL.
+
+**Next task:** review and accept the Phase 0 commit. Only then start Wave 1 of
+`ROLLOUT.md`. Do not migrate another module, push, merge, deploy or migrate a database
+without a new instruction.
+
+## Baseline checkpoint — Reviews Stats pilot
 
 Checkpoint: **`e6e59c3`** — `Reviews Stats UI pilot: accepted visual baseline`
-Branch: **`ui/reviews-stats-pilot`**
 Parent: `4832826` (Loyverse per-typed-price breakdown)
 Scope of this checkpoint: `/reviews/stats` only. Local commit; **not pushed, merged, deployed or migrated.**
 
-The visual direction is accepted as the baseline for the UI rollout. The rollout itself has
-**not** started. `docs/ui-pilot/ROLLOUT.md` defines the next phase and module order.
+The visual direction is accepted as the baseline for the UI rollout. Phase 0 has now
+extracted its foundations; see the section above. `docs/ui-pilot/ROLLOUT.md` defines the
+module order and acceptance gates.
 
-> `REPORT.md` still contains the line "working tree, **not committed**". That sentence
-> describes the state before this checkpoint; `e6e59c3` is the committed record.
+> `REPORT.md`'s old line "working tree, **not committed**" described the state before the
+> baseline checkpoint; `e6e59c3` is the committed record.
 
 ## Accepted decisions
 
@@ -26,8 +112,9 @@ The visual direction is accepted as the baseline for the UI rollout. The rollout
    28 px value) while keeping the 2×2 layout and every label.
 5. Shared UI changes stay opt-in: `ModuleTabs variant="pills"` and optional
    `ShopMultiSelect` class hooks; default variants are unchanged.
-6. Nothing is promoted to global defaults. `--rs-*` tokens and `.revstats` rules are
-   route-local and imported by the Stats page only.
+6. At the baseline checkpoint nothing was promoted to global defaults; the `--rs-*`
+   tokens and `.revstats` rules were route-local. Phase 0 later promoted the semantic
+   values and primitives (see the Phase 0 section above).
 7. Real data and existing contracts are preserved: no API route, RPC, metric,
    permission, sync handler or dependency changed.
 8. Next phase is additive foundation extraction plus an optional green/orange user accent
@@ -114,15 +201,15 @@ Do not stage, revert or delete these unless the user explicitly asks:
 - Untracked: `operate-ui-pilot-repo-files.zip`
 - Untracked: `skills-lock.json`
 
-The pilot commit and this handoff commit must stay separate from those changes. Do not
+The pilot commit and the Phase 0 commit must stay separate from those changes. Do not
 amend `e6e59c3`; add new commits.
 
 ## Next task and boundaries
 
-**Next task:** read `ROLLOUT.md` and implement its Phase 0 (foundation extraction plus the
-optional accent preference) only after the user confirms the plan.
+**Next task:** review the Phase 0 commit. If accepted, start **Wave 1** of `ROLLOUT.md`
+(Reviews siblings, then the low-risk read-only dashboards) one surface at a time.
 
-In scope:
+In scope for Phase 0 (completed):
 
 - Extract the proven semantic tokens and primitives from the pilot, additively.
 - Add a localStorage-backed green/orange accent override that composes with light/dark and
@@ -130,9 +217,9 @@ In scope:
 - Keep `reviews/stats` visually identical to the accepted checkpoint.
 - Keep success/warning/error colors independent of the accent.
 
-Out of scope:
+Out of scope until separately requested:
 
-- Migrating another module (Phase 1+), unless separately requested.
+- Migrating another module (Wave 1+).
 - Changing global defaults so existing modules restyle silently.
 - Database migrations, new dependencies, multi-tenant work or feature changes.
 - Push, merge, deploy.

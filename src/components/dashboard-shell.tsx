@@ -18,6 +18,7 @@ import type { UserPermissions } from "@/core/permissions/types";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
 import { ModuleVisitTracker } from "@/components/module-visit-tracker";
+import { AccentPreferenceControl } from "@/components/accent-preference";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -140,6 +141,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [pwd, setPwd] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
   const [moduleVisibility, setModuleVisibility] = useState<Record<string, boolean> | null>(null);
@@ -549,21 +551,28 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             flexShrink: 0,
           }}
         >
-          {/* Avatar + profile (direction: click to change password) */}
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <div
-            onClick={() => { if (isDirection) setPwdOpen(true); }}
-            title={isDirection ? "Changer mon mot de passe" : undefined}
+          {/* Avatar + profile: personal preferences (direction also has a password) */}
+          <button
+            type="button"
+            onClick={() => setPrefsOpen(true)}
+            title="Preferences"
+            aria-label={`Preferences for ${displayName}`}
+            aria-haspopup="dialog"
+            aria-expanded={prefsOpen}
             style={{
               display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0,
-              cursor: isDirection ? "pointer" : "default",
+              cursor: "pointer",
               borderRadius: "var(--r-sm)",
-              padding: isDirection ? "2px 4px" : 0,
-              margin: isDirection ? "-2px -4px" : 0,
+              padding: "2px 4px",
+              margin: "-2px -4px",
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              textAlign: "left",
             }}
-            className={isDirection ? "hover:!bg-[var(--row-hover)]" : undefined}
+            className="hover:!bg-[var(--row-hover)]"
           >
-            <div
+            <span
               style={{
                 width: 28,
                 height: 28,
@@ -581,9 +590,9 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               }}
             >
               {initials(displayName || email)}
-            </div>
+            </span>
 
-            <div className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+            <span className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
               <span
                 style={{
                   fontSize: 13,
@@ -599,8 +608,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
                 {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : permissions.global_role === "reviewer" ? "Reviewer" : permissions.global_role === "direction" ? "Direction" : "Staff"}
               </span>
-            </div>
-          </div>
+            </span>
+          </button>
 
           {/* Sign out */}
           <button
@@ -788,6 +797,31 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <ModuleVisitTracker />
+      <Modal
+        open={prefsOpen}
+        onClose={() => setPrefsOpen(false)}
+        title="Preferences"
+        description="Personal settings for this browser."
+        compact
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <AccentPreferenceControl />
+          {isDirection && (
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setPrefsOpen(false);
+                  setPwdOpen(true);
+                }}
+              >
+                Change password
+              </Button>
+            </div>
+          )}
+        </div>
+      </Modal>
       {isDirection && (
         <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="Mon mot de passe" description="Définir ou changer votre mot de passe.">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

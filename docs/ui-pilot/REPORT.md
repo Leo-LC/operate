@@ -1,7 +1,9 @@
 # Reviews Stats UI pilot — validation report
 
-Branch: `ui/reviews-stats-pilot` (working tree, **not committed**)
-Scope: `/reviews/stats` only. No deploy, push, merge or DB migration.
+Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Phase 0**
+(shared foundations + accent preference) is committed on top of `0d264e6`.
+Scope: `/reviews/stats` pilot plus the Phase 0 foundation/accent work. **No other module
+was migrated.** No deploy, push, merge or DB migration.
 Local URL: **http://localhost:3000/reviews/stats** (preview login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
 
 The dev server is running. Sign in with the existing preview password from `.env.local`;
@@ -9,13 +11,112 @@ the password is not recorded here.
 
 ## Final status
 
-Pilot complete on this branch. Both requested final refinements — rating precision and
-mobile KPI density — are implemented and validated, with no new blockers. The visual
-direction is accepted for the pilot; the site-wide rollout has **not** started. Changes
-remain uncommitted. Runtime staff access, real Google sync and a real organization
-`forest` theme switch remain pending (details below).
+Pilot and Phase 0 are complete on this branch. Both pilot refinements — rating precision
+and mobile KPI density — remain validated. Phase 0 extracted the accepted Stats values
+into an opt-in `--ui-*` foundation, added `Panel`/`KpiStat`, and shipped a browser-local
+green/orange accent preference. `/reviews/stats` is visually unchanged (pixel parity
+below), and no other module changed appearance. The site-wide rollout has **not** started.
+Phase 0 is committed locally; it is not pushed, merged or deployed. Runtime staff access,
+real Google sync, a real organization `forest` switch and physical touch devices remain
+pending (details below).
 
-## What changed
+## Phase 0 — shared foundations and accent preference
+
+Phase 0 is additive: it introduces an opt-in semantic layer and primitives, makes
+`/reviews/stats` the first consumer, and adds a browser-local accent choice. It does not
+repoint the legacy global tokens or restyle another module.
+
+### What changed
+
+| Area | File | Change |
+| --- | --- | --- |
+| Tokens | `src/app/globals.css` | Additive `--ui-*` light/dark layer (surfaces, text, accent, semantic status, series, shape, spacing, type) and `.ui-panel*`, `.ui-kpi*`, `.ui-pillnav*`, `.ui-accent-option*`. Legacy `--accent/--canvas/--surface/--fg/--line` untouched. |
+| Accent override | `src/app/globals.css` | Green is the default. `[data-accent="orange"]` and `[data-accent="orange"].dark` override only the accent, focus and primary-series tokens. |
+| Accent state | `src/lib/accent.ts`, `src/lib/accent.test.ts` | Normalize/read/apply/write helpers, storage key, event name and pre-paint script. |
+| Accent UI | `src/components/accent-preference.tsx` | `AccentSync` (cross-tab + storage event) and the Preferences control. |
+| Pre-paint | `src/app/layout.tsx` | Inline script applies the stored accent before first paint. `<html>` already has `suppressHydrationWarning`. |
+| Entry point | `src/components/dashboard-shell.tsx` | Sidebar user footer opens Preferences; direction users keep their password entry point inside the dialog. |
+| Primitives | `src/components/ui/panel.tsx`, `src/components/ui/kpi-stat.tsx` | Shared panel anatomy and KPI anatomy. |
+| Pill nav | `src/components/ui/module-tabs.tsx` | `variant="pills"` now uses `ui-pillnav*`; still opt-in. |
+| First consumer | `src/app/(dashboard)/reviews/stats/reviews-stats.css`, `src/modules/reviews/components/stats/ReviewsStats{Client,Trend,Table,Distribution}.tsx` | Stats consumes `--ui-*` and the primitives. `--rs-*` and the duplicated panel/KPI/pill rules were removed. |
+
+### Accent behavior
+
+- Precedence: `localStorage["operate.accent"]` (`green`/`orange`) → company default
+  (green for both `capybara` and `forest`) → green fallback.
+- "Company default" removes the key and `data-accent`; orange sets
+  `data-accent="orange"`; green may be explicit but needs no override rule.
+- Cross-tab sync uses the `storage` event. Invalid values fall back safely.
+- Light/dark remains `localStorage["operate.theme"]`; the company theme remains
+  `app_settings.theme` on `/admin/appearance`.
+- **Limitation:** the accent is browser-local. There is no database field, no server sync
+  and no effect on another person's screen. No DB migration was made.
+
+### Verification matrix
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Stats parity with `e6e59c3` | **Pass.** 16–18 differing pixels per capture (0.001–0.002%) at 1440/1024/768/390 × light/dark; consistent with the live timestamp. | `docs/ui-pilot/phase0/`, `diff-*.png` |
+| Layout metrics unchanged | **Pass.** KPI heights, top/bottom panel heights, 24 px section gap and distribution height identical in green and orange. | `phase0/capture-report.json` |
+| No page overflow | **Pass.** `scrollWidth === clientWidth` in all 16 combinations. | `phase0/capture-report.json` |
+| Green is the default | **Pass.** No `data-accent`; `--ui-accent` `#2c6f4c` light / `#2f7a52` dark. | `phase0/capture-report.json` |
+| Orange changes only accent tokens | **Pass.** `--ui-positive`, `--ui-negative`, `--ui-warn` and `--ui-warn-soft` are identical in green and orange for each mode. | `phase0/capture-report.json` |
+| Orange persistence | **Pass.** Selecting Orange sets `operate.accent=orange` and `data-accent="orange"`; it survives reload. | Playwright preference run |
+| Reset to company default | **Pass.** Company default removes the key/attribute and returns to green, including after reload. | Playwright preference run |
+| Theme toggle | **Pass.** Light ↔ dark works with either accent; `operate.theme` updates. | Playwright preference run |
+| Preferences UI | **Pass.** Three options, visible selected state, keyboard arrow selection, Escape closes, mobile layout fits 390 px. | `phase0/preferences-*.png` |
+| Focus ring | **Pass.** Real keyboard focus gives a 2 px solid `--ui-focus` ring on the option label; the clipped native input ring is suppressed. | Focus probe |
+| Untouched routes | **Pass.** `/accounting`, `/scheduling/annual`, `/admin/appearance` are **0 diff pixels** green vs orange; legacy `--accent` remains `#2563eb` and the legacy neutral scale is unchanged. | `phase0/untouched/` |
+| No new console errors | **Pass.** No page errors; only the pre-existing `DashboardShell` theme-toggle hydration warning. | `phase0/capture-report.json` |
+
+### Contrast (WCAG)
+
+Text/control pairs use 4.5:1; focus rings and graphical series use 3:1.
+
+| Mode | Pair | Ratio | Requirement |
+| --- | --- | --- | --- |
+| Green light | Accent text `#24624a` on soft `#e9f2ec` | 6.29 | 4.5 |
+| Green light | White on accent `#2c6f4c` | 6.03 | 4.5 |
+| Green light | Focus `#2c6f4c` on canvas `#f7f6f2` | 5.57 | 3 |
+| Green light | Bar `#2c6f4c` on panel `#ffffff` | 6.03 | 3 |
+| Green dark | Accent text `#7fc7a1` on soft `#1c2b23` | 7.46 | 4.5 |
+| Green dark | White on accent `#2f7a52` | 5.22 | 4.5 |
+| Green dark | Focus `#7fc7a1` on canvas `#16181a` | 8.97 | 3 |
+| Green dark | Bar `#3f9268` on panel `#1d2022` | 4.31 | 3 |
+| Orange light | Accent text `#9a3412` on soft `#fdf0e7` | 6.54 | 4.5 |
+| Orange light | White on accent `#b45309` | 5.02 | 4.5 |
+| Orange light | Focus `#b45309` on canvas `#f7f6f2` | 4.64 | 3 |
+| Orange light | Bar `#c2410c` on panel `#ffffff` | 5.18 | 3 |
+| Orange dark | Accent text `#fdba74` on soft `#2a1a12` | 9.92 | 4.5 |
+| Orange dark | White on accent `#c2410c` | 5.18 | 4.5 |
+| Orange dark | Focus `#fdba74` on canvas `#16181a` | 10.56 | 3 |
+| Orange dark | Bar `#fb923c` on panel `#1d2022` | 7.24 | 3 |
+
+Semantic status also passes in both modes: warning `5.36` light / `8.06` dark and
+negative `5.52` light / `7.61` dark on their soft surfaces.
+
+### Phase 0 commands
+
+| Command | Result |
+| --- | --- |
+| `npm run test` | **251 passed / 38 files** (was 248 / 37; +3 accent tests) |
+| `npx tsc --noEmit` | **Clean**, exit 0 |
+| `npm run lint` | 20 errors / 3 warnings, all pre-existing; **0 findings in Phase 0 files** |
+| `npm run build` | Exit 0 |
+
+### Phase 0 limitations / pending
+
+1. **Browser-local accent only** — no DB field, server sync, device sync or cross-user
+   effect. This is deliberate; a company-level accent would need a migration.
+2. **Staff-role runtime** — only the preview owner account was available. Role and
+   visibility code is unchanged.
+3. **Real `forest` organization switch** — `forest` was verified through computed styles
+   and the existing theme contract, not by changing a real organization's setting.
+4. **Physical touch devices** — Playwright emulation only.
+5. **Full WCAG AA sweep** — sampled/calculated contrast and keyboard checks, not a
+   complete audit.
+
+## What changed (pilot checkpoint, `e6e59c3`)
 
 | Area | File | Change |
 | --- | --- | --- |
@@ -120,7 +221,7 @@ earlier at y=694. There is no horizontal page overflow in either theme.
 | Real data, no invented values | Pass | Real cache data: 975 reviews, 4.78 avg, 67% replied, 6% low-star, 8 branches |
 | Global rollout | **Not started** | Deliberate; user decides after trying the screen |
 
-## Commands and results
+## Commands and results (pilot checkpoint, `e6e59c3`)
 
 | Command | Result |
 | --- | --- |
@@ -186,8 +287,14 @@ Local warm-cache sample only; not a benchmark. No dependency added.
 5. **User acceptance of the visual direction** — the screen is ready to judge, but the
    global token/nav rollout is intentionally not approved.
 
-## Deliberately pilot-local
+## What moved to the foundation, and what stayed pilot-local
 
-`--rs-*` tokens, the `.revstats` layout, the 2×2 KPI grid, the 680 px table scroller and
-the emerald bar / neutral line pairing. Nothing is promoted to `globals.css`. See
-`FOUNDATION-CANDIDATES.md` for the extraction shortlist and open questions.
+Moved in Phase 0: semantic surface/text/accent/status/series/shape/spacing/type tokens;
+the panel and KPI anatomy; the pill-nav class prefix. They live in `globals.css` and
+`src/components/ui/` and remain opt-in.
+
+Stayed pilot-local: the `.revstats` layout, the 2×2 KPI grid, the 40/60 and 70/30 splits,
+the 680 px table scroller, the compact branch disclosure breakpoint, the distribution
+order and star semantics, and the Reviews-specific `1–3★` copy.
+`FOUNDATION-CANDIDATES.md` remains the shortlist for future primitives; several items are
+still intentionally un-promoted.

@@ -1,10 +1,15 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **planning only.** The Reviews Stats pilot is accepted at `e6e59c3`; no foundation
-has been extracted and no other module has been migrated.
+Status: **Phase 0 complete.** The shared foundation and the browser-local accent
+preference are implemented, verified and committed on top of `0d264e6` on
+`ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`. **No
+other module has been migrated.** The Phase 0 commit is local: not pushed, merged,
+deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
+Phase 0 evidence: `docs/ui-pilot/phase0/` (16 accent × theme × viewport captures,
+preference-modal captures, untouched-route captures, `capture-report.json`).
 
 ## Principles
 
@@ -21,6 +26,66 @@ Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
    the interaction checks that module needs, and a user acceptance step.
 6. **No database migration and no new dependency** for this phase.
 
+## Phase 0 result (completed)
+
+The four open design decisions were resolved by the user:
+
+1. **Green is the default accent** for both company themes (`capybara` and `forest`).
+2. The accent choice lives in the existing user area as a **Preferences** dialog opened
+   from the sidebar user footer. It offers **Company default**, **Green** and **Orange**.
+   No new permanent toolbar control and no new route.
+3. **Orange is allowed with either company theme**, including `forest`.
+4. The accent applies to **selected controls, primary actions and the primary chart
+   series**. Success/warning/error colors stay semantic and independent; multi-series
+   charts keep distinguishable non-accent colors.
+
+### What shipped
+
+| Area | File | Result |
+| --- | --- | --- |
+| Tokens | `src/app/globals.css` | Additive `--ui-*` layer for light/dark: surfaces, text, accent, semantic status, series, shape, spacing and type. Legacy `--accent/--canvas/--surface/--fg/--line` untouched. |
+| Accent families | `src/app/globals.css` | Green is the default. `[data-accent="orange"]` overrides only `--ui-accent*` / `--ui-focus` / `--ui-series-primary`, with separate dark values. |
+| Primitives | `src/components/ui/panel.tsx`, `src/components/ui/kpi-stat.tsx` | `Panel`/`PanelHead`/`PanelBody`/`PanelFoot` and `KpiStat`; opt-in, used by Reviews Stats. |
+| Pill nav | `src/components/ui/module-tabs.tsx` | `variant="pills"` now uses the shared `ui-pillnav*` classes. Still opt-in; only Reviews uses it today. |
+| Accent state | `src/lib/accent.ts` (+ test) | `normalizeAccent`, `readAccent`, `applyAccent`, `writeAccent`, pre-paint init script. |
+| Accent UI | `src/components/accent-preference.tsx` | `AccentSync` and the Preferences control. |
+| Pre-paint | `src/app/layout.tsx` | Inline script applies the stored accent before first paint. `<html>` already has `suppressHydrationWarning`. |
+| Entry point | `src/components/dashboard-shell.tsx` | Sidebar user footer opens Preferences. Direction users keep their password entry point inside the dialog. |
+| First consumer | `src/app/(dashboard)/reviews/stats/reviews-stats.css` and `src/modules/reviews/components/stats/*` | Stats consumes `--ui-*` and the shared primitives; `--rs-*` and the duplicate panel/KPI/pill rules are gone. |
+
+### Accent precedence and storage
+
+1. `localStorage["operate.accent"]` = `green` or `orange` (explicit user choice).
+2. Company default = **green** for both company themes. The company theme itself remains
+   `app_settings.theme`, owner-controlled on `/admin/appearance`.
+3. Fallback = green. Invalid or missing values never throw.
+
+**Limitation:** the accent is stored in this browser only. It is not written to the
+database, is not synced between devices or browsers, and never changes another person's
+screen. Cross-tab changes sync through the `storage` event. "Company default" removes the
+key. Light/dark remains `localStorage["operate.theme"]` and is orthogonal to the accent.
+
+### Phase 0 acceptance gate — passed
+
+| Gate | Result |
+| --- | --- |
+| Stats parity with `e6e59c3` at 390/768/1024/1440, light + dark | Pass. Pixel diff **16–18 px** per capture (0.001–0.002%), consistent with the live timestamp. |
+| Green default with no stored preference | Pass. No `data-accent`; `--ui-accent` is `#2c6f4c` light / `#2f7a52` dark. |
+| Orange changes only accent tokens | Pass. Positive/negative/warn values are identical in green and orange for each mode. |
+| Reset to company default | Pass. `operate.accent` is removed and `data-accent` disappears. |
+| Persistence after reload | Pass. Orange survives a reload; default stays default. |
+| No flash / hydration regression | Pass. Pre-paint script plus `suppressHydrationWarning`; the only console warning is the pre-existing `DashboardShell` theme-toggle mismatch. |
+| Contrast | Pass for text, selected controls, focus and chart elements in all four mode combinations (values in `REPORT.md`). |
+| Untouched routes | Pass. `/accounting`, `/scheduling/annual`, `/admin/appearance` are **pixel-identical** in green vs orange; legacy tokens unchanged. |
+| Tests / typecheck / lint / build | `npm run test` 251/251; `npx tsc --noEmit` clean; lint unchanged at 20 errors / 3 warnings, all pre-existing; `npm run build` exit 0. |
+
+### Not in Phase 0
+
+- A company-level accent setting in `app_settings` (would need a migration).
+- Per-user server sync of the accent.
+- Repointing the legacy `--accent` / `--canvas` / `--surface` / `--fg` / `--line` scale.
+- Migrating any other module.
+
 ## Current state (verified in the repo)
 
 - 55 dashboard routes under `src/app/(dashboard)/`.
@@ -31,9 +96,13 @@ Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 - Shared primitives already in use: `page-header` (14 files), `stat` (10), `card` (20),
   `module-tabs` (8), `pill` (9 modules), `pill-button` (6), `modal` (9),
   `view-toggle` (4), `drawer`, `filter-trigger`.
-- The pilot's `--rs-*` tokens and `.revstats` layout are route-local. `ModuleTabs
-  variant="pills"` and the `ShopMultiSelect` class hooks are the only shared changes.
-- No accent preference storage exists today.
+- Phase 0 promoted the pilot's semantic values into an opt-in `--ui-*` layer in
+  `src/app/globals.css`; `/reviews/stats` is the first consumer. The route still owns its
+  layout, table and chart CSS. `ModuleTabs variant="pills"` and the `ShopMultiSelect`
+  class hooks remain opt-in.
+- Accent preference: `localStorage["operate.accent"]` = `green` | `orange`; absent means
+  the company default (green). Browser-local only, no database field. Light/dark remains
+  `localStorage["operate.theme"]`.
 
 ## Phase 0 — foundation extraction (no module migration)
 
@@ -53,7 +122,7 @@ Map the pilot values rather than inventing a new scale:
 | `--rs-row-hover` | `--ui-row-hover` | Table hover/open |
 | `--rs-accent*` | `--ui-accent*` | Accent family, see 0.2 |
 | `--rs-positive`, `--rs-negative*`, `--rs-warn*` | `--ui-positive`, `--ui-negative*`, `--ui-warn*` | Fixed semantic colors |
-| `--rs-bar`, `--rs-bar-track`, `--rs-neutral-mark` | `--ui-series-1`, `--ui-series-track`, `--ui-series-neutral` | Chart/bar series |
+| `--rs-bar`, `--rs-bar-track`, `--rs-neutral-mark` | `--ui-series-primary`, `--ui-series-track`, `--ui-series-neutral` | Chart/bar series |
 | `--rs-radius*`, `--rs-shadow*` | `--ui-radius*`, `--ui-shadow*` | Shape |
 | `--rs-veil`, `--rs-skeleton`, `--rs-focus` | `--ui-veil`, `--ui-skeleton`, `--ui-focus` | Loading/focus |
 
@@ -68,20 +137,19 @@ Two families, each with light and dark values: **green** (the accepted pilot eme
 **orange** (warm amber/bronze, compatible with the capybara palette). Each family defines:
 
 `--ui-accent`, `--ui-accent-fg`, `--ui-accent-text`, `--ui-accent-soft`,
-`--ui-accent-line`, `--ui-focus`.
+`--ui-focus`, `--ui-series-primary`.
 
-Applied by an attribute on `<html>`:
+Applied by `data-accent` on `<html>`. Green is the default token set, so an explicit
+green choice needs no override rule; only orange has one:
 
 ```
-[data-accent="green"]  { … }
 [data-accent="orange"] { … }
-[data-accent="green"].dark  { … }
 [data-accent="orange"].dark { … }
 ```
 
 No attribute → company default (0.3). The green family is copied from the pilot, not
-re-invented, so the accepted screen does not move. Orange is a candidate until its
-contrast is measured; do not ship it if any text/control pair fails AA in either mode.
+re-invented, so the accepted screen does not move. Orange contrast is measured in
+`REPORT.md`; all text, control, focus and chart pairs pass AA / 3:1 in both modes.
 
 ### 0.3 Company default vs user override
 
@@ -106,9 +174,10 @@ Rules:
 - Cross-tab changes sync through the `storage` event.
 - A tiny pre-hydration script in `src/app/layout.tsx` applies the stored accent before
   paint to avoid a flash. `suppressHydrationWarning` is already present on `<html>`.
-- The accent control is a small two-swatch choice plus "Company default", placed beside
-  the existing theme toggle (and optionally as command-palette commands). No new route,
-  no owner-only gate. Exact placement is a Phase 0 decision with the user.
+- The accent control is a three-option choice (Company default / Green / Orange) in the
+  **Preferences** dialog opened from the sidebar user footer. No new route, no new
+  permanent toolbar control and no owner-only gate. Direction users keep their password
+  entry point inside the same dialog.
 
 **Not in this phase:** a company-level accent setting in `app_settings` (would need a
 migration), per-user server sync, or repointing the legacy `--accent` for every module.
@@ -148,6 +217,9 @@ Only after this gate passes does module migration start.
 Status legend: **pending** = not started; **implemented** = code changed, checks not
 complete; **verified** = automated/manual checks pass; **accepted** = user accepted the
 module's result.
+
+Phase 0 is complete and Wave 0 remains accepted. **Wave 1 is next, but only after the
+Phase 0 commit is reviewed.**
 
 Order is by risk: read-only first, then editable tables, then custom interactions, then
 CRUD, then owner-only configuration, then non-standard surfaces. Each wave must be
@@ -249,14 +321,14 @@ across waves.
 | A primitive quietly changes other modules | Default variants and markup stay unchanged; only opt-in props/variants are added |
 | Scheduling/admin regressions | Migrate them last, with interaction checks and real data |
 
-## Open decisions for the user
+## Decisions resolved for Phase 0
 
-1. Confirm **green as the default accent** for both company themes (preserves the accepted
-   Stats screen), with orange as an opt-in. Alternative: capybara defaults to orange.
-2. Where the accent control lives: beside the theme toggle, in a user menu, or only in the
-   command palette.
-3. Whether a user may pick orange while the company theme is `forest` (proposed: yes).
-4. Whether the accent also tints chart series or only interactive chrome (proposed:
-   chrome + single-series accents; semantic and multi-series colors stay independent).
+1. **Green is the default accent** for both company themes; orange is opt-in.
+2. The accent control lives in the existing user area: the sidebar user footer opens a
+   **Preferences** dialog. No new permanent toolbar control.
+3. **Orange is allowed with either company theme**, including `forest`.
+4. The accent tints selected controls, primary actions and the **primary** chart series.
+   Semantic status and multi-series colors stay independent.
 
-Do not start Phase 0 or any module until these are answered.
+Phase 0 is complete. Do not start Wave 1 (or any other module) until the Phase 0 commit
+has been reviewed and accepted.
