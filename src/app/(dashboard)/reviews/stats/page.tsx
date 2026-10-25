@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { ReviewsStatsClient } from "@/modules/reviews/components/stats/ReviewsStatsClient";
+import "./reviews-stats.css";
 
 export default async function ReviewsStatsPage() {
   const session = await getServerSession(authOptions);

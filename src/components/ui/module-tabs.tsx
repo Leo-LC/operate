@@ -112,13 +112,54 @@ function Indicator({ left, width, visible }: { left: number; width: number; visi
  * Matches the Direction module pattern: text tabs over a 1px line,
  * active tab marked with a 2px accent underline that slides when switching tabs.
  */
-export function ModuleTabs({ tabs, ariaLabel }: { tabs: readonly ModuleTab[]; ariaLabel?: string }) {
+export function ModuleTabs({
+  tabs,
+  ariaLabel,
+  variant = "underline",
+}: {
+  tabs: readonly ModuleTab[];
+  ariaLabel?: string;
+  /**
+   * Opt-in visual variant. Default stays the app-wide underline style; the
+   * pill variant is used by the Reviews Stats pilot only.
+   */
+  variant?: "underline" | "pills";
+}) {
   const pathname = usePathname();
   const activeIndex = Math.max(
     0,
     tabs.findIndex((t) => pathname === t.href || pathname.startsWith(`${t.href}/`))
   );
   const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, tabs.length);
+
+  if (variant === "pills") {
+    return (
+      <nav aria-label={ariaLabel} className="rs-pillnav">
+        {tabs.map((tab, i) => {
+          const active = i === activeIndex;
+          const Icon = tab.icon;
+          return (
+            <div
+              key={tab.href}
+              className="rs-pillnav-item"
+              data-dimmed={tab.dimmed ? "true" : undefined}
+            >
+              <Link
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                className="rs-pillnav-link"
+                data-active={active ? "true" : undefined}
+              >
+                {Icon ? <Icon size={14} /> : null}
+                {tab.label}
+              </Link>
+              {tab.extra}
+            </div>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <nav aria-label={ariaLabel} style={BAR_STYLE}>

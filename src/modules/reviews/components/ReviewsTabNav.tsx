@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ModuleTabs, type ModuleTab } from "@/components/ui/module-tabs";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import type { SessionRole } from "@/core/permissions/types";
@@ -18,8 +20,14 @@ const DEFAULT_VISIBILITY: Visibility = { stats: true };
  * Same eye-icon pattern as the Direction module tabs: owners/admins toggle
  * whether the Stats tab is visible to everyone; the choice is persisted
  * server-side (/api/reviews/tabs) and mirrored in localStorage.
+ *
+ * On /reviews/stats only, the nav is rendered as pill links beside a compact
+ * "Reviews" title with a real breadcrumb (docs/ui-pilot DESIGN-CONTRACT.md).
+ * Every other Reviews route keeps the app-wide underline tabs.
  */
 export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
+  const pathname = usePathname();
+  const isStatsRoute = pathname === "/reviews/stats";
   const isOwner = role === "owner";
   const isPrivileged = role === "owner" || role === "admin";
 
@@ -99,6 +107,28 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
       : []),
     { label: "Locations", href: "/reviews/locations" },
   ];
+
+  if (isStatsRoute) {
+    return (
+      <div className="revstats-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="rs-breadcrumb">
+            <li>
+              <Link href="/reviews/inbox">Reviews</Link>
+              <span className="rs-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">Stats</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="rs-header-row">
+          <h1 className="rs-title">Reviews</h1>
+          <ModuleTabs tabs={tabs} ariaLabel="Reviews" variant="pills" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="reviews-tab-nav">

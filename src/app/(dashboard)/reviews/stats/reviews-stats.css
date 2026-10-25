@@ -1,0 +1,1222 @@
+/* ============================================================================
+   Reviews Stats pilot — docs/ui-pilot
+   ----------------------------------------------------------------------------
+   Deliberately route-local: these tokens and classes are NOT global defaults.
+   They are imported by src/app/(dashboard)/reviews/stats/page.tsx only and
+   must not leak into other modules. Candidate tokens for a later global
+   extraction are listed in docs/ui-pilot/FOUNDATION-CANDIDATES.md.
+   ========================================================================== */
+
+.revstats,
+.revstats-header {
+  /* Surfaces */
+  --rs-canvas: #f7f6f2;
+  --rs-panel: #ffffff;
+  --rs-panel-2: #f4f2ec;
+  --rs-border: #e2ded4;
+  --rs-border-strong: #c9c2b4;
+  --rs-control-border: #7d8a82;
+  --rs-row-hover: #f2f5f2;
+  --rs-veil: rgba(255, 255, 255, 0.62);
+  --rs-skeleton: #ece9e2;
+
+  /* Text */
+  --rs-fg: #191d1b;
+  --rs-fg-2: #454f49;
+  --rs-fg-3: #5f6b64;
+  --rs-fg-4: #7a857e;
+
+  /* Accent + status */
+  --rs-accent: #2c6f4c;
+  --rs-accent-text: #24624a;
+  --rs-accent-soft: #e9f2ec;
+  --rs-positive: #1f6b45;
+  --rs-negative: #a63b30;
+  --rs-negative-soft: #fbebe8;
+  --rs-warn: #8a5a17;
+  --rs-warn-soft: #fbf3e4;
+  --rs-bar: #2c6f4c;
+  --rs-bar-track: #e9e6df;
+  --rs-neutral-mark: #55605a;
+  --rs-focus: rgba(44, 111, 76, 0.42);
+
+  /* Shape */
+  --rs-radius: 10px;
+  --rs-radius-sm: 6px;
+  --rs-shadow: 0 1px 2px rgba(25, 29, 27, 0.05);
+  --rs-shadow-2: 0 10px 24px -14px rgba(25, 29, 27, 0.35);
+
+  color: var(--rs-fg);
+}
+
+.dark .revstats,
+.dark .revstats-header {
+  --rs-canvas: #16181a;
+  --rs-panel: #1d2022;
+  --rs-panel-2: #24282a;
+  --rs-border: #2e3335;
+  --rs-border-strong: #414a4c;
+  --rs-control-border: #66736c;
+  --rs-row-hover: #222726;
+  --rs-veil: rgba(29, 32, 34, 0.62);
+  --rs-skeleton: #2a3033;
+
+  --rs-fg: #eef1ef;
+  --rs-fg-2: #c3ccc7;
+  --rs-fg-3: #9aa6a0;
+  --rs-fg-4: #7f8a85;
+
+  --rs-accent: #2f7a52;
+  --rs-accent-text: #7fc7a1;
+  --rs-accent-soft: #1c2b23;
+  --rs-positive: #7fc7a1;
+  --rs-negative: #f0938a;
+  --rs-negative-soft: #2a1513;
+  --rs-warn: #e3b06a;
+  --rs-warn-soft: #2a2114;
+  --rs-bar: #3f9268;
+  --rs-bar-track: #2a3033;
+  --rs-neutral-mark: #aab5af;
+  --rs-focus: rgba(127, 199, 161, 0.45);
+
+  --rs-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --rs-shadow-2: 0 12px 28px -16px rgba(0, 0, 0, 0.8);
+}
+
+/* ── Page rhythm ─────────────────────────────────────────────────────────── */
+
+.revstats {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Anchor visually-hidden helpers to the left edge of their positioned panel so
+   their absolutely-positioned box can never widen the page. */
+.revstats .sr-only {
+  left: 0;
+}
+
+/* ── Header (ReviewsTabNav, /reviews/stats only) ─────────────────────────── */
+
+.revstats-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.rs-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--rs-fg-3);
+}
+
+.rs-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-breadcrumb a {
+  color: var(--rs-fg-3);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 2px;
+}
+
+.rs-breadcrumb a:hover {
+  color: var(--rs-fg);
+  border-bottom-color: var(--rs-control-border);
+}
+
+.rs-breadcrumb a:focus-visible {
+  outline: 2px solid var(--rs-accent);
+  outline-offset: 2px;
+}
+
+.rs-breadcrumb-sep {
+  color: var(--rs-fg-4);
+}
+
+.rs-breadcrumb [aria-current="page"] {
+  color: var(--rs-fg-2);
+  font-weight: 500;
+}
+
+.rs-header-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.rs-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--rs-fg);
+}
+
+/* Pill module navigation (opt-in ModuleTabs variant) */
+.rs-pillnav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rs-pillnav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* A tab hidden from other roles stays quiet, but the tab the current user is
+   on keeps full contrast (the eye-off control still signals the hidden state). */
+.rs-pillnav-item[data-dimmed="true"] .rs-pillnav-link:not([data-active="true"]) {
+  opacity: 0.55;
+}
+
+.rs-pillnav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--rs-control-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rs-fg-2);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
+}
+
+.rs-pillnav-link:hover {
+  background: var(--rs-panel-2);
+  border-color: var(--rs-fg-3);
+  color: var(--rs-fg);
+}
+
+.rs-pillnav-link:focus-visible {
+  outline: 2px solid var(--rs-accent);
+  outline-offset: 2px;
+}
+
+.rs-pillnav-link[data-active="true"] {
+  background: var(--rs-accent);
+  border-color: var(--rs-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.rs-pillnav-link[data-active="true"]:hover {
+  background: var(--rs-accent);
+  color: #ffffff;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+
+.rs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.rs-toolbar-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.rs-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 420px;
+}
+
+.rs-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rs-control-label {
+  flex: 0 0 62px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rs-fg-3);
+}
+
+.rs-scroll-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.revstats .rs-branch-pills {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Desktop keeps the full pill row; below 1024px it collapses to one control. */
+.rs-branch-desktop {
+  display: none;
+  min-width: 0;
+}
+
+.rs-branch-compact {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+@media (min-width: 1280px) {
+  .rs-branch-desktop {
+    display: block;
+  }
+
+  .rs-branch-compact {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .rs-control-label {
+    flex-basis: 58px;
+  }
+}
+
+.rs-branch-trigger {
+  max-width: 100%;
+}
+
+.rs-branch-trigger[aria-expanded="true"] {
+  border-color: var(--rs-accent);
+  background: var(--rs-accent-soft);
+  color: var(--rs-accent-text);
+  font-weight: 600;
+}
+
+.rs-branch-chevron {
+  transition: transform 140ms var(--ease);
+}
+
+.rs-branch-trigger[aria-expanded="true"] .rs-branch-chevron {
+  transform: rotate(180deg);
+}
+
+.rs-branch-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: 100%;
+  min-width: 220px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--rs-border-strong);
+  border-radius: var(--rs-radius);
+  background: var(--rs-panel);
+  box-shadow: var(--rs-shadow-2);
+}
+
+.rs-branch-panel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rs-branch-done {
+  width: 100%;
+  height: 30px;
+  margin-top: 10px;
+  border: 0;
+  border-top: 1px solid var(--rs-border);
+  background: none;
+  color: var(--rs-accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rs-branch-done:focus-visible {
+  outline: 2px solid var(--rs-accent);
+  outline-offset: 2px;
+}
+
+/* Pilot variant of the shared PillButton (defaults untouched). */
+.revstats .rs-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--rs-control-border);
+  border-radius: 999px;
+  background: var(--rs-panel);
+  color: var(--rs-fg-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.revstats .rs-pill:hover {
+  border-color: var(--rs-fg-3);
+  background: var(--rs-panel-2);
+  color: var(--rs-fg);
+}
+
+.revstats .rs-pill[aria-pressed="true"] {
+  border-color: var(--rs-accent);
+  background: var(--rs-accent-soft);
+  color: var(--rs-accent-text);
+  font-weight: 600;
+}
+
+.revstats .rs-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--rs-focus);
+}
+
+.rs-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 12px;
+  color: var(--rs-fg-3);
+}
+
+.rs-meta strong {
+  color: var(--rs-fg-2);
+  font-weight: 500;
+}
+
+.rs-meta-sep {
+  color: var(--rs-fg-4);
+}
+
+.rs-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--rs-control-border);
+  border-radius: 999px;
+  background: var(--rs-panel);
+  color: var(--rs-fg-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
+}
+
+.rs-sync:hover:not(:disabled) {
+  border-color: var(--rs-accent);
+  color: var(--rs-accent-text);
+  background: var(--rs-accent-soft);
+}
+
+.rs-sync:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--rs-focus);
+}
+
+.rs-sync:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+
+.rs-top,
+.rs-bottom {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .rs-top {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 1280px) {
+  .rs-bottom {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+}
+
+/* One-column layouts read better with the compact distribution before the
+   long branch table. */
+@media (max-width: 1279px) {
+  .rs-bottom > .rs-dist-panel {
+    order: -1;
+  }
+}
+
+.rs-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius);
+  box-shadow: var(--rs-shadow);
+}
+
+.rs-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 16px 18px 0;
+}
+
+.rs-panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--rs-fg);
+}
+
+.rs-panel-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--rs-fg-3);
+}
+
+/* Only the mobile branch table scrolls; tell touch users what is off-screen. */
+.rs-scroll-hint {
+  display: none;
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--rs-fg-4);
+}
+
+@media (max-width: 767px) {
+  .rs-scroll-hint {
+    display: block;
+  }
+}
+
+.rs-panel-body {
+  position: relative;
+  padding: 12px 18px 16px;
+  min-width: 0;
+}
+
+.rs-panel-body-flush {
+  padding: 12px 0 0;
+}
+
+.rs-panel-foot {
+  margin-top: auto;
+  padding: 9px 18px;
+  border-top: 1px solid var(--rs-border);
+  font-size: 11.5px;
+  color: var(--rs-fg-3);
+}
+
+/* ── KPI cards ───────────────────────────────────────────────────────────── */
+
+.rs-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 16px;
+  min-width: 0;
+}
+
+.rs-kpi {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px 18px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius);
+  box-shadow: var(--rs-shadow);
+}
+
+.rs-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rs-kpi-label {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--rs-fg-3);
+}
+
+.rs-kpi-value {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--rs-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-kpi-unit {
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rs-fg-3);
+}
+
+.rs-kpi-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--rs-fg-3);
+}
+
+.rs-delta {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.rs-delta[data-tone="positive"] {
+  color: var(--rs-positive);
+}
+
+.rs-delta[data-tone="negative"] {
+  color: var(--rs-negative);
+}
+
+.rs-delta[data-tone="neutral"] {
+  color: var(--rs-fg-3);
+}
+
+.rs-delta-arrow {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Phones: trim a little vertical chrome from the KPI cards so the chart
+   starts sooner. The 2×2 grid, labels and readable text sizes are unchanged. */
+@media (max-width: 767px) {
+  .rs-kpis {
+    gap: 12px;
+  }
+
+  .rs-kpi {
+    gap: 10px;
+    padding: 13px 14px;
+  }
+
+  .rs-kpi-body {
+    gap: 4px;
+  }
+
+  .rs-kpi-value {
+    font-size: 28px;
+  }
+
+  .rs-kpi-note,
+  .rs-delta {
+    font-size: 11.5px;
+  }
+}
+
+/* ── Chart legend + tooltip ──────────────────────────────────────────────── */
+
+.rs-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+
+.rs-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--rs-fg-3);
+  white-space: nowrap;
+}
+
+.rs-legend-bar {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--rs-bar);
+}
+
+.rs-legend-line {
+  position: relative;
+  width: 16px;
+  height: 0;
+  border-top: 2px solid var(--rs-neutral-mark);
+}
+
+.rs-legend-line::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 2px solid var(--rs-neutral-mark);
+  background: var(--rs-panel);
+}
+
+.rs-chart-frame {
+  width: 100%;
+  min-width: 0;
+}
+
+.rs-tooltip {
+  min-width: 150px;
+  padding: 8px 10px;
+  border: 1px solid var(--rs-border-strong);
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-panel);
+  box-shadow: var(--rs-shadow-2);
+  color: var(--rs-fg);
+  font-size: 12px;
+}
+
+.rs-tooltip-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.rs-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--rs-fg-3);
+}
+
+.rs-tooltip-row b {
+  color: var(--rs-fg);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rs-empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--rs-fg-3);
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.rs-table-wrap {
+  position: relative;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.rs-table-wrap:focus-visible {
+  outline: 2px solid var(--rs-accent);
+  outline-offset: -2px;
+}
+
+.rs-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.rs-th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rs-border);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--rs-fg-3);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rs-th-num {
+  text-align: right;
+}
+
+.rs-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.rs-sort:hover {
+  color: var(--rs-fg);
+}
+
+.rs-sort:focus-visible {
+  outline: 2px solid var(--rs-accent);
+  outline-offset: 2px;
+}
+
+.rs-sort[data-active="true"] {
+  color: var(--rs-fg);
+  font-weight: 600;
+}
+
+.rs-sort-arrow {
+  font-size: 9px;
+  color: var(--rs-accent-text);
+}
+
+.rs-row > td {
+  padding: 10px;
+  border-bottom: 1px solid var(--rs-border);
+  font-size: 13px;
+  color: var(--rs-fg);
+  vertical-align: middle;
+}
+
+.rs-row > .rs-row-th {
+  padding: 10px;
+  border-bottom: 1px solid var(--rs-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rs-fg);
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Keep the branch name pinned while the table scrolls horizontally. */
+.rs-th-branch,
+.rs-row-th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--rs-panel);
+}
+
+.rs-th-branch {
+  z-index: 2;
+}
+
+.rs-row:hover > .rs-row-th,
+.rs-row[data-open="true"] > .rs-row-th {
+  background: var(--rs-row-hover);
+}
+
+@media (max-width: 767px) {
+  .rs-th-branch,
+  .rs-row-th {
+    border-right: 1px solid var(--rs-border);
+  }
+}
+
+.rs-row:hover,
+.rs-row[data-open="true"] {
+  background: var(--rs-row-hover);
+}
+
+.rs-branch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--rs-fg);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.rs-branch-btn:hover {
+  color: var(--rs-accent-text);
+}
+
+.rs-branch-btn:focus-visible {
+  outline: 2px solid var(--rs-accent);
+  outline-offset: 2px;
+}
+
+.rs-branch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rs-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-cell-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.rs-cell-main {
+  font-weight: 600;
+}
+
+.rs-cell-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--rs-fg-3);
+  white-space: nowrap;
+}
+
+.rs-cell-arrow {
+  color: var(--rs-fg-3);
+}
+
+.rs-cell-sub[data-tone="positive"] .rs-cell-arrow {
+  color: var(--rs-positive);
+}
+
+.rs-cell-sub[data-tone="negative"] .rs-cell-arrow {
+  color: var(--rs-negative);
+}
+
+.rs-mix {
+  display: flex;
+  gap: 2px;
+  width: 120px;
+  height: 8px;
+}
+
+.rs-mix-seg {
+  min-width: 0;
+  border-radius: 2px;
+}
+
+.rs-mix-seg[data-empty="true"] {
+  opacity: 0.22;
+}
+
+.rs-expanded {
+  padding: 10px 16px 16px;
+  background: var(--rs-panel-2);
+  border-bottom: 1px solid var(--rs-border);
+}
+
+.rs-expanded-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rs-fg-3);
+}
+
+.rs-expanded-sub {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: var(--rs-fg-3);
+}
+
+/* ── Star distribution ───────────────────────────────────────────────────── */
+
+.rs-dist {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rs-dist-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.rs-dist-star {
+  color: var(--rs-fg-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rs-dist-track {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rs-bar-track);
+  overflow: hidden;
+}
+
+.rs-dist-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--rs-bar);
+}
+
+.rs-dist-row[data-star="3"] .rs-dist-fill {
+  background: var(--rs-warn);
+}
+
+.rs-dist-row[data-star="2"] .rs-dist-fill,
+.rs-dist-row[data-star="1"] .rs-dist-fill {
+  background: var(--rs-negative);
+}
+
+.rs-dist-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-dist-count {
+  color: var(--rs-fg);
+  font-weight: 600;
+}
+
+.rs-dist-share {
+  min-width: 40px;
+  text-align: right;
+  color: var(--rs-fg-3);
+  font-size: 11.5px;
+}
+
+.rs-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px 11px;
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-warn-soft);
+  color: var(--rs-fg-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rs-callout strong {
+  color: var(--rs-fg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-callout-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--rs-warn);
+}
+
+/* ── States ──────────────────────────────────────────────────────────────── */
+
+.rs-region {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rs-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14px;
+  border-radius: var(--rs-radius);
+  background: var(--rs-veil);
+}
+
+.rs-loading-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--rs-border-strong);
+  border-radius: 999px;
+  background: var(--rs-panel);
+  color: var(--rs-fg-2);
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: var(--rs-shadow);
+}
+
+.rs-skeleton {
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-skeleton);
+  animation: rs-pulse 1.7s var(--ease) infinite;
+}
+
+@keyframes rs-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-skeleton {
+    animation: none;
+  }
+
+  .rs-pillnav-link,
+  .revstats .rs-pill,
+  .rs-sync {
+    transition: none;
+  }
+}
+
+.rs-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--rs-negative);
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-negative-soft);
+  color: var(--rs-fg);
+  font-size: 12.5px;
+}
+
+.rs-banner-msg {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.rs-banner-msg strong {
+  font-weight: 600;
+}
+
+.rs-banner button {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--rs-negative);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rs-negative);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rs-banner button:hover {
+  background: var(--rs-panel);
+}
+
+.rs-banner button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--rs-focus);
+}
+
+.rs-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--rs-fg-3);
+}
+
+.rs-notice[data-tone="positive"] {
+  color: var(--rs-positive);
+}
+
+.rs-notice[data-tone="negative"] {
+  color: var(--rs-negative);
+}
+
+.rs-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding-top: 2px;
+  font-size: 11.5px;
+  color: var(--rs-fg-3);
+}
+
+.rs-status-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--rs-positive);
+}
+
+.rs-spin {
+  animation: rs-spin 0.9s linear infinite;
+}
+
+@keyframes rs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-spin {
+    animation: none;
+  }
+}
