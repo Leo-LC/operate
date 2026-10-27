@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   ChevronRightIcon,
   UsersIcon,
@@ -14,7 +15,6 @@ import {
   ClipboardListIcon,
   PercentCircleIcon,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { ControlledTabs } from "@/components/ui/module-tabs";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { Pill } from "@/components/ui/pill";
@@ -153,14 +153,35 @@ function Controls({
 }) {
   return (
     <div className="ui-toolbar">
-      <DateRangePicker
-        value={{ from, to }}
-        onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
-        today={bangkokToday()}
-      />
-      {locations.length > 0 && (
-        <ShopMultiSelect options={locations} selected={selectedShops} onChange={onShopsChange} />
-      )}
+      <div className="ui-filter-rows">
+        <div className="ui-filter-row">
+          <span className="ui-filter-label" id="rep-period-label">
+            Période
+          </span>
+          <div className="ui-filter-control" role="group" aria-labelledby="rep-period-label">
+            <DateRangePicker
+              value={{ from, to }}
+              onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+              today={bangkokToday()}
+            />
+          </div>
+        </div>
+        {locations.length > 0 && (
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="rep-shops-label">
+              Boutiques
+            </span>
+            <div className="ui-filter-control" role="group" aria-labelledby="rep-shops-label">
+              <ShopMultiSelect
+                options={locations}
+                selected={selectedShops}
+                onChange={onShopsChange}
+                allLabel="Toutes les boutiques"
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1528,14 +1549,33 @@ export function ReportsClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to, selectedShops]);
 
+  const activeTabLabel = TABS.find((tab) => tab.value === activeTab)?.label ?? "Reports";
+
   return (
     <div className="rep">
-      <PageHeader
-        title="Reports"
-      />
-
-      {/* Tab bar */}
-      <ControlledTabs tabs={TABS} value={activeTab} onChange={(v) => setActiveTab(v as typeof activeTab)} ariaLabel="Reports" />
+      <div className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <Link href="/reports">Reports</Link>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{activeTabLabel}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Reports</h1>
+          <ControlledTabs
+            variant="pills"
+            tabs={TABS}
+            value={activeTab}
+            onChange={(v) => setActiveTab(v as typeof activeTab)}
+            ariaLabel="Reports"
+          />
+        </div>
+      </div>
 
       {activeTab === "daily-profit" ? (
         <DailyProfitView from={dailyFrom} to={dailyTo} onFromChange={setDailyFrom} onToChange={setDailyTo} />

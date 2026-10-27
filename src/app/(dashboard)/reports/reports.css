@@ -106,24 +106,11 @@
 }
 
 /* ── Tab bar ───────────────────────────────────────────────────────────────
-   Four tabs do not fit a phone. The bar already scrolls horizontally with a
-   hidden scrollbar; fade both edges on narrow viewports so a cut-off tab reads
-   as "more in that direction" rather than as clipped text. */
+   Pills wrap onto a second line on phones instead of scrolling, so the
+   active tab is always visible without a hidden overflow affordance. */
 
-.rep [role="tablist"] {
-  scrollbar-width: none;
-}
-
-@media (max-width: 767px) {
-  .rep [role="tablist"] {
-    background-image:
-      linear-gradient(to right, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent)),
-      linear-gradient(to left, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent));
-    background-position: left center, right center;
-    background-size: 24px 100%, 24px 100%;
-    background-repeat: no-repeat;
-    padding: 0 10px;
-  }
+.rep .ui-pillnav {
+  min-width: 0;
 }
 
 /* ── Loading / empty states ───────────────────────────────────────────────── */

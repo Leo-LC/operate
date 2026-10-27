@@ -4,7 +4,8 @@ Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Pha
 (shared foundations + accent preference) is committed at **`ac88b15`**; **Wave 1 §1**
 (Reviews siblings) is committed at **`e998f99`**; **Wave 1 §2** (Customer Insights +
 Inbox filter disclosure) is committed at **`be6f556`**; **Wave 1 §3** is committed as
-**`7393230`** (`/reports`) and **`e5c0e9a`** (`/direction`), the current tip of the branch.
+**`7393230`** (`/reports`) and **`e5c0e9a`** (`/direction`); the post-review visual-system
+revision described below is the current branch tip.
 Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, the Reviews sibling
 routes, `/customer-insights`, the Inbox filter rail, `/reports` and `/direction`.
 **No other module was migrated.** No deploy, push, merge or DB migration. Local URLs:
@@ -26,10 +27,13 @@ foundation, with a scoped token bridge so no other module restyled. **Wave 1 §2
 `/customer-insights` onto the same foundation and collapsed the Inbox filter rail on
 mobile. **Wave 1 §3** migrated `/reports` and `/direction` as one group (they share three
 report endpoints and three view components), promoting only the genuinely shared layout
-utilities to `globals.css`. All three are **implemented and verified locally, awaiting
-user acceptance**. They are not pushed, merged or deployed. Live Customer Insights data,
-runtime staff access, real Google sync, a real organization `forest` switch and physical
-touch devices remain pending (details below).
+utilities to `globals.css`. A post-review revision then realigned both module headers with
+the Reviews Stats breadcrumb/pill system, harmonized the period/shop selectors, and fixed
+the future-month presentation in Revenue comparison (display only — calculations untouched).
+All three are **implemented and verified locally, awaiting user acceptance**. They are not
+pushed, merged or deployed. Live Customer Insights data, runtime staff access, real Google
+sync, a real organization `forest` switch and physical touch devices remain pending
+(details below).
 
 ## Wave 1 §3 — Reports + Direction
 
@@ -50,8 +54,8 @@ data and get their own migration and review.
 | KPI primitive | `src/components/ui/kpi-stat.tsx` | Additive `tone="positive" \| "negative"`. Existing callers unchanged. |
 | Reports bridge | `src/app/(dashboard)/reports/reports.css` (new) | `.rep` scoped token bridge; the four tab panels, filters, bar lists and states. |
 | Reports views | `src/modules/reports/components/ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx` | KPI rows on `KpiStat` + `.ui-kpi-grid`; wide tables on `.ui-table-scroll`; ranked lists on `.ui-bar-row` (share column drops below 768 px so labels stop truncating); both edges of the mobile tab bar fade; “réel/estimé” badge moves next to the shop name. |
-| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope + `.dir-shell`, `.dir-stack`, `.dir-panel`, `.dir-panel-title`, `.dir-equation*`, `.dir-source`, `.dir-toolbar-meta`, `.dir-loading`, `.dir-empty`, `.dir-kpi-outcome`. |
-| Direction shell | `src/modules/direction/components/DirectionClient.tsx`, `src/app/(dashboard)/direction/page.tsx` | One `PageHeader` (“Résultats estimés”) instead of a per-tab `h1`; `.dir-shell` holds two `.dir` siblings (header + tabs, then the non-Loyverse panels). The embedded **Loyverse** tab is a plain sibling outside `.dir`. |
+| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope + `.dir-shell`, `.dir-stack`, `.dir-panel`, `.dir-panel-title`, `.dir-equation*`, `.dir-source`, `.dir-loading`, `.dir-empty`, `.dir-kpi-outcome`. |
+| Direction shell | `src/modules/direction/components/DirectionClient.tsx`, `src/app/(dashboard)/direction/page.tsx` | Module header (`ui-module-header`): breadcrumb, compact `Direction` title and pill tabs. `.dir-shell` holds two `.dir` siblings (header + tabs, then the non-Loyverse panels). The embedded **Loyverse** tab is a plain sibling outside `.dir`. |
 | Direction dashboard | `DirectionExecutiveDashboard.tsx` | The `Ventes − Dépenses = Résultat` equation becomes `.dir-equation`: a 3-cell grid on desktop, a stacked ledger on phones. `.dir-equation-value` sets its own line-height (the inherited 16.25 px Card value made the figures overflow and collide with the label above). |
 | Direction panels | `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx`, `DirectionOperations.tsx` | KPI rows on the shared grid; toolbars and table scroll shared; the local `KpiCard` duplicate removed in favour of `KpiStat`; previous-year bars use `--ui-series-neutral` instead of `#f59e0b`; categorical `--info` / `--purple` / `--bronze` map to `--ui-series-neutral` / `--ui-warn` / `--ui-accent` inside the bridge. |
 | Direction source banner | `DirectionSourceBanner.tsx` | Owner-only “Sources & synchronisation” block becomes a collapsed `<details>` disclosure. |
@@ -70,7 +74,7 @@ data and get their own migration and review.
    0 migrated (`ui-*`) classes.
 4. **Layout follows each workflow.** `/reports` keeps four dense tabs (daily P&L,
    operations, revenue comparison, by shop) with tables and ranked lists. `/direction`
-   gets one header, underline tabs, a date-first dashboard whose equation reads top-down on
+   gets one header, pill tabs, a date-first dashboard whose equation reads top-down on
    phones, and month steppers for the two monthly panels.
 5. **Semantic colour only where it means something.** Signed results carry `tone`; series
    colours come from the palette instead of ad-hoc hex values. The one KPI that carries an
@@ -84,6 +88,7 @@ data and get their own migration and review.
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Before/after at real widths, light + dark, both accents | Pass | `wave1b/before/` (10) → `wave1b/after/` (33) |
+| Post-review visual-system revision | Pass | `wave1b/after2/` (35) + 24/24 interaction checks; see “Revision” below |
 | No horizontal overflow | Pass | 1440/768/390 — 0 document-level overflow; wide tables scroll inside `.ui-table-scroll` with shadows only when needed |
 | Reports interactions | Pass | 4 tabs, date range, shop filter, sort, breakdown disclosure |
 | Direction interactions | Pass | 7 tabs, source disclosure, date shift, expense breakdown, shop filter, eye-toggle POST (`{"tab_key":"dashboard","visible":…}`), comparaison edit/cancel/year shift, end-of-month expand |
@@ -109,6 +114,55 @@ data and get their own migration and review.
 All captures are **real local Supabase data** (HTTP 200, no page errors besides the known
 `DashboardShell` theme-toggle hydration warning), not fixtures.
 
+### Revision — alignment with the accepted visual system
+
+Status: **implemented and verified locally**; §3 still awaiting acceptance. Trigger: the
+first pass adopted the tokens but not the organization (flat `PageHeader`, underline tabs,
+toolbars that did not read like Reviews Stats). This revision applies the accepted reading
+order to both modules.
+
+| Area | File | Change |
+| --- | --- | --- |
+| Tab primitive | `src/components/ui/module-tabs.tsx` | Additive `variant="pills"` on `ControlledTabs`, reusing the same `.ui-pillnav*` markup as `ModuleTabs`. Underline remains the default. |
+| Shared filter rows | `src/app/globals.css` | `.ui-filter-rows` / `.ui-filter-row` / `.ui-filter-label` / `.ui-filter-control` (62 px label column, wrapping control), `.ui-toolbar-actions`, `.ui-note`. `.ui-pillnav-link` now accepts `<button>` (`font-family: inherit`, `cursor: pointer`). |
+| Reports header | `ReportsClient.tsx` | Breadcrumb `Reports / <tab>`, compact `ui-module-title` and the four real tabs as shared pills in `ui-module-header-row`. `PageHeader` removed. |
+| Direction header | `DirectionClient.tsx` | Breadcrumb `Direction / <tab>`, compact `Direction` title and the seven tabs as pills, eye toggles kept. The owner “Sources & synchronisation” disclosure moved to the end of the panel. |
+| Selectors | `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx`, `DirectionExecutiveDashboard.tsx`, `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx` | Every panel now uses the Reviews pattern: a label column (`Période`, `Boutiques`) plus a control row, actions on the right. Screen-specific behaviour is unchanged (day range, multi-shop, year stepper + month). |
+| Hierarchy | Reports + Direction panels | Filters → KPIs → primary chart/table → secondary panels. The `By Shop` filter no longer stretches vertically (`.ui-filter-rows` is wrapped in `.ui-toolbar`; as a direct child of the column page it was growing). The duplicated “Octobre 2026” label in End of month was removed. |
+
+#### Revenue comparison — future and partial months
+
+**Findings (code inspected before any change).** `monthly_revenue_by_location` aggregates
+the `daily_entries` rows that exist. A month that has not started has no rows, so it is
+`0`; `deltas(0, prev > 0)` then yields `deltaPct = -100`. The API has no “today” awareness.
+The focus month is compared with the **full** prior-year month, and the YTD sums the
+selected months (a partial current month against full prior-year months). This is the
+existing financial logic and it was **not changed**; no API, SQL or calculation was touched.
+
+**Presentation only.** Future months now read `—` (KPI, monthly row, by-shop row, and the
+chart bar is omitted) with an “à venir” pill instead of `฿0 / −100 %`. The running month is
+tagged “en cours”, and a `.ui-note` states that it is compared with a full prior-year month;
+when the focus is a future month it also states that the YTD adds only the months entered
+while N−1 is complete. Deltas are only shown when a real prior value exists.
+
+**Business decision to confirm.** Whether the current month should be compared to the same
+number of days of the prior month (like-for-like) is a finance decision. The logic is
+preserved and the limitation is now stated in the UI; changing it would require an API
+change and a methodology update.
+
+#### Parity and gates
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Same period/shop before → after (this revision) | Pass | `wave1b/after/` vs `wave1b/after2/`: ฿5,562,549 / ฿66,369,758 / ฿67,424,161 identical. Nov/Dec change only from `฿0 / ▼100.0 %` to `— / à venir`. |
+| Interaction checks | **24/24** | Reports: 4 pills, labels, shop filter change/restore, KPI = monthly row = shop total, current/future tags, no −100 %, note. Direction: 7 pills, labels, day shift + reload, source disclosure, eye toggle POST, overview shop filter and 5 KPIs. |
+| No horizontal overflow | Pass | 1440 / 768 / 390 |
+| Tests / typecheck / lint / build | Pass | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint repo baseline 20 errors / 3 warnings, all pre-existing (0 new); `npm run build` exit 0 |
+| Captures | **35** | `wave1b/after2/`: Reports 4 tabs × 1440-light / 1440-dark / 768-light / 390-light + 2 future-month; Direction 4 tabs × the same 4 + 1 future-month |
+
+All `after2` captures use real local Supabase data. The only console warning is the known
+`DashboardShell` theme-toggle hydration mismatch in dark mode.
+
 ### Known limits
 
 - **Single role account.** Only the preview owner exists locally; role-specific rendering
@@ -116,9 +170,10 @@ All captures are **real local Supabase data** (HTTP 200, no page errors besides 
 - **Loading/error/empty** were simulated at the network boundary.
 - **`/api/locations` returns 503 locally** without a Google token; location lists come from
   the report payloads.
-- **`/api/direction/tabs` returns all `false` locally**, so the owner sees every tab
-  (dimmed) plus the eye toggles. The test intercepts that POST, so no visibility state was
-  persisted.
+- **`/api/direction/tabs` returns all `false` locally**, so the owner sees every tab plus
+  the eye toggles. The eye toggle still flips the server value and its label; the dimmed
+  state only applies to the `direction` (boss) role — pre-existing behaviour, not changed
+  here. The test intercepts that POST, so no visibility state was persisted.
 - **Production data** was not used; verification ran against the local database.
 - **Physical touch devices** were not used; responsive checks are Playwright emulation.
 

@@ -8,9 +8,11 @@ Status: **Phase 0 complete; Wave 1 §1, §2 and §3 implemented and verified.** 
 **awaiting user acceptance**. **Wave 1 §2** migrated `/customer-insights` and added the
 requested Inbox filter disclosure; it is also **awaiting user acceptance**. **Wave 1 §3**
 migrated `/reports` (`7393230`) and `/direction` (`e5c0e9a`) and is **awaiting user
-acceptance**. `/treasury` and `/payments` were deferred out of that group because they
-write finance data. No other module has been migrated. All commits are local: not pushed,
-merged, deployed or migrated.
+acceptance**; a post-review revision realigned both module headers with the Reviews Stats
+breadcrumb/pill system, harmonized the selectors and fixed the future-month display in
+Revenue comparison (presentation only). `/treasury` and `/payments` were deferred out of
+that group because they write finance data. No other module has been migrated. All commits
+are local: not pushed, merged, deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -20,7 +22,8 @@ Wave 1 evidence: `docs/ui-pilot/wave1/` (`before/`, `quick/`, `states/`, `after/
 `filters/`, `ci-before/`, `ci-after/` and their JSON reports).
 Wave 1 §3 evidence: `docs/ui-pilot/wave1b/` (`before/`, `after/`, 10 before + 33 after
 captures covering light/dark, green/orange, 1440/768/390 and the loading/error/empty
-states).
+states; `after2/`, 35 captures of the post-review header/selector revision plus the
+future-month Revenue comparison state).
 
 ## Principles
 
@@ -201,19 +204,39 @@ own migration + review.
 | Shared utilities | `src/app/globals.css` | Added the pieces both modules needed instead of duplicating them per route: `.ui-kpi-grid` (2-up on phones with the odd last card full width, 2-up on tablets, auto-fit ≥180 px from 1024 px), `.ui-kpi-delta` (`data-dir`), `.ui-table-scroll` (scroll + edge shadows only when needed), `.ui-toolbar`/`.ui-toolbar-spacer`, `.ui-bar-row`/`.ui-bar-head`. |
 | KPI primitive | `src/components/ui/kpi-stat.tsx` | Additive `tone` prop (`positive` / `negative`) for signed results. No change to existing callers. |
 | Reports bridge | `src/app/(dashboard)/reports/reports.css` (new) | `.rep` scope maps legacy token names to `--ui-*` **inside this module only**; the four tab panels, filters, bar lists and states live here. |
-| Reports layout | `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx` | KPI rows → `KpiStat` + `.ui-kpi-grid`; wide tables → `.ui-table-scroll`; ranked lists → `.ui-bar-row` (share column drops on phones so labels stop truncating); mobile tab bar fades both edges. Calculations, API calls, permissions and formulas untouched. |
-| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope + `.dir-shell` (header/tabs) and two `.dir` siblings. Panel roots use `.dir-stack`; `.dir-panel`/`.dir-panel-title`, `.dir-loading`/`.dir-empty`, `.dir-source`, `.dir-toolbar-meta`. |
-| Direction header | `DirectionClient.tsx`, `direction/page.tsx` | One `PageHeader` (“Résultats estimés”); the per-tab duplicate `h1` is gone. The embedded **Loyverse** tab renders outside `.dir` and keeps its legacy tokens (verified: `--accent` still `#2563eb` there, 0 migrated classes). |
+| Reports layout | `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx` | KPI rows → `KpiStat` + `.ui-kpi-grid`; wide tables → `.ui-table-scroll`; ranked lists → `.ui-bar-row` (share column drops on phones so labels stop truncating); the four tabs became shared pills that wrap on phones. Calculations, API calls, permissions and formulas untouched. |
+| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope + `.dir-shell` (header/tabs) and two `.dir` siblings. Panel roots use `.dir-stack`; `.dir-panel`/`.dir-panel-title`, `.dir-loading`/`.dir-empty`, `.dir-source`. |
+| Direction header | `DirectionClient.tsx`, `direction/page.tsx` | Shared module header: breadcrumb, compact `Direction` title, seven pill tabs with the owner eye toggles. The embedded **Loyverse** tab renders outside `.dir` and keeps its legacy tokens (verified: `--accent` still `#2563eb` there, 0 migrated classes). |
 | Direction dashboard | `DirectionExecutiveDashboard.tsx` | `Ventes − Dépenses = Résultat` becomes `.dir-equation` (grid on desktop, stacked ledger on phones). Figures carry their own line-height: the inherited Card value (16.25 px) made glyphs overflow and collide with the label above — visible in the before shot. |
 | Direction panels | `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx`, `DirectionOperations.tsx` | KPI rows → `KpiStat` + `.ui-kpi-grid`; toolbars → `.ui-toolbar`; wide tables → `.ui-table-scroll`; the local `KpiCard` duplicate is deleted in favour of the shared primitive. Previous-year bars use the palette's neutral series instead of `#f59e0b`. |
 | Source banner | `DirectionSourceBanner.tsx` | Owner-only “Sources & synchronisation” technical block becomes a collapsed `<details>` disclosure. |
 | Sign fix | `DirectionEndOfMonth.tsx` | `formatMoney()` renders absolute values, so a negative “Reste en coffre” showed an unsigned figure next to a red tone. New local `signedMoney()` keeps the `−`. |
 
+### Revision — visual system alignment (post-review)
+
+The first pass adopted the tokens but not the Reviews organization. This revision adds:
+`ControlledTabs variant="pills"` (same `.ui-pillnav*` markup as `ModuleTabs`); shared
+`.ui-filter-rows` / `.ui-filter-row` / `.ui-filter-label` / `.ui-filter-control`,
+`.ui-toolbar-actions` and `.ui-note`; breadcrumb + compact title + pills on both modules;
+and the Reviews-style labelled selector rows on every Reports/Direction panel (period,
+range, month, multi-shop — each screen keeps its own behaviour). The owner source
+disclosure moved to the end of the Direction panel. The duplicated End-of-month month label
+was removed.
+
+**Revenue comparison (display only).** `monthly_revenue_by_location` only aggregates
+existing `daily_entries`, so a future month is `0` and the delta becomes `−100 %`. The API
+also compares the running month with the **full** prior-year month and sums YTD the same
+way. No calculation, API or SQL changed: future months now read `—` with an “à venir” pill,
+the running month is tagged “en cours”, and a `.ui-note` states the partial-vs-full
+comparison. Whether to use a like-for-like (same days) comparison remains a **business
+decision** to confirm.
+
 ### Wave 1 §3 gate
 
 | Gate | Result |
 | --- | --- |
-| Before/after captures at real widths, light + dark, both accents | Pass. `wave1b/before/` (10) → `wave1b/after/` (33). Reports: daily 1440/768/390 light-green, 1440/390 dark-orange; revenue 1440/390; operations 1440/390; by-shop 1440 light-green + 390 dark-orange; error + empty. Direction: dashboard 1440/768/390 light-green, 1440/390 dark-orange; overview 1440/390 light-green + 1440 dark-orange; comparaison 1440/390 light-green + 390 dark-orange; end-of-month 1440/390 light-green + 1440 dark-orange; details 1440/390; daily 1440; loyverse 1440; empty + error. |
+| Before/after captures at real widths, light + dark, both accents | Pass. `wave1b/before/` (10) → `wave1b/after/` (33). Reports: daily 1440/768/390 light-green, 1440/390 dark-orange; revenue 1440/390; operations 1440/390; by-shop 1440 light-green + 390 dark-orange; error + empty. Direction: dashboard 1440/768/390 light-green, 1440/390 dark-orange; overview 1440/390 light-green + 1440 dark-orange; comparaison 1440/390 light-green + 390 dark-orange; end-of-month 1440/390 light-green + 1440 dark-orange; details 1440/390; daily 1440; loyverse 1440; empty + error. Post-review revision: `wave1b/after2/` (35) — 4 Reports tabs and 4 Direction tabs at 1440-light / 1440-dark / 768-light / 390-light, plus the future-month state for both Revenue comparison views. |
+| Visual-system revision interactions | Pass. **24/24**: breadcrumb/title/pills/labels on both modules, shop filter change + restore, KPI = monthly row = shop total, current/future tags, no `−100 %`, day shift + reload, source disclosure, eye-toggle POST, overview shop filter + 5 KPIs. |
 | Reports interactions/state checks | Pass. 4 tabs, date range, shop filter, sort, breakdown disclosure, loading, empty, error: **15/15**. |
 | Direction interactions/state checks | Pass. 7 tabs, source disclosure, date shift, expense breakdown, shop filter, eye-toggle POST, comparaison edit/cancel/year shift, end-of-month expand, loading skeleton, empty, error, Loyverse isolation: **20/20**. |
 | No horizontal overflow | Pass. 0 document-level overflow at 1440/768/390; wide tables scroll inside `.ui-table-scroll` and the scroll shadows only appear when there is content to scroll. |
@@ -227,8 +250,10 @@ Known limits for this step: both modules ran against the **real local Supabase d
 warning), but no second role account exists locally, so role-specific rendering was not
 re-checked. Loading/error/empty were simulated at the network boundary. `/api/locations`
 still returns 503 locally without a Google token. `/api/direction/tabs` returns all
-`false` locally, so the owner sees every tab (dimmed) plus the eye toggles; the test
-intercepts that POST so no state is persisted. Physical touch devices were not used.
+`false` locally, so the owner sees every tab plus the eye toggles; the eye toggle still
+flips the server value and its label, but the dimmed state only applies to the `direction`
+(boss) role — pre-existing behaviour. The test intercepts that POST so no state is
+persisted. Physical touch devices were not used.
 
 ## Current state (verified in the repo)
 

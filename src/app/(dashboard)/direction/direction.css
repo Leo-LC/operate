@@ -133,30 +133,25 @@
 }
 
 /* ── Tab bar ────────────────────────────────────────────────────────────────
-   Seven tabs plus the owner eye toggles cannot fit below desktop width. Fade
-   both edges so a cut-off tab reads as "more in that direction". */
+   Seven tabs plus the owner eye toggles do not fit in one phone-width row.
+   Pills wrap from 768px up (all tabs visible); on phones they scroll
+   horizontally with edge fades so the header stays compact. */
 
-.dir [role="tablist"] {
-  scrollbar-width: none;
-}
-
-@media (max-width: 1023px) {
-  .dir [role="tablist"] {
+@media (max-width: 767px) {
+  .dir .ui-pillnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px 10px;
     background-image:
       linear-gradient(to right, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent)),
       linear-gradient(to left, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent));
     background-position: left center, right center;
     background-size: 24px 100%, 24px 100%;
     background-repeat: no-repeat;
-    padding: 0 10px;
   }
-}
 
-/* ── Toolbars ─────────────────────────────────────────────────────────────── */
-
-/* Context label that duplicates a control on narrow viewports. */
-@media (max-width: 767px) {
-  .dir-toolbar-meta {
+  .dir .ui-pillnav::-webkit-scrollbar {
     display: none;
   }
 }

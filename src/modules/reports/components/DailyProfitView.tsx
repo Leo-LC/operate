@@ -144,24 +144,37 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div className="ui-toolbar">
-          <DateRangePicker
-            value={{ from, to }}
-            onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
-            today={bangkokToday()}
-          />
-          <div className="ui-toolbar-spacer" />
-          {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>}
-          {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>}
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="daily-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="daily-period-label">
+              <DateRangePicker
+                value={{ from, to }}
+                onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+                today={bangkokToday()}
+              />
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="daily-shops-label">Boutiques</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="daily-shops-label">
+              <ShopMultiSelect
+                options={scopeOptions}
+                selected={selectedLocationIds}
+                onChange={setSelectedLocationIds}
+                allLabel="Toutes les boutiques"
+                getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
+              />
+            </div>
+          </div>
         </div>
-        <ShopMultiSelect
-          options={scopeOptions}
-          selected={selectedLocationIds}
-          onChange={setSelectedLocationIds}
-          allLabel="Toutes les boutiques"
-          getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
-        />
+        {data?.canManage && (
+          <div className="ui-toolbar-actions">
+            <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>
+            <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>
+          </div>
+        )}
       </div>
 
       {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calcul du résultat quotidien…</Card>}

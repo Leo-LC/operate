@@ -223,23 +223,35 @@ export function DirectionOverview() {
   return (
     <div className="dir-stack">
       {/* Période + Boutiques */}
-      <div className="flex flex-col gap-3">
-        <div className="ui-toolbar">
-          <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="dir-overview-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="dir-overview-period-label">
+              <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
+            </div>
+          </div>
+          {locations.length > 0 && (
+            <div className="ui-filter-row">
+              <span className="ui-filter-label" id="dir-overview-shops-label">Boutiques</span>
+              <div className="ui-filter-control" role="group" aria-labelledby="dir-overview-shops-label">
+                <ShopMultiSelect
+                  options={locations}
+                  selected={selectedShops}
+                  onChange={setSelectedShops}
+                  allLabel="Toutes les boutiques"
+                  getLabel={(loc) => shortShopName(loc.name)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="ui-toolbar-actions">
           <Button size="sm" variant="outline" onClick={() => void fetchData(from, to, selectedShops)}>
             <RefreshCwIcon size={13} />
             Actualiser
           </Button>
         </div>
-        {locations.length > 0 && (
-          <ShopMultiSelect
-            options={locations}
-            selected={selectedShops}
-            onChange={setSelectedShops}
-            allLabel="Toutes les boutiques"
-            getLabel={(loc) => shortShopName(loc.name)}
-          />
-        )}
       </div>
 
       {/* Hiérarchie subtile */}

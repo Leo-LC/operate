@@ -299,6 +299,90 @@
     }
   }
 
+  /* Label + control rows, the reading order used by the Reviews Stats toolbar.
+     Screens keep their own controls (day, month, range, multi-shop); only the
+     label column and the action slot are shared. */
+  .ui-filter-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 380px;
+  }
+
+  .ui-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .ui-filter-label {
+    flex: 0 0 62px;
+    font-size: var(--ui-text-caption);
+    font-weight: 500;
+    color: var(--ui-fg-3);
+  }
+
+  .ui-filter-control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .ui-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  @media (max-width: 767px) {
+    .ui-filter-label {
+      flex-basis: 58px;
+    }
+
+    /* Actions get their own line instead of being pushed to the right edge. */
+    .ui-toolbar-actions {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+
+  /* Inline informational note (partial/future periods, estimation caveats). */
+  .ui-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-panel-2);
+    font-size: var(--ui-text-note);
+    line-height: 1.5;
+    color: var(--ui-fg-3);
+  }
+
+  .ui-note > svg {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    color: var(--ui-accent);
+  }
+
+  .ui-note[data-tone="warn"] {
+    border-color: color-mix(in srgb, var(--ui-warn) 40%, var(--ui-line));
+    background: var(--ui-warn-soft);
+    color: var(--ui-fg-2);
+  }
+
+  .ui-note[data-tone="warn"] > svg {
+    color: var(--ui-warn);
+  }
+
   @media (max-width: 767px) {
     .ui-kpi {
       gap: 10px;
@@ -347,10 +431,12 @@
     border-radius: 999px;
     background: transparent;
     color: var(--ui-fg-2);
+    font-family: inherit;
     font-size: var(--ui-text-body);
     font-weight: 500;
     text-decoration: none;
     white-space: nowrap;
+    cursor: pointer;
     transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
   }
 

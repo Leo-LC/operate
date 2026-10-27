@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon, CalendarClockIcon } from "lucide-react";
 import { ControlledTabs, type ControlledTab } from "@/components/ui/module-tabs";
-import { PageHeader } from "@/components/ui/page-header";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
 import { DirectionSourceBanner } from "./DirectionSourceBanner";
@@ -169,13 +169,35 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [visibleTabs, hiddenTabs, isPrivileged, visibility]);
 
+  const activeTabLabel = ALL_TABS.find((tab) => tab.value === active)?.label ?? "Direction";
+
   return (
     <div className="dir-shell">
       <div className="dir dir-head">
-        <PageHeader title="Résultats estimés" />
-        {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
-        {/* Tab bar with eye toggle per tab for privileged users */}
-        <ControlledTabs tabs={controlledTabs} value={active} onChange={(v) => setActive(v as TabKey)} ariaLabel="Direction" />
+        <div className="ui-module-header">
+          <nav aria-label="Breadcrumb">
+            <ol className="ui-breadcrumb">
+              <li>
+                <Link href="/direction">Direction</Link>
+                <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+              </li>
+              <li>
+                <span aria-current="page">{activeTabLabel}</span>
+              </li>
+            </ol>
+          </nav>
+          <div className="ui-module-header-row">
+            <h1 className="ui-module-title">Direction</h1>
+            {/* Tab bar with eye toggle per tab for privileged users */}
+            <ControlledTabs
+              variant="pills"
+              tabs={controlledTabs}
+              value={active}
+              onChange={(v) => setActive(v as TabKey)}
+              ariaLabel="Direction"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Loyverse is not migrated yet: it renders outside the `.dir` bridge so
@@ -190,6 +212,8 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
           {active === "daily" && <DirectionDaily />}
           {active === "details" && <DirectionDetails />}
           {active === "end_of_month" && <DirectionEndOfMonth />}
+          {/* Diagnostic, not a driving metric: kept at the end of the panel. */}
+          {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
         </div>
       )}
     </div>

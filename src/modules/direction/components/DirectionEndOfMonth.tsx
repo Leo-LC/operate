@@ -131,29 +131,32 @@ export function DirectionEndOfMonth() {
     <div className="dir-stack">
       {/* Month navigation — same pattern as Comparaison */}
       <div className="ui-toolbar">
-        <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Année</span>
-        <div style={selectorStyle}>
-          <button type="button" onClick={() => setYear((v) => v - 1)} aria-label="Année précédente" style={iconBtnStyle}>
-            <ChevronLeftIcon size={14} />
-          </button>
-          <strong className="mono" style={{ minWidth: 52, textAlign: "center" }}>{year}</strong>
-          <button type="button" onClick={() => setYear((v) => v + 1)} aria-label="Année suivante" style={iconBtnStyle}>
-            <ChevronRightIcon size={14} />
-          </button>
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="dir-eom-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="dir-eom-period-label">
+              <div style={selectorStyle}>
+                <button type="button" onClick={() => setYear((v) => v - 1)} aria-label="Année précédente" style={iconBtnStyle}>
+                  <ChevronLeftIcon size={14} />
+                </button>
+                <strong className="mono" style={{ minWidth: 52, textAlign: "center" }}>{year}</strong>
+                <button type="button" onClick={() => setYear((v) => v + 1)} aria-label="Année suivante" style={iconBtnStyle}>
+                  <ChevronRightIcon size={14} />
+                </button>
+              </div>
+              <select
+                value={focusMonth}
+                aria-label="Mois"
+                onChange={(e) => setFocusMonth(Number(e.target.value))}
+                style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", padding: "0 8px" }}
+              >
+                {MONTH_LONG.map((name, i) => (
+                  <option key={name} value={i + 1}>{name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-        <span style={{ fontSize: 11, color: "var(--fg-4)", marginLeft: 6 }}>Mois</span>
-        <select
-          value={focusMonth}
-          onChange={(e) => setFocusMonth(Number(e.target.value))}
-          style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", padding: "0 8px" }}
-        >
-          {MONTH_LONG.map((name, i) => (
-            <option key={name} value={i + 1}>{name}</option>
-          ))}
-        </select>
-        <div className="ui-toolbar-spacer" />
-        {/* Redundant on phones (year stepper + month select already say it). */}
-        <span className="dir-toolbar-meta" style={{ fontSize: 13, color: "var(--fg-3)" }}>{formatMonthLabel(year, focusMonth)}</span>
       </div>
 
       {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Chargement…</Card>}

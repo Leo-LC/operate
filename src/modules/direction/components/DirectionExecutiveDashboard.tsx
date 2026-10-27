@@ -148,29 +148,41 @@ export function DirectionExecutiveDashboard() {
   return (
     <section className="dir-dashboard" aria-label="Tableau de bord Direction">
       <header className="ui-toolbar">
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(-1)} disabled={loading} aria-label="Jour précédent">
-            <ChevronLeftIcon />
-          </Button>
-          <DateRangePicker value={period} onChange={setPeriod} today={today} align="start" language="fr" />
-          <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(1)} disabled={loading || period.to >= today} aria-label="Jour suivant">
-            <ChevronRightIcon />
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="dir-dash-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="dir-dash-period-label">
+              <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(-1)} disabled={loading} aria-label="Jour précédent">
+                <ChevronLeftIcon />
+              </Button>
+              <DateRangePicker value={period} onChange={setPeriod} today={today} align="start" language="fr" />
+              <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(1)} disabled={loading || period.to >= today} aria-label="Jour suivant">
+                <ChevronRightIcon />
+              </Button>
+            </div>
+          </div>
+          {shopOptions.length > 0 && (
+            <div className="ui-filter-row">
+              <span className="ui-filter-label" id="dir-dash-shops-label">Boutiques</span>
+              <div className="ui-filter-control" role="group" aria-labelledby="dir-dash-shops-label">
+                <ShopMultiSelect
+                  options={shopOptions}
+                  selected={selectedLocationIds}
+                  onChange={setSelectedLocationIds}
+                  allLabel="Toutes les boutiques"
+                  getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="ui-toolbar-actions">
+          <Button variant="secondary" onClick={() => void load()} disabled={loading}>
+            <RefreshCwIcon className={loading ? "animate-spin" : ""} />
+            Actualiser
           </Button>
         </div>
-        <div className="ui-toolbar-spacer" />
-        <Button variant="secondary" onClick={() => void load()} disabled={loading}>
-          <RefreshCwIcon className={loading ? "animate-spin" : ""} />
-          Actualiser
-        </Button>
       </header>
-
-      <ShopMultiSelect
-        options={shopOptions}
-        selected={selectedLocationIds}
-        onChange={setSelectedLocationIds}
-        allLabel="Toutes les boutiques"
-        getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
-      />
 
       <p className="dir-note">
         <InfoIcon size={15} aria-hidden />

@@ -5,6 +5,7 @@ import {
   AlertTriangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  InfoIcon,
   PencilLineIcon,
   SaveIcon,
   XIcon,
@@ -12,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { KpiStat } from "@/components/ui/kpi-stat";
+import { Pill } from "@/components/ui/pill";
+import { bangkokToday } from "@/components/ui/filters";
 import { toast } from "sonner";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -84,6 +87,28 @@ function deltaCell(current: number, prev: number) {
   return <span style={{ color: DELTA_COLOR[parts.dir], fontVariantNumeric: "tabular-nums" }}>{parts.text}</span>;
 }
 
+/**
+ * Where a calendar month sits relative to today (Bangkok time). The API has no
+ * partial-month awareness: it aggregates the rows that exist, so a month that
+ * has not started yet is simply 0. The view must not read that 0 as a real
+ * revenue collapse — future months are rendered as "—", and the current month
+ * is labelled as in progress because its prior-year reference is a full month.
+ */
+function monthState(year: number, month: number): "past" | "current" | "future" {
+  const [todayYear, todayMonth] = bangkokToday().split("-").map(Number);
+  if (year !== todayYear) return year < todayYear ? "past" : "future";
+  if (month < todayMonth) return "past";
+  if (month === todayMonth) return "current";
+  return "future";
+}
+
+function todayLabel(): string {
+  return new Date(`${bangkokToday()}T00:00:00`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 export function RevenueComparisonView() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [focusMonth, setFocusMonth] = useState(() => new Date().getMonth() + 1);
@@ -151,6 +176,10 @@ export function RevenueComparisonView() {
   }
 
   const editTargetYear = data ? data.prevYear : year - 1;
+  const focusState = monthState(year, focusMonth);
+  const focusFuture = focusState === "future";
+  const focusCurrent = focusState === "current";
+  const today = todayLabel();
 
   const selectorStyle: React.CSSProperties = {
     display: "inline-flex",
@@ -169,45 +198,50 @@ export function RevenueComparisonView() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* Controls */}
       <div className="ui-toolbar">
-        <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Year</span>
-        <div style={selectorStyle}>
-          <button type="button" onClick={() => setYear((v) => v - 1)} disabled={editing} aria-label="Previous year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>
-            <ChevronLeftIcon size={14} />
-          </button>
-          <strong className="mono" style={{ minWidth: 52, textAlign: "center" }}>{year}</strong>
-          <button type="button" onClick={() => setYear((v) => v + 1)} disabled={editing} aria-label="Next year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>
-            <ChevronRightIcon size={14} />
-          </button>
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="rep-revenue-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="rep-revenue-period-label">
+              <div style={selectorStyle}>
+                <button type="button" onClick={() => setYear((v) => v - 1)} disabled={editing} aria-label="Previous year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>
+                  <ChevronLeftIcon size={14} />
+                </button>
+                <strong className="mono" style={{ minWidth: 52, textAlign: "center" }}>{year}</strong>
+                <button type="button" onClick={() => setYear((v) => v + 1)} disabled={editing} aria-label="Next year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>
+                  <ChevronRightIcon size={14} />
+                </button>
+              </div>
+              <select
+                value={focusMonth}
+                disabled={editing}
+                aria-label="Month"
+                onChange={(e) => setFocusMonth(Number(e.target.value))}
+                style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", padding: "0 8px" }}
+              >
+                {MONTHS.map((name, i) => (
+                  <option key={name} value={i + 1}>{name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-
-        <span style={{ fontSize: 11, color: "var(--fg-4)", marginLeft: 6 }}>Month</span>
-        <select
-          value={focusMonth}
-          disabled={editing}
-          onChange={(e) => setFocusMonth(Number(e.target.value))}
-          style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", padding: "0 8px" }}
-        >
-          {MONTHS.map((name, i) => (
-            <option key={name} value={i + 1}>{name}</option>
-          ))}
-        </select>
-
-        <div className="ui-toolbar-spacer" />
-        {data?.canEdit && !editing && (
-          <Button size="sm" variant="outline" onClick={startEditing}>
-            <PencilLineIcon size={13} />Edit {data.prevYear} data
-          </Button>
-        )}
-        {editing && (
-          <>
-            <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-              <XIcon size={13} />Cancel
+        <div className="ui-toolbar-actions">
+          {data?.canEdit && !editing && (
+            <Button size="sm" variant="outline" onClick={startEditing}>
+              <PencilLineIcon size={13} />Edit {data.prevYear} data
             </Button>
-            <Button size="sm" onClick={() => void saveEdits()} disabled={saving}>
-              <SaveIcon size={13} />{saving ? "Saving…" : `Save ${editTargetYear}`}
-            </Button>
-          </>
-        )}
+          )}
+          {editing && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                <XIcon size={13} />Cancel
+              </Button>
+              <Button size="sm" onClick={() => void saveEdits()} disabled={saving}>
+                <SaveIcon size={13} />{saving ? "Saving…" : `Save ${editTargetYear}`}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Loading comparison…</Card>}
@@ -224,13 +258,23 @@ export function RevenueComparisonView() {
           <div className="ui-kpi-grid">
             <KpiStat
               label={`Ce mois · ${MONTH_LONG[focusMonth - 1]} ${year}`}
-              value={money(data.totals.currentMonth.current)}
+              value={focusFuture ? "—" : money(data.totals.currentMonth.current)}
               comparison={
-                <span className="ui-kpi-delta" data-dir={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).dir}>
-                  {deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).text}
-                </span>
+                focusFuture ? (
+                  <span className="ui-kpi-delta" data-dir="neutral">—</span>
+                ) : (
+                  <span className="ui-kpi-delta" data-dir={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).dir}>
+                    {deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).text}
+                  </span>
+                )
               }
-              hint={`Même mois ${data.prevYear} : ${money(data.totals.currentMonth.prev)}`}
+              hint={
+                focusFuture
+                  ? "Mois à venir — aucune donnée"
+                  : focusCurrent
+                    ? `${data.prevYear} complet : ${money(data.totals.currentMonth.prev)} · mois en cours`
+                    : `Même mois ${data.prevYear} : ${money(data.totals.currentMonth.prev)}`
+              }
             />
             <KpiStat
               label={`Cumul à date · ${year}`}
@@ -240,7 +284,7 @@ export function RevenueComparisonView() {
                   {deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}
                 </span>
               }
-              hint={`Cumul ${data.prevYear} : ${money(data.totals.ytd.prev)}`}
+              hint={`Cumul ${data.prevYear} : ${money(data.totals.ytd.prev)}${focusFuture ? ` · ${year} au ${today}` : focusCurrent ? " · mois en cours partiel" : ""}`}
             />
             <KpiStat
               label={`Année complète · ${data.prevYear}`}
@@ -249,12 +293,28 @@ export function RevenueComparisonView() {
             />
           </div>
 
+          {/* Period honesty: the API aggregates existing rows only, so a month
+              that has not started is 0, and the running month is compared with
+              a full prior-year month. Numbers are unchanged. */}
+          {(focusCurrent || focusFuture) && (
+            <p className="ui-note">
+              <InfoIcon size={15} aria-hidden />
+              <span>
+                {focusFuture
+                  ? `${MONTH_LONG[focusMonth - 1]} ${year} has not started: future months read “—” instead of ฿0. The year-to-date total adds only the months entered so far, while ${data.prevYear} is complete, so the cumulative delta is not like-for-like.`
+                  : `${MONTH_LONG[focusMonth - 1]} ${year} is still in progress (today: ${today}). It is compared with the full ${MONTH_LONG[focusMonth - 1]} ${data.prevYear} month, and the year-to-date total uses a partial month against a full prior year, so both deltas reflect the incomplete month.`}
+              </span>
+            </p>
+          )}
+
           {/* Missing prev-year data hint */}
           {data.inputStatus.monthsWithPrevData.length < 12 && (
-            <p style={{ margin: 0, fontSize: 12, color: "var(--warn)", display: "flex", alignItems: "center", gap: 7 }}>
-              <AlertTriangleIcon size={14} />
-              No {data.prevYear} revenue entered for: {MONTHS.filter((_, i) => !data.inputStatus.monthsWithPrevData.includes(i + 1)).join(", ") || "—"}.
-              {data.canEdit && <> Use “Edit {data.prevYear} data” to add monthly figures.</>}
+            <p className="ui-note" data-tone="warn">
+              <AlertTriangleIcon size={15} aria-hidden />
+              <span>
+                No {data.prevYear} revenue entered for: {MONTHS.filter((_, i) => !data.inputStatus.monthsWithPrevData.includes(i + 1)).join(", ") || "—"}.
+                {data.canEdit && <> Use “Edit {data.prevYear} data” to add monthly figures.</>}
+              </span>
             </p>
           )}
 
@@ -264,6 +324,7 @@ export function RevenueComparisonView() {
               <Card flush>
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                   <strong>Ensemble · {MONTHS[focusMonth - 1]} en surbrillance</strong>
+                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Mois à venir affichés « — »</span>
                 </div>
                 <div className="ui-table-scroll">
                   <table style={tableStyle}>
@@ -279,13 +340,20 @@ export function RevenueComparisonView() {
                     <tbody>
                       {data.byMonth.map((row) => {
                         const isFocus = row.month === focusMonth;
+                        const state = monthState(year, row.month);
+                        const future = state === "future";
+                        const comparable = !future && row.prev > 0;
                         return (
                           <tr key={row.month} style={{ borderTop: "1px solid var(--line)", ...(isFocus ? rowActive : {}) }}>
-                            <td style={{ ...tdLeft, fontWeight: isFocus ? 650 : 400 }}>{MONTHS[row.month - 1]}</td>
-                            <td style={tdNumber}>{money(row.current)}</td>
+                            <td style={{ ...tdLeft, fontWeight: isFocus ? 650 : 400 }}>
+                              {MONTHS[row.month - 1]}
+                              {future && <Pill size="sm" style={{ marginLeft: 8 }}>à venir</Pill>}
+                              {state === "current" && <Pill size="sm" tone="warn" style={{ marginLeft: 8 }}>en cours</Pill>}
+                            </td>
+                            <td style={{ ...tdNumber, color: future ? "var(--fg-4)" : undefined }}>{future ? "—" : money(row.current)}</td>
                             <td style={{ ...tdNumber, color: row.prev > 0 ? "var(--fg)" : "var(--fg-4)" }}>{row.prev > 0 ? money(row.prev) : "—"}</td>
-                            <td style={tdNumber}>{row.prev > 0 ? money(row.delta) : "—"}</td>
-                            <td style={tdNumber}>{row.prev > 0 ? deltaCell(row.current, row.prev) : <span style={{ color: "var(--fg-4)" }}>—</span>}</td>
+                            <td style={tdNumber}>{comparable ? money(row.delta) : "—"}</td>
+                            <td style={tdNumber}>{comparable ? deltaCell(row.current, row.prev) : <span style={{ color: "var(--fg-4)" }}>—</span>}</td>
                           </tr>
                         );
                       })}
@@ -298,6 +366,8 @@ export function RevenueComparisonView() {
               <Card flush>
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                   <strong>Par boutique · {MONTH_LONG[focusMonth - 1]} {year}</strong>
+                  {focusFuture && <Pill size="sm">à venir</Pill>}
+                  {focusCurrent && <Pill size="sm" tone="warn">en cours</Pill>}
                 </div>
                 <div className="ui-table-scroll">
                   <table style={tableStyle}>
@@ -313,22 +383,27 @@ export function RevenueComparisonView() {
                     <tbody>
                       {data.byShopFocus.map((shop) => {
                         const hasPrev = shop.prev > 0 || shop.prevFromInput;
+                        const comparable = !focusFuture && hasPrev;
                         return (
                           <tr key={shop.locationId} style={{ borderTop: "1px solid var(--line)" }}>
                             <td style={tdLeft}>{shop.locationName}</td>
-                            <td style={tdNumber}>{money(shop.current)}</td>
+                            <td style={{ ...tdNumber, color: focusFuture ? "var(--fg-4)" : undefined }}>{focusFuture ? "—" : money(shop.current)}</td>
                             <td style={{ ...tdNumber, color: hasPrev ? "var(--fg)" : "var(--fg-4)" }}>{hasPrev ? money(shop.prev) : "—"}</td>
-                            <td style={tdNumber}>{hasPrev ? money(shop.delta) : "—"}</td>
-                            <td style={tdNumber}>{hasPrev ? deltaCell(shop.current, shop.prev) : <span style={{ color: "var(--fg-4)" }}>—</span>}</td>
+                            <td style={tdNumber}>{comparable ? money(shop.delta) : "—"}</td>
+                            <td style={tdNumber}>{comparable ? deltaCell(shop.current, shop.prev) : <span style={{ color: "var(--fg-4)" }}>—</span>}</td>
                           </tr>
                         );
                       })}
                       <tr style={{ borderTop: "2px solid var(--line)", fontWeight: 650 }}>
                         <td style={tdLeft}><strong>Total</strong></td>
-                        <td style={{ ...tdNumber, fontWeight: 650 }}>{money(data.byShopFocus.reduce((s, shop) => s + shop.current, 0))}</td>
+                        <td style={{ ...tdNumber, fontWeight: 650 }}>{focusFuture ? "—" : money(data.byShopFocus.reduce((s, shop) => s + shop.current, 0))}</td>
                         <td style={{ ...tdNumber, fontWeight: 650 }}>{money(data.byShopFocus.reduce((s, shop) => s + shop.prev, 0))}</td>
-                        <td style={{ ...tdNumber, fontWeight: 650 }}>{money(data.byShopFocus.reduce((s, shop) => s + shop.delta, 0))}</td>
-                        <td style={tdNumber}><strong>{deltaCell(data.byShopFocus.reduce((s, shop) => s + shop.current, 0), data.byShopFocus.reduce((s, shop) => s + shop.prev, 0))}</strong></td>
+                        <td style={{ ...tdNumber, fontWeight: 650 }}>{focusFuture ? "—" : money(data.byShopFocus.reduce((s, shop) => s + shop.delta, 0))}</td>
+                        <td style={tdNumber}>
+                          {focusFuture
+                            ? <span style={{ color: "var(--fg-4)" }}>—</span>
+                            : <strong>{deltaCell(data.byShopFocus.reduce((s, shop) => s + shop.current, 0), data.byShopFocus.reduce((s, shop) => s + shop.prev, 0))}</strong>}
+                        </td>
                       </tr>
                     </tbody>
                   </table>

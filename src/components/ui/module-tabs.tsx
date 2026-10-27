@@ -209,23 +209,60 @@ export function ModuleTabs({
 /**
  * Same underline style for state-driven tab bars (no route change).
  * Used by Direction, Reports, Shift & Sales, Directory, …
+ *
+ * `variant="pills"` opts into the shared pill navigation (same markup and
+ * classes as `ModuleTabs`), for module headers built from state-driven tabs.
  */
 export function ControlledTabs({
   tabs,
   value,
   onChange,
   ariaLabel,
+  variant = "underline",
 }: {
   tabs: readonly ControlledTab[];
   value: string;
   onChange: (value: string) => void;
   ariaLabel?: string;
+  variant?: "underline" | "pills";
 }) {
   const activeIndex = Math.max(
     0,
     tabs.findIndex((t) => t.value === value)
   );
   const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, tabs.length);
+
+  if (variant === "pills") {
+    return (
+      <div aria-label={ariaLabel} role="tablist" className="ui-pillnav">
+        {tabs.map((tab, i) => {
+          const Icon = tab.icon;
+          const isActive = i === activeIndex;
+          return (
+            <div
+              key={tab.value}
+              className="ui-pillnav-item"
+              data-dimmed={tab.dimmed ? "true" : undefined}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => onChange(tab.value)}
+                className="ui-pillnav-link"
+                data-active={isActive ? "true" : undefined}
+                title={tab.label}
+              >
+                {Icon ? <Icon size={14} /> : null}
+                {tab.label}
+              </button>
+              {tab.extra}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div aria-label={ariaLabel} role="tablist" style={BAR_STYLE}>
