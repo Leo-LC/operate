@@ -154,13 +154,22 @@ captures, 0 overflow.
 Scope labels (period and shop) are derived from the response `meta.filtered`, so a slow
 refresh cannot mislabel data that is still on screen.
 
+Follow-up (filter truth + layout): the earlier “1,284 / 2025 dates” capture was a static
+fixture, not a bug. Filtering is now verified against a filter-aware mock (56/56):
+params, totals, scope, weekly labels, countries/channels and a slow-then-rapid filter race
+all match the response. Footers now state what they count (`classified responses`, named
+shops) with correct singulars; the empty panel names the sheet range; a refresh dims the
+previous response. Below 768 px the shop pills collapse to one accessible disclosure; on
+desktop the KPI card fills the weekly chart's height. No metric or API change.
+
 ### Wave 1 §2 gate
 
 | Gate | Result |
 | --- | --- |
-| Before/after captures at real widths, light + dark, both accents | Pass. `wave1/ci-before/` (9) → `wave1/ci-after/` (9 + 5 states + 3 date-picker). |
-| Key interactions | Pass. Period presets, custom dates, shop pills, shop bar click + keyboard, refresh, unmatched disclosure: **39/39** checks (`ci-states-report.json`). |
-| States | Pass. Loading (skeletons, blank KPI, no unconfigured flash), empty, API error, unconfigured, fetch failure. |
+| Before/after captures at real widths, light + dark, both accents | Pass. `wave1/ci-before/` (9) → `wave1/ci-after/` (9 + 5 states + 3 date-picker + filter-truth states). |
+| Key interactions | Pass. Period presets, custom dates, shop pills, shop bar click + keyboard, refresh, unmatched disclosure: **40/40** checks (`ci-states-report.json`). |
+| Filter truth | Pass. Filter-aware mock, distinct shop/date responses, slow-then-rapid race: **56/56** (`ci-filter-truth-report.json`). |
+| States | Pass. Loading (skeletons, blank KPI, no unconfigured flash), empty (names the sheet range), API error, unconfigured, fetch failure. |
 | No horizontal overflow | Pass. 1440/768/390, light/dark, green/orange — 9/9, 0 overflow, 0 page errors. |
 | Accent bridge | Pass. Green `#2c6f4c` and orange `#b45309` drive bars, active pills and the portalled calendar. |
 | No API/permission/data-contract change | Pass. No route handler, aggregation, normalizer or guard touched. |
@@ -168,9 +177,9 @@ refresh cannot mislabel data that is still on screen.
 | Acceptance | **Pending** — user review required before the next module. |
 
 Known limits for this step: the local API is unconfigured (no Google org token), so every
-populated state was verified against a Playwright-mocked response; only the preview owner
-account exists locally; loading/error/empty were simulated at the network boundary; physical
-touch devices were not used.
+populated state was verified against Playwright mocks; **real Google/spreadsheet data is
+still unverified**. Only the preview owner account exists locally; loading/error/empty were
+simulated at the network boundary; physical touch devices were not used.
 
 ## Current state (verified in the repo)
 

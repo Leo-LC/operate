@@ -8,6 +8,7 @@ import {
   PanelSub,
   PanelTitle,
 } from "@/components/ui/panel";
+import { OTHER_REVIEW } from "../types";
 
 interface HorizontalBarChartProps {
   title: string;
@@ -18,7 +19,15 @@ interface HorizontalBarChartProps {
   /** Only rows that can actually change the filter become buttons. */
   isClickable?: (label: string) => boolean;
   clickHint?: string;
-  itemNoun?: string;
+  /** Both forms so a single bucket reads "1 country", not "1 countries". */
+  itemNoun?: { one: string; other: string };
+  /** Noun for the response count; use "classified response(s)" when unmatched
+   *  values are excluded from the list. */
+  totalNoun?: { one: string; other: string };
+}
+
+function nounFor(count: number, noun: { one: string; other: string }): string {
+  return count === 1 ? noun.one : noun.other;
 }
 
 /**
@@ -33,10 +42,14 @@ export function HorizontalBarChart({
   onItemClick,
   isClickable,
   clickHint,
-  itemNoun = "entries",
+  itemNoun = { one: "entry", other: "entries" },
+  totalNoun = { one: "response", other: "responses" },
 }: HorizontalBarChartProps) {
   const total = data.reduce((sum, row) => sum + row.count, 0);
   const maxCount = Math.max(...data.map((row) => row.count), 1);
+  // "Other / Review" is a catch-all bucket, not a named shop or country.
+  const named = data.filter((row) => row.label !== OTHER_REVIEW);
+  const namedCount = named.length > 0 ? named.length : data.length;
 
   return (
     <Panel>
@@ -98,7 +111,8 @@ export function HorizontalBarChart({
 
       {!loading && data.length > 0 && (
         <PanelFoot>
-          {total.toLocaleString()} responses · {data.length} {itemNoun}
+          {total.toLocaleString()} {nounFor(total, totalNoun)} · {namedCount}{" "}
+          {nounFor(namedCount, itemNoun)}
         </PanelFoot>
       )}
     </Panel>

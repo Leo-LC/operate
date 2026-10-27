@@ -74,8 +74,8 @@ export function ChannelBarChart({ data, loading }: ChannelBarChartProps) {
 
       {!loading && data.length > 0 && (
         <PanelFoot>
-          {total.toLocaleString()} responses · {data.length} of {FORM_CHANNEL_CHOICES.length}{" "}
-          channels
+          {total.toLocaleString()} classified {total === 1 ? "response" : "responses"} ·{" "}
+          {data.length} of {FORM_CHANNEL_CHOICES.length} channels
         </PanelFoot>
       )}
     </Panel>

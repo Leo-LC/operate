@@ -3,7 +3,8 @@
 Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Phase 0**
 (shared foundations + accent preference) is committed at **`ac88b15`**; **Wave 1 §1**
 (Reviews siblings) is committed at **`e998f99`**; **Wave 1 §2** (Customer Insights +
-Inbox filter disclosure) is the latest local commit on the branch (`git log -1`).
+Inbox filter disclosure) is committed at **`be6f556`**; the **Wave 1 §2 filter-truth
+follow-up** is the latest local commit on the branch (`git log -1`).
 Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, the Reviews sibling
 routes, `/customer-insights` and the Inbox filter rail. **No other module was migrated.**
 No deploy, push, merge or DB migration. Local URL:
@@ -71,6 +72,32 @@ Scope: `/customer-insights` only, plus the requested Inbox filter disclosure und
   by default below 900 px with a text summary of the active filters, and stays fully open
   on desktop.
 
+### Filter-truth follow-up
+
+The earlier Phangan / Last 30 days capture (1,284 total, 2025 chart dates) was traced to
+the **capture fixture**, not the page: the script returned one static 2025 payload for
+every request. A dedicated suite now drives the page against a **filter-aware** mock built
+with the same bucket rules as `lib/aggregate.ts`, and asserts the UI against the response
+the page actually received.
+
+Verified: request params (`from`/`to`/`shop`), KPI total, scope label, weekly table and
+chart labels, countries and channels panels, shop-panel visibility, empty state, and a slow
+first response followed by a rapid shop change (the `requestId` guard keeps the newest
+response). **56/56 checks** (`wave1/ci-after/ci-filter-truth-report.json`).
+
+Real mismatches fixed (calculation and API semantics untouched):
+
+- Footers now state what they count — `N classified responses` for countries/channels
+  (unmatched values are excluded) and named-shop counts for the shops panel — with correct
+  singular forms.
+- The empty panel names the range the sheet actually covers when `meta.dateRange` exists.
+- The previous response dims while a refresh is in flight (`data-refreshing`), so stale
+  numbers are visibly stale rather than silently mislabelled.
+
+Layout: below 768 px the shop pills collapse to one accessible disclosure (matching
+Reviews Stats); on desktop the KPI card stretches to the weekly chart's height and anchors
+the source-range note to its bottom. No new metrics.
+
 ### Verification matrix
 
 | Check | Result | Evidence |
@@ -82,8 +109,9 @@ Scope: `/customer-insights` only, plus the requested Inbox filter disclosure und
 | Accent bridge | Pass | Active pill, bars and portalled calendar use `#2c6f4c` (green) / `#b45309` (orange) |
 | States | Pass | Loading skeletons + blank KPI, empty, API error, unconfigured, fetch failure |
 | Unmatched disclosure | Pass | Closed by default, opens on click, three sections |
-| Mobile layout | Pass | Filters reachable, channel names untruncated, header row hidden, no overflow |
-| Customer Insights suite | **39/39** | `wave1/ci-after/ci-states-report.json` |
+| Mobile layout | Pass | Filters reachable, shop pills collapse to one disclosure, channel names untruncated, header row hidden, no overflow |
+| Customer Insights suite | **40/40** | `wave1/ci-after/ci-states-report.json` |
+| Customer Insights filter-truth suite | **56/56** | `wave1/ci-after/ci-filter-truth-report.json` |
 | Inbox filter disclosure | **32/32** | `wave1/filters/filters-report.json` |
 | Reviews matrix (re-run) | 48/48, 0 overflow | `wave1/after/after-report.json` |
 | Tests / typecheck / lint / build | Pass | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint clean on changed files; `npm run build` exit 0 |
@@ -92,8 +120,9 @@ Scope: `/customer-insights` only, plus the requested Inbox filter disclosure und
 
 - The local `/api/customer-insights/summary` returns `configured: false` because no Google
   org token is linked. Every populated state was verified against a Playwright-mocked
-  response (1,284 submissions, 8 shops, 8 channels, 10 countries, 12 weeks, unmatched
-  buckets); the **unconfigured** capture is real.
+  response; filtering was verified against a **filter-aware** mock that mirrors
+  `lib/aggregate.ts`. **Real Google/spreadsheet data and latency remain unverified** and
+  must be checked before this module is accepted.
 - The page is owner-only; only the preview owner account exists locally.
 - Loading, error and empty states were simulated at the network boundary.
 - Physical touch devices were not used; responsive checks are Playwright emulation.
@@ -454,8 +483,9 @@ Local warm-cache sample only; not a benchmark. No dependency added.
 ## Pending / not verified
 
 1. **Live Customer Insights data** — the local API is unconfigured (no Google org token),
-   so populated screens were verified against a mocked response. Only the unconfigured
-   state ran against the live API.
+   so populated screens were verified against mocks (including a filter-aware mock for
+   filtering). Only the unconfigured state ran against the live API. **Real Google
+   spreadsheet data, its date coverage and fetch latency remain pending.**
 2. **Staff-role runtime** — only the preview owner account is available. Role and
    visibility code is unchanged in the diff; runtime check with a staff account is pending.
 3. **Real Google sync** — the sync POST was mocked in isolated tests. No production sync

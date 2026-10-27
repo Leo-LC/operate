@@ -1,0 +1,282 @@
+[
+  {
+    "name": "initial request carries no filters",
+    "pass": true,
+    "detail": "{\"from\":null,\"to\":null,\"shop\":\"all\"}"
+  },
+  {
+    "name": "initial total matches the response",
+    "pass": true,
+    "detail": "14"
+  },
+  {
+    "name": "initial scope label",
+    "pass": true,
+    "detail": "All shops · All time"
+  },
+  {
+    "name": "source range comes from the sheet",
+    "pass": true,
+    "detail": "Source range: 2 Jun 2026 – 24 Oct 2026"
+  },
+  {
+    "name": "weekly buckets match the response",
+    "pass": true,
+    "detail": "[{\"label\":\"1 Jun\",\"count\":1},{\"label\":\"15 Jun\",\"count\":1},{\"label\":\"29 Jun\",\"count\":1},{\"label\":\"20 Jul\",\"count\":1},{\"label\":\"10 Aug\",\"count\":1},{\"label\":\"24 Aug\",\"count\":1},{\"label\":\"31 Aug\",\"count\":1},{\"label\":\"14 Sept\",\"count\":1},{\"label\":\"28 Sept\",\"count\":1},{\"label\":\"5 Oct\",\"count\":2},{\"label\":\"12 Oct\",\"count\":1},{\"label\":\"19 Oct\",\"count\":2}]"
+  },
+  {
+    "name": "shop panel footer counts named shops only",
+    "pass": true,
+    "detail": "14 responses · 4 shops"
+  },
+  {
+    "name": "countries footer separates classified responses",
+    "pass": true,
+    "detail": "13 classified responses · 5 countries"
+  },
+  {
+    "name": "channels footer separates classified responses",
+    "pass": true,
+    "detail": "13 classified responses · 6 of 9 channels"
+  },
+  {
+    "name": "no page errors on initial load",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "preset sends a 2026 range",
+    "pass": true,
+    "detail": "{\"from\":\"2026-09-28\",\"to\":\"2026-10-27\",\"shop\":\"all\"}"
+  },
+  {
+    "name": "preset total matches the response",
+    "pass": true,
+    "detail": "6 vs 6"
+  },
+  {
+    "name": "preset scope label",
+    "pass": true,
+    "detail": "All shops · Last 30 days"
+  },
+  {
+    "name": "preset total differs from all-time",
+    "pass": true,
+    "detail": "6"
+  },
+  {
+    "name": "weekly buckets match the response",
+    "pass": true,
+    "detail": "[{\"label\":\"28 Sept\",\"count\":1},{\"label\":\"5 Oct\",\"count\":2},{\"label\":\"12 Oct\",\"count\":1},{\"label\":\"19 Oct\",\"count\":2}]"
+  },
+  {
+    "name": "weekly buckets sum to the filtered total",
+    "pass": true,
+    "detail": "6 vs 6"
+  },
+  {
+    "name": "chart shows one label per filtered week",
+    "pass": true,
+    "detail": "4 vs 4"
+  },
+  {
+    "name": "chart labels are inside the period (no stale years)",
+    "pass": true,
+    "detail": "28 Sept,5 Oct,12 Oct,19 Oct"
+  },
+  {
+    "name": "source range still describes the whole sheet",
+    "pass": true,
+    "detail": "Source range: 2 Jun 2026 – 24 Oct 2026"
+  },
+  {
+    "name": "countries panel reflects the filtered period",
+    "pass": true,
+    "detail": "5 classified responses · 3 countries"
+  },
+  {
+    "name": "channels panel reflects the filtered period",
+    "pass": true,
+    "detail": "5 classified responses · 4 of 9 channels"
+  },
+  {
+    "name": "no page errors after the preset change",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "shop pill requests that shop",
+    "pass": true,
+    "detail": "{\"from\":\"2026-09-28\",\"to\":\"2026-10-27\",\"shop\":\"Phangan\"}"
+  },
+  {
+    "name": "shop total matches the response",
+    "pass": true,
+    "detail": "2 vs 2"
+  },
+  {
+    "name": "shop scope label",
+    "pass": true,
+    "detail": "Phangan · Last 30 days"
+  },
+  {
+    "name": "shop total differs from all shops",
+    "pass": true,
+    "detail": "2"
+  },
+  {
+    "name": "weekly buckets match the shop subset",
+    "pass": true,
+    "detail": "[{\"label\":\"28 Sept\",\"count\":1},{\"label\":\"5 Oct\",\"count\":1}]"
+  },
+  {
+    "name": "shop panel is hidden when scoped to one shop",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "countries panel reflects the shop subset",
+    "pass": true,
+    "detail": "1 classified response · 1 country"
+  },
+  {
+    "name": "channels panel reflects the shop subset",
+    "pass": true,
+    "detail": "1 classified response · 1 of 9 channels"
+  },
+  {
+    "name": "all shops restores the period total",
+    "pass": true,
+    "detail": "6"
+  },
+  {
+    "name": "no page errors after shop changes",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "both requests were sent",
+    "pass": true,
+    "detail": "[{\"from\":null,\"to\":null,\"shop\":\"all\"},{\"from\":null,\"to\":null,\"shop\":\"all\"},{\"from\":null,\"to\":null,\"shop\":\"Phangan\"}]"
+  },
+  {
+    "name": "late first response does not overwrite the newer filter",
+    "pass": true,
+    "detail": "4"
+  },
+  {
+    "name": "scope label follows the newest filter",
+    "pass": true,
+    "detail": "Phangan · All time"
+  },
+  {
+    "name": "weekly buckets follow the newest filter",
+    "pass": true,
+    "detail": "[{\"label\":\"1 Jun\",\"count\":1},{\"label\":\"15 Jun\",\"count\":1},{\"label\":\"28 Sept\",\"count\":1},{\"label\":\"5 Oct\",\"count\":1}]"
+  },
+  {
+    "name": "no page errors during the race",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "empty shop shows the empty panel",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "empty panel names the range the sheet covers",
+    "pass": true,
+    "detail": "The sheet covers 2 Jun 2026 – 24 Oct 2026. Try a period inside that range or a different shop."
+  },
+  {
+    "name": "KPI and chart share a top edge",
+    "pass": true,
+    "detail": "{\"kpi\":{\"top\":250,\"bottom\":594,\"height\":343},\"chart\":{\"top\":250,\"bottom\":594,\"height\":343},\"hintBottom\":577,\"hintTop\":559}"
+  },
+  {
+    "name": "KPI fills the chart height",
+    "pass": true,
+    "detail": "{\"kpi\":{\"top\":250,\"bottom\":594,\"height\":343},\"chart\":{\"top\":250,\"bottom\":594,\"height\":343},\"hintBottom\":577,\"hintTop\":559}"
+  },
+  {
+    "name": "source range is anchored to the bottom of the card",
+    "pass": true,
+    "detail": "{\"kpi\":{\"top\":250,\"bottom\":594,\"height\":343},\"chart\":{\"top\":250,\"bottom\":594,\"height\":343},\"hintBottom\":577,\"hintTop\":559}"
+  },
+  {
+    "name": "mobile hides the pill row",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile shows one shop trigger",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "trigger names the current scope",
+    "pass": true,
+    "detail": "All shops"
+  },
+  {
+    "name": "trigger exposes its state",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "trigger opens the shop panel",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "panel pills are reachable",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "panel selection filters the dashboard",
+    "pass": true,
+    "detail": "{\"from\":null,\"to\":null,\"shop\":\"Phangan\"}"
+  },
+  {
+    "name": "trigger label follows the selection",
+    "pass": true,
+    "detail": "Phangan"
+  },
+  {
+    "name": "scope label follows the selection",
+    "pass": true,
+    "detail": "Phangan · All time"
+  },
+  {
+    "name": "total follows the selection",
+    "pass": true,
+    "detail": "4"
+  },
+  {
+    "name": "Done closes the panel",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "Escape closes the panel",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "Escape returns focus to the trigger",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile has no horizontal overflow",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "no page errors on mobile",
+    "pass": true,
+    "detail": ""
+  }
+]

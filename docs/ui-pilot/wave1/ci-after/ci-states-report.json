@@ -190,6 +190,11 @@
     "detail": ""
   },
   {
+    "name": "mobile collapses the shop pills into one trigger",
+    "pass": true,
+    "detail": ""
+  },
+  {
     "name": "mobile has no page errors",
     "pass": true,
     "detail": ""

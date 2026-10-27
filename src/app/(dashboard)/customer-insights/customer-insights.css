@@ -220,6 +220,124 @@
   outline-offset: 1px;
 }
 
+/* ── Shop scope: pills on desktop, one disclosure on phones ─────────────── */
+
+.ci-shop-scope {
+  min-width: 0;
+}
+
+.ci-shop-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ci-shop-compact {
+  position: relative;
+  display: none;
+  min-width: 0;
+}
+
+.ci-shop-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: var(--ui-control-h);
+  padding: 0 12px;
+  border: var(--ui-line-width) solid var(--ui-control-line);
+  border-radius: 999px;
+  background: var(--ui-panel);
+  color: var(--ui-fg-2);
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.ci-shop-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-shop-trigger:hover {
+  border-color: var(--ui-fg-3);
+  background: var(--ui-panel-2);
+  color: var(--ui-fg-1);
+}
+
+.ci-shop-trigger[aria-expanded="true"] {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-text);
+  font-weight: 600;
+}
+
+.ci-shop-trigger:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+.ci-shop-chevron {
+  flex: 0 0 auto;
+  transition: transform 140ms var(--ease);
+}
+
+.ci-shop-trigger[aria-expanded="true"] .ci-shop-chevron {
+  transform: rotate(180deg);
+}
+
+.ci-shop-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 24px));
+  padding: 10px;
+  border: var(--ui-line-width) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow-raised);
+}
+
+.ci-shop-panel .ci-pill-row {
+  gap: 6px;
+}
+
+.ci-shop-done {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 0;
+  border: 0;
+  border-top: var(--ui-line-width) solid var(--ui-line);
+  background: none;
+  color: var(--ui-accent-text);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ci-shop-done:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+  border-radius: var(--ui-radius-sm);
+}
+
+@media (max-width: 767px) {
+  .ci-shop-pills {
+    display: none;
+  }
+
+  .ci-shop-compact {
+    display: block;
+  }
+}
+
 /* The date picker is portalled to <body>, so its popover carries this class
    instead of inheriting the `.ci` bridge. */
 .ci-dp {
@@ -242,6 +360,13 @@
   flex-direction: column;
   gap: var(--ui-section-gap);
   min-width: 0;
+  transition: opacity 140ms var(--ease);
+}
+
+/* A refresh keeps the last response on screen so the numbers never blank out,
+   but dims it until the new response replaces it. */
+.ci-region[data-refreshing="true"] {
+  opacity: 0.55;
 }
 
 .ci-top {
@@ -261,14 +386,14 @@
 @media (min-width: 768px) {
   .ci-top {
     grid-template-columns: minmax(200px, 1fr) minmax(0, 2.5fr);
-    align-items: start;
+    align-items: stretch;
   }
 }
 
 @media (min-width: 1024px) {
   .ci-top {
     grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr);
-    align-items: start;
+    align-items: stretch;
   }
 
   .ci-secondary {
@@ -281,6 +406,20 @@
 }
 
 /* ── KPI scope line ──────────────────────────────────────────────────────── */
+
+.ci-kpi {
+  height: 100%;
+}
+
+/* The card matches the chart's height; the source range sits at the bottom so
+   the column reads as one block instead of a short card over empty space. */
+.ci-kpi .ui-kpi-body {
+  flex: 1 1 auto;
+}
+
+.ci-kpi .ui-kpi-note:last-child {
+  margin-top: auto;
+}
 
 .ci-kpi-scope {
   margin: 0;

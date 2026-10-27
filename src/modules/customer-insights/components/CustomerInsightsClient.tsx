@@ -5,11 +5,12 @@ import { AlertTriangleIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { Panel, PanelBody } from "@/components/ui/panel";
-import { ShopSingleSelect, SingleDatePicker } from "@/components/ui/filters";
+import { SingleDatePicker } from "@/components/ui/filters";
 import type { CustomerInsightsSummary } from "../types";
 import { HorizontalBarChart } from "./HorizontalBarChart";
 import { ChannelBarChart } from "./ChannelBarChart";
 import { WeeklyBarChart } from "./WeeklyBarChart";
+import { ShopFilter } from "./ShopFilter";
 import { UnmatchedReviewPanel } from "./UnmatchedReviewPanel";
 import {
   DATE_PRESET_OPTIONS,
@@ -104,6 +105,17 @@ export function CustomerInsightsClient() {
         )}`
       : undefined;
   const kpiHint = chartsLoading ? "Loading form responses…" : rangeHint;
+
+  // The sheet range is the honest explanation for an empty period (the filter
+  // window can sit outside the data the sheet actually covers).
+  const emptyCopy =
+    data?.meta.dateRange.min && data?.meta.dateRange.max
+      ? `The sheet covers ${formatDay(data.meta.dateRange.min)} – ${formatDay(
+          data.meta.dateRange.max,
+        )}. Try a period inside that range or a different shop.`
+      : "Try a wider date range or a different shop.";
+
+  const refreshing = loading && !!data;
 
   const handleShopBarClick = (label: string) => {
     if (canonicalShops.includes(label)) {
@@ -203,13 +215,8 @@ export function CustomerInsightsClient() {
             <span className="ci-filter-label" id="ci-shop-label">
               Shop
             </span>
-            <div className="ci-pill-row" role="group" aria-labelledby="ci-shop-label">
-              <ShopSingleSelect
-                options={canonicalShops.map((name) => ({ id: name, name }))}
-                value={shop === "all" ? "" : shop}
-                onChange={(id) => setShop(id === "" ? "all" : id)}
-                allowAll
-              />
+            <div className="ci-shop-scope" role="group" aria-labelledby="ci-shop-label">
+              <ShopFilter options={canonicalShops} value={shop} onChange={setShop} />
             </div>
           </div>
         </div>
@@ -219,12 +226,13 @@ export function CustomerInsightsClient() {
         {statusText}
       </p>
 
-      <div className="ci-region" aria-busy={loading}>
+      <div className="ci-region" aria-busy={loading} data-refreshing={refreshing ? "true" : undefined}>
         {showAnalytics &&
           (hasData || loading ? (
             <>
               <div className="ci-top">
                 <KpiStat
+                  className="ci-kpi"
                   label="Total submissions"
                   value={chartsLoading ? "—" : (data?.totalSubmissions ?? 0).toLocaleString()}
                   comparison={
@@ -246,7 +254,7 @@ export function CustomerInsightsClient() {
                     onItemClick={handleShopBarClick}
                     isClickable={(label) => canonicalShops.includes(label)}
                     clickHint="Select a row to filter the dashboard"
-                    itemNoun="shops"
+                    itemNoun={{ one: "shop", other: "shops" }}
                   />
                 )}
                 <HorizontalBarChart
@@ -254,7 +262,8 @@ export function CustomerInsightsClient() {
                   data={data?.topCountries ?? []}
                   loading={chartsLoading}
                   emptyMessage="No country data for this period."
-                  itemNoun="countries"
+                  itemNoun={{ one: "country", other: "countries" }}
+                  totalNoun={{ one: "classified response", other: "classified responses" }}
                 />
               </div>
 
@@ -272,7 +281,7 @@ export function CustomerInsightsClient() {
             <Panel className="ci-empty">
               <PanelBody>
                 <p className="ci-empty-title">No submissions in this period.</p>
-                <p className="ci-empty-copy">Try a wider date range or a different shop.</p>
+                <p className="ci-empty-copy">{emptyCopy}</p>
               </PanelBody>
             </Panel>
           ))}

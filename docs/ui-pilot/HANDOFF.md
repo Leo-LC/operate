@@ -2,8 +2,8 @@
 
 ## Wave 1 §2 checkpoint — Customer Insights (+ Inbox filter disclosure)
 
-Checkpoint: the **latest commit on `ui/reviews-stats-pilot`** (Wave 1 §2), parent
-`e998f99` (Wave 1 §1). Branch: **`ui/reviews-stats-pilot`**. Local commit; **not pushed,
+Checkpoint: the **latest commit on `ui/reviews-stats-pilot`** (Wave 1 §2 follow-up), parent
+`be6f556` (Wave 1 §2). Branch: **`ui/reviews-stats-pilot`**. Local commit; **not pushed,
 merged, deployed or migrated**. The exact SHA is the tip of the branch
 (`git log -1 --oneline`).
 
@@ -52,7 +52,8 @@ the §1 result (`/reviews/inbox` filter rail). **No other module was migrated.**
 | ESLint on changed files | **Clean** (repo baseline 20 errors / 3 warnings, pre-existing) |
 | `npm run build` | Exit 0 |
 | Customer Insights capture matrix | 9/9 (1440/768/390 × light/dark × green/orange + unconfigured); **0 overflow**, 0 page errors |
-| Customer Insights interaction/state suite | **39/39** (`wave1/ci-after/ci-states-report.json`) |
+| Customer Insights interaction/state suite | **40/40** (`wave1/ci-after/ci-states-report.json`) |
+| Customer Insights filter-truth suite | **56/56** (`wave1/ci-after/ci-filter-truth-report.json`) |
 | Reviews capture matrix (re-run) | 48/48, **0 overflow**, only the known `/api/locations` 503 |
 | Inbox filter disclosure suite | **32/32** (`wave1/filters/filters-report.json`) |
 
@@ -61,9 +62,50 @@ the §1 result (`/reviews/inbox` filter rail). **No other module was migrated.**
 - `docs/ui-pilot/wave1/ci-before/` — 9 captures of the pre-migration screen.
 - `docs/ui-pilot/wave1/ci-after/` — 9 matrix captures, 5 state captures, 3 date-picker
   captures, `capture-report.json`, `ci-states-report.json`.
+- `docs/ui-pilot/wave1/ci-after/` — filter-truth evidence: `ci-filter-truth-report.json`
+  (56 checks), plus filtered-period, filtered-shop, empty-shop, mobile-trigger and
+  mobile-panel captures.
 - `docs/ui-pilot/wave1/filters/` — desktop, collapsed, expanded and active-filter captures
   in light-green and dark-orange, plus `filters-report.json`.
 - `docs/ui-pilot/wave1/after/` — refreshed 48-capture Reviews matrix.
+
+### Filter-truth follow-up
+
+The Phangan / Last 30 days capture that looked wrong (1,284 total, 2025 weeks) was a
+**fixture artefact**, not a filtering bug: the capture script returned one static 2025
+payload for every request. A new suite (`ci-filter-truth.mjs`) drives the page against a
+**filter-aware** mock built with the same bucket rules as `lib/aggregate.ts` (unmatched
+values collapse to `Other / Review`, channels list form choices only, synthetic rows in
+2026). It compares the UI with the response the page actually received.
+
+Confirmed working: request `from`/`to`/`shop` params, KPI total and scope label, weekly
+table and chart labels, countries and channels panels, shop-panel hiding, and a slow first
+response followed by a rapid shop change (the `requestId` guard keeps the newest response).
+
+Three real mismatches found and fixed (no calculation or API change):
+
+1. **Panel footers implied the full total.** Countries and channels now say
+   `N classified responses` because unmatched values are excluded from those lists; the
+   shops panel counts only named shops (`N responses · X shops`), excluding
+   `Other / Review`. Singular forms are handled (`1 classified response · 1 country`).
+2. **Empty state did not explain the period.** When `meta.dateRange` is known, the empty
+   panel now names the range the sheet actually covers.
+3. **No cue during a refresh.** `.ci-region[data-refreshing="true"]` dims the previous
+   response while a new one is in flight, so the screen never looks frozen or silently
+   mislabelled.
+
+Layout (same scope, no new metrics):
+
+- **Mobile shop selector.** Below 768 px the pill row collapses to one disclosure
+  (`All shops` / `Phangan`) that opens the same pills, mirroring the Reviews Stats branch
+  control. `aria-expanded`/`aria-controls`, outside-click and Escape-to-trigger focus are
+  implemented; both paths write through the same `onChange`.
+- **Desktop rebalance.** The KPI card now stretches to the weekly chart's height and the
+  source-range note anchors to the card bottom, so the left column reads as one block
+  instead of a short card over empty space.
+
+The capture fixture was also moved to 2026 so the matrix no longer reproduces the
+misleading 2025 labels.
 
 ### Inbox usability points for personal review
 
@@ -85,12 +127,11 @@ These are the behaviours worth checking by hand on `/reviews/inbox`:
 
 ### Pending
 
-1. **Customer Insights data cannot load locally.** There is no Google org token, so
-   `/api/customer-insights/summary` returns `configured: false`. Visual and interaction
-   verification used a Playwright-mocked response with a realistic payload
-   (1,284 submissions, 8 shops, 8 channels, 10 countries, 12 weeks, unmatched buckets) plus
-   one **real** unconfigured-state capture. The unconfigured screen is the only state that
-   ran against the live API.
+1. **Real Google data is still unverified.** There is no Google org token, so
+   `/api/customer-insights/summary` returns `configured: false` locally. Filtering was
+   verified against a filter-aware Playwright mock that mirrors `lib/aggregate.ts`, and the
+   matrix uses a realistic 2026 payload; the unconfigured screen is the only state that ran
+   against the live API. **Live Google/spreadsheet verification remains pending.**
 2. **Owner-only page.** The route guard redirects non-owners to `/home`; only the preview
    owner account was available, so staff visibility was not exercised.
 3. **No live Google fetch, no real spreadsheet latency.** Loading, error and empty states
