@@ -11,9 +11,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-[var(--accent)] text-white border-[var(--accent)] hover:bg-[#1d4ed8] active:bg-[#1e40af] focus-visible:ring-[var(--focus-ring)]",
+          "bg-[var(--accent)] text-white border-[var(--accent)] hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus-visible:ring-[var(--focus-ring)]",
         default:
-          "bg-[var(--accent)] text-white border-[var(--accent)] hover:bg-[#1d4ed8] active:bg-[#1e40af] focus-visible:ring-[var(--focus-ring)]",
+          "bg-[var(--accent)] text-white border-[var(--accent)] hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] focus-visible:ring-[var(--focus-ring)]",
         secondary:
           "bg-[var(--surface-raised)] text-[var(--fg)] border-[var(--line)] hover:bg-[var(--row-hover)] focus-visible:ring-[var(--focus-ring)]",
         outline:
@@ -21,9 +21,9 @@ const buttonVariants = cva(
         ghost:
           "text-[var(--fg-3)] hover:bg-[var(--row-hover)] hover:text-[var(--fg)] focus-visible:ring-[var(--focus-ring)]",
         danger:
-          "bg-[var(--bad)] text-white border-[var(--bad)] hover:bg-[#dc2626] focus-visible:ring-[var(--bad)]/30",
+          "bg-[var(--bad)] text-white border-[var(--bad)] hover:bg-[var(--bad-hover)] focus-visible:ring-[var(--bad)]/30",
         destructive:
-          "bg-[var(--bad)] text-white border-[var(--bad)] hover:bg-[#dc2626] focus-visible:ring-[var(--bad)]/30",
+          "bg-[var(--bad)] text-white border-[var(--bad)] hover:bg-[var(--bad-hover)] focus-visible:ring-[var(--bad)]/30",
         quiet:
           "text-[var(--fg-3)] hover:bg-[var(--row-hover)] hover:text-[var(--fg-2)] focus-visible:ring-[var(--focus-ring)]",
         link: "text-[var(--accent)] underline-offset-4 hover:underline p-0 h-auto",

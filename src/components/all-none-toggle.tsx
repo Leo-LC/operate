@@ -20,11 +20,12 @@ export function AllNoneToggle({
   className,
 }: AllNoneToggleProps) {
   return (
-    <div className={cn("flex items-center gap-2 text-xs text-muted-foreground", className)}>
+    <div className={cn("all-none-toggle flex items-center gap-2 text-xs text-muted-foreground", className)}>
       <span>Select:</span>
       <button
         type="button"
         disabled={disabled}
+        aria-pressed={allSelected}
         onClick={onSelectAll}
         className={cn(
           "rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[11px] transition-colors",
@@ -38,6 +39,7 @@ export function AllNoneToggle({
       <button
         type="button"
         disabled={disabled}
+        aria-pressed={noneSelected}
         onClick={onSelectNone}
         className={cn(
           "rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[11px] transition-colors",

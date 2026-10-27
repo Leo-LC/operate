@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AllNoneToggle } from "@/components/all-none-toggle";
 import type { ReviewWithLocation } from "@/types/review";
 import { Loader2Icon, RefreshCwIcon } from "lucide-react";
 import {
@@ -186,27 +187,18 @@ export function SyncButton({
       </Button>
       {pickerOpen && availableLocations && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-background p-4 shadow-xl">
-            <h2 className="mb-1 text-sm font-semibold">Choose locations to sync</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
+          <div className="revs-modal-panel revs-modal-panel-wide">
+            <h2 className="revs-modal-title">Choose locations to sync</h2>
+            <p className="revs-modal-copy">
               Select which locations you want to include when fetching unreplied reviews.
             </p>
-            <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Select:</span>
-              <button
-                type="button"
-                className="rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[11px] hover:bg-muted/60"
-                onClick={() => setTempSelection(new Set(availableLocations.map((l) => l.id)))}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-[11px] hover:bg-muted/60"
-                onClick={() => setTempSelection(new Set())}
-              >
-                None
-              </button>
+            <div className="mb-3">
+              <AllNoneToggle
+                allSelected={tempSelection.size === availableLocations.length}
+                noneSelected={tempSelection.size === 0}
+                onSelectAll={() => setTempSelection(new Set(availableLocations.map((l) => l.id)))}
+                onSelectNone={() => setTempSelection(new Set())}
+              />
             </div>
             <div className="max-h-64 space-y-2 overflow-auto pr-1">
               {availableLocations.map((loc) => {
@@ -216,31 +208,22 @@ export function SyncButton({
                     key={loc.id}
                     type="button"
                     onClick={() => toggleTemp(loc.id)}
-                    className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                      selected
-                        ? "border-border/60 bg-muted hover:bg-muted/70"
-                        : "border-border/30 bg-muted/20 hover:border-border/60 hover:bg-muted/40"
-                    }`}
+                    className="revs-location-row"
+                    data-selected={selected ? "true" : undefined}
+                    aria-pressed={selected}
                   >
-                    <span className="truncate">{loc.title}</span>
-                    <span
-                      className={`ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] ${
-                        selected
-                          ? "border-primary/70 bg-primary/10 text-primary"
-                          : "border-border/50 text-muted-foreground"
-                      }`}
-                    >
-                      {selected ? "✓" : ""}
+                    <span className="revs-location-mark" aria-hidden />
+                    <span className="revs-location-text">
+                      <span className="revs-location-title truncate">{loc.title}</span>
                     </span>
                   </button>
                 );
               })}
             </div>
-            <div className="mt-3 flex justify-end gap-2">
+            <div className="revs-modal-actions" style={{ marginTop: 12 }}>
               <Button
                 size="sm"
-                variant="outline"
-                className="rounded-lg text-xs border-border/60 bg-background/70 hover:bg-background/95"
+                variant="secondary"
                 onClick={() => {
                   setPickerOpen(false);
                   setAvailableLocations(null);
@@ -250,12 +233,7 @@ export function SyncButton({
               >
                 Cancel
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg gap-1.5 text-xs border-border/60 bg-background/80 hover:bg-background/95"
-                onClick={confirmPicker}
-              >
+              <Button size="sm" onClick={confirmPicker}>
                 Save &amp; sync
               </Button>
             </div>

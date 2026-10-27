@@ -1,10 +1,77 @@
-# Handoff — Reviews Stats pilot + Phase 0 foundations
+# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1
+
+## Wave 1 §1 checkpoint — Reviews siblings
+
+Checkpoint: the **latest commit on `ui/reviews-stats-pilot`** (Wave 1 §1), parent
+`ac88b15` (Phase 0). Branch: **`ui/reviews-stats-pilot`**. Local commit; **not pushed,
+merged, deployed or migrated**. The exact SHA is the tip of the branch
+(`git log -1 --oneline`).
+
+Scope: `/reviews` and `/reviews/rules` redirects, `/reviews/inbox`,
+`/reviews/templates`, `/reviews/locations`. `/reviews/stats` stays at Phase 0 parity.
+**No other module was migrated.** Status: **implemented + verified, awaiting acceptance.**
+
+### Wave 1 §1 decisions
+
+1. **Scoped token bridge.** `src/app/(dashboard)/reviews/reviews.css` remaps the legacy
+   token names (`--surface`, `--fg*`, `--line*`, `--accent`, `--good/--warn/--bad`,
+   `--r-*`, `--shadow-*`, `--border`, `--muted`, `--primary`) to `--ui-*` inside `.revs`
+   only. Shared primitives adopt the palette; nothing outside Reviews changes.
+2. **One module header.** Breadcrumb + compact `Reviews` title + pill nav on every route.
+   The `ui-module-header`, `ui-breadcrumb*`, `ui-module-header-row` and `ui-module-title`
+   classes now live in `globals.css`; Stats uses them with pixel parity.
+3. **Semantic stars.** 5★/4★ positive, 3★ warn, 2★/1★ negative — independent of accent,
+   matching the Stats distribution.
+4. **Task-shaped inbox.** Summary bar → filter rail → list controls → review list; bulk
+   actions sit with the list; sync stays in the summary bar.
+5. **Panel-first config screens.** Templates and Locations share `Panel` anatomy and
+   inline loading/empty/error states.
+6. **Additive shared tokens.** `--accent-hover`, `--accent-active`, `--bad-hover`,
+   `--ui-radius-md`, `--ui-positive-soft`; `Button` uses them while legacy defaults stay
+   blue/red for other modules.
+
+### Wave 1 §1 files
+
+| Area | File |
+| --- | --- |
+| Route CSS + bridge | `src/app/(dashboard)/reviews/reviews.css` (new) |
+| Layout | `src/app/(dashboard)/reviews/layout.tsx` |
+| Header | `src/modules/reviews/components/ReviewsTabNav.tsx`, `src/app/globals.css` |
+| Inbox | `src/components/dashboard-client.tsx`, `src/components/review-card.tsx`, `src/components/dashboard-filters.tsx`, `src/components/all-none-toggle.tsx`, `src/modules/reviews/components/ReviewsControlsBar.tsx` |
+| Config screens | `src/components/config-client.tsx` |
+| Sync / bulk | `src/components/sync-button.tsx`, `src/modules/reviews/components/BulkReplyPanel.tsx` |
+| Shared button | `src/components/ui/button.tsx` |
+| Stats parity | `src/app/(dashboard)/reviews/stats/reviews-stats.css` |
+| Evidence | `docs/ui-pilot/wave1/` — `before/` (19), `quick/` (10), `states/` (19 + 2 JSON), `after/` (48 + report) |
+
+### Wave 1 §1 verification
+
+| Check | Result |
+| --- | --- |
+| `npm run test` | **251 passed / 38 files** |
+| `npx tsc --noEmit` | **Clean**, exit 0 |
+| ESLint on changed files | **Clean** (repo baseline 20 errors / 3 warnings, pre-existing) |
+| `npm run build` | Exit 0 |
+| Capture matrix | 48/48 (inbox/templates/locations/stats × 1440/768/390 × light/dark × green/orange); **0 overflow**, 0 page errors |
+| Stats parity | 92 px / 0.005% (timestamp only) |
+| Interaction + state suite | **31/31** (`states-report.json`) + **18/18** (`states2-report.json`) |
+| Console | Only the known `/api/locations` 503 and the pre-existing `DashboardShell` theme-toggle hydration warning |
+
+### Wave 1 §1 pending
+
+1. **Locations data** — `/api/locations` returns 503 locally (no Google token). Populated
+   rows, selection and confirmation were verified with mocked responses.
+2. **Real Google sync** — mocked in the loading/error checks.
+3. **Staff role** — only the preview owner account was available.
+4. **Real `forest` organization switch** — not performed.
+5. **Physical touch devices** — Playwright emulation only.
+6. **User acceptance** — do not start Wave 1 §2 before this is reviewed.
 
 ## Phase 0 checkpoint — shared foundations + accent preference
 
-Checkpoint: the **latest commit on `ui/reviews-stats-pilot`** (Phase 0), parent `0d264e6`.
-Branch: **`ui/reviews-stats-pilot`**. Local commit; **not pushed, merged, deployed or
-migrated**. The exact SHA is the tip of the branch (`git log --oneline -1`).
+Checkpoint: **`ac88b15`** (Phase 0), parent `0d264e6`. Branch:
+**`ui/reviews-stats-pilot`**. Local commit; **not pushed, merged, deployed or migrated**.
+The Wave 1 §1 commit sits on top of it (see the section above).
 
 Scope: shared semantic tokens, `Panel`/`KpiStat`, the opt-in pill nav, and a
 browser-local green/orange accent preference. `/reviews/stats` is the first consumer.
@@ -206,20 +273,20 @@ amend `e6e59c3`; add new commits.
 
 ## Next task and boundaries
 
-**Next task:** review the Phase 0 commit. If accepted, start **Wave 1** of `ROLLOUT.md`
-(Reviews siblings, then the low-risk read-only dashboards) one surface at a time.
+**Next task:** review the **Wave 1 §1** result (Reviews siblings). If accepted, start
+**Wave 1 §2** (`/customer-insights`) of `ROLLOUT.md`, one surface at a time.
 
-In scope for Phase 0 (completed):
+In scope for Wave 1 §1 (completed):
 
-- Extract the proven semantic tokens and primitives from the pilot, additively.
-- Add a localStorage-backed green/orange accent override that composes with light/dark and
-  the existing company themes.
-- Keep `reviews/stats` visually identical to the accepted checkpoint.
-- Keep success/warning/error colors independent of the accent.
+- Migrate `/reviews/inbox`, `/reviews/templates`, `/reviews/locations` and the two
+  redirect routes onto the Phase 0 foundation.
+- Keep `/reviews/stats` at pixel parity.
+- Keep the accent scoped to Reviews and leave every other module untouched.
+- Preserve all data, permissions and API contracts.
 
 Out of scope until separately requested:
 
-- Migrating another module (Wave 1+).
+- Migrating another module (Wave 1 §2+).
 - Changing global defaults so existing modules restyle silently.
 - Database migrations, new dependencies, multi-tenant work or feature changes.
 - Push, merge, deploy.

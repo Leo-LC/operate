@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Panel, PanelBody, PanelHead, PanelSub, PanelTitle } from "@/components/ui/panel";
 import { useRouter } from "next/navigation";
 import type { Session } from "next-auth";
-import { ChevronDownIcon, Loader2Icon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, Loader2Icon, MapPinIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import type { ReviewWithLocation } from "@/types/review";
 import {
@@ -437,57 +438,22 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
     }));
   };
 
-  const CARD_STYLE: React.CSSProperties = {
-    borderRadius: "var(--r-lg)",
-    border: "1px solid var(--line)",
-    background: "var(--surface)",
-    overflow: "hidden",
-  };
-  const CARD_HEADER: React.CSSProperties = {
-    padding: "16px 20px 12px",
-    borderBottom: "1px solid var(--line)",
-  };
-  const CARD_BODY: React.CSSProperties = { padding: "16px 20px 20px" };
-  const MODAL_PANEL: React.CSSProperties = {
-    width: "100%", maxWidth: 400,
-    borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-    background: "var(--surface)", padding: 20,
-    boxShadow: "var(--shadow-drawer)",
-  };
   const MODAL_BACKDROP: React.CSSProperties = {
     position: "fixed", inset: 0, zIndex: 50,
     display: "flex", alignItems: "center", justifyContent: "center",
     background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
     padding: "0 16px",
   };
-  const GHOST_BTN: React.CSSProperties = {
-    display: "inline-flex", height: 28, alignItems: "center", justifyContent: "center",
-    borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-    background: "var(--bg-2)", padding: "0 8px",
-    fontSize: 11, color: "var(--fg-4)", cursor: "pointer",
-    transition: "background var(--dur) var(--ease)",
-  };
-  const SELECT_SM: React.CSSProperties = {
-    height: 28, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-    background: "var(--bg)", color: "var(--fg)", padding: "0 8px",
-    fontSize: 12, outline: "none", cursor: "pointer",
-  };
-  const MODAL_INPUT: React.CSSProperties = {
-    width: "100%", height: 32, borderRadius: "var(--r-sm)",
-    border: "1px solid var(--line-strong)", background: "var(--bg)",
-    color: "var(--fg)", padding: "0 10px", fontSize: 13, outline: "none",
-    boxSizing: "border-box", marginBottom: 12,
-  };
 
   return (
     <>
-      <main style={{ width: "100%", paddingTop: 8, paddingBottom: 8 }}>
+      <main className="revs-config">
         {activeSection === "templates" ? (
-          <section aria-label="Reply templates" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <section aria-label="Reply templates" className="revs-config config-section-animate">
             {/* Sticky action bar: Save is always in reach — with 30 templates you
                 never scroll to the bottom just to save an edit made at the top.
                 Rating rules live here too as a small dropdown. */}
-            <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg)", padding: "6px 0 10px", display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <div className="revs-config-actions">
               <Button type="button" size="sm" onClick={saveSettings} disabled={!isOwner || sharedConfigLoading || saving}>
                 {saving ? <Loader2Icon className="size-3.5 animate-spin" /> : null}
                 Save
@@ -497,29 +463,26 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                 <ChevronDownIcon className={`size-4 transition-transform ${rulesOpen ? "rotate-180" : ""}`} />
               </Button>
               {rulesOpen && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 16, boxShadow: "var(--shadow-drawer)", maxHeight: "60vh", overflowY: "auto" }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>Rating rules</p>
-                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 2, marginBottom: 10 }}>
+                <div className="revs-rules-popover">
+                  <p className="revs-rules-title">Rating rules</p>
+                  <p className="revs-rules-sub">
                     Which reviews get pre-filled templates and which can be bulk-sent.
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {[5, 4, 3, 2, 1].map((rating) => {
                       const rule = ratingRules[rating as Rating];
                       return (
-                        <div
-                          key={rating}
-                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: "8px 12px", fontSize: 12 }}
-                        >
+                        <div key={rating} className="revs-rules-row">
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ display: "inline-flex", width: 24, height: 24, alignItems: "center", justifyContent: "center", borderRadius: "var(--r-pill)", background: "var(--bg)", fontSize: 12, fontWeight: 600, color: "var(--fg)" }}>
+                            <span className="revs-rules-badge">
                               {rating}★
                             </span>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Reply mode</span>
+                          <div className="revs-rules-controls">
+                            <div className="revs-rules-control">
+                              <span className="revs-rules-control-label">Reply mode</span>
                               <select
-                                style={SELECT_SM}
+                                className="revs-select"
                                 value={rule?.mode ?? "custom"}
                                 onChange={(e) => updateRule(rating as Rating, "mode", e.target.value as RatingRule["mode"])}
                                 disabled={!isOwner}
@@ -528,14 +491,14 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                                 <option value="custom">Custom replies only</option>
                               </select>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div className="revs-rules-control">
                               <Checkbox
                                 id={`bulk-${rating}`}
                                 checked={rule?.allowBulk ?? false}
                                 onCheckedChange={(checked) => updateRule(rating as Rating, "allowBulk", Boolean(checked) as RatingRule["allowBulk"])}
                                 disabled={!isOwner}
                               />
-                              <Label htmlFor={`bulk-${rating}`} style={{ fontSize: 11, color: "var(--fg-4)", cursor: "pointer" }}>
+                              <Label htmlFor={`bulk-${rating}`} className="revs-rules-control-label" style={{ cursor: "pointer" }}>
                                 Bulk send
                               </Label>
                             </div>
@@ -544,56 +507,54 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                       );
                     })}
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 12 }}>
+                  <p className="revs-rules-foot">
                     On the dashboard these settings change which reviews are pre-filled and which can be bulk-sent.
                   </p>
                 </div>
               )}
             </div>
 
-            <div style={{ ...CARD_STYLE }}>
-              <div style={{ ...CARD_BODY, padding: "16px 20px 20px" }}>
+            <Panel>
+              <PanelHead>
+                <div>
+                  <PanelTitle>Reply templates</PanelTitle>
+                  <PanelSub>
+                    Owner-only. Staff always see the latest saved version when replying.
+                  </PanelSub>
+                </div>
+              </PanelHead>
+              <PanelBody>
                 {/* Theme pills — labels only, no sidebar */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                <div className="revs-chip-row">
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
+                      className="revs-chip"
+                      data-active={activeCategoryId === cat.id ? "true" : undefined}
+                      aria-pressed={activeCategoryId === cat.id}
                       onClick={() => setActiveCategoryId(cat.id)}
-                      style={{
-                        borderRadius: "var(--r-pill)",
-                        border: `1px solid ${activeCategoryId === cat.id ? "var(--fg-3)" : "var(--line)"}`,
-                        padding: "5px 12px", fontSize: 12, cursor: "pointer",
-                        background: activeCategoryId === cat.id ? "var(--bg-2)" : "transparent",
-                        color: activeCategoryId === cat.id ? "var(--fg)" : "var(--fg-4)",
-                        transition: "background var(--dur) var(--ease)",
-                      }}
                     >
                       {cat.label}
                     </button>
                   ))}
                   {isOwner && (
-                    <button type="button" onClick={addCategory} style={{ ...GHOST_BTN, borderRadius: "var(--r-pill)", height: 26 }}>
+                    <button type="button" className="revs-chip revs-chip-add" onClick={addCategory}>
                       + Add theme
                     </button>
                   )}
                 </div>
 
                 {/* Star pills — which rating's list you're editing */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                <div className="revs-chip-row">
                   {[5, 4].map((rating) => (
                     <button
                       key={rating}
                       type="button"
+                      className="revs-chip"
+                      data-active={activeRating === rating ? "true" : undefined}
+                      aria-pressed={activeRating === rating}
                       onClick={() => setActiveRating(rating as 4 | 5)}
-                      style={{
-                        borderRadius: "var(--r-pill)",
-                        border: `1px solid ${activeRating === rating ? "var(--fg-3)" : "var(--line)"}`,
-                        padding: "5px 12px", fontSize: 12, cursor: "pointer",
-                        background: activeRating === rating ? "var(--bg-2)" : "transparent",
-                        color: activeRating === rating ? "var(--fg)" : "var(--fg-4)",
-                        transition: "background var(--dur) var(--ease)",
-                      }}
                     >
                       {rating}★
                     </button>
@@ -601,9 +562,9 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                 </div>
 
                 {/* Template texts for the selected theme + rating */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                <div className="revs-template-list">
                   {(templateConfig[activeRating]?.[activeCategoryId] ?? []).map((t, idx) => (
-                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div key={idx} className="revs-template-row">
                       <Textarea
                         rows={2}
                         data-autogrow="true"
@@ -630,32 +591,46 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                     </div>
                   ))}
                   {isOwner && (
-                    <button type="button" style={{ ...GHOST_BTN, alignSelf: "flex-start" }} onClick={() => openAddMessage(activeRating as 4 | 5)} disabled={syncingFromConfig}>
+                    <button type="button" className="revs-ghost-btn" onClick={() => openAddMessage(activeRating as 4 | 5)} disabled={syncingFromConfig}>
                       + Add message
                     </button>
                   )}
                 </div>
-
-                <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 14 }}>
-                  Only owners can change templates. Staff always see the latest version when replying.
-                </p>
-              </div>
-            </div>
+              </PanelBody>
+            </Panel>
           </section>
         ) : (
-          <section aria-label="Locations" className="config-section-animate" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={CARD_STYLE}>
-              <div style={CARD_HEADER}>
-                <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Locations</h2>
-                <p style={{ fontSize: 13, color: "var(--fg-4)", marginTop: 4 }}>
-                  Choose which locations to include when syncing unreplied reviews.
-                </p>
-              </div>
-              <div style={CARD_BODY}>
+          <section aria-label="Locations" className="revs-config config-section-animate">
+            <Panel>
+              <PanelHead>
+                <div>
+                  <PanelTitle>Locations</PanelTitle>
+                  <PanelSub>
+                    Choose which locations to include when syncing unreplied reviews.
+                  </PanelSub>
+                </div>
+              </PanelHead>
+              <PanelBody>
                 {loadingLocations ? (
-                  <p style={{ fontSize: 13, color: "var(--fg-4)" }}>Loading locations…</p>
+                  <div className="revs-empty revs-empty-compact" role="status">
+                    <Loader2Icon size={18} className="animate-spin" aria-hidden />
+                    <div className="revs-empty-copy">
+                      <p>Loading locations…</p>
+                    </div>
+                  </div>
                 ) : locations.length === 0 ? (
-                  <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No locations found for this account.</p>
+                  <div className="revs-empty revs-empty-compact">
+                    <MapPinIcon size={18} aria-hidden />
+                    <div className="revs-empty-copy">
+                      <p>
+                        <strong>No locations connected.</strong>
+                      </p>
+                      <p>
+                        Sign in with the Google account that manages your Business Profiles, then try
+                        again.
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <AllNoneToggle
@@ -666,7 +641,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                       onSelectAll={() => setSelectedIds(new Set(locations.map((l) => l.id)))}
                       onSelectNone={() => setSelectedIds(new Set())}
                     />
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div className="revs-location-list">
                       {locations.map((loc) => {
                         const isSelected = selectedIds.has(loc.id);
                         return (
@@ -675,26 +650,21 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                             key={loc.id}
                             onClick={() => toggleLocation(loc.id)}
                             disabled={syncingFromConfig}
-                            style={{
-                              display: "flex", width: "100%", alignItems: "flex-start", gap: 8,
-                              borderRadius: "var(--r-sm)",
-                              border: `1px solid ${isSelected ? "var(--line)" : "var(--line)"}`,
-                              padding: "8px 12px", textAlign: "left", fontSize: 13, cursor: "pointer",
-                              background: isSelected ? "var(--bg-2)" : "transparent",
-                              color: "var(--fg)",
-                              transition: "background var(--dur) var(--ease)",
-                            }}
+                            className="revs-location-row"
+                            data-selected={isSelected ? "true" : undefined}
+                            aria-pressed={isSelected}
                           >
-                            <span style={{ display: "flex", flexDirection: "column" }}>
-                              <span style={{ fontWeight: 500 }}>
+                            <span className="revs-location-mark" aria-hidden />
+                            <span className="revs-location-text">
+                              <span className="revs-location-title">
                                 {loc.title}
                                 {loc.missingFromGbp && (
-                                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: "var(--warn)" }}>
+                                  <span className="revs-location-warn">
                                     Not found on Google — check GBP ID
                                   </span>
                                 )}
                               </span>
-                              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
+                              <span className="revs-location-meta">
                                 {loc.locality ? `${loc.locality} · ` : ""}
                                 {loc.id}
                               </span>
@@ -705,8 +675,8 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                     </div>
                   </div>
                 )}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 12, marginTop: 12, borderTop: "1px solid var(--line)" }}>
-                  <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
+                <div className="revs-panel-foot-row">
+                  <p className="revs-panel-foot-note">
                     Save your selection, then sync unreplied reviews for these locations.
                   </p>
                   <Button size="sm" onClick={openConfirm} disabled={locations.length === 0 || syncingFromConfig}>
@@ -714,13 +684,13 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
                   </Button>
                 </div>
                 {syncingFromConfig && (
-                  <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, borderRadius: "var(--r-sm)", background: "var(--bg-2)", padding: "8px 12px", fontSize: 12, color: "var(--fg-4)" }}>
+                  <div className="revs-sync-note">
                     <Loader2Icon className="size-3 animate-spin" />
                     <span>Syncing reviews and preparing your dashboard. You’ll be redirected in a moment…</span>
                   </div>
                 )}
-              </div>
-            </div>
+              </PanelBody>
+            </Panel>
           </section>
         )}
       </main>
@@ -728,12 +698,12 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
       {/* ── Modals ─────────────────────────────────────────────── */}
       {confirmOpen && !syncingFromConfig && (
         <div style={MODAL_BACKDROP}>
-          <div style={MODAL_PANEL}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Save locations &amp; sync reviews?</h2>
-            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+          <div className="revs-modal-panel">
+            <h2 className="revs-modal-title">Save locations &amp; sync reviews?</h2>
+            <p className="revs-modal-copy">
               We’ll use the currently selected locations to fetch all unreplied reviews and prepare your dashboard. This may take a few seconds.
             </p>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <div className="revs-modal-actions">
               <Button size="sm" variant="secondary" onClick={() => setConfirmOpen(false)}>Cancel</Button>
               <Button size="sm" onClick={() => { setConfirmOpen(false); performSaveAndSync(); }}>Continue &amp; sync</Button>
             </div>
@@ -742,12 +712,12 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
       )}
       {deleteConfirm && isOwner && !syncingFromConfig && (
         <div style={MODAL_BACKDROP}>
-          <div style={MODAL_PANEL}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete this template?</h2>
-            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
+          <div className="revs-modal-panel">
+            <h2 className="revs-modal-title">Delete this template?</h2>
+            <p className="revs-modal-copy">
               The template is removed from this page immediately, and for everyone once you press Save.
             </p>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <div className="revs-modal-actions">
               <Button size="sm" variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
               <Button size="sm" variant="danger" onClick={() => { handleRemoveTemplate(deleteConfirm.rating, activeCategoryId, deleteConfirm.index); }}>
                 Delete template
@@ -758,19 +728,19 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
       )}
       {addThemeOpen && (
         <div style={MODAL_BACKDROP}>
-          <div style={MODAL_PANEL}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Add a new theme</h2>
-            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 16 }}>
+          <div className="revs-modal-panel">
+            <h2 className="revs-modal-title">Add a new theme</h2>
+            <p className="revs-modal-copy">
               For example: &quot;Drinks&quot;, &quot;Food&quot;, &quot;Events&quot; or any other common topic you reply to often.
             </p>
             <input
               type="text"
-              style={MODAL_INPUT}
+              className="revs-modal-input"
               placeholder="Theme name"
               value={newThemeName}
               onChange={(e) => setNewThemeName(e.target.value)}
             />
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <div className="revs-modal-actions">
               <Button size="sm" variant="secondary" onClick={() => { setAddThemeOpen(false); setNewThemeName(""); }}>Cancel</Button>
               <Button size="sm" onClick={confirmAddCategory}>Add theme</Button>
             </div>
@@ -779,9 +749,9 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
       )}
       {addMessageOpen && (
         <div style={MODAL_BACKDROP}>
-          <div style={{ ...MODAL_PANEL, maxWidth: 520 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Add a new message</h2>
-            <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 16 }}>
+          <div className="revs-modal-panel revs-modal-panel-wide">
+            <h2 className="revs-modal-title">Add a new message</h2>
+            <p className="revs-modal-copy">
               This will be added to the {addMessageRating}★ templates for the current theme.
             </p>
             <Textarea
@@ -792,7 +762,7 @@ export function ConfigClient({ user, initialSection = "templates" }: ConfigClien
               onChange={(e) => setNewMessageText(e.target.value)}
               disabled={syncingFromConfig}
             />
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <div className="revs-modal-actions">
               <Button size="sm" variant="secondary" onClick={() => { setAddMessageOpen(false); setNewMessageText(""); }} disabled={syncingFromConfig}>Cancel</Button>
               <Button size="sm" onClick={confirmAddMessage} disabled={syncingFromConfig}>Add message</Button>
             </div>

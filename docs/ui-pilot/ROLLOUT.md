@@ -1,15 +1,19 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete.** The shared foundation and the browser-local accent
-preference are implemented, verified and committed on top of `0d264e6` on
-`ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`. **No
-other module has been migrated.** The Phase 0 commit is local: not pushed, merged,
-deployed or migrated.
+Status: **Phase 0 complete; Wave 1 §1 implemented and verified.** Phase 0 (shared
+foundation + browser-local accent preference) is committed at `ac88b15` on
+`ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`.
+**Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`, `/reviews/templates`,
+`/reviews/locations`, plus the `/reviews` and `/reviews/rules` redirects) and is
+**awaiting user acceptance**. No other module has been migrated. All commits are local:
+not pushed, merged, deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
 Phase 0 evidence: `docs/ui-pilot/phase0/` (16 accent × theme × viewport captures,
 preference-modal captures, untouched-route captures, `capture-report.json`).
+Wave 1 §1 evidence: `docs/ui-pilot/wave1/` (`before/`, `quick/`, `states/`, `after/` and
+their JSON reports).
 
 ## Principles
 
@@ -86,6 +90,38 @@ key. Light/dark remains `localStorage["operate.theme"]` and is orthogonal to the
 - Repointing the legacy `--accent` / `--canvas` / `--surface` / `--fg` / `--line` scale.
 - Migrating any other module.
 
+## Wave 1 §1 result — Reviews siblings (verified)
+
+| Area | File | Result |
+| --- | --- | --- |
+| Route CSS + token bridge | `src/app/(dashboard)/reviews/reviews.css` | `.revs` scope; legacy token names remapped to `--ui-*` **inside Reviews only**, so shared primitives adopt the palette without a global restyle. |
+| Layout | `src/app/(dashboard)/reviews/layout.tsx` | `.revs` wrapper + route CSS import. |
+| Header | `src/modules/reviews/components/ReviewsTabNav.tsx`, `src/app/globals.css` | One breadcrumb + compact title + pill nav for every route; shared `ui-module-*` header classes promoted and used by Stats with parity. |
+| Inbox | `src/components/dashboard-client.tsx`, `review-card.tsx`, `dashboard-filters.tsx`, `all-none-toggle.tsx`, `ReviewsControlsBar.tsx` | Summary bar, filter rail, list controls, semantic star tones, grouped limit, bulk actions. |
+| Config screens | `src/components/config-client.tsx` | Templates and Locations on `Panel` anatomy, chips, selectable rows, modals and inline loading/empty/error states. |
+| Sync / bulk | `src/components/sync-button.tsx`, `BulkReplyPanel.tsx` | Shared classes and an opaque modal surface. |
+| Shared button | `src/components/ui/button.tsx` | Hover/active from `--accent-hover` / `--accent-active` / `--bad-hover`; legacy defaults preserved for other modules. |
+| Stats parity | `src/app/(dashboard)/reviews/stats/reviews-stats.css` | Duplicated header rules removed; 92 px (0.005%) diff, timestamp only. |
+
+Additive shared tokens: `--accent-hover`, `--accent-active`, `--bad-hover`,
+`--ui-radius-md`, `--ui-positive-soft`.
+
+### Wave 1 §1 gate
+
+| Gate | Result |
+| --- | --- |
+| Before/after captures at real widths, light + dark, both accents | Pass. `docs/ui-pilot/wave1/` — 48 after captures (4 routes × 1440/768/390 × light/dark × green/orange). |
+| Key interactions | Pass. Inbox filters/sort/shuffle/limit/All-None, sync loading + error, template add/delete/rules, locations loading/empty/error/selection/confirm, redirects: **31/31 + 18/18** checks. |
+| No horizontal overflow at 390 px | Pass. 48/48 combinations. |
+| No API/permission/data-contract change | Pass. Only presentation files changed; no route handler, RPC or permission touched. |
+| Tests / typecheck / lint / build | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint clean on changed files (repo baseline 20 errors / 3 warnings, pre-existing); `npm run build` exit 0. |
+| Console | 0 page errors; known locations 503 (token not configured) and the pre-existing `DashboardShell` theme-toggle hydration warning only. |
+| Acceptance | **Pending** — user review required before Wave 1 §2. |
+
+Known limits for this step: locations data was mocked (the local `/api/locations` returns
+503 without a Google token), sync was mocked for the error path, only the preview owner
+account was available, and physical touch devices were not used.
+
 ## Current state (verified in the repo)
 
 - 55 dashboard routes under `src/app/(dashboard)/`.
@@ -100,6 +136,9 @@ key. Light/dark remains `localStorage["operate.theme"]` and is orthogonal to the
   `src/app/globals.css`; `/reviews/stats` is the first consumer. The route still owns its
   layout, table and chart CSS. `ModuleTabs variant="pills"` and the `ShopMultiSelect`
   class hooks remain opt-in.
+- Wave 1 §1 made the whole Reviews module a consumer through the scoped `.revs` bridge in
+  `src/app/(dashboard)/reviews/reviews.css`. Outside `.revs`, legacy tokens and every
+  other module are unchanged.
 - Accent preference: `localStorage["operate.accent"]` = `green` | `orange`; absent means
   the company default (green). Browser-local only, no database field. Light/dark remains
   `localStorage["operate.theme"]`.
@@ -218,8 +257,8 @@ Status legend: **pending** = not started; **implemented** = code changed, checks
 complete; **verified** = automated/manual checks pass; **accepted** = user accepted the
 module's result.
 
-Phase 0 is complete and Wave 0 remains accepted. **Wave 1 is next, but only after the
-Phase 0 commit is reviewed.**
+Phase 0 is complete, Wave 0 remains accepted, and **Wave 1 §1 is implemented + verified**
+(awaiting acceptance). Wave 1 §2 starts only after §1 is accepted.
 
 Order is by risk: read-only first, then editable tables, then custom interactions, then
 CRUD, then owner-only configuration, then non-standard surfaces. Each wave must be
@@ -236,7 +275,7 @@ surface.
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 1 | `reviews` siblings: `/reviews`, `/reviews/inbox`, `/reviews/templates`, `/reviews/rules`, `/reviews/locations` | Module tabs, filters, pill, tables, modals | Medium — inbox actions, but same domain as the pilot | pending |
+| 1 | `reviews` siblings: `/reviews`, `/reviews/inbox`, `/reviews/templates`, `/reviews/rules`, `/reviews/locations` | Module tabs, filters, pill, tables, modals | Medium — inbox actions, but same domain as the pilot | **verified** (awaiting acceptance) |
 | 2 | `/customer-insights` | Page header, stat, filters, card | Low — one read-only client | pending |
 | 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | pending |
 | 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | pending |
@@ -330,5 +369,6 @@ across waves.
 4. The accent tints selected controls, primary actions and the **primary** chart series.
    Semantic status and multi-series colors stay independent.
 
-Phase 0 is complete. Do not start Wave 1 (or any other module) until the Phase 0 commit
-has been reviewed and accepted.
+Phase 0 is complete. Wave 1 §1 is implemented and verified but **not yet accepted**. Do
+not start Wave 1 §2 (or any other module) until the §1 result has been reviewed and
+accepted.

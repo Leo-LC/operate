@@ -1,0 +1,92 @@
+[
+  {
+    "name": "sync error toast visible (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "sync error raises no page errors (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations loading state shown (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations loading raises no page errors (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations error toast visible (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations error shows the empty panel (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations error raises no page errors (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations empty state shown (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations empty raises no page errors (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "sync error toast visible (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "sync error raises no page errors (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations loading state shown (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations loading raises no page errors (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations error toast visible (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations error shows the empty panel (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations error raises no page errors (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations empty state shown (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "locations empty raises no page errors (dark-orange)",
+    "pass": true,
+    "detail": ""
+  }
+]

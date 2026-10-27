@@ -1,3 +1,4 @@
+import "./reviews.css";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -10,7 +11,7 @@ export default async function ReviewsLayout({ children }: { children: React.Reac
   const role = session.user?.role;
 
   return (
-    <div>
+    <div className="revs">
       <ReviewsTabNav role={role} />
       {children}
     </div>

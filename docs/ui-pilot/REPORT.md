@@ -1,10 +1,12 @@
 # Reviews Stats UI pilot — validation report
 
 Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Phase 0**
-(shared foundations + accent preference) is committed on top of `0d264e6`.
-Scope: `/reviews/stats` pilot plus the Phase 0 foundation/accent work. **No other module
-was migrated.** No deploy, push, merge or DB migration.
-Local URL: **http://localhost:3000/reviews/stats** (preview login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
+(shared foundations + accent preference) is committed at **`ac88b15`**; **Wave 1 §1**
+(Reviews siblings) is the latest local commit on the branch (`git log -1`).
+Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, and the Reviews
+sibling routes. **No other module was migrated.** No deploy, push, merge or DB migration.
+Local URL: **http://localhost:3000/reviews/inbox** (preview login,
+`NEXT_PUBLIC_PREVIEW_MODE=true`).
 
 The dev server is running. Sign in with the existing preview password from `.env.local`;
 the password is not recorded here.
@@ -15,10 +17,109 @@ Pilot and Phase 0 are complete on this branch. Both pilot refinements — rating
 and mobile KPI density — remain validated. Phase 0 extracted the accepted Stats values
 into an opt-in `--ui-*` foundation, added `Panel`/`KpiStat`, and shipped a browser-local
 green/orange accent preference. `/reviews/stats` is visually unchanged (pixel parity
-below), and no other module changed appearance. The site-wide rollout has **not** started.
-Phase 0 is committed locally; it is not pushed, merged or deployed. Runtime staff access,
-real Google sync, a real organization `forest` switch and physical touch devices remain
-pending (details below).
+below). **Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`,
+`/reviews/templates`, `/reviews/locations`, plus the two redirect routes) onto the same
+foundation, with a scoped token bridge so no other module restyled. Wave 1 §1 is
+**implemented and verified locally, awaiting user acceptance**. It is not pushed, merged
+or deployed. Runtime staff access, real Google sync, a real organization `forest` switch
+and physical touch devices remain pending (details below).
+
+## Wave 1 §1 — Reviews siblings
+
+Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Scope: `/reviews` (redirects to `/reviews/inbox`), `/reviews/inbox`, `/reviews/templates`,
+`/reviews/rules` (owner-only redirect to `/reviews/templates`) and `/reviews/locations`.
+`/reviews/stats` stays at Phase 0 parity; it was not redesigned in this step.
+
+### What changed
+
+| Area | File | Change |
+| --- | --- | --- |
+| Route CSS | `src/app/(dashboard)/reviews/reviews.css` (new, 921 lines) | `.revs` scope plus a token bridge that maps the legacy names (`--surface`, `--fg*`, `--line*`, `--accent`, `--good/--warn/--bad`, `--r-*`, `--shadow-*`, `--border`, `--muted`, `--primary`) to `--ui-*` **only inside Reviews**. Module styles for header, summary, filter rail, review cards, controls, templates, locations, modals and empty states. |
+| Layout | `src/app/(dashboard)/reviews/layout.tsx` | Wraps the module in `.revs` and imports the route CSS. |
+| Shared header | `src/modules/reviews/components/ReviewsTabNav.tsx` | One breadcrumb + compact title + pill nav for every Reviews route; the Stats-only variant is gone. |
+| Shared header CSS | `src/app/globals.css` | Promotes `ui-module-header`, `ui-breadcrumb*`, `ui-module-header-row`, `ui-module-title`; Stats uses them with pixel parity. |
+| Inbox | `src/components/dashboard-client.tsx` | Summary bar (unreplied + per-star counts), filter rail panel, list controls beside the list, grouped limit control, empty/loading/error states. |
+| Review card | `src/components/review-card.tsx` | Semantic star tones (5★/4★ positive, 3★ warn, 2★/1★ negative) independent of the accent; card anatomy aligned to the contract. |
+| Filters | `src/components/dashboard-filters.tsx`, `src/components/all-none-toggle.tsx` | Group/option classes, pressed states, All/None toggle with `aria-pressed`. |
+| Controls | `src/modules/reviews/components/ReviewsControlsBar.tsx` | Count, sort/shuffle, limit and bulk actions in one bar; bulk actions wrap below the list header on narrow widths. |
+| Templates | `src/components/config-client.tsx` | `Panel` anatomy, category chips, star filter, message rows, add/delete modals on the shared surfaces. |
+| Locations | `src/components/config-client.tsx` | `Panel` anatomy, selectable rows with a selected mark, missing-GBP warning, loading/empty/error states with icon + copy. |
+| Sync / bulk | `src/components/sync-button.tsx`, `src/modules/reviews/components/BulkReplyPanel.tsx` | Sync picker and bulk modal use the shared classes and opaque modal surface. |
+| Shared button | `src/components/ui/button.tsx` | Hover/active colours read `--accent-hover`, `--accent-active`, `--bad-hover`; defaults keep the legacy blue/red, so other modules are unchanged. |
+| Stats parity | `src/app/(dashboard)/reviews/stats/reviews-stats.css` | Duplicated header rules removed; layout and values untouched. |
+
+New backward-compatible tokens: `--accent-hover`, `--accent-active`, `--bad-hover`,
+`--ui-radius-md`, `--ui-positive-soft`.
+
+### Design decisions
+
+- **Scoped bridge, not a global restyle.** Shared primitives (`Panel`, `Button`, `Pill`,
+  `ModuleTabs`, inputs) inherit the new palette inside `.revs` because the bridge remaps
+  the legacy names they consume. Nothing outside Reviews changes.
+- **One header for the module.** Breadcrumb (`Reviews / <route>`), compact `Reviews`
+  title and the pill nav render on every route; Stats keeps the accepted look.
+- **Task-shaped inbox.** Summary → filter rail → list controls → review list. Bulk actions
+  sit with the list they affect; the sync action stays in the summary bar.
+- **Semantic stars.** Star colour mirrors the Stats distribution (positive / warn /
+  negative), so switching accent never changes what a rating means.
+- **Panel-first config screens.** Templates and Locations share the same `Panel` anatomy
+  and inline states; no bespoke page shells.
+- **Responsive.** Inbox collapses from two columns to one at 900 px; filter options become
+  a two-column grid at ≤900 px; summary stacks at ≤520 px. Verified at 390/768/1440.
+
+### Verification matrix
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| All Reviews routes render breadcrumb + title + pill nav | Pass | 48/48 captures have the breadcrumb; `wave1/after/after-report.json` |
+| No page-level horizontal overflow | Pass | 48/48 combinations (4 routes × 3 viewports × 2 themes × 2 accents) |
+| Accent + theme resolve correctly | Pass | `--ui-accent` `#2c6f4c`/`#2f7a52` green, `#b45309`/`#c2410c` orange; panel `#ffffff`/`#1d2022` |
+| Stats parity with Phase 0 | Pass | 92 differing pixels (0.005%) in the timestamp area only |
+| Inbox filters, sort, shuffle, limit, All/None | Pass | `wave1/states/states-report.json` |
+| Sync loading and error | Pass | Loading label + error toast; `states2-report.json` |
+| Templates add/delete theme + rating rules | Pass | `wave1/states/templates-*.png` |
+| Locations loading / empty / error / selection / confirm | Pass | `wave1/states/locations-*.png`; `states2-report.json` |
+| Empty inbox | Pass | `wave1/states/inbox-empty-light.png` |
+| Focus outline on filter controls | Pass | 2 px `--ui-focus` ring measured |
+| Redirects (`/reviews`, `/reviews/rules`) | Pass | Resolve to inbox / templates |
+| No page errors | Pass | 0 `pageerror`; console only the known locations 503 and the pre-existing `DashboardShell` theme-toggle hydration warning |
+
+### Commands
+
+| Command | Result |
+| --- | --- |
+| `npm run test` | **251 passed / 38 files** (unchanged from Phase 0) |
+| `npx tsc --noEmit` | **Clean**, exit 0 |
+| `npx eslint` on changed files | **Clean** (repo baseline remains 20 errors / 3 warnings, all pre-existing) |
+| `npm run build` | Exit 0 |
+| Playwright capture matrix | 48/48 routes × viewports × themes × accents; 0 overflow |
+| Playwright interaction/state suite | **31/31 + 18/18** checks |
+
+### Evidence
+
+`docs/ui-pilot/wave1/`
+
+- `before/` — 19 captures of the pre-migration routes.
+- `quick/` — 10 iteration captures (light/dark, green/orange, 3 viewports).
+- `states/` — 19 state captures + `states-report.json` (31 checks) and
+  `states2-report.json` (18 checks: sync error, locations loading/empty/error in
+  light-green and dark-orange).
+- `after/` — 48 captures (inbox/templates/locations/stats × 1440/768/390 × light/dark ×
+  green/orange) + `after-report.json`.
+
+### Wave 1 §1 pending
+
+1. **Locations data** — `/api/locations` returns 503 in this environment (Google token not
+   configured). The populated list, selection and confirmation were verified against
+   mocked route responses, not real Business Profile data.
+2. **Real Google sync** — the sync POST is mocked in the error/loading checks.
+3. **Staff role** — only the preview owner account was available; the owner-only
+   `/reviews/rules` redirect and visibility code are unchanged.
+4. **Real `forest` organization switch** — not performed; `forest` remains verified
+   through the theme contract.
+5. **Physical touch devices** — Playwright emulation only.
+6. **User acceptance** — the module is ready to review; do not start Wave 1 §2 first.
 
 ## Phase 0 — shared foundations and accent preference
 

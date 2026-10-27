@@ -16,18 +16,25 @@ type Visibility = Record<TabKey, boolean>;
 
 const DEFAULT_VISIBILITY: Visibility = { stats: true };
 
+const SECTION_LABELS: Record<string, string> = {
+  "/reviews/inbox": "Inbox",
+  "/reviews/templates": "Templates",
+  "/reviews/locations": "Locations",
+  "/reviews/stats": "Stats",
+};
+
 /**
  * Same eye-icon pattern as the Direction module tabs: owners/admins toggle
  * whether the Stats tab is visible to everyone; the choice is persisted
  * server-side (/api/reviews/tabs) and mirrored in localStorage.
  *
- * On /reviews/stats only, the nav is rendered as pill links beside a compact
- * "Reviews" title with a real breadcrumb (docs/ui-pilot DESIGN-CONTRACT.md).
- * Every other Reviews route keeps the app-wide underline tabs.
+ * Every Reviews route shares one reading order: a real breadcrumb, a compact
+ * "Reviews" title and the module navigation as pill links beside it
+ * (docs/ui-pilot DESIGN-CONTRACT.md).
  */
 export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
   const pathname = usePathname();
-  const isStatsRoute = pathname === "/reviews/stats";
+  const sectionLabel = SECTION_LABELS[pathname] ?? "Inbox";
   const isOwner = role === "owner";
   const isPrivileged = role === "owner" || role === "admin";
 
@@ -108,31 +115,23 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
     { label: "Locations", href: "/reviews/locations" },
   ];
 
-  if (isStatsRoute) {
-    return (
-      <div className="revstats-header">
-        <nav aria-label="Breadcrumb">
-          <ol className="rs-breadcrumb">
-            <li>
-              <Link href="/reviews/inbox">Reviews</Link>
-              <span className="rs-breadcrumb-sep" aria-hidden> / </span>
-            </li>
-            <li>
-              <span aria-current="page">Stats</span>
-            </li>
-          </ol>
-        </nav>
-        <div className="rs-header-row">
-          <h1 className="rs-title">Reviews</h1>
-          <ModuleTabs tabs={tabs} ariaLabel="Reviews" variant="pills" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="reviews-tab-nav">
-      <ModuleTabs tabs={tabs} ariaLabel="Reviews" />
+    <div className="ui-module-header">
+      <nav aria-label="Breadcrumb">
+        <ol className="ui-breadcrumb">
+          <li>
+            <Link href="/reviews/inbox">Reviews</Link>
+            <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+          </li>
+          <li>
+            <span aria-current="page">{sectionLabel}</span>
+          </li>
+        </ol>
+      </nav>
+      <div className="ui-module-header-row">
+        <h1 className="ui-module-title">Reviews</h1>
+        <ModuleTabs tabs={tabs} ariaLabel="Reviews" variant="pills" />
+      </div>
     </div>
   );
 }

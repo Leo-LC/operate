@@ -1,0 +1,200 @@
+[
+  {
+    "route": "inbox",
+    "vp": "desktop-1440",
+    "theme": "light",
+    "url": "/reviews/inbox",
+    "scrollW": 1440,
+    "clientW": 1440,
+    "h": 1000,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "inbox",
+    "vp": "tablet-768",
+    "theme": "light",
+    "url": "/reviews/inbox",
+    "scrollW": 768,
+    "clientW": 768,
+    "h": 900,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "inbox",
+    "vp": "mobile-390",
+    "theme": "light",
+    "url": "/reviews/inbox",
+    "scrollW": 390,
+    "clientW": 390,
+    "h": 844,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "templates",
+    "vp": "desktop-1440",
+    "theme": "light",
+    "url": "/reviews/templates",
+    "scrollW": 1440,
+    "clientW": 1440,
+    "h": 2580,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "templates",
+    "vp": "tablet-768",
+    "theme": "light",
+    "url": "/reviews/templates",
+    "scrollW": 768,
+    "clientW": 768,
+    "h": 2608,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "templates",
+    "vp": "mobile-390",
+    "theme": "light",
+    "url": "/reviews/templates",
+    "scrollW": 390,
+    "clientW": 390,
+    "h": 3460,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "locations",
+    "vp": "desktop-1440",
+    "theme": "light",
+    "url": "/reviews/locations",
+    "scrollW": 1440,
+    "clientW": 1440,
+    "h": 1000,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "locations",
+    "vp": "tablet-768",
+    "theme": "light",
+    "url": "/reviews/locations",
+    "scrollW": 768,
+    "clientW": 768,
+    "h": 900,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "locations",
+    "vp": "mobile-390",
+    "theme": "light",
+    "url": "/reviews/locations",
+    "scrollW": 390,
+    "clientW": 390,
+    "h": 844,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "inbox",
+    "vp": "desktop-1440",
+    "theme": "dark",
+    "url": "/reviews/inbox",
+    "scrollW": 1440,
+    "clientW": 1440,
+    "h": 1000,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "inbox",
+    "vp": "tablet-768",
+    "theme": "dark",
+    "url": "/reviews/inbox",
+    "scrollW": 768,
+    "clientW": 768,
+    "h": 900,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "inbox",
+    "vp": "mobile-390",
+    "theme": "dark",
+    "url": "/reviews/inbox",
+    "scrollW": 390,
+    "clientW": 390,
+    "h": 844,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "templates",
+    "vp": "desktop-1440",
+    "theme": "dark",
+    "url": "/reviews/templates",
+    "scrollW": 1440,
+    "clientW": 1440,
+    "h": 2580,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "templates",
+    "vp": "tablet-768",
+    "theme": "dark",
+    "url": "/reviews/templates",
+    "scrollW": 768,
+    "clientW": 768,
+    "h": 2608,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "templates",
+    "vp": "mobile-390",
+    "theme": "dark",
+    "url": "/reviews/templates",
+    "scrollW": 390,
+    "clientW": 390,
+    "h": 3460,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "locations",
+    "vp": "desktop-1440",
+    "theme": "dark",
+    "url": "/reviews/locations",
+    "scrollW": 1440,
+    "clientW": 1440,
+    "h": 1000,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "locations",
+    "vp": "tablet-768",
+    "theme": "dark",
+    "url": "/reviews/locations",
+    "scrollW": 768,
+    "clientW": 768,
+    "h": 900,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  },
+  {
+    "route": "locations",
+    "vp": "mobile-390",
+    "theme": "dark",
+    "url": "/reviews/locations",
+    "scrollW": 390,
+    "clientW": 390,
+    "h": 844,
+    "text": "Operate | OS | DIRECTION | Direction | PERFORMANCE | Loyverse | Shifts & Sales | Reports | Challenges | Reviews | Customer Insights | PEOPLE | Employees | Attendance | Scheduling | Payments | FINANCE | Recurring costs | Shop settings | Ac",
+    "errors": []
+  }
+]

@@ -21,73 +21,8 @@
   left: 0;
 }
 
-/* ── Header (ReviewsTabNav, /reviews/stats only) ─────────────────────────── */
-
-.revstats-header {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.rs-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 12px;
-  color: var(--ui-fg-3);
-}
-
-.rs-breadcrumb li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.rs-breadcrumb a {
-  color: var(--ui-fg-3);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  border-radius: 2px;
-}
-
-.rs-breadcrumb a:hover {
-  color: var(--ui-fg-1);
-  border-bottom-color: var(--ui-control-line);
-}
-
-.rs-breadcrumb a:focus-visible {
-  outline: 2px solid var(--ui-accent);
-  outline-offset: 2px;
-}
-
-.rs-breadcrumb-sep {
-  color: var(--ui-fg-4);
-}
-
-.rs-breadcrumb [aria-current="page"] {
-  color: var(--ui-fg-2);
-  font-weight: 500;
-}
-
-.rs-header-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-}
-
-.rs-title {
-  margin: 0;
-  font-size: var(--ui-text-page);
-  line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--ui-fg-1);
-}
+/* The page header (breadcrumb + compact title + pill nav) is shared across the
+   whole Reviews module; see .ui-module-* in src/app/globals.css. */
 
 /* ── Toolbar ─────────────────────────────────────────────────────────────── */
 
