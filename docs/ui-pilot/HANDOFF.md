@@ -80,20 +80,38 @@ The first pass used the tokens but not the Reviews organization. This revision:
 - moves the owner source disclosure to the end of the Direction panel and removes the
   duplicated End-of-month month label;
 - fixes the **Revenue comparison** presentation only: future months read `—` with an
-  “à venir” pill instead of `฿0 / −100 %`; the running month is tagged “en cours” and a
-  note states that it is compared with a full prior-year month (and that YTD mixes partial
-  and full months). No calculation, API or SQL changed. Whether to switch to a
-  like-for-like (same-days) comparison remains a **business decision**.
+  “à venir” pill instead of `฿0 / −100 %`; the running month is tagged “en cours”; the note
+  names the exact cumulative range on both sides (Jan–focus month, not a full prior year)
+  and states prior-year coverage (`4/8 shops`, `2 with all 10 months`). No calculation, API
+  or SQL changed.
 
-Evidence: `docs/ui-pilot/wave1b/after2/` (35 captures: 4 Reports tabs + 4 Direction tabs at
-1440-light / 1440-dark / 768-light / 390-light, plus the future-month state for both
-Revenue views). Interaction suite **24/24**. Parity for the same period/shop before → after:
+### Review fixes and equivalent-period proposal
+
+- **Mobile Direction tabs**: thin scrollbar + edge fades + “↔ Faites défiler les onglets”.
+  Verified at 390 px that the last pill and its eye toggle are fully reachable.
+- **Mobile Reports tables**: sticky first column (date, shop, month, item), thin scrollbar,
+  and a “↔ Défilez horizontalement” caption only on tables that actually overflow
+  (`TableScrollAffordance`, `resize`/mutation observation).
+- **Negative results**: explicit `−฿` (Pattaya: `−฿142,132`); no calculation change.
+- **Equivalent-period proposal**: `docs/ui-pilot/revenue-equivalent-period-proposal.md`.
+  Findings: no 2025 daily data; 2025 is monthly and covers 2–4 shops; last complete day
+  **26 Oct 2026**, last complete month **Sep 2026**. Proposal: Jan–Sep comparison with
+  “all shops” vs “comparable shops” totals, plus an additive API field. **Not implemented;
+  awaiting the business decision.** A same-days comparison is impossible without estimating
+  2025 daily revenue.
+
+Evidence: `docs/ui-pilot/wave1b/after2/` (35 captures) and `wave1b/fixes/` (10 targeted
+captures). Interaction suite **25/25**. Parity for the same period/shop before → after:
 `฿5,562,549 / ฿66,369,758 / ฿67,424,161` unchanged; only Nov/Dec change from
 `฿0 / ▼100.0 %` to `— / à venir`.
 
 ### Pending
 
 1. **User acceptance** for §3 (and still §1 / §2). Do not start the next group.
+2. **Business decision — equivalent-period comparison.** Choose between the cumulative
+   complete period (recommended) and an estimated same-days comparison; see
+   `revenue-equivalent-period-proposal.md`. Do not change the calculation before the
+   decision.
 2. **Real-data verification** of Reviews and Customer Insights (Google token still absent
    locally); §3 itself ran on real local data but not on production data.
 3. **Single role account.** Only the preview owner exists locally, so staff-facing

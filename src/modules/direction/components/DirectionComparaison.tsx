@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTH_LONG = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const MONTHS_SHORT = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 
 interface MonthComparison {
   month: number;
@@ -48,7 +49,7 @@ interface RevenueComparisonData {
 
 function money(value: number) {
   const absolute = Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
-  return value < 0 ? `(฿${absolute})` : `฿${absolute}`;
+  return `${value < 0 ? "−" : ""}฿${absolute}`;
 }
 function deltaParts(current: number, prev: number): { text: string; dir: "up" | "down" | "neutral" } {
   if (prev <= 0) return { text: "—", dir: "neutral" };
@@ -67,7 +68,6 @@ const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)"
 const thLeft: React.CSSProperties = { ...thStyle, textAlign: "left" };
 const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };
 const tdNumber: React.CSSProperties = { padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", fontFamily: "var(--font-mono)" };
-const rowActive: React.CSSProperties = { background: "var(--row-active)" };
 function deltaCell(current: number, prev: number) {
   const parts = deltaParts(current, prev);
   return <span style={{ color: DELTA_COLOR[parts.dir], fontVariantNumeric: "tabular-nums" }}>{parts.text}</span>;
@@ -166,6 +166,25 @@ export function DirectionComparaison() {
   const focusFuture = focusState === "future";
   const focusCurrent = focusState === "current";
   const today = todayLabel();
+
+  // Le cumul va de janvier au mois choisi, sur les DEUX années. Les valeurs
+  // N-1 viennent uniquement de saisies mensuelles : la couverture est partielle
+  // et doit être dite, pas sous-entendue.
+  const ytdMonths = Array.from({ length: focusMonth }, (_, i) => i + 1);
+  const rangeShort = `${MONTHS_SHORT[0]}–${MONTHS_SHORT[focusMonth - 1]}`;
+  const totalShops = data?.locations.length ?? 0;
+  const coveredShops = data
+    ? data.locations.filter((loc) =>
+        data.inputs.some((input) => input.location_id === loc.id && input.month <= focusMonth && input.amount > 0)
+      ).length
+    : 0;
+  const fullCoveredShops = data
+    ? data.locations.filter((loc) =>
+        ytdMonths.every((month) =>
+          data.inputs.some((input) => input.location_id === loc.id && input.month === month && input.amount > 0)
+        )
+      ).length
+    : 0;
   const selectorStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -261,7 +280,7 @@ export function DirectionComparaison() {
               label={`Cumul à date · ${year}`}
               value={money(data.totals.ytd.current)}
               comparison={<span className="ui-kpi-delta" data-dir={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).dir}>{deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}</span>}
-              hint={`${data.prevYear} : ${money(data.totals.ytd.prev)} · Écart ${money(data.totals.ytd.delta)}${focusFuture ? ` · ${year} au ${today}` : focusCurrent ? " · mois en cours partiel" : ""}`}
+              hint={`Cumul ${rangeShort} ${data.prevYear} : ${money(data.totals.ytd.prev)}${totalShops ? ` · ${coveredShops}/${totalShops} boutiques` : ""}${focusFuture ? " · mois à venir à 0" : focusCurrent ? " · mois en cours partiel" : ""}`}
             />
             <KpiStat
               label={`Année complète · ${data.prevYear}`}
@@ -278,8 +297,8 @@ export function DirectionComparaison() {
               <InfoIcon size={15} aria-hidden />
               <span>
                 {focusFuture
-                  ? `${MONTH_LONG[focusMonth - 1]} ${year} n’a pas commencé : les mois à venir s’affichent « — » plutôt que ฿0. Le cumul annuel n’additionne que les mois saisis, alors que ${data.prevYear} est complet : l’écart cumulé n’est donc pas comparable à période égale.`
-                  : `${MONTH_LONG[focusMonth - 1]} ${year} est en cours (au ${today}). Il est comparé au mois complet de ${MONTH_LONG[focusMonth - 1]} ${data.prevYear}, et le cumul annuel oppose un mois partiel à une année complète : les deux écarts reflètent le mois incomplet.`}
+                  ? `${MONTH_LONG[focusMonth - 1]} ${year} n’a pas commencé : les mois à venir s’affichent « — » plutôt que ฿0. Le cumul couvre ${rangeShort} des deux années, mais les mois à venir sont vides en ${year} alors que ${data.prevYear} est complet. Les chiffres ${data.prevYear} ne sont renseignés que pour ${coveredShops} boutiques sur ${totalShops} (${fullCoveredShops} sur les ${focusMonth} mois) : le cumul toutes boutiques n’est pas comparable.`
+                  : `${MONTH_LONG[focusMonth - 1]} ${year} est en cours (au ${today}). Il est comparé au mois complet de ${MONTH_LONG[focusMonth - 1]} ${data.prevYear}. Le cumul couvre ${rangeShort} des deux années : ${MONTH_LONG[focusMonth - 1]} ${year} est partiel, ${MONTH_LONG[focusMonth - 1]} ${data.prevYear} est complet. Les chiffres ${data.prevYear} ne sont renseignés que pour ${coveredShops} boutiques sur ${totalShops} (${fullCoveredShops} sur les ${focusMonth} mois) : le cumul toutes boutiques n’est pas comparable.`}
               </span>
             </p>
           )}
@@ -366,7 +385,7 @@ export function DirectionComparaison() {
                         const future = state === "future";
                         const comparable = !future && row.prev > 0;
                         return (
-                          <tr key={row.month} style={{ borderTop: "1px solid var(--line)", ...(isFocus ? rowActive : {}) }}>
+                          <tr key={row.month} className={isFocus ? "ui-row-active" : undefined} style={{ borderTop: "1px solid var(--line)" }}>
                             <td style={{ ...tdLeft, fontWeight: isFocus ? 650 : 400 }}>
                               {MONTHS[row.month - 1]}
                               {future && <Pill size="sm" style={{ marginLeft: 8 }}>à venir</Pill>}

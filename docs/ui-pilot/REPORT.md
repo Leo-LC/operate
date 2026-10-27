@@ -129,36 +129,50 @@ order to both modules.
 | Direction header | `DirectionClient.tsx` | Breadcrumb `Direction / <tab>`, compact `Direction` title and the seven tabs as pills, eye toggles kept. The owner “Sources & synchronisation” disclosure moved to the end of the panel. |
 | Selectors | `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx`, `DirectionExecutiveDashboard.tsx`, `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx` | Every panel now uses the Reviews pattern: a label column (`Période`, `Boutiques`) plus a control row, actions on the right. Screen-specific behaviour is unchanged (day range, multi-shop, year stepper + month). |
 | Hierarchy | Reports + Direction panels | Filters → KPIs → primary chart/table → secondary panels. The `By Shop` filter no longer stretches vertically (`.ui-filter-rows` is wrapped in `.ui-toolbar`; as a direct child of the column page it was growing). The duplicated “Octobre 2026” label in End of month was removed. |
+| Mobile Direction tabs | `DirectionClient.tsx`, `direction.css` | Visible thin scrollbar + edge fades + a mobile-only “↔ Faites défiler les onglets” hint. Verified at 390 px: the last pill and its eye toggle are fully reachable and clickable after scrolling to the end. |
+| Mobile Reports tables | `reports.css`, `direction.css`, `table-scroll-affordance.tsx` (new) | First column (date, shop, month, item) is sticky while the figures scroll; thin scrollbar; a “↔ Défilez horizontalement” caption appears **only** on tables that actually overflow (`data-scrollable` set by a `ResizeObserver`). |
+| Negative results | `DirectionOverview.tsx`, `DirectionExecutiveDashboard.tsx`, `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx`, `DirectionComparaison.tsx` | Negative amounts now print an explicit `−฿` instead of an unsigned red figure or parentheses. Pattaya reads `−฿142,132` in Vue d’ensemble. No calculation changed. |
+| Cumulative note | `RevenueComparisonView.tsx`, `DirectionComparaison.tsx` | The note and the KPI hint now name the exact range used on both sides: `Jan–Oct 2026` vs `Jan–Oct 2025` (or Jan–Dec for a future focus), state which month is partial, and state prior-year coverage (`4/8 shops`, `2 with all 10 months`). It no longer implies a full prior year. |
 
 #### Revenue comparison — future and partial months
 
-**Findings (code inspected before any change).** `monthly_revenue_by_location` aggregates
-the `daily_entries` rows that exist. A month that has not started has no rows, so it is
-`0`; `deltas(0, prev > 0)` then yields `deltaPct = -100`. The API has no “today” awareness.
-The focus month is compared with the **full** prior-year month, and the YTD sums the
-selected months (a partial current month against full prior-year months). This is the
-existing financial logic and it was **not changed**; no API, SQL or calculation was touched.
+**Findings (code and data inspected before any change).** `monthly_revenue_by_location`
+aggregates the `daily_entries` rows that exist. A month that has not started has no real
+rows, so it is `0` (or a zero placeholder row); `deltas(0, prev > 0)` then yields
+`deltaPct = -100`. The API has no “today” or “complete day” awareness.
 
-**Presentation only.** Future months now read `—` (KPI, monthly row, by-shop row, and the
-chart bar is omitted) with an “à venir” pill instead of `฿0 / −100 %`. The running month is
-tagged “en cours”, and a `.ui-note` states that it is compared with a full prior-year month;
-when the focus is a future month it also states that the YTD adds only the months entered
-while N−1 is complete. Deltas are only shown when a real prior value exists.
+Source inspection (local DB, 27 Oct 2026):
 
-**Business decision to confirm.** Whether the current month should be compared to the same
-number of days of the prior month (like-for-like) is a finance decision. The logic is
-preserved and the limitation is now stated in the UI; changing it would require an API
-change and a methodology update.
+- `daily_entries`: **no 2025 rows at all**; 2026 is filled to **26 Oct.** (the 27th has 8
+  zero placeholders, 28–31 and Nov/Dec only 2 zero placeholders).
+- `monthly_revenue_inputs`: 2025 only, **2–4 shops per month** (Samui/Phangan 9/9 Jan–Sep,
+  Ekkamai 8/9, Silom 4/9, the other four 0/9). No 2026 inputs.
+- Therefore the prior year is month-level and partial; a same-days comparison is not
+  possible without estimation.
+
+**Presentation only (implemented).** Future months now read `—` (KPI, monthly row, by-shop
+row, and the chart bar is omitted) with an “à venir” pill instead of `฿0 / −100 %`. The
+running month is tagged “en cours”. The note names the cumulative range on both sides
+(`Jan–Oct` or `Jan–Dec`), says which month is partial, and states prior-year coverage
+(`4/8 shops`, `2 with all 10 months`). Deltas are only shown when a real prior value exists.
+No calculation, API, SQL or permission was changed.
+
+**Proposal (not implemented).** `docs/ui-pilot/revenue-equivalent-period-proposal.md`
+defines the last complete day (**26 Oct 2026**), the last complete month (**Sep 2026**), the
+comparable-shop basket (Samui + Phangan Jan–Sep; + Ekkamai from Feb) and two options:
+cumulative complete period (recommended) vs same-days (impossible without estimating 2025).
+It also specifies the additive API fields required. **Awaiting the business decision** before
+any calculation change.
 
 #### Parity and gates
 
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Same period/shop before → after (this revision) | Pass | `wave1b/after/` vs `wave1b/after2/`: ฿5,562,549 / ฿66,369,758 / ฿67,424,161 identical. Nov/Dec change only from `฿0 / ▼100.0 %` to `— / à venir`. |
-| Interaction checks | **24/24** | Reports: 4 pills, labels, shop filter change/restore, KPI = monthly row = shop total, current/future tags, no −100 %, note. Direction: 7 pills, labels, day shift + reload, source disclosure, eye toggle POST, overview shop filter and 5 KPIs. |
+| Interaction checks | **25/25** | Header/selector parity, shop filter change/restore, KPI = monthly row = shop total, current/future tags, no −100 %, notes, mobile tab reachability + eye toggle, sticky table column + scroll hint, negative sign. |
 | No horizontal overflow | Pass | 1440 / 768 / 390 |
 | Tests / typecheck / lint / build | Pass | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint repo baseline 20 errors / 3 warnings, all pre-existing (0 new); `npm run build` exit 0 |
-| Captures | **35** | `wave1b/after2/`: Reports 4 tabs × 1440-light / 1440-dark / 768-light / 390-light + 2 future-month; Direction 4 tabs × the same 4 + 1 future-month |
+| Captures | **35 + 10** | `wave1b/after2/` (35 full views) + `wave1b/fixes/` (10 targeted: mobile strip start/end, scrolled tables, Pattaya loss, cumulative notes) |
 
 All `after2` captures use real local Supabase data. The only console warning is the known
 `DashboardShell` theme-toggle hydration mismatch in dark mode.
@@ -175,6 +189,10 @@ All `after2` captures use real local Supabase data. The only console warning is 
   state only applies to the `direction` (boss) role — pre-existing behaviour, not changed
   here. The test intercepts that POST, so no visibility state was persisted.
 - **Production data** was not used; verification ran against the local database.
+- **Prior-year data is monthly and partial.** 2025 has no daily rows and only 2–4 shops per
+  month, so the all-shops cumulative is not like-for-like. The equivalent-period proposal
+  (`revenue-equivalent-period-proposal.md`) documents the limits and awaits a business
+  decision; no calculation was changed.
 - **Physical touch devices** were not used; responsive checks are Playwright emulation.
 
 ## Wave 1 §2 — Customer Insights

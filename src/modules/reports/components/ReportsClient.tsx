@@ -16,6 +16,7 @@ import {
   PercentCircleIcon,
 } from "lucide-react";
 import { ControlledTabs } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { Pill } from "@/components/ui/pill";
 import { DateRangePicker, ShopMultiSelect, bangkokToday, monthStartToday, shopMultiParam } from "@/components/ui/filters";
@@ -90,7 +91,7 @@ function fmtN(n: number) {
 }
 
 function fmtMoney(n: number) {
-  return n < 0 ? `(฿${fmtN(Math.abs(n))})` : `฿${fmtN(n)}`;
+  return `${n < 0 ? "−" : ""}฿${fmtN(Math.abs(n))}`;
 }
 
 function fmtPct(n: number) {
@@ -576,14 +577,14 @@ export function OperationsView({ data }: { data: AccountingData }) {
         />
         <KpiCard
           label="Après charges"
-          value={`฿${fmtN(netAfterExpenses)}`}
+          value={fmtMoney(netAfterExpenses)}
           delta={netAfterExpDelta.delta}
           deltaDir={netAfterExpDelta.dir}
           hint={`vs ${prevMonthName}`}
         />
         <KpiCard
           label="Après RH"
-          value={`฿${fmtN(o.netProfit)}`}
+          value={fmtMoney(o.netProfit)}
           delta={netAfterHrDelta.delta}
           deltaDir={netAfterHrDelta.dir}
           hint={`vs ${prevMonthName}`}
@@ -764,8 +765,8 @@ export function OperationsView({ data }: { data: AccountingData }) {
               <tbody>
                 {[
                   { label: "% HR / Sales", value: fmtPct(hrPctOfSales), context: hrPctOfSales <= 30 ? "Healthy range" : "Above target" },
-                  { label: "Net After Expenses", value: `฿${fmtN(netAfterExpenses)}`, context: "Before HR deduction" },
-                  { label: "Net After Exp. + HR", value: `฿${fmtN(o.netProfit)}`, context: "Post payroll result" },
+                  { label: "Net After Expenses", value: fmtMoney(netAfterExpenses), context: "Before HR deduction" },
+                  { label: "Net After Exp. + HR", value: fmtMoney(o.netProfit), context: "Post payroll result" },
                   { label: "Cash to Boss", value: `฿${fmtN(o.cashToBoss)}`, context: "Cash sent to boss this period" },
                   { label: "Closing Cash Safe", value: fmtMoney(o.closingCashSafe), context: o.closingCashSafe < 0 ? "Negative balance" : "Positive balance" },
                 ].map((row) => (
@@ -1089,7 +1090,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of revenue` : "—"),
     badge: (s) => ({
-      text: `${s.netProfit >= 0 ? "+" : ""}฿${fmtN(s.netProfit)}`,
+      text: `${s.netProfit > 0 ? "+" : ""}${fmtMoney(s.netProfit)}`,
       color: s.netProfit >= 0 ? "var(--good)" : "var(--bad)",
     }),
     metrics: [
@@ -1105,7 +1106,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of revenue` : "—"),
     badge: (s) => ({
-      text: `${s.revenue - s.expenses >= 0 ? "+" : ""}฿${fmtN(s.revenue - s.expenses)}`,
+      text: `${s.revenue - s.expenses > 0 ? "+" : ""}${fmtMoney(s.revenue - s.expenses)}`,
       color: s.revenue - s.expenses >= 0 ? "var(--good)" : "var(--bad)",
     }),
     metrics: [
@@ -1236,7 +1237,7 @@ function ShopComparisonBar({
   label: string;
   format?: "currency" | "percent";
 }) {
-  const display = format === "percent" ? fmtPct(amount) : `฿${fmtN(amount)}`;
+  const display = format === "percent" ? fmtPct(amount) : fmtMoney(amount);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)", width: 64, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
@@ -1346,12 +1347,12 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
   function calloutDetail(shop: ShopAgg) {
     const sortVal = sortMetric.getValue(shop);
-    const sortDisplay = sortMetric.format === "percent" ? fmtPct(sortVal) : `฿${fmtN(sortVal)}`;
+    const sortDisplay = sortMetric.format === "percent" ? fmtPct(sortVal) : fmtMoney(sortVal);
     if (compareMode === "revenue") {
       return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
     }
     if (compareMode === "net-profit") {
-      return `฿${fmtN(shop.netProfit)} profit · ${fmtPct(shop.margin)} margin`;
+      return `${fmtMoney(shop.netProfit)} profit · ${fmtPct(shop.margin)} margin`;
     }
     if (compareMode === "custom") {
       return `${sortDisplay} ${sortMetric.label.toLowerCase()} · ${fmtPct(shop.margin)} margin`;
@@ -1553,6 +1554,7 @@ export function ReportsClient() {
 
   return (
     <div className="rep">
+      <TableScrollAffordance />
       <div className="ui-module-header">
         <nav aria-label="Breadcrumb">
           <ol className="ui-breadcrumb">

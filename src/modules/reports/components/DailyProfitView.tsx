@@ -22,7 +22,7 @@ interface Props {
 
 function money(value: number) {
   const absolute = Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
-  return value < 0 ? `(฿${absolute})` : `฿${absolute}`;
+  return `${value < 0 ? "−" : ""}฿${absolute}`;
 }
 
 function pct(value: number) { return `${value.toFixed(1)}%`; }

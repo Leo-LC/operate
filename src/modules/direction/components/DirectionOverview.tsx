@@ -13,7 +13,7 @@ function fmtN(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 function fmtMoney(n: number) {
-  return `฿${fmtN(Math.abs(n))}`;
+  return `${n < 0 ? "−" : ""}฿${fmtN(Math.abs(n))}`;
 }
 
 // ── Types mirroring /api/reports/accounting ───────────────────────────
@@ -267,7 +267,7 @@ export function DirectionOverview() {
         <KpiStat label="Charges RH" value={`฿${fmtN(chargesRH)}`} />
         <KpiStat
           label="Résultat"
-          value={`฿${fmtN(resultat)}`}
+          value={fmtMoney(resultat)}
           tone={resultat >= 0 ? "positive" : "negative"}
           hint="CA − charges opérationnelles − RH, hors TVA et impôt"
         />

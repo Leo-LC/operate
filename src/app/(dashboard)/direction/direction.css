@@ -135,14 +135,18 @@
 /* ── Tab bar ────────────────────────────────────────────────────────────────
    Seven tabs plus the owner eye toggles do not fit in one phone-width row.
    Pills wrap from 768px up (all tabs visible); on phones they scroll
-   horizontally with edge fades so the header stays compact. */
+   horizontally, with a real thin scrollbar and edge fades so the overflow is
+   discoverable and the last eye toggle can be reached. */
 
 @media (max-width: 767px) {
   .dir .ui-pillnav {
     flex-wrap: nowrap;
     overflow-x: auto;
-    scrollbar-width: none;
-    padding: 2px 10px;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding: 2px 16px 8px 10px;
+    scroll-padding-inline: 12px;
     background-image:
       linear-gradient(to right, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent)),
       linear-gradient(to left, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent));
@@ -152,7 +156,69 @@
   }
 
   .dir .ui-pillnav::-webkit-scrollbar {
-    display: none;
+    height: 6px;
+  }
+
+  .dir .ui-pillnav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dir .ui-pillnav::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+}
+
+/* ── Mobile tables ─────────────────────────────────────────────────────────
+   Pin the row label while the figures scroll, and expose the horizontal
+   scrollbar. */
+
+@media (max-width: 767px) {
+  .dir .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .dir .ui-table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .dir .ui-table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dir .ui-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .dir .ui-table-scroll > table > thead > tr > :first-child,
+  .dir .ui-table-scroll > table > tbody > tr > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ui-panel);
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .dir .ui-table-scroll > table > thead > tr > :first-child {
+    z-index: 3;
+  }
+
+  .dir .ui-table-scroll > table > tbody > tr.ui-row-active > :first-child {
+    background: var(--ui-panel-2);
+  }
+
+  .dir .ui-table-scroll[data-scrollable]::before {
+    content: "↔ Défilez horizontalement";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
   }
 }
 

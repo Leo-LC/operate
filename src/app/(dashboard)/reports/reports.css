@@ -113,6 +113,61 @@
   min-width: 0;
 }
 
+/* ── Mobile tables ─────────────────────────────────────────────────────────
+   Keep the row label (date, shop, month, item) pinned while the figures scroll,
+   and show a real horizontal scrollbar so the overflow is discoverable. */
+
+@media (max-width: 767px) {
+  .rep .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .rep .ui-table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .rep .ui-table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .rep .ui-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .rep .ui-table-scroll > table > thead > tr > :first-child,
+  .rep .ui-table-scroll > table > tbody > tr > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ui-panel);
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .rep .ui-table-scroll > table > thead > tr > :first-child {
+    z-index: 3;
+  }
+
+  .rep .ui-table-scroll > table > tbody > tr.ui-row-active > :first-child {
+    background: var(--ui-panel-2);
+  }
+
+  /* Explicit affordance below each table, pinned to the left edge while the
+     figures scroll. */
+  .rep .ui-table-scroll[data-scrollable]::before {
+    content: "↔ Défilez horizontalement";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}
+
 /* ── Loading / empty states ───────────────────────────────────────────────── */
 
 .rep-loading,

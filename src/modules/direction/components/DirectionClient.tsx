@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon, CalendarClockIcon } from "lucide-react";
 import { ControlledTabs, type ControlledTab } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
 import { DirectionSourceBanner } from "./DirectionSourceBanner";
@@ -173,6 +174,7 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
 
   return (
     <div className="dir-shell">
+      <TableScrollAffordance />
       <div className="dir dir-head">
         <div className="ui-module-header">
           <nav aria-label="Breadcrumb">
@@ -197,6 +199,8 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
               ariaLabel="Direction"
             />
           </div>
+          {/* Seven tabs do not fit a phone: say that the strip scrolls. */}
+          <p className="ui-scroll-note">↔ Faites défiler les onglets</p>
         </div>
       </div>
 

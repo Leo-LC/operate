@@ -23,7 +23,8 @@ Wave 1 evidence: `docs/ui-pilot/wave1/` (`before/`, `quick/`, `states/`, `after/
 Wave 1 §3 evidence: `docs/ui-pilot/wave1b/` (`before/`, `after/`, 10 before + 33 after
 captures covering light/dark, green/orange, 1440/768/390 and the loading/error/empty
 states; `after2/`, 35 captures of the post-review header/selector revision plus the
-future-month Revenue comparison state).
+future-month Revenue comparison state; `fixes/`, 10 targeted captures of the mobile tab
+strip, pinned table labels and negative amounts).
 
 ## Principles
 
@@ -225,18 +226,30 @@ was removed.
 
 **Revenue comparison (display only).** `monthly_revenue_by_location` only aggregates
 existing `daily_entries`, so a future month is `0` and the delta becomes `−100 %`. The API
-also compares the running month with the **full** prior-year month and sums YTD the same
-way. No calculation, API or SQL changed: future months now read `—` with an “à venir” pill,
-the running month is tagged “en cours”, and a `.ui-note` states the partial-vs-full
-comparison. Whether to use a like-for-like (same days) comparison remains a **business
-decision** to confirm.
+also compares the running month with the **full** prior-year month and sums the cumulative
+Jan→focus month on both sides. No calculation, API or SQL changed: future months now read
+`—` with an “à venir” pill, the running month is tagged “en cours”, and the note names the
+exact ranges and prior-year coverage (`4/8 shops`, `2 with all 10 months`).
+
+**Review fixes (display only).** Mobile Direction tabs now show a thin scrollbar, edge
+fades and a “↔ Faites défiler les onglets” hint; the last pill and eye toggle are verified
+reachable at 390 px. Reports/Direction tables pin their first column (date, shop, month,
+item), show a thin scrollbar, and render a “↔ Défilez horizontalement” caption only when
+the table actually overflows (`TableScrollAffordance`). Negative amounts print `−฿`
+(Pattaya: `−฿142,132`).
+
+**Equivalent-period proposal (not implemented).** `docs/ui-pilot/revenue-equivalent-period-proposal.md`
+documents the sources, the last complete day (**26 Oct 2026**), the last complete month
+(**Sep 2026**), the 2025 coverage (monthly only, 2–4 shops) and two options. A like-for-like
+same-days comparison is impossible without 2025 daily data. **Awaiting the business decision**
+before changing the methodology.
 
 ### Wave 1 §3 gate
 
 | Gate | Result |
 | --- | --- |
-| Before/after captures at real widths, light + dark, both accents | Pass. `wave1b/before/` (10) → `wave1b/after/` (33). Reports: daily 1440/768/390 light-green, 1440/390 dark-orange; revenue 1440/390; operations 1440/390; by-shop 1440 light-green + 390 dark-orange; error + empty. Direction: dashboard 1440/768/390 light-green, 1440/390 dark-orange; overview 1440/390 light-green + 1440 dark-orange; comparaison 1440/390 light-green + 390 dark-orange; end-of-month 1440/390 light-green + 1440 dark-orange; details 1440/390; daily 1440; loyverse 1440; empty + error. Post-review revision: `wave1b/after2/` (35) — 4 Reports tabs and 4 Direction tabs at 1440-light / 1440-dark / 768-light / 390-light, plus the future-month state for both Revenue comparison views. |
-| Visual-system revision interactions | Pass. **24/24**: breadcrumb/title/pills/labels on both modules, shop filter change + restore, KPI = monthly row = shop total, current/future tags, no `−100 %`, day shift + reload, source disclosure, eye-toggle POST, overview shop filter + 5 KPIs. |
+| Before/after captures at real widths, light + dark, both accents | Pass. `wave1b/before/` (10) → `wave1b/after/` (33). Reports: daily 1440/768/390 light-green, 1440/390 dark-orange; revenue 1440/390; operations 1440/390; by-shop 1440 light-green + 390 dark-orange; error + empty. Direction: dashboard 1440/768/390 light-green, 1440/390 dark-orange; overview 1440/390 light-green + 1440 dark-orange; comparaison 1440/390 light-green + 390 dark-orange; end-of-month 1440/390 light-green + 1440 dark-orange; details 1440/390; daily 1440; loyverse 1440; empty + error. Post-review revision: `wave1b/after2/` (35) — 4 Reports tabs and 4 Direction tabs at 1440-light / 1440-dark / 768-light / 390-light, plus the future-month state for both Revenue comparison views. Review fixes: `wave1b/fixes/` (10) — mobile tab strip start/end, scrolled tables with the pinned label, Pattaya loss, cumulative notes. |
+| Visual-system revision interactions | Pass. **25/25**: headers/labels, shop filter change + restore, KPI = monthly row = shop total, current/future tags, no `−100 %`, exact cumulative note, mobile last-tab + eye toggle reachable, sticky table label + conditional scroll hint, negative sign. |
 | Reports interactions/state checks | Pass. 4 tabs, date range, shop filter, sort, breakdown disclosure, loading, empty, error: **15/15**. |
 | Direction interactions/state checks | Pass. 7 tabs, source disclosure, date shift, expense breakdown, shop filter, eye-toggle POST, comparaison edit/cancel/year shift, end-of-month expand, loading skeleton, empty, error, Loyverse isolation: **20/20**. |
 | No horizontal overflow | Pass. 0 document-level overflow at 1440/768/390; wide tables scroll inside `.ui-table-scroll` and the scroll shadows only appear when there is content to scroll. |

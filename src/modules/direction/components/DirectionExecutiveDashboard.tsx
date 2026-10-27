@@ -14,7 +14,7 @@ const numberFormatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 
 
 function money(value: number) {
   const rounded = Math.round(Math.abs(value));
-  return value < 0 ? `(฿${numberFormatter.format(rounded)})` : `฿${numberFormatter.format(rounded)}`;
+  return `${value < 0 ? "−" : ""}฿${numberFormatter.format(rounded)}`;
 }
 
 function dateLabel(value: string, withYear = true) {

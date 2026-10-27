@@ -58,7 +58,7 @@ interface RevenueComparisonData {
 
 function money(value: number) {
   const absolute = Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
-  return value < 0 ? `(฿${absolute})` : `฿${absolute}`;
+  return `${value < 0 ? "−" : ""}฿${absolute}`;
 }
 
 function deltaParts(current: number, prev: number): { text: string; dir: "up" | "down" | "neutral" } {
@@ -80,7 +80,6 @@ const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)"
 const thLeft: React.CSSProperties = { ...thStyle, textAlign: "left" };
 const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };
 const tdNumber: React.CSSProperties = { padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", fontFamily: "var(--font-mono)" };
-const rowActive: React.CSSProperties = { background: "var(--row-active)" };
 
 function deltaCell(current: number, prev: number) {
   const parts = deltaParts(current, prev);
@@ -180,6 +179,25 @@ export function RevenueComparisonView() {
   const focusFuture = focusState === "future";
   const focusCurrent = focusState === "current";
   const today = todayLabel();
+
+  // The cumulative is Jan→focus month on BOTH sides (not a full prior year).
+  // Prior-year values come from monthly inputs only, so coverage is partial and
+  // must be stated rather than implied.
+  const ytdMonths = Array.from({ length: focusMonth }, (_, i) => i + 1);
+  const rangeShort = `${MONTHS[0]}–${MONTHS[focusMonth - 1]}`;
+  const totalShops = data?.locations.length ?? 0;
+  const coveredShops = data
+    ? data.locations.filter((loc) =>
+        data.inputs.some((input) => input.location_id === loc.id && input.month <= focusMonth && input.amount > 0)
+      ).length
+    : 0;
+  const fullCoveredShops = data
+    ? data.locations.filter((loc) =>
+        ytdMonths.every((month) =>
+          data.inputs.some((input) => input.location_id === loc.id && input.month === month && input.amount > 0)
+        )
+      ).length
+    : 0;
 
   const selectorStyle: React.CSSProperties = {
     display: "inline-flex",
@@ -284,7 +302,7 @@ export function RevenueComparisonView() {
                   {deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}
                 </span>
               }
-              hint={`Cumul ${data.prevYear} : ${money(data.totals.ytd.prev)}${focusFuture ? ` · ${year} au ${today}` : focusCurrent ? " · mois en cours partiel" : ""}`}
+              hint={`Cumul ${rangeShort} ${data.prevYear} : ${money(data.totals.ytd.prev)}${totalShops ? ` · ${coveredShops}/${totalShops} boutiques` : ""}${focusFuture ? " · mois à venir à 0" : focusCurrent ? " · mois en cours partiel" : ""}`}
             />
             <KpiStat
               label={`Année complète · ${data.prevYear}`}
@@ -301,8 +319,8 @@ export function RevenueComparisonView() {
               <InfoIcon size={15} aria-hidden />
               <span>
                 {focusFuture
-                  ? `${MONTH_LONG[focusMonth - 1]} ${year} has not started: future months read “—” instead of ฿0. The year-to-date total adds only the months entered so far, while ${data.prevYear} is complete, so the cumulative delta is not like-for-like.`
-                  : `${MONTH_LONG[focusMonth - 1]} ${year} is still in progress (today: ${today}). It is compared with the full ${MONTH_LONG[focusMonth - 1]} ${data.prevYear} month, and the year-to-date total uses a partial month against a full prior year, so both deltas reflect the incomplete month.`}
+                  ? `${MONTH_LONG[focusMonth - 1]} ${year} has not started: future months read “—” instead of ฿0. The cumulative covers ${rangeShort} on both sides, but the future months are empty in ${year} while ${data.prevYear} is complete. ${data.prevYear} figures exist for ${coveredShops} of ${totalShops} shops (${fullCoveredShops} with all ${focusMonth} months), so the all-shops cumulative is not like-for-like.`
+                  : `${MONTH_LONG[focusMonth - 1]} ${year} is still in progress (today: ${today}). It is compared with the full ${MONTH_LONG[focusMonth - 1]} ${data.prevYear} month. The cumulative covers ${rangeShort} on both sides: ${MONTH_LONG[focusMonth - 1]} ${year} is partial, while ${MONTH_LONG[focusMonth - 1]} ${data.prevYear} is complete. ${data.prevYear} figures exist for ${coveredShops} of ${totalShops} shops (${fullCoveredShops} with all ${focusMonth} months), so the all-shops cumulative is not like-for-like.`}
               </span>
             </p>
           )}
@@ -344,7 +362,7 @@ export function RevenueComparisonView() {
                         const future = state === "future";
                         const comparable = !future && row.prev > 0;
                         return (
-                          <tr key={row.month} style={{ borderTop: "1px solid var(--line)", ...(isFocus ? rowActive : {}) }}>
+                          <tr key={row.month} className={isFocus ? "ui-row-active" : undefined} style={{ borderTop: "1px solid var(--line)" }}>
                             <td style={{ ...tdLeft, fontWeight: isFocus ? 650 : 400 }}>
                               {MONTHS[row.month - 1]}
                               {future && <Pill size="sm" style={{ marginLeft: 8 }}>à venir</Pill>}

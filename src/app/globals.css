@@ -244,6 +244,11 @@
     min-width: max-content;
   }
 
+  /* Focus/selected row (e.g. the highlighted month in Revenue comparison). */
+  .ui-row-active {
+    background: var(--ui-panel-2);
+  }
+
   /* Ranked bar list (rank · label + bar · amount · share). On phones the
      share column is dropped so long labels keep their full text. */
   .ui-bar-row {
@@ -349,6 +354,23 @@
     .ui-toolbar-actions {
       width: 100%;
       margin-left: 0;
+    }
+  }
+
+  /* Mobile-only affordance for horizontally scrollable regions (tab strips,
+     wide tables). Hidden from 768 px up where everything fits. */
+  .ui-scroll-note {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin: -4px 0 0;
+    font-size: var(--ui-text-caption);
+    color: var(--ui-fg-3);
+  }
+
+  @media (max-width: 767px) {
+    .ui-scroll-note {
+      display: flex;
     }
   }
 
