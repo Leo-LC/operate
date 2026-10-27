@@ -3,13 +3,13 @@
 Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Phase 0**
 (shared foundations + accent preference) is committed at **`ac88b15`**; **Wave 1 §1**
 (Reviews siblings) is committed at **`e998f99`**; **Wave 1 §2** (Customer Insights +
-Inbox filter disclosure) is committed at **`be6f556`**; the **Wave 1 §2 filter-truth
-follow-up** is the latest local commit on the branch (`git log -1`).
+Inbox filter disclosure) is committed at **`be6f556`**; **Wave 1 §3** is committed as
+**`7393230`** (`/reports`) and **`e5c0e9a`** (`/direction`), the current tip of the branch.
 Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, the Reviews sibling
-routes, `/customer-insights` and the Inbox filter rail. **No other module was migrated.**
-No deploy, push, merge or DB migration. Local URL:
-**http://localhost:3000/customer-insights** (preview login,
-`NEXT_PUBLIC_PREVIEW_MODE=true`).
+routes, `/customer-insights`, the Inbox filter rail, `/reports` and `/direction`.
+**No other module was migrated.** No deploy, push, merge or DB migration. Local URLs:
+**http://localhost:3000/customer-insights**, **http://localhost:3000/reports**,
+**http://localhost:3000/direction** (preview login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
 
 The dev server is running. Sign in with the existing preview password from `.env.local`;
 the password is not recorded here.
@@ -24,10 +24,103 @@ below). **Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`,
 `/reviews/templates`, `/reviews/locations`, plus the two redirect routes) onto the same
 foundation, with a scoped token bridge so no other module restyled. **Wave 1 §2** migrated
 `/customer-insights` onto the same foundation and collapsed the Inbox filter rail on
-mobile. Both are **implemented and verified locally, awaiting user acceptance**. They are
-not pushed, merged or deployed. Live Customer Insights data, runtime staff access, real
-Google sync, a real organization `forest` switch and physical touch devices remain pending
-(details below).
+mobile. **Wave 1 §3** migrated `/reports` and `/direction` as one group (they share three
+report endpoints and three view components), promoting only the genuinely shared layout
+utilities to `globals.css`. All three are **implemented and verified locally, awaiting
+user acceptance**. They are not pushed, merged or deployed. Live Customer Insights data,
+runtime staff access, real Google sync, a real organization `forest` switch and physical
+touch devices remain pending (details below).
+
+## Wave 1 §3 — Reports + Direction
+
+Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Commits: `7393230` (`/reports`), `e5c0e9a` (`/direction`).
+Scope: `/reports` and `/direction` only. The two routes were migrated as one group because
+they share `/api/reports/accounting`, `/api/reports/daily-profit`,
+`/api/reports/revenue-comparison` and the `DailyProfitView`, `OperationsView` and
+`RevenueComparisonView` components. `/treasury` (cash-count, reserve, bank-account writes)
+and `/payments` (payment status writes) were deliberately deferred: both write finance
+data and get their own migration and review.
+
+### What changed
+
+| Area | File | Change |
+| --- | --- | --- |
+| Shared utilities | `src/app/globals.css` | `.ui-kpi-grid`, `.ui-kpi-delta`, `.ui-table-scroll`, `.ui-toolbar` / `.ui-toolbar-spacer`, `.ui-bar-row` / `.ui-bar-head`. Global rather than per-route because the shared report views are rendered by two routes. |
+| KPI primitive | `src/components/ui/kpi-stat.tsx` | Additive `tone="positive" \| "negative"`. Existing callers unchanged. |
+| Reports bridge | `src/app/(dashboard)/reports/reports.css` (new) | `.rep` scoped token bridge; the four tab panels, filters, bar lists and states. |
+| Reports views | `src/modules/reports/components/ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx` | KPI rows on `KpiStat` + `.ui-kpi-grid`; wide tables on `.ui-table-scroll`; ranked lists on `.ui-bar-row` (share column drops below 768 px so labels stop truncating); both edges of the mobile tab bar fade; “réel/estimé” badge moves next to the shop name. |
+| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope + `.dir-shell`, `.dir-stack`, `.dir-panel`, `.dir-panel-title`, `.dir-equation*`, `.dir-source`, `.dir-toolbar-meta`, `.dir-loading`, `.dir-empty`, `.dir-kpi-outcome`. |
+| Direction shell | `src/modules/direction/components/DirectionClient.tsx`, `src/app/(dashboard)/direction/page.tsx` | One `PageHeader` (“Résultats estimés”) instead of a per-tab `h1`; `.dir-shell` holds two `.dir` siblings (header + tabs, then the non-Loyverse panels). The embedded **Loyverse** tab is a plain sibling outside `.dir`. |
+| Direction dashboard | `DirectionExecutiveDashboard.tsx` | The `Ventes − Dépenses = Résultat` equation becomes `.dir-equation`: a 3-cell grid on desktop, a stacked ledger on phones. `.dir-equation-value` sets its own line-height (the inherited 16.25 px Card value made the figures overflow and collide with the label above). |
+| Direction panels | `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx`, `DirectionOperations.tsx` | KPI rows on the shared grid; toolbars and table scroll shared; the local `KpiCard` duplicate removed in favour of `KpiStat`; previous-year bars use `--ui-series-neutral` instead of `#f59e0b`; categorical `--info` / `--purple` / `--bronze` map to `--ui-series-neutral` / `--ui-warn` / `--ui-accent` inside the bridge. |
+| Direction source banner | `DirectionSourceBanner.tsx` | Owner-only “Sources & synchronisation” block becomes a collapsed `<details>` disclosure. |
+| Sign fix | `DirectionEndOfMonth.tsx` | New local `signedMoney()`: `formatMoney()` renders absolute values, so a negative “Reste en coffre” was displayed unsigned next to a red tone. |
+
+### Design decisions
+
+1. **Scoped bridges, no global repoint.** `.rep` and `.dir` remap legacy token names to
+   `--ui-*` inside their own scope only. `--accent`, `--surface`, `--fg` and `--line` keep
+   their values everywhere else.
+2. **Shared utilities go in `globals.css`.** `DailyProfitView`, `OperationsView` and
+   `RevenueComparisonView` are consumed by both routes; their classes cannot live in either
+   route's stylesheet.
+3. **Loyverse stays outside the Direction bridge.** It belongs to a module that has not been
+   migrated. Verified: inside the Loyverse tab `--accent` is still `#2563eb` and there are
+   0 migrated (`ui-*`) classes.
+4. **Layout follows each workflow.** `/reports` keeps four dense tabs (daily P&L,
+   operations, revenue comparison, by shop) with tables and ranked lists. `/direction`
+   gets one header, underline tabs, a date-first dashboard whose equation reads top-down on
+   phones, and month steppers for the two monthly panels.
+5. **Semantic colour only where it means something.** Signed results carry `tone`; series
+   colours come from the palette instead of ad-hoc hex values. The one KPI that carries an
+   outcome (“Reste en coffre”) keeps a quiet accent left edge rather than a full accent fill.
+6. **No calculation, API or permission change.** The only behavioural deltas are display
+   fixes: equation figures no longer overflow their card, and a negative remainder keeps
+   its sign.
+
+### Verification matrix
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Before/after at real widths, light + dark, both accents | Pass | `wave1b/before/` (10) → `wave1b/after/` (33) |
+| No horizontal overflow | Pass | 1440/768/390 — 0 document-level overflow; wide tables scroll inside `.ui-table-scroll` with shadows only when needed |
+| Reports interactions | Pass | 4 tabs, date range, shop filter, sort, breakdown disclosure |
+| Direction interactions | Pass | 7 tabs, source disclosure, date shift, expense breakdown, shop filter, eye-toggle POST (`{"tab_key":"dashboard","visible":…}`), comparaison edit/cancel/year shift, end-of-month expand |
+| States | Pass | Reports: loading, empty, API error. Direction: loading skeleton (5 placeholders), empty, API error |
+| Accent bridge | Pass | Active tabs, KPIs and series use `#2c6f4c` (green) / orange inside `.rep` / `.dir`; Loyverse and every other module unchanged |
+| Reports suite | **15/15** | Playwright, `wave1b/` |
+| Direction suite | **20/20** | Playwright, `wave1b/` |
+| Tests / typecheck / lint / build | Pass | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint 0 errors on changed files (repo baseline 20 errors / 3 warnings, pre-existing); `npm run build` exit 0 |
+
+### Evidence
+
+`docs/ui-pilot/wave1b/before/` and `docs/ui-pilot/wave1b/after/`:
+
+- Reports — daily 1440/768/390 light-green, 1440/390 dark-orange; revenue 1440/390;
+  operations 1440/390; by shop 1440 light-green + 390 dark-orange; plus
+  `reports-error-daily-1440-light.png` and `reports-empty-operations-1440-light.png`.
+- Direction — dashboard 1440/768/390 light-green, 1440/390 dark-orange; overview 1440/390
+  light-green + 1440 dark-orange; comparaison 1440/390 light-green + 390 dark-orange;
+  end of month 1440/390 light-green + 1440 dark-orange; details 1440/390; daily 1440;
+  loyverse 1440; plus `direction-empty-overview-1440-light.png` and
+  `direction-error-dashboard-1440-light.png`.
+
+All captures are **real local Supabase data** (HTTP 200, no page errors besides the known
+`DashboardShell` theme-toggle hydration warning), not fixtures.
+
+### Known limits
+
+- **Single role account.** Only the preview owner exists locally; role-specific rendering
+  (staff view of `/direction`) was not exercised.
+- **Loading/error/empty** were simulated at the network boundary.
+- **`/api/locations` returns 503 locally** without a Google token; location lists come from
+  the report payloads.
+- **`/api/direction/tabs` returns all `false` locally**, so the owner sees every tab
+  (dimmed) plus the eye toggles. The test intercepts that POST, so no visibility state was
+  persisted.
+- **Production data** was not used; verification ran against the local database.
+- **Physical touch devices** were not used; responsive checks are Playwright emulation.
 
 ## Wave 1 §2 — Customer Insights
 

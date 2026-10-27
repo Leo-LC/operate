@@ -1,13 +1,16 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete; Wave 1 §1 and §2 implemented and verified.** Phase 0 (shared
-foundation + browser-local accent preference) is committed at `ac88b15` on
+Status: **Phase 0 complete; Wave 1 §1, §2 and §3 implemented and verified.** Phase 0
+(shared foundation + browser-local accent preference) is committed at `ac88b15` on
 `ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`.
 **Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`, `/reviews/templates`,
 `/reviews/locations`, plus the `/reviews` and `/reviews/rules` redirects) and is
 **awaiting user acceptance**. **Wave 1 §2** migrated `/customer-insights` and added the
-requested Inbox filter disclosure; it is also **awaiting user acceptance**. No other module
-has been migrated. All commits are local: not pushed, merged, deployed or migrated.
+requested Inbox filter disclosure; it is also **awaiting user acceptance**. **Wave 1 §3**
+migrated `/reports` (`7393230`) and `/direction` (`e5c0e9a`) and is **awaiting user
+acceptance**. `/treasury` and `/payments` were deferred out of that group because they
+write finance data. No other module has been migrated. All commits are local: not pushed,
+merged, deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -15,6 +18,9 @@ Phase 0 evidence: `docs/ui-pilot/phase0/` (16 accent × theme × viewport captur
 preference-modal captures, untouched-route captures, `capture-report.json`).
 Wave 1 evidence: `docs/ui-pilot/wave1/` (`before/`, `quick/`, `states/`, `after/`,
 `filters/`, `ci-before/`, `ci-after/` and their JSON reports).
+Wave 1 §3 evidence: `docs/ui-pilot/wave1b/` (`before/`, `after/`, 10 before + 33 after
+captures covering light/dark, green/orange, 1440/768/390 and the loading/error/empty
+states).
 
 ## Principles
 
@@ -181,6 +187,49 @@ populated state was verified against Playwright mocks; **real Google/spreadsheet
 still unverified**. Only the preview owner account exists locally; loading/error/empty were
 simulated at the network boundary; physical touch devices were not used.
 
+## Wave 1 §3 result — Reports + Direction (verified)
+
+Two related reporting surfaces, migrated in one group because they share three endpoints
+(`/api/reports/accounting`, `/api/reports/daily-profit`, `/api/reports/revenue-comparison`)
+and two view components (`DailyProfitView`, `OperationsView`/`RevenueComparisonView`).
+`/treasury` (cash-count/reserve/bank-account writes) and `/payments` (payment status
+writes) were **deliberately left out of this group**: both write finance data and get their
+own migration + review.
+
+| Area | File | Result |
+| --- | --- | --- |
+| Shared utilities | `src/app/globals.css` | Added the pieces both modules needed instead of duplicating them per route: `.ui-kpi-grid` (2-up on phones with the odd last card full width, 2-up on tablets, auto-fit ≥180 px from 1024 px), `.ui-kpi-delta` (`data-dir`), `.ui-table-scroll` (scroll + edge shadows only when needed), `.ui-toolbar`/`.ui-toolbar-spacer`, `.ui-bar-row`/`.ui-bar-head`. |
+| KPI primitive | `src/components/ui/kpi-stat.tsx` | Additive `tone` prop (`positive` / `negative`) for signed results. No change to existing callers. |
+| Reports bridge | `src/app/(dashboard)/reports/reports.css` (new) | `.rep` scope maps legacy token names to `--ui-*` **inside this module only**; the four tab panels, filters, bar lists and states live here. |
+| Reports layout | `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx` | KPI rows → `KpiStat` + `.ui-kpi-grid`; wide tables → `.ui-table-scroll`; ranked lists → `.ui-bar-row` (share column drops on phones so labels stop truncating); mobile tab bar fades both edges. Calculations, API calls, permissions and formulas untouched. |
+| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope + `.dir-shell` (header/tabs) and two `.dir` siblings. Panel roots use `.dir-stack`; `.dir-panel`/`.dir-panel-title`, `.dir-loading`/`.dir-empty`, `.dir-source`, `.dir-toolbar-meta`. |
+| Direction header | `DirectionClient.tsx`, `direction/page.tsx` | One `PageHeader` (“Résultats estimés”); the per-tab duplicate `h1` is gone. The embedded **Loyverse** tab renders outside `.dir` and keeps its legacy tokens (verified: `--accent` still `#2563eb` there, 0 migrated classes). |
+| Direction dashboard | `DirectionExecutiveDashboard.tsx` | `Ventes − Dépenses = Résultat` becomes `.dir-equation` (grid on desktop, stacked ledger on phones). Figures carry their own line-height: the inherited Card value (16.25 px) made glyphs overflow and collide with the label above — visible in the before shot. |
+| Direction panels | `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx`, `DirectionOperations.tsx` | KPI rows → `KpiStat` + `.ui-kpi-grid`; toolbars → `.ui-toolbar`; wide tables → `.ui-table-scroll`; the local `KpiCard` duplicate is deleted in favour of the shared primitive. Previous-year bars use the palette's neutral series instead of `#f59e0b`. |
+| Source banner | `DirectionSourceBanner.tsx` | Owner-only “Sources & synchronisation” technical block becomes a collapsed `<details>` disclosure. |
+| Sign fix | `DirectionEndOfMonth.tsx` | `formatMoney()` renders absolute values, so a negative “Reste en coffre” showed an unsigned figure next to a red tone. New local `signedMoney()` keeps the `−`. |
+
+### Wave 1 §3 gate
+
+| Gate | Result |
+| --- | --- |
+| Before/after captures at real widths, light + dark, both accents | Pass. `wave1b/before/` (10) → `wave1b/after/` (33). Reports: daily 1440/768/390 light-green, 1440/390 dark-orange; revenue 1440/390; operations 1440/390; by-shop 1440 light-green + 390 dark-orange; error + empty. Direction: dashboard 1440/768/390 light-green, 1440/390 dark-orange; overview 1440/390 light-green + 1440 dark-orange; comparaison 1440/390 light-green + 390 dark-orange; end-of-month 1440/390 light-green + 1440 dark-orange; details 1440/390; daily 1440; loyverse 1440; empty + error. |
+| Reports interactions/state checks | Pass. 4 tabs, date range, shop filter, sort, breakdown disclosure, loading, empty, error: **15/15**. |
+| Direction interactions/state checks | Pass. 7 tabs, source disclosure, date shift, expense breakdown, shop filter, eye-toggle POST, comparaison edit/cancel/year shift, end-of-month expand, loading skeleton, empty, error, Loyverse isolation: **20/20**. |
+| No horizontal overflow | Pass. 0 document-level overflow at 1440/768/390; wide tables scroll inside `.ui-table-scroll` and the scroll shadows only appear when there is content to scroll. |
+| Accent bridge | Pass. Green `#2c6f4c` / orange drive active tabs, KPIs and series inside `.rep`/`.dir`; Loyverse and every other module keep `--accent`. |
+| No API/permission/data-contract change | Pass. No route handler, aggregation, normalizer or guard touched. The tab-visibility POST body is unchanged (`{"tab_key":…,"visible":…}`). |
+| Tests / typecheck / lint / build | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint on changed files: only the pre-existing 16 unused-vars and 3 `react-hooks/exhaustive-deps` warnings in `DirectionOverview.tsx`; `npm run build` exit 0. |
+| Acceptance | **Pending** — user review required before the next group. |
+
+Known limits for this step: both modules ran against the **real local Supabase data**
+(HTTP 200, no page errors beyond the known `DashboardShell` theme-toggle hydration
+warning), but no second role account exists locally, so role-specific rendering was not
+re-checked. Loading/error/empty were simulated at the network boundary. `/api/locations`
+still returns 503 locally without a Google token. `/api/direction/tabs` returns all
+`false` locally, so the owner sees every tab (dimmed) plus the eye toggles; the test
+intercepts that POST so no state is persisted. Physical touch devices were not used.
+
 ## Current state (verified in the repo)
 
 - 55 dashboard routes under `src/app/(dashboard)/`.
@@ -198,8 +247,15 @@ simulated at the network boundary; physical touch devices were not used.
 - Wave 1 §1 made the whole Reviews module a consumer through the scoped `.revs` bridge in
   `src/app/(dashboard)/reviews/reviews.css`. Wave 1 §2 did the same for
   `/customer-insights` through `.ci` in
-  `src/app/(dashboard)/customer-insights/customer-insights.css`. Outside those two scopes,
-  legacy tokens and every other module are unchanged.
+  `src/app/(dashboard)/customer-insights/customer-insights.css`, and Wave 1 §3 for
+  `/reports` (`.rep`) and `/direction` (`.dir`). Outside those scopes, legacy tokens and
+  every other module are unchanged — including the Loyverse tab embedded in `/direction`,
+  which sits outside `.dir` on purpose.
+- Wave 1 §3 promoted the shared layout pieces to `src/app/globals.css`
+  (`.ui-kpi-grid`, `.ui-kpi-delta`, `.ui-table-scroll`, `.ui-toolbar`,
+  `.ui-toolbar-spacer`, `.ui-bar-row`, `.ui-bar-head`) because `DailyProfitView`,
+  `OperationsView` and `RevenueComparisonView` are consumed by both `/reports` and
+  `/direction` and must not depend on either route's bridge.
 - Accent preference: `localStorage["operate.accent"]` = `green` | `orange`; absent means
   the company default (green). Browser-local only, no database field. Light/dark remains
   `localStorage["operate.theme"]`.
@@ -318,7 +374,7 @@ Status legend: **pending** = not started; **implemented** = code changed, checks
 complete; **verified** = automated/manual checks pass; **accepted** = user accepted the
 module's result.
 
-Phase 0 is complete, Wave 0 remains accepted, and **Wave 1 §1 and §2 are implemented +
+Phase 0 is complete, Wave 0 remains accepted, and **Wave 1 §1, §2 and §3 are implemented +
 verified** (awaiting acceptance). No further module starts until they are reviewed.
 
 Order is by risk: read-only first, then editable tables, then custom interactions, then
@@ -338,10 +394,10 @@ surface.
 | --- | --- | --- | --- | --- |
 | 1 | `reviews` siblings: `/reviews`, `/reviews/inbox`, `/reviews/templates`, `/reviews/rules`, `/reviews/locations` | Module tabs, filters, pill, tables, modals | Medium — inbox actions, but same domain as the pilot | **verified** (awaiting acceptance) |
 | 2 | `/customer-insights` | Page header, stat, filters, card | Low — one read-only client | **verified** (awaiting acceptance) |
-| 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | pending |
-| 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | pending |
-| 5 | `/reports` | Page header, stat, card, module tabs, modal | Medium — dense tables, export/modal flows | pending |
-| 6 | `/payments` | Page header, stat, view toggle, filters | Medium — one large client, status changes | pending |
+| 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | pending — deferred from §3 (cash-count/reserve/bank-account writes) |
+| 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | **verified** (`e5c0e9a`, awaiting acceptance) |
+| 5 | `/reports` | Page header, stat, card, module tabs, modal | Medium — dense tables, export/modal flows | **verified** (`7393230`, awaiting acceptance) |
+| 6 | `/payments` | Page header, stat, view toggle, filters | Medium — one large client, status changes | pending — deferred from §3 (payment status writes) |
 
 Why first: these screens are mostly read-only, already use the shared primitives, and
 give fast feedback on the token layer without touching scheduling or payroll data.

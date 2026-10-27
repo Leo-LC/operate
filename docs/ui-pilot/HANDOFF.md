@@ -1,4 +1,83 @@
-# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1 + §2
+# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1 + §2 + §3
+
+## Wave 1 §3 checkpoint — Reports + Direction
+
+Checkpoint: **`e5c0e9a`** (Direction) on `ui/reviews-stats-pilot`, parent **`7393230`**
+(Reports), whose parent is `31cb2fd` (§2 verification). Branch:
+**`ui/reviews-stats-pilot`**. Local commits; **not pushed, merged, deployed or migrated**.
+
+Scope: `/reports` and `/direction` — one group of two related reporting surfaces that share
+`/api/reports/accounting`, `/api/reports/daily-profit`, `/api/reports/revenue-comparison`
+and the `DailyProfitView` / `OperationsView` / `RevenueComparisonView` components.
+`/treasury` (cash-count, reserve and bank-account writes) and `/payments` (payment status
+writes) were **deliberately excluded** from the group: both write finance data and need
+their own migration and review.
+
+### What shipped
+
+| Area | File | Change |
+| --- | --- | --- |
+| Shared utilities | `src/app/globals.css` | `.ui-kpi-grid` (2-up on phones with the odd last card full width, 2-up on tablets, auto-fit ≥180 px from 1024 px; value drops to 22 px below 480 px), `.ui-kpi-delta` (`data-dir`), `.ui-table-scroll` (scroll + edge shadows only when there is content to scroll), `.ui-toolbar` / `.ui-toolbar-spacer`, `.ui-bar-row` / `.ui-bar-head`. Added globally because the shared report views are consumed by two routes. |
+| KPI primitive | `src/components/ui/kpi-stat.tsx` | Additive `tone="positive" \| "negative"`; existing callers unchanged. |
+| Reports bridge | `src/app/(dashboard)/reports/reports.css` (new) | `.rep` scoped token bridge (same pattern as `.revs` / `.ci`). |
+| Reports views | `ReportsClient.tsx`, `DailyProfitView.tsx`, `RevenueComparisonView.tsx` | `KpiStat` + `.ui-kpi-grid`, `.ui-table-scroll`, `.ui-bar-row` (share column drops on phones so labels stop truncating), both edges of the mobile tab bar fade. |
+| Direction bridge | `src/app/(dashboard)/direction/direction.css` (new) | `.dir` scope, `.dir-shell`, `.dir-stack`, `.dir-panel` / `.dir-panel-title`, `.dir-equation*`, `.dir-source`, `.dir-toolbar-meta`, `.dir-loading` / `.dir-empty`. |
+| Direction shell | `DirectionClient.tsx`, `direction/page.tsx` | One `PageHeader` (“Résultats estimés”), tab bar, panel area. The embedded **Loyverse** tab renders outside `.dir` so the un-migrated module keeps legacy tokens (verified: `--accent` still `#2563eb`, 0 migrated classes). |
+| Direction panels | `DirectionExecutiveDashboard.tsx`, `DirectionOverview.tsx`, `DirectionComparaison.tsx`, `DirectionEndOfMonth.tsx`, `DirectionOperations.tsx`, `DirectionSourceBanner.tsx` | Equation card rebuilt as `.dir-equation` (grid on desktop, stacked ledger on phones) with its own figure line-height; KPI rows on the shared grid; toolbars and table scroll shared; the local `KpiCard` duplicate deleted; owner-only source banner collapsed into `<details>`; previous-year bars use the neutral series instead of `#f59e0b`. |
+
+### Decisions
+
+1. **One bridge per module, no global repoint.** `.rep` and `.dir` remap legacy token names
+   to `--ui-*` inside their own scope only. `--accent`, `--surface`, `--fg` and `--line`
+   are untouched everywhere else.
+2. **Shared utilities live in `globals.css`, not in a bridge.** `DailyProfitView`,
+   `OperationsView` and `RevenueComparisonView` are rendered by both `/reports` and
+   `/direction`, so their classes cannot belong to either route's CSS.
+3. **Loyverse stays outside the bridge.** The embedded tab belongs to another, not-yet-
+   migrated module. `.dir-shell` holds two `.dir` siblings (header + tabs, then the
+   non-Loyverse panels); Loyverse is a plain sibling with legacy tokens.
+4. **Layout follows the workflow.** Reports keeps four dense tabs with tables and ranked
+   lists. Direction gets one header, underline tabs, a date-first dashboard whose equation
+   reads top-down on phones, and month steppers for the two monthly panels.
+5. **Semantic colour only where it means something.** Signed results (profit/loss,
+   “Reste en coffre”) carry `tone`; categorical series map to `--ui-series-neutral` /
+   `--ui-warn` / `--ui-accent` instead of ad-hoc hex values.
+6. **No calculation, API or permission change.** Two display fixes only: the equation
+   figures no longer overflow their card, and a negative “Reste en coffre” keeps its minus
+   sign (`formatMoney()` renders absolute values, which contradicted the red tone).
+
+### Verification
+
+| Check | Result |
+| --- | --- |
+| `npm run test` | 251/251 (38 files) |
+| `npx tsc --noEmit` | Clean, exit 0 |
+| ESLint on changed files | 0 errors; only the pre-existing 16 unused-vars and 3 `react-hooks/exhaustive-deps` warnings in `DirectionOverview.tsx` |
+| `npm run build` | Exit 0 |
+| Reports Playwright suite | **15/15** (4 tabs, date range, shop filter, sort, breakdown, loading, empty, error) |
+| Direction Playwright suite | **20/20** (7 tabs, source disclosure, date shift, expense breakdown, shop filter, eye-toggle POST, comparaison edit/cancel/year shift, end-of-month expand, loading skeleton, empty, error, Loyverse isolation) |
+| Overflow | 0 document-level overflow at 1440/768/390; tables scroll inside `.ui-table-scroll` |
+| Data | **Real local Supabase data**, HTTP 200 on both routes; no page errors besides the known `DashboardShell` theme-toggle hydration warning |
+
+### Evidence
+
+`docs/ui-pilot/wave1b/before/` (10 captures) and `docs/ui-pilot/wave1b/after/`
+(33 captures): 1440/768/390, light/dark, green/orange, plus
+`reports-error-daily-1440-light.png`, `reports-empty-operations-1440-light.png`,
+`direction-error-dashboard-1440-light.png`, `direction-empty-overview-1440-light.png`.
+
+### Pending
+
+1. **User acceptance** for §3 (and still §1 / §2). Do not start the next group.
+2. **Real-data verification** of Reviews and Customer Insights (Google token still absent
+   locally); §3 itself ran on real local data but not on production data.
+3. **Single role account.** Only the preview owner exists locally, so staff-facing
+   rendering of `/direction` (role-specific tabs) and `/reports` was not exercised.
+4. **`/api/locations` 503 locally** (no Google token); location lists come from the report
+   payloads.
+5. **`/api/direction/tabs` returns all `false` locally**, so the owner sees every tab
+   (dimmed) plus eye toggles. The test intercepts that POST; nothing was persisted.
+6. **Physical touch devices** — Playwright emulation only.
 
 ## Wave 1 §2 checkpoint — Customer Insights (+ Inbox filter disclosure)
 
@@ -137,7 +216,8 @@ These are the behaviours worth checking by hand on `/reviews/inbox`:
 3. **No live Google fetch, no real spreadsheet latency.** Loading, error and empty states
    were simulated at the network boundary.
 4. **Physical touch devices** — Playwright emulation only.
-5. **User acceptance** — §1 and §2 both await review. Do not start the next module.
+5. **User acceptance** — §1 and §2 awaited review at this checkpoint. §3 was then
+   requested and is recorded above.
 
 ## Wave 1 §1 checkpoint — Reviews siblings
 
@@ -412,20 +492,22 @@ amend `e6e59c3`; add new commits.
 
 ## Next task and boundaries
 
-**Next task:** review the **Wave 1 §1** result (Reviews siblings). If accepted, start
-**Wave 1 §2** (`/customer-insights`) of `ROLLOUT.md`, one surface at a time.
+**Next task:** review the **Wave 1 §3** result (`/reports` `7393230`, `/direction`
+`e5c0e9a`). If accepted, pick the next group from `ROLLOUT.md`; `/treasury` and
+`/payments` stay out until they get their own migration and review because they write
+finance data.
 
-In scope for Wave 1 §1 (completed):
+In scope for Wave 1 §3 (completed):
 
-- Migrate `/reviews/inbox`, `/reviews/templates`, `/reviews/locations` and the two
-  redirect routes onto the Phase 0 foundation.
-- Keep `/reviews/stats` at pixel parity.
-- Keep the accent scoped to Reviews and leave every other module untouched.
-- Preserve all data, permissions and API contracts.
+- Migrate `/reports` and `/direction` onto the Phase 0 foundation with scoped `.rep` /
+  `.dir` bridges.
+- Keep the embedded Loyverse tab outside the Direction bridge.
+- Promote only the genuinely shared layout pieces to `globals.css`.
+- Preserve all data, calculations, permissions and API contracts.
 
 Out of scope until separately requested:
 
-- Migrating another module (Wave 1 §2+).
+- Migrating another module (Wave 1 §3+).
 - Changing global defaults so existing modules restyle silently.
 - Database migrations, new dependencies, multi-tenant work or feature changes.
 - Push, merge, deploy.
