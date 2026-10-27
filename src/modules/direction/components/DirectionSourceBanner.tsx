@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronRightIcon } from "lucide-react";
 
 type Status = {
   salesDetail: string;
@@ -22,6 +23,7 @@ function fmtDate(iso: string | null | undefined): string {
 
 // Bandeau technique OWNER-only : d'où viennent les chiffres de Vue d'ensemble.
 // Rendu uniquement si userRole === "owner" (les autres rôles ne voient rien).
+// Replié par défaut : c'est un diagnostic, pas une information de pilotage.
 export function DirectionSourceBanner({ userRole }: { userRole?: string }) {
   const [data, setData] = useState<Status | null>(null);
 
@@ -35,24 +37,47 @@ export function DirectionSourceBanner({ userRole }: { userRole?: string }) {
 
   if (userRole !== "owner" || !data) return null;
 
+  const sync = data.lastLoyverseSync;
+
   return (
-    <div
-      style={{
-        display: "flex", flexWrap: "wrap", gap: "4px 12px", alignItems: "center",
-        padding: "6px 12px", borderRadius: "var(--r-sm)",
-        background: "var(--info-soft)", border: "1px solid var(--line)",
-        fontSize: 11, color: "var(--fg-3)",
-      }}
-      title="Source des données — visible par le owner uniquement"
-    >
-      <span><strong>Source chiffres :</strong> {data.salesDetail}</span>
-      <span>Coûts : <code>{data.costsSource}</code></span>
-      <span>Compteurs : <code>{data.countersSource}</code></span>
-      <span>
-        Write-back : {data.writeBackEnabled ? "ON" : "OFF"}
-        {" · "}Sync Loyverse : {data.lastLoyverseSync ? `${data.lastLoyverseSync.status} ${fmtDate(data.lastLoyverseSync.finished_at)} (${data.lastLoyverseSync.total_snapshots ?? "?"} snaps)` : "—"}
-        {" · "}Dernier import Sheets : {data.lastSheetsImport ? fmtDate(data.lastSheetsImport.created_at) : "—"}
-      </span>
-    </div>
+    <details className="dir-source">
+      <summary title="Source des données — visible par le owner uniquement">
+        <ChevronRightIcon className="dir-source-chevron" size={13} aria-hidden />
+        <span className="dir-source-label">Sources &amp; synchronisation</span>
+        <span className="dir-source-meta">
+          {sync ? `Loyverse ${sync.status} · ${fmtDate(sync.finished_at)}` : "Loyverse —"}
+        </span>
+      </summary>
+      <dl className="dir-source-grid">
+        <div>
+          <dt>Source chiffres</dt>
+          <dd>{data.salesDetail}</dd>
+        </div>
+        <div>
+          <dt>Coûts</dt>
+          <dd><code>{data.costsSource}</code></dd>
+        </div>
+        <div>
+          <dt>Compteurs</dt>
+          <dd><code>{data.countersSource}</code></dd>
+        </div>
+        <div>
+          <dt>Write-back</dt>
+          <dd>{data.writeBackEnabled ? "ON" : "OFF"}</dd>
+        </div>
+        <div>
+          <dt>Dernière sync Loyverse</dt>
+          <dd>
+            {sync
+              ? `${sync.status} · ${fmtDate(sync.finished_at)} · ${sync.total_snapshots ?? "?"} snaps`
+              : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt>Dernier import Sheets</dt>
+          <dd>{data.lastSheetsImport ? fmtDate(data.lastSheetsImport.created_at) : "—"}</dd>
+        </div>
+      </dl>
+    </details>
   );
 }

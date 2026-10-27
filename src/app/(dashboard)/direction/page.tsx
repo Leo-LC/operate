@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { DirectionClient } from "@/modules/direction/components/DirectionClient";
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { hasModuleAccess } from "@/core/permissions/guards";
+import "./direction.css";
 
 export default async function DirectionPage() {
   const session = await getServerSession(authOptions);

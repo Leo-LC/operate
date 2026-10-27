@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, EyeIcon, EyeOffIcon, CalendarClockIcon } from "lucide-react";
 import { ControlledTabs, type ControlledTab } from "@/components/ui/module-tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
 import { DirectionSourceBanner } from "./DirectionSourceBanner";
@@ -169,20 +170,28 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
   ], [visibleTabs, hiddenTabs, isPrivileged, visibility]);
 
   return (
-    <div className="flex flex-col gap-4">
-      {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
-      {/* Tab bar with eye toggle per tab for privileged users */}
-      <ControlledTabs tabs={controlledTabs} value={active} onChange={(v) => setActive(v as TabKey)} ariaLabel="Direction" />
-
-      <div className="pt-2">
-        {active === "dashboard" && <DirectionExecutiveDashboard />}
-        {active === "loyverse" && <LoyverseDashboard canSync={canSync} />}
-        {active === "overview" && <DirectionOverview />}
-        {active === "comparaison" && <DirectionComparaison />}
-        {active === "daily" && <DirectionDaily />}
-        {active === "details" && <DirectionDetails />}
-        {active === "end_of_month" && <DirectionEndOfMonth />}
+    <div className="dir-shell">
+      <div className="dir dir-head">
+        <PageHeader title="Résultats estimés" />
+        {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
+        {/* Tab bar with eye toggle per tab for privileged users */}
+        <ControlledTabs tabs={controlledTabs} value={active} onChange={(v) => setActive(v as TabKey)} ariaLabel="Direction" />
       </div>
+
+      {/* Loyverse is not migrated yet: it renders outside the `.dir` bridge so
+          the legacy tokens keep applying to it. */}
+      {active === "loyverse" ? (
+        <LoyverseDashboard canSync={canSync} />
+      ) : (
+        <div className="dir dir-body">
+          {active === "dashboard" && <DirectionExecutiveDashboard />}
+          {active === "overview" && <DirectionOverview />}
+          {active === "comparaison" && <DirectionComparaison />}
+          {active === "daily" && <DirectionDaily />}
+          {active === "details" && <DirectionDetails />}
+          {active === "end_of_month" && <DirectionEndOfMonth />}
+        </div>
+      )}
     </div>
   );
 }
