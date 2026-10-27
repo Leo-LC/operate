@@ -1,0 +1,142 @@
+/* ============================================================================
+   Reports — Wave 1 §3 migration onto the shared UI foundation
+   ----------------------------------------------------------------------------
+   `.rep` is a scoped token bridge, the same pattern as `.revs` and `.ci`.
+   Shared controls (Button, Card, Pill, date/shop filters) still reference the
+   legacy token names, so we remap those names to the opt-in --ui-* scale inside
+   this module only. Nothing here changes a global default and no other route is
+   affected.
+
+   Layout and module-specific pieces stay route-local. Colors, typography,
+   radii, borders and interaction states come from src/app/globals.css.
+   ========================================================================== */
+
+.rep {
+  /* Surfaces */
+  --canvas: var(--ui-canvas);
+  --bg: var(--ui-canvas);
+  --bg-2: var(--ui-panel-2);
+  --surface: var(--ui-panel);
+  --surface-raised: var(--ui-panel-2);
+  --surface-2: var(--ui-panel-2);
+  --card: var(--ui-panel);
+  --card-bg: var(--ui-panel);
+  --paper: var(--ui-panel);
+  --paper-2: var(--ui-panel-2);
+  --popover: var(--ui-panel);
+
+  /* Text */
+  --fg: var(--ui-fg-1);
+  --fg-2: var(--ui-fg-2);
+  --fg-3: var(--ui-fg-3);
+  --fg-4: var(--ui-fg-4);
+  --foreground: var(--ui-fg-1);
+  --muted: var(--ui-panel-2);
+  --muted-foreground: var(--ui-fg-3);
+
+  /* Lines */
+  --line: var(--ui-line);
+  --line-2: var(--ui-line);
+  --line-strong: var(--ui-line-strong);
+  --border: var(--ui-line);
+  --input: var(--ui-line);
+  --ring: var(--ui-accent);
+
+  /* Accent — follows the browser-local green/orange preference */
+  --accent: var(--ui-accent);
+  --accent-fg: var(--ui-accent-fg);
+  --accent-soft: var(--ui-accent-soft);
+  --accent-muted: var(--ui-accent);
+  --accent-hover: color-mix(in srgb, var(--ui-accent) 88%, #000);
+  --accent-active: color-mix(in srgb, var(--ui-accent) 78%, #000);
+  --primary: var(--ui-accent);
+  --primary-foreground: var(--ui-accent-fg);
+  --focus-ring: color-mix(in srgb, var(--ui-focus) 34%, transparent);
+
+  /* Semantic status — independent of the accent */
+  --good: var(--ui-positive);
+  --good-soft: var(--ui-positive-soft);
+  --good-muted: var(--ui-positive);
+  --warn: var(--ui-warn);
+  --warn-soft: var(--ui-warn-soft);
+  --bad: var(--ui-negative);
+  --bad-soft: var(--ui-negative-soft);
+  --bad-hover: color-mix(in srgb, var(--ui-negative) 88%, #000);
+  --destructive: var(--ui-negative);
+
+  /* Categorical chart hues stay distinguishable but inside the palette:
+     cash/primary = accent, scan = neutral, card = warn. */
+  --bronze: var(--ui-accent);
+  --bronze-2: var(--ui-accent);
+  --bronze-soft: var(--ui-accent-soft);
+  --info: var(--ui-series-neutral);
+  --info-soft: var(--ui-panel-2);
+  --purple: var(--ui-warn);
+  --purple-soft: var(--ui-warn-soft);
+
+  /* Interaction */
+  --row-hover: var(--ui-row-hover);
+  --row-active: var(--ui-panel-2);
+
+  /* Shape and elevation */
+  --r-sm: var(--ui-radius-sm);
+  --r-md: var(--ui-radius-md);
+  --r-lg: var(--ui-radius-md);
+  --r-xl: var(--ui-radius);
+  --shadow-1: var(--ui-shadow);
+  --shadow-2: var(--ui-shadow-raised);
+  --shadow-drawer: var(--ui-shadow-raised);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  color: var(--ui-fg-1);
+}
+
+/* The page-level flex gap owns the rhythm; the shared header must not add its
+   own bottom margin here. */
+.rep .ui-module-header {
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .rep {
+    gap: 16px;
+  }
+}
+
+/* ── Tab bar ───────────────────────────────────────────────────────────────
+   Four tabs do not fit a phone. The bar already scrolls horizontally with a
+   hidden scrollbar; fade both edges on narrow viewports so a cut-off tab reads
+   as "more in that direction" rather than as clipped text. */
+
+.rep [role="tablist"] {
+  scrollbar-width: none;
+}
+
+@media (max-width: 767px) {
+  .rep [role="tablist"] {
+    background-image:
+      linear-gradient(to right, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent)),
+      linear-gradient(to left, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent));
+    background-position: left center, right center;
+    background-size: 24px 100%, 24px 100%;
+    background-repeat: no-repeat;
+    padding: 0 10px;
+  }
+}
+
+/* ── Loading / empty states ───────────────────────────────────────────────── */
+
+.rep-loading,
+.rep-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 16px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  color: var(--ui-fg-3);
+  font-size: var(--ui-text-body);
+}

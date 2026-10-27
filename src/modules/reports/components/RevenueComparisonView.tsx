@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Stat } from "@/components/ui/stat";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { toast } from "sonner";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -168,7 +168,7 @@ export function RevenueComparisonView() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* Controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div className="ui-toolbar">
         <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Year</span>
         <div style={selectorStyle}>
           <button type="button" onClick={() => setYear((v) => v - 1)} disabled={editing} aria-label="Previous year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>
@@ -192,7 +192,7 @@ export function RevenueComparisonView() {
           ))}
         </select>
 
-        <div style={{ flex: 1 }} />
+        <div className="ui-toolbar-spacer" />
         {data?.canEdit && !editing && (
           <Button size="sm" variant="outline" onClick={startEditing}>
             <PencilLineIcon size={13} />Edit {data.prevYear} data
@@ -221,32 +221,32 @@ export function RevenueComparisonView() {
       {!loading && !error && data && (
         <>
           {/* Cartes — termes simples */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--s-3)" }}>
-            <Card style={{ gap: 6 }}>
-              <Stat
-                label={`Ce mois · ${MONTH_LONG[focusMonth - 1]} ${year}`}
-                value={money(data.totals.currentMonth.current)}
-                delta={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).text}
-                deltaDir={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).dir}
-                hint={`Même mois ${data.prevYear} : ${money(data.totals.currentMonth.prev)}`}
-              />
-            </Card>
-            <Card style={{ gap: 6 }}>
-              <Stat
-                label={`Cumul à date · ${year}`}
-                value={money(data.totals.ytd.current)}
-                delta={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}
-                deltaDir={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).dir}
-                hint={`Cumul ${data.prevYear} : ${money(data.totals.ytd.prev)}`}
-              />
-            </Card>
-            <Card style={{ gap: 6 }}>
-              <Stat
-                label={`Année complète · ${data.prevYear}`}
-                value={money(data.totals.prevYearTotal)}
-                hint={`Année en cours ${year} : ${money(data.totals.currentYearTotal)}`}
-              />
-            </Card>
+          <div className="ui-kpi-grid">
+            <KpiStat
+              label={`Ce mois · ${MONTH_LONG[focusMonth - 1]} ${year}`}
+              value={money(data.totals.currentMonth.current)}
+              comparison={
+                <span className="ui-kpi-delta" data-dir={deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).dir}>
+                  {deltaParts(data.totals.currentMonth.current, data.totals.currentMonth.prev).text}
+                </span>
+              }
+              hint={`Même mois ${data.prevYear} : ${money(data.totals.currentMonth.prev)}`}
+            />
+            <KpiStat
+              label={`Cumul à date · ${year}`}
+              value={money(data.totals.ytd.current)}
+              comparison={
+                <span className="ui-kpi-delta" data-dir={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).dir}>
+                  {deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}
+                </span>
+              }
+              hint={`Cumul ${data.prevYear} : ${money(data.totals.ytd.prev)}`}
+            />
+            <KpiStat
+              label={`Année complète · ${data.prevYear}`}
+              value={money(data.totals.prevYearTotal)}
+              hint={`Année en cours ${year} : ${money(data.totals.currentYearTotal)}`}
+            />
           </div>
 
           {/* Missing prev-year data hint */}
@@ -265,7 +265,7 @@ export function RevenueComparisonView() {
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                   <strong>Ensemble · {MONTHS[focusMonth - 1]} en surbrillance</strong>
                 </div>
-                <div style={{ overflowX: "auto" }}>
+                <div className="ui-table-scroll">
                   <table style={tableStyle}>
                     <thead>
                       <tr>
@@ -299,7 +299,7 @@ export function RevenueComparisonView() {
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                   <strong>Par boutique · {MONTH_LONG[focusMonth - 1]} {year}</strong>
                 </div>
-                <div style={{ overflowX: "auto" }}>
+                <div className="ui-table-scroll">
                   <table style={tableStyle}>
                     <thead>
                       <tr>
@@ -344,7 +344,7 @@ export function RevenueComparisonView() {
                 <strong>Enter monthly revenue · {editTargetYear}</strong>
                 <span style={{ fontSize: 11, color: "var(--fg-4)" }}>One number per shop per month. Leave empty for no data.</span>
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="ui-table-scroll">
                 <table style={tableStyle}>
                   <thead>
                     <tr>

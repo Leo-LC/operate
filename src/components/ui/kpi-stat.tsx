@@ -9,6 +9,11 @@ interface KpiStatProps extends Omit<React.ComponentProps<"article">, "children">
   comparison?: React.ReactNode;
   /** Supporting context under the value. */
   hint?: React.ReactNode;
+  /**
+   * Semantic color for the value. Omitted keeps the neutral foreground; use it
+   * for signed results (profit/loss) rather than for decoration.
+   */
+  tone?: "positive" | "negative";
 }
 
 /**
@@ -21,11 +26,12 @@ export function KpiStat({
   unit,
   comparison,
   hint,
+  tone,
   className,
   ...props
 }: KpiStatProps) {
   return (
-    <article className={cn("ui-kpi", className)} {...props}>
+    <article className={cn("ui-kpi", className)} data-tone={tone} {...props}>
       <h3 className="ui-kpi-label">{label}</h3>
       <div className="ui-kpi-body">
         <p className="ui-kpi-value">

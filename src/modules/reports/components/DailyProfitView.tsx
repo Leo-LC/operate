@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { Modal } from "@/components/ui/modal";
 import { Pill } from "@/components/ui/pill";
 import { DateRangePicker, ShopMultiSelect, bangkokToday } from "@/components/ui/filters";
@@ -74,13 +75,13 @@ function ProfitRibbon({ rows, onSelect }: { rows: DailyProfitRow[]; onSelect: (r
 }
 
 function Metric({ label, value, hint, tone = "neutral" }: { label: string; value: string; hint: string; tone?: "good" | "bad" | "neutral" }) {
-  const color = tone === "good" ? "var(--good)" : tone === "bad" ? "var(--bad)" : "var(--fg)";
   return (
-    <Card style={{ gap: 8 }}>
-      <span className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</span>
-      <strong className="mono tabular-nums" style={{ fontSize: 26, color, letterSpacing: "-.04em" }}>{value}</strong>
-      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{hint}</span>
-    </Card>
+    <KpiStat
+      label={label}
+      value={value}
+      hint={hint}
+      tone={tone === "good" ? "positive" : tone === "bad" ? "negative" : undefined}
+    />
   );
 }
 
@@ -144,13 +145,13 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div className="ui-toolbar">
           <DateRangePicker
             value={{ from, to }}
             onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
             today={bangkokToday()}
           />
-          <div style={{ flex: 1 }} />
+          <div className="ui-toolbar-spacer" />
           {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>}
           {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>}
         </div>
@@ -168,7 +169,7 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
       {!loading && data && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "var(--s-3)" }}>
+          <div className="ui-kpi-grid">
             <Metric label="Chiffre d'affaires" value={money(data.summary.revenue)} hint={`${data.daily.length} jours`} />
             <Metric label="Charges RH" value={money(data.summary.payroll)} hint="Salaires pondérés" tone="bad" />
             <Metric label="Charges fixes" value={money(data.summary.recurringCosts + data.summary.serviceCharge)} hint="Frais fixes + service" tone="bad" />
@@ -186,12 +187,12 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(260px,.8fr)]" style={{ gap: "var(--s-4)", alignItems: "start" }}>
             <Card flush>
               <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Détail quotidien</strong></div>
-              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Chiffre d'affaires", "Charges d'exploitation", "Salaires", "Charges fixes", "Service", "Prime"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
+              <div className="ui-table-scroll"><table style={tableStyle}><thead><tr>{["Date", "Chiffre d'affaires", "Charges d'exploitation", "Salaires", "Charges fixes", "Service", "Prime"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
               <Card style={{ gap: 10 }}><strong>Répartition des coûts</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
-              <Card style={{ gap: 10 }}><strong>Contribution par boutique</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 4, fontSize: 12 }}><span>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span className="mono">{money(row.revenue)}</span><span style={{ color: "var(--fg-4)", textAlign: "right" }}>{row.estimatedAmount > 0 ? "estimé" : "réel"}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>Contribution par boutique</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, fontSize: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span style={{ flexShrink: 0, padding: "0 6px", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", fontSize: 10, lineHeight: "16px", color: "var(--fg-4)" }}>{row.estimatedAmount > 0 ? "estimé" : "réel"}</span></span><span className="mono" style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{money(row.revenue)}</span></div>)}</Card>
             </div>
           </div>
         </>
@@ -228,7 +229,7 @@ function MethodologyPanel({ data }: { data: DailyProfitResponse }) {
     </div>
     <Card flush>
       <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Settings actually applied · {data.scope.label}</strong></div>
-      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees", "Bonus"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td><td style={tdNumber}>{money(row.bonus)}</td></tr>)}</tbody></table></div>}
+      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div className="ui-table-scroll"><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees", "Bonus"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td><td style={tdNumber}>{money(row.bonus)}</td></tr>)}</tbody></table></div>}
     </Card>
   </div>;
 }

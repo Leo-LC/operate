@@ -147,6 +147,158 @@
     color: var(--ui-fg-3);
   }
 
+  /* Signed results (profit/loss, variance) — never decorative. */
+  .ui-kpi[data-tone="positive"] .ui-kpi-value {
+    color: var(--ui-positive);
+  }
+
+  .ui-kpi[data-tone="negative"] .ui-kpi-value {
+    color: var(--ui-negative);
+  }
+
+  /* Comparison line inside a KPI: the module formats the text, the foundation
+     owns the color semantics. */
+  .ui-kpi-delta {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: var(--ui-text-caption);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ui-fg-4);
+  }
+
+  .ui-kpi-delta[data-dir="up"] {
+    color: var(--ui-positive);
+  }
+
+  .ui-kpi-delta[data-dir="down"] {
+    color: var(--ui-negative);
+  }
+
+  /* KPI rows: two-up on phones so a five-card row stays scannable, then as
+     many columns as the content width allows. */
+  .ui-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    min-width: 0;
+  }
+
+  @media (max-width: 767px) {
+    /* A trailing odd card gets the full row instead of a lonely half. */
+    .ui-kpi-grid > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* Nine-digit THB totals do not fit a half-width phone card at the desktop
+     value size; tighten the card instead of dropping to one column. */
+  @media (max-width: 479px) {
+    .ui-kpi-grid .ui-kpi {
+      padding: 12px 11px;
+    }
+
+    .ui-kpi-grid .ui-kpi-value {
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .ui-kpi-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+  }
+
+  /* Tablets: three auto-fit tracks leave a hole beside the fifth card. Two
+     tracks with a full-width odd card read as a complete row. */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .ui-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ui-kpi-grid > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* Wide data tables: horizontal scroll with edge shadows that only appear
+     when there is actually content to scroll. */
+  .ui-table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    background-color: var(--ui-panel);
+    background-image:
+      linear-gradient(to right, var(--ui-panel), var(--ui-panel) 30%, transparent),
+      linear-gradient(to left, var(--ui-panel), var(--ui-panel) 30%, transparent),
+      radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--ui-fg-1) 22%, transparent), transparent),
+      radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--ui-fg-1) 22%, transparent), transparent);
+    background-position: 0 0, 100% 0, 0 0, 100% 0;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  .ui-table-scroll > table {
+    min-width: max-content;
+  }
+
+  /* Ranked bar list (rank · label + bar · amount · share). On phones the
+     share column is dropped so long labels keep their full text. */
+  .ui-bar-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 96px 56px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .ui-bar-head {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 96px 56px;
+    gap: 10px;
+    padding-bottom: 4px;
+    border-bottom: var(--ui-line-width) solid var(--ui-line);
+  }
+
+  @media (max-width: 479px) {
+    .ui-bar-row,
+    .ui-bar-head {
+      grid-template-columns: 16px minmax(0, 1fr) minmax(72px, auto);
+      gap: 8px;
+    }
+
+    .ui-bar-row > :last-child,
+    .ui-bar-head > :last-child {
+      display: none;
+    }
+  }
+
+  /* Filter/action row shared by the reporting views. On phones the actions
+     wrap onto their own line instead of being pushed to the right edge. */
+  .ui-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    min-width: 0;
+  }
+
+  .ui-toolbar-spacer {
+    flex: 1 1 0;
+  }
+
+  @media (max-width: 767px) {
+    .ui-toolbar {
+      gap: 8px;
+    }
+
+    .ui-toolbar-spacer {
+      display: none;
+    }
+  }
+
   @media (max-width: 767px) {
     .ui-kpi {
       gap: 10px;
