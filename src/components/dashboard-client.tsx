@@ -4,7 +4,6 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
 import {
-  DashboardFilters,
   getDefaultFilters,
   type DashboardFiltersState,
   type LocationOption,
@@ -25,6 +24,7 @@ import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hoo
 import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
 import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
 import { ReviewsControlsBar } from "@/modules/reviews/components/ReviewsControlsBar";
+import { ReviewsFilterPanel } from "@/modules/reviews/components/ReviewsFilterPanel";
 
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
@@ -367,14 +367,11 @@ export function DashboardClient({ user }: DashboardClientProps) {
                 </div>
 
                 <div className="revs-grid">
-                  <aside className="revs-filter-panel" aria-label="Review filters">
-                    <h2 className="revs-filter-title">Filters</h2>
-                    <DashboardFilters
-                      filters={filters}
-                      onChange={setFilters}
-                      locations={filterLocationOptions}
-                    />
-                  </aside>
+                  <ReviewsFilterPanel
+                    filters={filters}
+                    onChange={setFilters}
+                    locations={filterLocationOptions}
+                  />
 
                   <div className="revs-list">
                     <ReviewsControlsBar

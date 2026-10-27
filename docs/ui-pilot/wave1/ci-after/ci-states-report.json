@@ -1,0 +1,197 @@
+[
+  {
+    "name": "initial request has no filters",
+    "pass": true,
+    "detail": "{\"from\":null,\"to\":null,\"shop\":\"all\"}"
+  },
+  {
+    "name": "KPI scope reads all shops / all time",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "shop panel visible by default",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "channel panel visible",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "period preset requests a date range",
+    "pass": true,
+    "detail": "{\"from\":\"2026-09-28\",\"to\":\"2026-10-27\",\"shop\":\"all\"}"
+  },
+  {
+    "name": "period label follows the response",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "shop pill requests shop filter",
+    "pass": true,
+    "detail": "{\"from\":\"2026-09-28\",\"to\":\"2026-10-27\",\"shop\":\"Phangan\"}"
+  },
+  {
+    "name": "KPI scope names the shop",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "shop panel hides when filtered to one shop",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "country panel widens to a single column",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "all shops restores the shop panel",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "shop bar is keyboard operable",
+    "pass": true,
+    "detail": "{\"from\":\"2026-09-28\",\"to\":\"2026-10-27\",\"shop\":\"Phangan\"}"
+  },
+  {
+    "name": "no page errors during filter changes",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "calendar popover opens",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "calendar uses the scoped popover class",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "custom from date requests from only",
+    "pass": true,
+    "detail": "{\"from\":\"2026-10-15\",\"to\":null,\"shop\":\"all\"}"
+  },
+  {
+    "name": "period switches to Custom range",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "selected day uses the green accent",
+    "pass": true,
+    "detail": "{\"border\":\"rgb(44, 111, 76)\",\"color\":\"rgb(15, 23, 42)\"}"
+  },
+  {
+    "name": "no page errors during custom range",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "selected day uses the orange accent",
+    "pass": true,
+    "detail": "{\"border\":\"rgb(180, 83, 9)\",\"color\":\"rgb(15, 23, 42)\"}"
+  },
+  {
+    "name": "loading state shows skeletons",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "loading state keeps the KPI value blank",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "loading state does not show the unconfigured banner",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "loaded state removes skeletons",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "no page errors during loading",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "empty state explains the period",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "empty state hides the chart panels",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "error banner is announced",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "error state hides the analytics",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "unconfigured banner is shown",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "unconfigured state hides the analytics",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "unmatched disclosure starts closed",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "unmatched disclosure opens",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "unmatched sections are visible",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile has no horizontal overflow",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile channel names are not truncated",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile channel header is hidden",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile filters remain reachable",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile has no page errors",
+    "pass": true,
+    "detail": ""
+  }
+]

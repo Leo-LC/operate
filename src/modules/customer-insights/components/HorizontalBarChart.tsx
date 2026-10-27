@@ -1,124 +1,106 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+  Panel,
+  PanelBody,
+  PanelFoot,
+  PanelHead,
+  PanelSub,
+  PanelTitle,
+} from "@/components/ui/panel";
 
 interface HorizontalBarChartProps {
   title: string;
   data: { label: string; count: number }[];
   loading: boolean;
   emptyMessage?: string;
-  color?: string;
   onItemClick?: (label: string) => void;
+  /** Only rows that can actually change the filter become buttons. */
+  isClickable?: (label: string) => boolean;
   clickHint?: string;
+  itemNoun?: string;
 }
 
+/**
+ * Labelled horizontal bars for ranked categories. Counts sit beside each bar
+ * so the values stay readable without hovering or reading an axis.
+ */
 export function HorizontalBarChart({
   title,
   data,
   loading,
   emptyMessage = "No data for this period.",
-  color = "var(--bronze)",
   onItemClick,
+  isClickable,
   clickHint,
+  itemNoun = "entries",
 }: HorizontalBarChartProps) {
-  if (loading) {
-    return (
-      <ChartShell title={title}>
-        <div className="h-48 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
-      </ChartShell>
-    );
-  }
+  const total = data.reduce((sum, row) => sum + row.count, 0);
+  const maxCount = Math.max(...data.map((row) => row.count), 1);
 
-  if (data.length === 0) {
-    return (
-      <ChartShell title={title}>
-        <div className="flex h-48 items-center justify-center text-sm text-[var(--fg-4)]">
-          {emptyMessage}
+  return (
+    <Panel>
+      <PanelHead>
+        <div>
+          <PanelTitle>{title}</PanelTitle>
+          {onItemClick && clickHint && <PanelSub>{clickHint}</PanelSub>}
         </div>
-      </ChartShell>
-    );
-  }
+      </PanelHead>
 
-  const chartData = data.map((d) => ({ name: d.label, count: d.count }));
-  const height = Math.max(160, data.length * 36 + 40);
+      <PanelBody flush>
+        {loading ? (
+          <div className="ci-skeleton-list" aria-hidden>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="ci-skeleton-row animate-pulse" />
+            ))}
+          </div>
+        ) : data.length === 0 ? (
+          <div className="ci-empty-chart">{emptyMessage}</div>
+        ) : (
+          <ul className="ci-bars">
+            {data.map((row) => {
+              const clickable = !!onItemClick && (isClickable ? isClickable(row.label) : true);
+              const content = (
+                <>
+                  <span className="ci-bar-label" title={row.label}>
+                    {row.label}
+                  </span>
+                  <span className="ci-bar-track" aria-hidden>
+                    <span
+                      className="ci-bar-fill"
+                      style={{ width: `${(row.count / maxCount) * 100}%` }}
+                    />
+                  </span>
+                  <span className="ci-bar-count">{row.count.toLocaleString()}</span>
+                </>
+              );
 
-  return (
-    <ChartShell title={title} subtitle={onItemClick ? clickHint : undefined}>
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
-          style={onItemClick ? { cursor: "pointer" } : undefined}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
-          <XAxis
-            type="number"
-            allowDecimals={false}
-            tick={{ fontSize: 11, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            type="category"
-            dataKey="name"
-            width={100}
-            tick={{ fontSize: 11, fill: "var(--fg-2)", fontFamily: "var(--font-sans)" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              borderRadius: "var(--r-sm)",
-              fontSize: 12,
-              fontFamily: "var(--font-mono)",
-              color: "var(--fg)",
-            }}
-            cursor={{ fill: "var(--row-hover)" }}
-          />
-          <Bar
-            dataKey="count"
-            fill={color}
-            radius={[0, 3, 3, 0]}
-            maxBarSize={24}
-            onClick={(entry) => {
-              const label = (entry as { name?: string })?.name;
-              if (label && onItemClick) onItemClick(label);
-            }}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </ChartShell>
-  );
-}
+              return (
+                <li key={row.label}>
+                  {clickable ? (
+                    <button
+                      type="button"
+                      className="ci-bar-row"
+                      onClick={() => onItemClick?.(row.label)}
+                      aria-label={`Filter by ${row.label}, ${row.count.toLocaleString()} responses`}
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div className="ci-bar-row">{content}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PanelBody>
 
-function ChartShell({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-transparent p-4">
-      <div className="mb-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">{title}</p>
-        {subtitle && <p className="mt-1 text-xs text-[var(--fg-4)]">{subtitle}</p>}
-      </div>
-      {children}
-    </div>
+      {!loading && data.length > 0 && (
+        <PanelFoot>
+          {total.toLocaleString()} responses · {data.length} {itemNoun}
+        </PanelFoot>
+      )}
+    </Panel>
   );
 }

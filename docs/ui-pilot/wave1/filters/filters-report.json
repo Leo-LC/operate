@@ -1,0 +1,162 @@
+[
+  {
+    "name": "toggle visible (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "collapsed by default (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "filter body hidden when collapsed (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "active summary visible (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "default summary reads all/all (light-green)",
+    "pass": true,
+    "detail": "All locations|All ratings"
+  },
+  {
+    "name": "controls are not focusable while collapsed (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "expands on tap (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "filter body visible when expanded (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "rating filter still applies (light-green)",
+    "pass": true,
+    "detail": "Reply to 1 reviews"
+  },
+  {
+    "name": "collapsed summary shows the active rating (light-green)",
+    "pass": true,
+    "detail": "All locations|3★"
+  },
+  {
+    "name": "collapsed summary keeps location scope (light-green)",
+    "pass": true,
+    "detail": "All locations|3★"
+  },
+  {
+    "name": "toggle is keyboard operable (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "All restores the list (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "no page errors (light-green)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "toggle visible (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "collapsed by default (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "filter body hidden when collapsed (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "active summary visible (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "default summary reads all/all (dark-orange)",
+    "pass": true,
+    "detail": "All locations|All ratings"
+  },
+  {
+    "name": "controls are not focusable while collapsed (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "expands on tap (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "filter body visible when expanded (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "rating filter still applies (dark-orange)",
+    "pass": true,
+    "detail": "Reply to 1 reviews"
+  },
+  {
+    "name": "collapsed summary shows the active rating (dark-orange)",
+    "pass": true,
+    "detail": "All locations|3★"
+  },
+  {
+    "name": "collapsed summary keeps location scope (dark-orange)",
+    "pass": true,
+    "detail": "All locations|3★"
+  },
+  {
+    "name": "toggle is keyboard operable (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "All restores the list (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "no page errors (dark-orange)",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop toggle hidden",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop filter body visible",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop active summary hidden",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "desktop no page errors",
+    "pass": true,
+    "detail": ""
+  }
+]

@@ -2,10 +2,12 @@
 
 Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Phase 0**
 (shared foundations + accent preference) is committed at **`ac88b15`**; **Wave 1 §1**
-(Reviews siblings) is the latest local commit on the branch (`git log -1`).
-Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, and the Reviews
-sibling routes. **No other module was migrated.** No deploy, push, merge or DB migration.
-Local URL: **http://localhost:3000/reviews/inbox** (preview login,
+(Reviews siblings) is committed at **`e998f99`**; **Wave 1 §2** (Customer Insights +
+Inbox filter disclosure) is the latest local commit on the branch (`git log -1`).
+Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, the Reviews sibling
+routes, `/customer-insights` and the Inbox filter rail. **No other module was migrated.**
+No deploy, push, merge or DB migration. Local URL:
+**http://localhost:3000/customer-insights** (preview login,
 `NEXT_PUBLIC_PREVIEW_MODE=true`).
 
 The dev server is running. Sign in with the existing preview password from `.env.local`;
@@ -19,10 +21,83 @@ into an opt-in `--ui-*` foundation, added `Panel`/`KpiStat`, and shipped a brows
 green/orange accent preference. `/reviews/stats` is visually unchanged (pixel parity
 below). **Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`,
 `/reviews/templates`, `/reviews/locations`, plus the two redirect routes) onto the same
-foundation, with a scoped token bridge so no other module restyled. Wave 1 §1 is
-**implemented and verified locally, awaiting user acceptance**. It is not pushed, merged
-or deployed. Runtime staff access, real Google sync, a real organization `forest` switch
-and physical touch devices remain pending (details below).
+foundation, with a scoped token bridge so no other module restyled. **Wave 1 §2** migrated
+`/customer-insights` onto the same foundation and collapsed the Inbox filter rail on
+mobile. Both are **implemented and verified locally, awaiting user acceptance**. They are
+not pushed, merged or deployed. Live Customer Insights data, runtime staff access, real
+Google sync, a real organization `forest` switch and physical touch devices remain pending
+(details below).
+
+## Wave 1 §2 — Customer Insights
+
+Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Scope: `/customer-insights` only, plus the requested Inbox filter disclosure under
+`/reviews/inbox`.
+
+### What changed
+
+| Area | File | Change |
+| --- | --- | --- |
+| Route CSS | `src/app/(dashboard)/customer-insights/customer-insights.css` (new, 724 lines) | `.ci` scope plus a token bridge mapping the legacy names to `--ui-*` **inside this module only**. Layout, bar lists, channel list, banners, states, unmatched disclosure and the portalled date-picker bridge. |
+| Page composition | `src/modules/customer-insights/components/CustomerInsightsClient.tsx` | Compact title + Refresh; two-row filter toolbar; KPI beside the weekly trend; shops + countries; channels; unmatched disclosure last. Scope labels come from the response `meta.filtered`. |
+| Shops / countries | `HorizontalBarChart.tsx` | Recharts bars replaced with labelled CSS rows; shop rows are keyboard-operable filter buttons; unmatched labels stay plain rows. |
+| Channels | `ChannelBarChart.tsx` | One accent bar per row with label / count / share; two columns at ≥1024 px; stacked rows on phones. Per-channel rainbow palette removed. |
+| Weekly trend | `WeeklyBarChart.tsx` (new; `WeeklyLineChart.tsx` deleted) | Green bars on `--ui-series-primary`, tooltip, hidden data table for assistive tech. |
+| Unmatched | `UnmatchedReviewPanel.tsx` | `<details>` disclosure, collapsed by default, value-count badge, three columns at ≥768 px. |
+| Route | `src/app/(dashboard)/customer-insights/page.tsx` | Imports the route CSS. |
+| Shared date picker | `src/components/ui/date-input.tsx`, `src/components/ui/filters/SingleDatePicker.tsx` | **Additive** optional `popoverClassName`; existing callers unchanged. |
+| Inbox filters | `src/modules/reviews/components/ReviewsFilterPanel.tsx` (new), `src/components/dashboard-client.tsx`, `src/app/(dashboard)/reviews/reviews.css` | Below 900 px the filter rail collapses behind a `Show`/`Hide` disclosure; active filters stay visible as text chips. |
+
+### Design decisions
+
+- **Same bridge pattern as Reviews.** `.ci` remaps the legacy token names the shared
+  primitives consume, so `Button`, `PillButton`, `DateInput` and the panel classes adopt
+  the palette without a global restyle. The only shared edit is opt-in.
+- **Organised for how the screen is read.** Scope (KPI) → volume over time (weekly bars) →
+  where (shops, countries) → how they found us (channels) → maintenance data (unmatched).
+- **One accent, length carries magnitude.** Every bar uses the primary series token. The
+  rainbow channel colours and the blue line chart are gone; semantic colours are not
+  reused for decoration.
+- **No invented metrics.** Only the existing payload is displayed — totals, by shop, by
+  channel, by week, top countries, unmatched buckets.
+- **Honest states.** Loading shows skeletons with a blank KPI; unconfigured, empty, API
+  error and fetch failure each replace the analytics region instead of rendering empty
+  charts underneath. Initial load no longer flashes the unconfigured banner.
+- **Scope labels follow the data on screen.** Period and shop labels derive from
+  `meta.filtered`, not from the filter the user just clicked.
+- **Filters stay reachable at every width.** Shops are pills *and* clickable bars; the
+  period is a native `select`; dates use the shared picker with a module-scoped popover.
+- **Mobile Inbox.** The filter rail was the first full screen on a phone. It now collapses
+  by default below 900 px with a text summary of the active filters, and stays fully open
+  on desktop.
+
+### Verification matrix
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Before/after at real widths, light + dark, both accents | Pass | `wave1/ci-before/` (9) → `wave1/ci-after/` (9 matrix + 5 states + 3 date-picker) |
+| No horizontal overflow | Pass | 1440/768/390 × light/dark × green/orange — 9/9, 0 overflow, 0 page errors |
+| Period presets and custom dates | Pass | Preset sends `from`/`to`; custom picker sets `custom` and sends only the changed bound |
+| Shop filtering | Pass | Pill click and shop-bar click/Enter both request `shop=<name>`; shop panel hides and countries widen when filtered |
+| Accent bridge | Pass | Active pill, bars and portalled calendar use `#2c6f4c` (green) / `#b45309` (orange) |
+| States | Pass | Loading skeletons + blank KPI, empty, API error, unconfigured, fetch failure |
+| Unmatched disclosure | Pass | Closed by default, opens on click, three sections |
+| Mobile layout | Pass | Filters reachable, channel names untruncated, header row hidden, no overflow |
+| Customer Insights suite | **39/39** | `wave1/ci-after/ci-states-report.json` |
+| Inbox filter disclosure | **32/32** | `wave1/filters/filters-report.json` |
+| Reviews matrix (re-run) | 48/48, 0 overflow | `wave1/after/after-report.json` |
+| Tests / typecheck / lint / build | Pass | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint clean on changed files; `npm run build` exit 0 |
+
+### Known limits
+
+- The local `/api/customer-insights/summary` returns `configured: false` because no Google
+  org token is linked. Every populated state was verified against a Playwright-mocked
+  response (1,284 submissions, 8 shops, 8 channels, 10 countries, 12 weeks, unmatched
+  buckets); the **unconfigured** capture is real.
+- The page is owner-only; only the preview owner account exists locally.
+- Loading, error and empty states were simulated at the network boundary.
+- Physical touch devices were not used; responsive checks are Playwright emulation.
+
 
 ## Wave 1 §1 — Reviews siblings
 
@@ -378,15 +453,18 @@ Local warm-cache sample only; not a benchmark. No dependency added.
 
 ## Pending / not verified
 
-1. **Staff-role runtime** — only the preview owner account is available. Role and
+1. **Live Customer Insights data** — the local API is unconfigured (no Google org token),
+   so populated screens were verified against a mocked response. Only the unconfigured
+   state ran against the live API.
+2. **Staff-role runtime** — only the preview owner account is available. Role and
    visibility code is unchanged in the diff; runtime check with a staff account is pending.
-2. **Real Google sync** — the sync POST was mocked in isolated tests. No production sync
+3. **Real Google sync** — the sync POST was mocked in isolated tests. No production sync
    or live provider call was run.
-3. **Real organization theme switch** — `forest` was verified through computed styles,
+4. **Real organization theme switch** — `forest` was verified through computed styles,
    not by switching a real organization's theme in the database.
-4. **Physical mobile/touch device** — tested via Playwright emulation only.
-5. **User acceptance of the visual direction** — the screen is ready to judge, but the
-   global token/nav rollout is intentionally not approved.
+5. **Physical mobile/touch device** — tested via Playwright emulation only.
+6. **User acceptance of the visual direction** — Wave 1 §1 and §2 are ready to judge, but
+   the global token/nav rollout is intentionally not approved.
 
 ## What moved to the foundation, and what stayed pilot-local
 

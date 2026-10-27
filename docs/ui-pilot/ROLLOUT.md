@@ -1,19 +1,20 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete; Wave 1 §1 implemented and verified.** Phase 0 (shared
+Status: **Phase 0 complete; Wave 1 §1 and §2 implemented and verified.** Phase 0 (shared
 foundation + browser-local accent preference) is committed at `ac88b15` on
 `ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`.
 **Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`, `/reviews/templates`,
 `/reviews/locations`, plus the `/reviews` and `/reviews/rules` redirects) and is
-**awaiting user acceptance**. No other module has been migrated. All commits are local:
-not pushed, merged, deployed or migrated.
+**awaiting user acceptance**. **Wave 1 §2** migrated `/customer-insights` and added the
+requested Inbox filter disclosure; it is also **awaiting user acceptance**. No other module
+has been migrated. All commits are local: not pushed, merged, deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
 Phase 0 evidence: `docs/ui-pilot/phase0/` (16 accent × theme × viewport captures,
 preference-modal captures, untouched-route captures, `capture-report.json`).
-Wave 1 §1 evidence: `docs/ui-pilot/wave1/` (`before/`, `quick/`, `states/`, `after/` and
-their JSON reports).
+Wave 1 evidence: `docs/ui-pilot/wave1/` (`before/`, `quick/`, `states/`, `after/`,
+`filters/`, `ci-before/`, `ci-after/` and their JSON reports).
 
 ## Principles
 
@@ -122,6 +123,55 @@ Known limits for this step: locations data was mocked (the local `/api/locations
 503 without a Google token), sync was mocked for the error path, only the preview owner
 account was available, and physical touch devices were not used.
 
+### Wave 1 §1 follow-up — Inbox filter disclosure
+
+Requested after the §1 review: on mobile the filter rail took the whole first screen.
+
+| Area | File | Result |
+| --- | --- | --- |
+| Filter rail | `src/modules/reviews/components/ReviewsFilterPanel.tsx` (new) | Extracted from `dashboard-client.tsx`. Below 900 px the rail collapses behind a `Show`/`Hide` disclosure (`aria-expanded` + `aria-controls`); at ≥900 px the toggle is hidden and the rail is always open. |
+| Active summary | same file | Collapsed state shows text chips (`All locations`, `3★`, warn tone when nothing is selected). Chips hide while expanded. Hidden controls are not focusable. |
+| Wiring + CSS | `src/components/dashboard-client.tsx`, `src/app/(dashboard)/reviews/reviews.css` | Panel mounted in the same grid slot; no change to filter state, sort, limit, bulk actions or sync. |
+
+Gate: **32/32** checks (`docs/ui-pilot/wave1/filters/filters-report.json`) — collapsed by
+default, expanded on tap, keyboard operable, chips track the real filter state, rating
+filter still applies, desktop unchanged, no page errors. Refreshed Reviews matrix: 48/48
+captures, 0 overflow.
+
+## Wave 1 §2 result — Customer Insights (verified)
+
+| Area | File | Result |
+| --- | --- | --- |
+| Route CSS + token bridge | `src/app/(dashboard)/customer-insights/customer-insights.css` (new) | `.ci` scope maps legacy token names to `--ui-*` **inside this module only**; layout, bar lists, channel list, banners, states and the portalled date-picker bridge live here. |
+| Page composition | `src/modules/customer-insights/components/CustomerInsightsClient.tsx` | Compact title + Refresh; two-row filter toolbar (period/from/to, then shop pills); KPI beside the weekly trend; shops + countries; channels; unmatched disclosure last. |
+| Shops / countries | `HorizontalBarChart.tsx` | Recharts bars replaced with labelled CSS rows; shop rows are keyboard-operable filter buttons, unmatched labels are plain rows. |
+| Channels | `ChannelBarChart.tsx` | One accent bar per row with label / count / share, two columns at ≥1024 px, stacked rows on phones. The per-channel rainbow palette is gone. |
+| Weekly trend | `WeeklyBarChart.tsx` (new; `WeeklyLineChart.tsx` deleted) | Green bars on `--ui-series-primary`, tooltip, hidden data table for assistive tech. |
+| Unmatched | `UnmatchedReviewPanel.tsx` | `<details>` disclosure, collapsed by default, value-count badge, three columns at ≥768 px. |
+| Route | `src/app/(dashboard)/customer-insights/page.tsx` | Imports the route CSS. |
+| Shared date picker | `src/components/ui/date-input.tsx`, `src/components/ui/filters/SingleDatePicker.tsx` | **Additive** optional `popoverClassName`; existing callers render unchanged. |
+
+Scope labels (period and shop) are derived from the response `meta.filtered`, so a slow
+refresh cannot mislabel data that is still on screen.
+
+### Wave 1 §2 gate
+
+| Gate | Result |
+| --- | --- |
+| Before/after captures at real widths, light + dark, both accents | Pass. `wave1/ci-before/` (9) → `wave1/ci-after/` (9 + 5 states + 3 date-picker). |
+| Key interactions | Pass. Period presets, custom dates, shop pills, shop bar click + keyboard, refresh, unmatched disclosure: **39/39** checks (`ci-states-report.json`). |
+| States | Pass. Loading (skeletons, blank KPI, no unconfigured flash), empty, API error, unconfigured, fetch failure. |
+| No horizontal overflow | Pass. 1440/768/390, light/dark, green/orange — 9/9, 0 overflow, 0 page errors. |
+| Accent bridge | Pass. Green `#2c6f4c` and orange `#b45309` drive bars, active pills and the portalled calendar. |
+| No API/permission/data-contract change | Pass. No route handler, aggregation, normalizer or guard touched. |
+| Tests / typecheck / lint / build | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint clean on changed files (repo baseline 20 errors / 3 warnings, pre-existing); `npm run build` exit 0. |
+| Acceptance | **Pending** — user review required before the next module. |
+
+Known limits for this step: the local API is unconfigured (no Google org token), so every
+populated state was verified against a Playwright-mocked response; only the preview owner
+account exists locally; loading/error/empty were simulated at the network boundary; physical
+touch devices were not used.
+
 ## Current state (verified in the repo)
 
 - 55 dashboard routes under `src/app/(dashboard)/`.
@@ -137,8 +187,10 @@ account was available, and physical touch devices were not used.
   layout, table and chart CSS. `ModuleTabs variant="pills"` and the `ShopMultiSelect`
   class hooks remain opt-in.
 - Wave 1 §1 made the whole Reviews module a consumer through the scoped `.revs` bridge in
-  `src/app/(dashboard)/reviews/reviews.css`. Outside `.revs`, legacy tokens and every
-  other module are unchanged.
+  `src/app/(dashboard)/reviews/reviews.css`. Wave 1 §2 did the same for
+  `/customer-insights` through `.ci` in
+  `src/app/(dashboard)/customer-insights/customer-insights.css`. Outside those two scopes,
+  legacy tokens and every other module are unchanged.
 - Accent preference: `localStorage["operate.accent"]` = `green` | `orange`; absent means
   the company default (green). Browser-local only, no database field. Light/dark remains
   `localStorage["operate.theme"]`.
@@ -257,8 +309,8 @@ Status legend: **pending** = not started; **implemented** = code changed, checks
 complete; **verified** = automated/manual checks pass; **accepted** = user accepted the
 module's result.
 
-Phase 0 is complete, Wave 0 remains accepted, and **Wave 1 §1 is implemented + verified**
-(awaiting acceptance). Wave 1 §2 starts only after §1 is accepted.
+Phase 0 is complete, Wave 0 remains accepted, and **Wave 1 §1 and §2 are implemented +
+verified** (awaiting acceptance). No further module starts until they are reviewed.
 
 Order is by risk: read-only first, then editable tables, then custom interactions, then
 CRUD, then owner-only configuration, then non-standard surfaces. Each wave must be
@@ -276,7 +328,7 @@ surface.
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
 | 1 | `reviews` siblings: `/reviews`, `/reviews/inbox`, `/reviews/templates`, `/reviews/rules`, `/reviews/locations` | Module tabs, filters, pill, tables, modals | Medium — inbox actions, but same domain as the pilot | **verified** (awaiting acceptance) |
-| 2 | `/customer-insights` | Page header, stat, filters, card | Low — one read-only client | pending |
+| 2 | `/customer-insights` | Page header, stat, filters, card | Low — one read-only client | **verified** (awaiting acceptance) |
 | 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | pending |
 | 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | pending |
 | 5 | `/reports` | Page header, stat, card, module tabs, modal | Medium — dense tables, export/modal flows | pending |
@@ -369,6 +421,6 @@ across waves.
 4. The accent tints selected controls, primary actions and the **primary** chart series.
    Semantic status and multi-series colors stay independent.
 
-Phase 0 is complete. Wave 1 §1 is implemented and verified but **not yet accepted**. Do
-not start Wave 1 §2 (or any other module) until the §1 result has been reviewed and
+Phase 0 is complete. Wave 1 §1 and §2 are implemented and verified but **not yet
+accepted**. Do not start the next module until both results have been reviewed and
 accepted.

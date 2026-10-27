@@ -1,4 +1,102 @@
-# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1
+# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1 + §2
+
+## Wave 1 §2 checkpoint — Customer Insights (+ Inbox filter disclosure)
+
+Checkpoint: the **latest commit on `ui/reviews-stats-pilot`** (Wave 1 §2), parent
+`e998f99` (Wave 1 §1). Branch: **`ui/reviews-stats-pilot`**. Local commit; **not pushed,
+merged, deployed or migrated**. The exact SHA is the tip of the branch
+(`git log -1 --oneline`).
+
+Scope: `/customer-insights` only, plus one Inbox usability change that was requested on
+the §1 result (`/reviews/inbox` filter rail). **No other module was migrated.**
+
+### What shipped
+
+| Area | File | Change |
+| --- | --- | --- |
+| Route CSS + bridge | `src/app/(dashboard)/customer-insights/customer-insights.css` (new) | `.ci` scoped token bridge (same pattern as `.revs`), layout, bar lists, channel list, banners, empty/loading states, unmatched disclosure, portalled date-picker bridge (`.ci-dp`). |
+| Page composition | `src/modules/customer-insights/components/CustomerInsightsClient.tsx` | Compact title + Refresh, two-row filter toolbar, KPI beside the weekly trend, shops/countries panels, channels panel, unmatched disclosure last. Scope labels derive from the response `meta.filtered`. |
+| Shops / countries | `src/modules/customer-insights/components/HorizontalBarChart.tsx` | Recharts bars replaced with labelled CSS bar rows; shops are keyboard-operable filter buttons, unmatched labels stay plain rows. |
+| Channels | `src/modules/customer-insights/components/ChannelBarChart.tsx` | One accent bar per row with label/count/share, two columns on desktop, stacked on mobile. The per-channel rainbow palette is gone. |
+| Weekly trend | `src/modules/customer-insights/components/WeeklyBarChart.tsx` (new; `WeeklyLineChart.tsx` deleted) | Green weekly bars on the shared accent, tooltip, hidden data table for screen readers. |
+| Unmatched | `src/modules/customer-insights/components/UnmatchedReviewPanel.tsx` | `<details>` disclosure, collapsed by default, value count badge, three columns at ≥768 px. |
+| Route | `src/app/(dashboard)/customer-insights/page.tsx` | Imports the route CSS. |
+| Shared date picker | `src/components/ui/date-input.tsx`, `src/components/ui/filters/SingleDatePicker.tsx` | Additive optional `popoverClassName` so a portalled calendar can carry module tokens. Existing callers are unchanged. |
+| Inbox filters | `src/modules/reviews/components/ReviewsFilterPanel.tsx` (new), `src/components/dashboard-client.tsx`, `src/app/(dashboard)/reviews/reviews.css` | Below 900 px the filter rail collapses behind a `Show`/`Hide` disclosure. Active filters stay visible as text chips while collapsed. |
+
+### Decisions
+
+1. **Scoped bridge, additive shared change.** `.ci` remaps legacy token names to `--ui-*`
+   inside Customer Insights only. The only shared edit is the optional
+   `popoverClassName` on the date picker — opt-in, so every other caller renders exactly
+   as before.
+2. **Honest data.** No invented metric. The existing payload (total submissions, by shop,
+   by channel, by week, top countries, unmatched buckets) is presented in the order a
+   reader actually uses it: scope → volume over time → where → how they found us.
+3. **One accent, length carries magnitude.** Shops, countries, channels and weeks all use
+   the primary series token. Semantic colours are not reused for decoration.
+4. **Labels come from the response.** Period and shop scope are derived from
+   `meta.filtered`, so a slow refresh can never relabel data that is still on screen.
+5. **States replace the region, not sit next to it.** Loading shows skeletons; unconfigured,
+   empty and error show a banner or a single honest empty panel, and the analytics region
+   is not rendered underneath. Initial load no longer flashes the unconfigured banner.
+6. **Filters stay reachable.** Shops are pills plus clickable bars; the period is a native
+   `select`; dates use the shared picker. Below 900 px the toolbar stacks into two rows.
+
+### Verification
+
+| Check | Result |
+| --- | --- |
+| `npm run test` | **251 passed / 38 files** |
+| `npx tsc --noEmit` | **Clean** |
+| ESLint on changed files | **Clean** (repo baseline 20 errors / 3 warnings, pre-existing) |
+| `npm run build` | Exit 0 |
+| Customer Insights capture matrix | 9/9 (1440/768/390 × light/dark × green/orange + unconfigured); **0 overflow**, 0 page errors |
+| Customer Insights interaction/state suite | **39/39** (`wave1/ci-after/ci-states-report.json`) |
+| Reviews capture matrix (re-run) | 48/48, **0 overflow**, only the known `/api/locations` 503 |
+| Inbox filter disclosure suite | **32/32** (`wave1/filters/filters-report.json`) |
+
+### Evidence
+
+- `docs/ui-pilot/wave1/ci-before/` — 9 captures of the pre-migration screen.
+- `docs/ui-pilot/wave1/ci-after/` — 9 matrix captures, 5 state captures, 3 date-picker
+  captures, `capture-report.json`, `ci-states-report.json`.
+- `docs/ui-pilot/wave1/filters/` — desktop, collapsed, expanded and active-filter captures
+  in light-green and dark-orange, plus `filters-report.json`.
+- `docs/ui-pilot/wave1/after/` — refreshed 48-capture Reviews matrix.
+
+### Inbox usability points for personal review
+
+These are the behaviours worth checking by hand on `/reviews/inbox`:
+
+1. **Collapsed by default below 900 px.** The rail becomes one row: `Filters` + `Show`.
+   The list starts higher, so the first review is visible without scrolling past filters.
+2. **Active filters stay readable when collapsed.** The chips read e.g. `All locations` /
+   `3★`. A filter with nothing selected reads `No ratings` / `No locations` in the warn
+   tone. The chips disappear when the panel is expanded, because the controls themselves
+   are visible then.
+3. **Collapsed controls are not focusable.** Tab order skips the hidden selects, so
+   keyboard users are not dropped into invisible controls.
+4. **`Show` / `Hide` is a real disclosure button** (`aria-expanded`, `aria-controls`), works
+   with Enter/Space, and remembers nothing across reloads — it always starts collapsed.
+5. **Desktop is unchanged.** At ≥900 px the toggle is hidden and the full rail is shown.
+6. **Nothing else moved.** Sort, shuffle, limit, bulk actions and sync keep their §1
+   positions and behaviour.
+
+### Pending
+
+1. **Customer Insights data cannot load locally.** There is no Google org token, so
+   `/api/customer-insights/summary` returns `configured: false`. Visual and interaction
+   verification used a Playwright-mocked response with a realistic payload
+   (1,284 submissions, 8 shops, 8 channels, 10 countries, 12 weeks, unmatched buckets) plus
+   one **real** unconfigured-state capture. The unconfigured screen is the only state that
+   ran against the live API.
+2. **Owner-only page.** The route guard redirects non-owners to `/home`; only the preview
+   owner account was available, so staff visibility was not exercised.
+3. **No live Google fetch, no real spreadsheet latency.** Loading, error and empty states
+   were simulated at the network boundary.
+4. **Physical touch devices** — Playwright emulation only.
+5. **User acceptance** — §1 and §2 both await review. Do not start the next module.
 
 ## Wave 1 §1 checkpoint — Reviews siblings
 
