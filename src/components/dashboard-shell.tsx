@@ -1,4 +1,5 @@
 "use client";
+import "./app-shell.css";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -289,6 +290,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
 
   return (
     <div
+      className="app-shell"
       style={{
         display: "flex",
         minHeight: "100vh",

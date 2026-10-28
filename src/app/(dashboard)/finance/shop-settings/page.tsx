@@ -5,6 +5,8 @@ import { hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { ShopSettingsClient } from "@/modules/finance/components/ShopSettingsClient";
 
+import "../finance.css";
+
 export default async function ShopSettingsPage() {
   const session = await getServerSession(authOptions);
   const permissions = await getUserPermissionsFromDb(session?.user?.userId, session?.user?.role);

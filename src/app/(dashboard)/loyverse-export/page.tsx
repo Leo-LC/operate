@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { LoyverseExportClient } from "@/modules/loyverse-export/components/LoyverseExportClient";
-import "../loyverse.css";
+import "../loyverse/loyverse.css";
 
 export default async function LoyverseExportPage() {
   const session = await getServerSession(authOptions);

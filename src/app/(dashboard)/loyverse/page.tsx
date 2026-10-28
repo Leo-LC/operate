@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
-import "../loyverse.css";
+import "./loyverse.css";
 
 export default async function LoyversePage() {
   const session = await getServerSession(authOptions);
