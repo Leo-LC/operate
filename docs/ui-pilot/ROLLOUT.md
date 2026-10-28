@@ -14,7 +14,7 @@ verified: `/overview`→`/loyverse`, `/finance`→`/finance/recurring-costs`,
 `/loyverse-preview`→`/shift-sales`, `/challenges`→`/challenges/overview`.
 
 A cross-cutting sweep then captured **20 routes × desktop/mobile × light/dark ×
-green/orange — 80/80 OK** (`docs/ui-pilot/final-sweep/`), zero per-route overflow, no page
+green/orange — 80/80 rendered** (`docs/ui-pilot/final-sweep/`; per-capture overflow PASS), no page
 errors in fresh navigation (a `/direction` hydration message appeared only when an
 outer-harness script forced a stored theme between navigations — the pre-existing
 DashboardShell theme-toggle hydration family, documented since Wave 1 §3).
