@@ -8,6 +8,7 @@ on `ui/reviews-stats-pilot`. This session's commits, in order:
 - **`22806e0`** — Animals: the Animals/Vaccines switch becomes the shared pill nav.
 - **`6f49091`** — Documents: migrate to the shared UI foundation (Wave 4 §13).
 - **`02cb921`** — Challenges: migrate to the shared UI foundation (Wave 5 §15).
+- **`ef57b79`** — Treasury: migrate to the shared UI foundation (Wave 1 deferred).
 
 Everything is local — **not pushed, merged, deployed or migrated**.
 
@@ -33,19 +34,25 @@ Do not restore, delete or commit those without the owner's instruction.
 | Wave 4 (reduced) | `/directory`, `/animals` (+ pill fix `22806e0`) | **accepted** |
 | Wave 4 §13 | `/documents` (`6f49091`) | **accepted** |
 | Wave 5 §15 | `/challenges`, 5 sub-routes (`02cb921`) | **accepted** |
+| Wave 1 deferred | `/treasury` (`ef57b79`) | **verified — awaiting acceptance** |
 
 All modules above are accepted with their documented verification limits intact
 (owner-only preview account, local Supabase data instead of production, Playwright
-emulation instead of physical touch devices, mocked write paths). What remains is
-sensitive by nature — finance, sales analytics, time/scheduling, admin — to be treated
-**one module at a time**.
+emulation instead of physical touch devices, mocked write paths). **`/treasury` is
+verified, awaiting the owner's visual review.** What remains is sensitive by nature —
+`/payments` next, then accounting, finance, Loyverse, attendance, scheduling, admin —
+to be treated **one module at a time**.
 
 **Validations still awaited**
 
-1. **Annual equivalent-period comparison — business decision.** Not implemented. It must use
+1. **User acceptance of `/treasury` (`ef57b79`).** Evidence: `docs/ui-pilot/wave6/`
+   (before 16 / after 17 captures + report 51/51). Limits: admin/staff rendering NOT
+   verified (owner-only account; API owner-only 403 verified), real local data empty —
+   populated states come from a labelled fixture compared before/after.
+2. **Annual equivalent-period comparison — business decision.** Not implemented. It must use
    a **fixed group of shops covered over the whole period in both years**, and a missing
    source row is **absent, never zero**. See `revenue-equivalent-period-proposal.md`.
-2. Optional: production data, a second role account and physical touch devices (see limits).
+3. Optional: production data, a second role account and physical touch devices (see limits).
 
 **Known limits (this session's additions)**
 
@@ -67,14 +74,12 @@ sensitive by nature — finance, sales analytics, time/scheduling, admin — to 
   overwrites the dev `.next` and hydration dies with 404 chunks). Operational note, not a
   module limit.
 
-**Next:** nothing started. All remaining standard surfaces are sensitive — `/treasury`,
-`/payments`, `/accounting`, `/finance` (+ recurring-costs, shop-settings), `/loyverse*` +
-`/shift-sales`, `/attendance`, `/scheduling` (+ 6 sub-routes), `/admin` (+ 9 sub-routes) and
-`/employees` — and are to be treated **one module at a time**, each with its own migration,
-verification and acceptance. `/wiki`, `/brand`, `/home` and `/overview` are non-standard
-surfaces with their own decision (`/brand` likely exempt, `/overview` is a pure redirect).
-The global shell (sidebar/topbar/preferences) and the legacy-token cleanup are separate,
-later decisions. No rule or permission change in any of this.
+**Next:** `/payments` is the recommended following module (individually). Then accounting,
+finance, Loyverse, attendance, scheduling and admin, each separately. `/wiki`, `/brand`,
+`/home` and `/overview` are non-standard surfaces with their own decision (`/brand` likely
+exempt, `/overview` is a pure redirect). The global shell (sidebar/topbar/preferences) and
+the legacy-token cleanup are separate, later decisions. No rule or permission change in any
+of this.
 
 ## Previous handoff — 28 October 2026 (Wave 4 checkpoint)
 

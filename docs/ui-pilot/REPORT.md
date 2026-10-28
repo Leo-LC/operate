@@ -356,6 +356,54 @@ and `wave5/after/` (62).
 - `npm run build` overwrites the dev server's `.next` (chunk 404s, no hydration); restart
   `npm run dev` after any build. Operational only.
 
+### Wave 1 deferred — Treasury (`ef57b79`)
+
+Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Scope: `/treasury` only — the first of the two deferred Wave 1 finance surfaces.
+`/payments` is **not started**.
+
+| Area | File | Change |
+| --- | --- | --- |
+| Treasury bridge | `src/app/(dashboard)/treasury/treasury.css` (new) | `.trs` scoped token bridge applied from the route page; free-cash warn value via `data-alert`; responsive classes for the cash-position edit rows, add-reserve form and reserve tracker (stacked on phones, column header hidden); `.trs-formula` line. |
+| Shell | `TreasuryClient.tsx`, `page.tsx` | Shared module header (breadcrumb `Treasury`, compact title — single view, deliberately no pill nav) replaces `PageHeader`; the four summary tiles become `KpiStat` on `.ui-kpi-grid` with the original status tones (negative / warn / positive); the free-cash formula keeps its status pill. |
+| Unchanged on purpose | `CashCounter.tsx`, `lib/denominations.ts`, all API routes | Every calculation, rounding rule (`thb()` `Math.round`), currency format, date handling, keyboard interaction model, and API contract. `thb()` already renders negative amounts with their sign (fixture: `฿-187,500`). |
+
+Isolation: **every `/api/treasury*` write (POST/PUT/DELETE) was intercepted** — no real
+amount was created, changed or deleted. 8 writes intercepted across the suite, all
+fulfilled locally.
+
+Verification: **51/51** checks (`wave6/after/treasury-report.json`) — structure
+(header/breadcrumb/KPIs/no-pill-nav), cash edit cancel (no write) / save (toast, form
+closes) / error (toast), counter incremental entry (`23` → `−3` → `=25` → ↑↓), reset with
+confirm, count save + error, history use-as-cash-on-hand, reserve add success/error/cancel
++ inline reserved PUT, bank account prompt add, 0 overflow at 390/768/1440, green/orange on
+the primary button, unauthenticated writes rejected 401/403; 251/251 tests; `tsc` clean;
+ESLint clean on changed files; build exit 0.
+
+**Displayed values before/after on identical data.** The local database holds no treasury
+rows (all real totals are `฿0` — recorded in `displayed-values.json` both sides), so the
+four summary tiles were also compared against a **clearly labelled fixture payload** served
+to both the pre- and post-migration code: `Cash ฿60,850 · Bank ฿359,650 · Reserved
+฿615,000 · Free cash ฿-187,500` — **identical before and after**, negative sign intact
+(`displayed-values-fixture.json` + `treasury-fixture-*.png`).
+
+Evidence: `docs/ui-pilot/wave6/before/` (16) and `after/` (17): real-data matrix
+(1440/768/390 × light/dark × green/orange) and the same matrix on the fixture payload,
+plus cash-position edit, reserve form and shortcuts-popover states.
+
+### Known limits (Treasury)
+
+- **Roles:** the API is owner-only (403 verified for unauthenticated probes). The page is
+  reachable by owner and (via the owner eye-toggle) admins; **only the owner account exists
+  locally, so admin/staff rendering and the eye-toggle release are NOT verified**.
+- **Real data:** the local database has no cash positions, bank accounts, reserves or
+  counts; populated states come from the labelled fixture payload, not production.
+- **Pre-existing quirk (not a regression):** after an incremental commit (Enter), the
+  re-render drops the text selection, so typing immediately without reselecting appends
+  (e.g. `20=25` → "Invalid amount" → revert). Selecting the text first (double-click)
+  works as expected; `CashCounter.tsx` is byte-identical to before the migration.
+- Physical touch devices — Playwright emulation only.
+
 ## Wave 1 §2 — Customer Insights
 
 Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
