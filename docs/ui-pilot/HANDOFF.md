@@ -1,6 +1,84 @@
-# Handoff — Reviews Stats pilot, Phase 0, Waves 1–5 (Documents + Challenges)
+# Handoff — Operate UI/UX redesign: full perimeter migrated
 
-## Final handoff — 28 October 2026 (v2 — Animals pills, Documents, Challenges)
+## Final handoff — 28 October 2026 (v3 — full mission)
+
+**Last code commit:** the shell bridge (`861c684`) plus the posts-acceptance stages on
+`ui/reviews-stats-pilot`. Sequence of this mission's commits:
+
+- **`337e51a`** — Payments + Treasury polish: neutral compact avatars (opt-in `UserAvatar
+  neutral`), narrower pinned mobile band, stale-response sequence guard (verified with
+  reverse-order responses), cash-counter desktop layout recomposed task-first (input
+  beside its history panel).
+- **`b6cfbb5`** — Loyverse family (`.lov` bridge shared by `/loyverse`, `/shift-sales`,
+  `/loyverse-export`, `/loyverse-sandbox`; module tabs → shared pills).
+- **`72b0565` + `738b6ef`** — `/scheduling` (`.sch` bridge + shared header in the layout;
+  seven routes; list toolbar harmonised).
+- **`9325968`** — `/admin` + `/employees` (`.adm` bridge; AdminTabNav → shared header
+  with pills; EmployeesListClient shared header).
+- **`0de04ee`** — `/home` (`.home` bridge) + `/wiki` (token-only `.wiki` wrapper).
+- **`861c684`** — global shell (`.app-shell` bridge on the dashboard shell root; sidebar
+  active items follow the user's accent) + CSS import-path fixes caught by the build.
+
+Earlier in the mission: Animals pills (`22806e0`), Documents (`6f49091`), Challenges
+(`02cb921`), Treasury (`ef57b79`), Payments (`666f971`).
+
+**Everything is local — not pushed, merged, deployed or migrated.**
+
+**Modules**
+
+| Surface | Status |
+| --- | --- |
+| Phase 0 / reviews.stats + Reviews siblings + customer-insights + reports/direction + directory/animals + documents/challenges | **accepted** |
+| `/treasury`, `/payments` | **verified — awaiting acceptance** |
+| accounting, finance (+2 sub-routes), loyverse family + shift-sales, attendance, scheduling (+sub-routes), admin + employees, home, wiki | **verified — awaiting acceptance** |
+| `/brand` | **exempt** (self-scoped static document — untouched) |
+| Redirects (`/overview`, `/finance`, `/loyverse-preview`, `/challenges`) | **verified** (destinations confirmed) |
+| Global shell (sidebar, topbar, palette, preferences) | **verified — awaiting acceptance** |
+
+**Cross-cutting sweep:** 20 routes × desktop/mobile × light/dark × green/orange —
+**80/80 captures OK**, 0 per-route overflow, no page errors in fresh navigation
+(`docs/ui-pilot/final-sweep/`). Gates at every checkpoint: 251/251 tests, `tsc` clean,
+ESLint clean on changed files (only documented pre-existing findings), `npm run build`
+exit 0. Bundle sizes unchanged or in line with pre-migration (first load 101–320 kB;
+the heaviest are the Recharts surfaces `/direction` (320 kB), `/loyverse` (245 kB),
+`/customer-insights` (241 kB)). No new fetch-per-card or waterfalls; no new dependency.
+
+**Preservation guarantee:** no calculation, formula, ranking, currency, rounding, date
+rule, permission, API contract or business transition changed. All test writes were
+intercepted at the network boundary (or answered with contract-shaped mocks) — no real
+record was modified during verification. The annual equivalent-period comparison remains
+a separate business task (proposal and displayed limits untouched). The pre-existing
+`/direction` selection quirk in the Treasury counter (double-click to reselect) and the
+last-response-wins pattern (fixed on Payments by a presentation-level sequence guard) are
+documented in REPORT.md.
+
+**Known limits (whole mission)**
+
+- Only the preview **owner** account exists locally; admin/staff rendering of any module
+  is **NOT verified** (API guards verified by unauthenticated 401/403 probes only).
+- Verification ran against the **local Supabase database**, not production; where the
+  local data is empty or thin (treasury, payments, challenges fixtures), populated states
+  came from **clearly labelled fixture payloads** compared before/after with the
+  pre-migration code (identical totals).
+- Real Google/spreadsheet data and `/api/locations` (503 locally, no token) remain
+  unverified — same as all previous waves.
+- Physical touch devices — Playwright emulation only.
+- The legacy token names still resolve via per-route bridges + the global shell bridge;
+  the final cleanup collapsing them into `--ui-*` is deliberately NOT done here — the
+  full-perimeter review must be accepted first.
+
+**Validations still awaited**
+
+1. **Owner's final review** of the whole migrated perimeter (treat module by module —
+   verified ≠ accepted).
+2. **Annual equivalent-period comparison — business decision** (see
+   `revenue-equivalent-period-proposal.md`; fixed shop group, missing ≠ zero).
+3. Optional: production data, a second role account, physical touch devices.
+
+**Next:** the owner's review, then (on acceptance) the legacy-token cleanup follow-up.
+Stop here — no further module work is pending.
+
+## Previous handoff — 28 October 2026 (v2)
 
 **Last code commit:** **`02cb921`** (`Challenges: migrate to the shared UI foundation`)
 on `ui/reviews-stats-pilot`. This session's commits, in order:

@@ -1,24 +1,26 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete; Wave 1 §1–§3 accepted; Wave 4 and Wave 5 §15 accepted.**
-Phase 0 (shared foundation + browser-local accent preference) is committed at `ac88b15` on
-`ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`. **Wave 1 §1**
-migrated the Reviews siblings and is **accepted**. **Wave 1 §2** migrated `/customer-insights`
-and the Inbox filter disclosure and is **accepted**. **Wave 1 §3** migrated `/reports`
-(`7393230`) and `/direction` (`e5c0e9a`); its visual reprise (`0869864`, `45ea595`) is
-**accepted**. `/treasury` and `/payments` remain deferred because they write finance data.
-The annual equivalent-period comparison is a **separate business task**, not implemented (see
-`revenue-equivalent-period-proposal.md`): it must use a fixed group of shops covered over
-the whole period in both years, and missing data is never treated as zero.
+Status: **full perimeter migrated (Phase 0, Waves 1–6, shell) — verified, awaiting the
+owner's final review.** Accepted so far: Reviews Stats pilot (`e6e59c3`), Wave 1 §1–§3
+(`e998f99`, `be6f556`, `7393230`/`e5c0e9a` + reprise `0869864`/`45ea595`), `/directory`
+(`/directory` `c0ccb6f`), `/animals` (`88938fc` + `22806e0`), `/documents` (`6f49091`) and
+`/challenges` (`02cb921`). The sensitive modules were then migrated one-by-one: `/treasury`
+(`ef57b79`, cash-counter desktop layout recomposed), `/payments` (`666f971`, stale-response
+guard added), Loyverse family (`b6cfbb5`), `/scheduling` (`72b0565` + `738b6ef`),
+`/admin` + `/employees` (`9325968`), `/home` + `/wiki` (`0de04ee`), and the **global shell**
+(`861c684` — `.app-shell` bridge; sidebar active items now follow the user's green/orange
+preference). `/brand` verified **exempt** (self-scoped static document). Pure redirects
+verified: `/overview`→`/loyverse`, `/finance`→`/finance/recurring-costs`,
+`/loyverse-preview`→`/shift-sales`, `/challenges`→`/challenges/overview`.
 
-**Wave 4 reduced**: `/directory` (`c0ccb6f`) **accepted**; `/animals` (`88938fc`, pill
-switch `22806e0`) **accepted**. **Wave 4 §13**: `/documents` (`6f49091`) **accepted**.
-**Wave 5 §15**: `/challenges` (`02cb921`) **accepted** — all with their documented
-verification limits intact (owner-only account, local Supabase data, Playwright emulation).
-**Wave 1 deferred**: `/treasury` (`ef57b79`) is **verified, awaiting acceptance** (finish
-point kept: desktop layout of the cash counter); `/payments` (`666f971`) is **verified,
-awaiting acceptance**. Every remaining module is sensitive and is treated **one module at a
-time**. All commits are local: not pushed, merged, deployed or migrated.
+A cross-cutting sweep then captured **20 routes × desktop/mobile × light/dark ×
+green/orange — 80/80 OK** (`docs/ui-pilot/final-sweep/`), zero per-route overflow, no page
+errors in fresh navigation (a `/direction` hydration message appeared only when an
+outer-harness script forced a stored theme between navigations — the pre-existing
+DashboardShell theme-toggle hydration family, documented since Wave 1 §3).
+
+All commits are local: not pushed, merged, deployed or migrated. Verified ≠ accepted: the
+final review is the owner's.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -463,9 +465,9 @@ give fast feedback on the token layer without touching scheduling or payroll dat
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 7 | `/accounting` | Page header, stat, view toggle, modal, pill, filters | High — daily entry, ledger, sheet import | pending |
-| 8 | `/finance`, `/finance/recurring-costs`, `/finance/shop-settings` | Page header, card, pill button, modal, filters | Medium — settings writes | pending |
-| 9 | `/loyverse`, `/loyverse-preview`, `/loyverse-export`, `/loyverse-sandbox`, `/shift-sales` | Module tabs, stat, card, pill button, modal, checkbox | High — 3.6k lines, analytics + sync + sandbox | pending |
+| 7 | `/accounting` | Page header, stat, view toggle, modal, pill, filters | High — daily entry, ledger, sheet import | **verified** (bridge + shared header/pills/toolbar; awaiting acceptance) |
+| 8 | `/finance`, `/finance/recurring-costs`, `/finance/shop-settings` | Page header, card, pill button, modal, filters | Medium — settings writes | **verified** (bridge + shared headers with finance pills; awaiting acceptance) |
+| 9 | `/loyverse`, `/loyverse-preview`, `/loyverse-export`, `/loyverse-sandbox`, `/shift-sales` | Module tabs, stat, card, pill button, modal, checkbox | High — 3.6k lines, analytics + sync + sandbox | **verified** (shared `.lov` bridge + headers; module tabs → pills; awaiting acceptance) |
 
 Why here: the visual patterns are close to Wave 1, but these screens write financial data.
 They need the token layer to be stable before their tables and modals are restyled.
@@ -474,8 +476,8 @@ They need the token layer to be stable before their tables and modals are restyl
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 10 | `/attendance` | Page header, filters | Medium — one 989-line client, date logic | pending |
-| 11 | `/scheduling`, `/scheduling/week`, `/scheduling/annual`, `/scheduling/time-off`, `/scheduling/settings`, `/scheduling/import`, `/scheduling/[id]` | Module tabs, card, drawer, filter trigger, filters | Very high — grids, drag/drop, import, per-person detail | pending |
+| 10 | `/attendance` | Page header, filters | Medium — one 989-line client, date logic | **verified** (bridge + shared header/toolbars; awaiting acceptance) |
+| 11 | `/scheduling`, `/scheduling/week`, `/scheduling/annual`, `/scheduling/time-off`, `/scheduling/settings`, `/scheduling/import`, `/scheduling/[id]` | Module tabs, card, drawer, filter trigger, filters | Very high — grids, drag/drop, import, per-person detail | **verified** (`.sch` bridge + shared header in the layout; list toolbar harmonised; grids and drag untouched; awaiting acceptance) |
 
 Why late: custom interaction surfaces are where a token-only change most easily breaks
 layout or pointer behavior. Migrate the calendar last and verify with real interactions,
@@ -512,7 +514,7 @@ surface.
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
 | 15 | `/challenges` and its 5 sub-routes | Module tabs, card, filters, modal | Medium — mostly read-only, many tabs | **accepted** (`02cb921`) |
-| 16 | `/admin` and its 9 sub-routes; `/employees` (thin wrapper around `EmployeesListClient`) | Module tabs, card, pill button, modal, date input, filters | Very high — owner-only configuration, users, locations, automations | pending |
+| 16 | `/admin` and its sub-routes; `/employees` (thin wrapper around `EmployeesListClient`) | Module tabs, card, pill button, modal, date input, filters | Very high — owner-only configuration, users, locations, automations | **verified** (`.adm` bridge + shared header/pills; awaiting acceptance) |
 
 Why last among standard screens: admin mistakes have the highest consequence, and the
 owner-only pages are the least exercised by staff. Migrate after the patterns are proven
@@ -522,9 +524,9 @@ on user-facing surfaces.
 
 | Surface | Why separate | Proposed treatment | Status |
 | --- | --- | --- | --- |
-| `/wiki`, `/wiki/thai-taxes`, `/wiki/thai-taxes/[slug]` | Rich-text content and article layout, no shared primitives | Token-only wrapper if it reads naturally; do not force dashboard panels | pending |
-| `/brand` | Embedded, scoped static HTML guideline document | Likely **exempt**; it is a document, not app UI | pending |
-| `/home`, `/overview` | Shell landing/redirect surfaces, few shared components | Align typography/spacing only if they are real screens | pending |
+| `/wiki`, `/wiki/thai-taxes`, `/wiki/thai-taxes/[slug]` | Rich-text content and article layout, no shared primitives | Token-only wrapper if it reads naturally; do not force dashboard panels | **verified** (`.wiki` token-only wrapper on the layout; articles untouched) |
+| `/brand` | Embedded, scoped static HTML guideline document | Likely **exempt**; it is a document, not app UI | **exempt** (verified: self-scoped `brand-doc` CSS, no shell dependency) |
+| `/home`, `/overview` | Shell landing/redirect surfaces, few shared components | Align typography/spacing only if they are real screens | **verified** (`/home` `.home` bridge; `/overview` is a pure redirect to `/loyverse` — verified) |
 
 ## Per-module acceptance gate
 
@@ -561,9 +563,9 @@ across waves.
 4. The accent tints selected controls, primary actions and the **primary** chart series.
    Semantic status and multi-series colors stay independent.
 
-Phase 0 is complete; Wave 1 §1–§3, Wave 4 (`/directory`, `/animals`) and `/documents` +
-`/challenges` are all **accepted**. **`/treasury` and `/payments` are verified, awaiting
-acceptance** (`ef57b79`, `666f971`) — the remaining sensitive surfaces (accounting, finance,
-Loyverse, attendance, scheduling, admin) are each to be treated **one module at a time**,
-each with its own migration, verification and acceptance. No group work, no rule or
-permission change.
+The full perimeter is migrated and verified — Phase 0 foundation, Waves 1–6, the shell
+global (`861c684`), the non-standard surfaces and the pure redirects. `/directory`,
+`/animals`, `/documents`, `/challenges` and the Wave 1 surfaces are **accepted**; every
+later stage is **verified — awaiting the owner's final review**. The legacy token scale is
+still repointed per route (bridges, no global repoint of values): the final cleanup that
+collapses the legacy names into `--ui-*` is a separate, later step after this review.

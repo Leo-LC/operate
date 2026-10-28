@@ -1,0 +1,739 @@
+{
+  "total": 80,
+  "passed": 80,
+  "page_errors": [
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+    "http://localhost:3000/direction: There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+  ],
+  "results": [
+    {
+      "route": "reviews/stats",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reviews-stats-desktop-light-green.png"
+    },
+    {
+      "route": "reviews/stats",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reviews-stats-desktop-dark-orange.png"
+    },
+    {
+      "route": "reviews/stats",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reviews-stats-mobile-light-green.png"
+    },
+    {
+      "route": "reviews/stats",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reviews-stats-mobile-dark-orange.png"
+    },
+    {
+      "route": "customer-insights",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "customer-insights-desktop-light-green.png"
+    },
+    {
+      "route": "customer-insights",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "customer-insights-desktop-dark-orange.png"
+    },
+    {
+      "route": "customer-insights",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "customer-insights-mobile-light-green.png"
+    },
+    {
+      "route": "customer-insights",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "customer-insights-mobile-dark-orange.png"
+    },
+    {
+      "route": "reports",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reports-desktop-light-green.png"
+    },
+    {
+      "route": "reports",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reports-desktop-dark-orange.png"
+    },
+    {
+      "route": "reports",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reports-mobile-light-green.png"
+    },
+    {
+      "route": "reports",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "reports-mobile-dark-orange.png"
+    },
+    {
+      "route": "direction",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "direction-desktop-light-green.png"
+    },
+    {
+      "route": "direction",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "direction-desktop-dark-orange.png"
+    },
+    {
+      "route": "direction",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "direction-mobile-light-green.png"
+    },
+    {
+      "route": "direction",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "direction-mobile-dark-orange.png"
+    },
+    {
+      "route": "directory",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "directory-desktop-light-green.png"
+    },
+    {
+      "route": "directory",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "directory-desktop-dark-orange.png"
+    },
+    {
+      "route": "directory",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "directory-mobile-light-green.png"
+    },
+    {
+      "route": "directory",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "directory-mobile-dark-orange.png"
+    },
+    {
+      "route": "animals",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "animals-desktop-light-green.png"
+    },
+    {
+      "route": "animals",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "animals-desktop-dark-orange.png"
+    },
+    {
+      "route": "animals",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "animals-mobile-light-green.png"
+    },
+    {
+      "route": "animals",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "animals-mobile-dark-orange.png"
+    },
+    {
+      "route": "documents",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "documents-desktop-light-green.png"
+    },
+    {
+      "route": "documents",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "documents-desktop-dark-orange.png"
+    },
+    {
+      "route": "documents",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "documents-mobile-light-green.png"
+    },
+    {
+      "route": "documents",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "documents-mobile-dark-orange.png"
+    },
+    {
+      "route": "challenges/overview",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "challenges-overview-desktop-light-green.png"
+    },
+    {
+      "route": "challenges/overview",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "challenges-overview-desktop-dark-orange.png"
+    },
+    {
+      "route": "challenges/overview",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "challenges-overview-mobile-light-green.png"
+    },
+    {
+      "route": "challenges/overview",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "challenges-overview-mobile-dark-orange.png"
+    },
+    {
+      "route": "treasury",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "treasury-desktop-light-green.png"
+    },
+    {
+      "route": "treasury",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "treasury-desktop-dark-orange.png"
+    },
+    {
+      "route": "treasury",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "treasury-mobile-light-green.png"
+    },
+    {
+      "route": "treasury",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "treasury-mobile-dark-orange.png"
+    },
+    {
+      "route": "payments",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "payments-desktop-light-green.png"
+    },
+    {
+      "route": "payments",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "payments-desktop-dark-orange.png"
+    },
+    {
+      "route": "payments",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "payments-mobile-light-green.png"
+    },
+    {
+      "route": "payments",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "payments-mobile-dark-orange.png"
+    },
+    {
+      "route": "accounting",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "accounting-desktop-light-green.png"
+    },
+    {
+      "route": "accounting",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "accounting-desktop-dark-orange.png"
+    },
+    {
+      "route": "accounting",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "accounting-mobile-light-green.png"
+    },
+    {
+      "route": "accounting",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "accounting-mobile-dark-orange.png"
+    },
+    {
+      "route": "finance/recurring-costs",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "finance-recurring-costs-desktop-light-green.png"
+    },
+    {
+      "route": "finance/recurring-costs",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "finance-recurring-costs-desktop-dark-orange.png"
+    },
+    {
+      "route": "finance/recurring-costs",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "finance-recurring-costs-mobile-light-green.png"
+    },
+    {
+      "route": "finance/recurring-costs",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "finance-recurring-costs-mobile-dark-orange.png"
+    },
+    {
+      "route": "shift-sales",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "shift-sales-desktop-light-green.png"
+    },
+    {
+      "route": "shift-sales",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "shift-sales-desktop-dark-orange.png"
+    },
+    {
+      "route": "shift-sales",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "shift-sales-mobile-light-green.png"
+    },
+    {
+      "route": "shift-sales",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "shift-sales-mobile-dark-orange.png"
+    },
+    {
+      "route": "loyverse",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "loyverse-desktop-light-green.png"
+    },
+    {
+      "route": "loyverse",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "loyverse-desktop-dark-orange.png"
+    },
+    {
+      "route": "loyverse",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "loyverse-mobile-light-green.png"
+    },
+    {
+      "route": "loyverse",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "loyverse-mobile-dark-orange.png"
+    },
+    {
+      "route": "attendance",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "attendance-desktop-light-green.png"
+    },
+    {
+      "route": "attendance",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "attendance-desktop-dark-orange.png"
+    },
+    {
+      "route": "attendance",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "attendance-mobile-light-green.png"
+    },
+    {
+      "route": "attendance",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "attendance-mobile-dark-orange.png"
+    },
+    {
+      "route": "scheduling/annual",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "scheduling-annual-desktop-light-green.png"
+    },
+    {
+      "route": "scheduling/annual",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "scheduling-annual-desktop-dark-orange.png"
+    },
+    {
+      "route": "scheduling/annual",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "scheduling-annual-mobile-light-green.png"
+    },
+    {
+      "route": "scheduling/annual",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "scheduling-annual-mobile-dark-orange.png"
+    },
+    {
+      "route": "admin/users",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "admin-users-desktop-light-green.png"
+    },
+    {
+      "route": "admin/users",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "admin-users-desktop-dark-orange.png"
+    },
+    {
+      "route": "admin/users",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "admin-users-mobile-light-green.png"
+    },
+    {
+      "route": "admin/users",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "admin-users-mobile-dark-orange.png"
+    },
+    {
+      "route": "employees",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "employees-desktop-light-green.png"
+    },
+    {
+      "route": "employees",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "employees-desktop-dark-orange.png"
+    },
+    {
+      "route": "employees",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "employees-mobile-light-green.png"
+    },
+    {
+      "route": "employees",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "employees-mobile-dark-orange.png"
+    },
+    {
+      "route": "home",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "home-desktop-light-green.png"
+    },
+    {
+      "route": "home",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "home-desktop-dark-orange.png"
+    },
+    {
+      "route": "home",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "home-mobile-light-green.png"
+    },
+    {
+      "route": "home",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "home-mobile-dark-orange.png"
+    },
+    {
+      "route": "wiki",
+      "width": 1440,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "wiki-desktop-light-green.png"
+    },
+    {
+      "route": "wiki",
+      "width": 1440,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "wiki-desktop-dark-orange.png"
+    },
+    {
+      "route": "wiki",
+      "width": 390,
+      "theme": "light",
+      "accent": "green",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "wiki-mobile-light-green.png"
+    },
+    {
+      "route": "wiki",
+      "width": 390,
+      "theme": "dark",
+      "accent": "orange",
+      "overflowPx": 0,
+      "ok": true,
+      "capture": "wiki-mobile-dark-orange.png"
+    }
+  ]
+}

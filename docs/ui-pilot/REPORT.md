@@ -456,6 +456,55 @@ with selection, mobile scrolled states and `sticky-diagnostic.json`.
   expected to stay small (per-shop headcount).
 - Physical touch devices — Playwright emulation only.
 
+## Full mission — remaining perimeter + shell (28 October 2026)
+
+Status: **verified** (whole perimeter) → awaiting the owner's final review. Commits
+`337e51a`, `b6cfbb5`, `72b0565`, `738b6ef`, `9325968`, `0de04ee`, `861c684` (details in
+HANDOFF). Order of work: known-reviews corrections (Payments avatars/stale-guard/pinned
+band + Treasury counter layout), then the remaining sensitive modules one-by-one
+(accounting, finance, loyverse family, attendance, scheduling, admin, employees), then
+the non-standard surfaces (home, wiki; brand exempt; redirects verified), then the global
+shell.
+
+### Corrections of the first review pass (`337e51a`)
+
+| Area | Change |
+| --- | --- |
+| Payments avatars | Opt-in `UserAvatar neutral` (panel background + quiet border); the three Payments avatars use it; other screens keep the decorative hue. Fixed sizes (28/32/40) untouched — no stretching with the stretched pinned cells. |
+| Payments pinned band | Mobile band narrowed: checkbox 28px + Employee 180px (two-line readable names), `min-width: 880px`. |
+| Payments stale responses | `loadSeq` guard: a response that does not match the CURRENT shop/month selection is discarded before reading — verified with a reverse-order race (slow A answered after fast B: B wins, no stale swap, no stuck loading, stale errors never read). |
+| Payments mobile states | Detail view (stacked panes, honest empty), payment + employee modals captured at 390. |
+| Treasury counter | Desktop recomposition: the counting surface sits beside its history panel (task-first, no more dead space); keyboard model and logic untouched. |
+
+### Remaining modules and shell
+
+Each migration follows the established system: scoped bridge, shared module header
+(breadcrumb + compact title + real pills where distinct views exist), labelled filter
+rows, shared KPI/table primitives, content and logic untouched. Waves: Loyverse family
+(6-tab module → pills), scheduling layout (7 routes, nav → header), admin (nav → header,
+owner-gated pills) + employees, home/wiki token bridges, then the global `.app-shell`
+bridge — the sidebar's active item now reads `var(--accent)` through the shared palette,
+so it follows the user's green/orange choice. Brand was verified **exempt** (self-scoped
+static document); all pure redirects were confirmed.
+
+### Cross-cutting sweep + close
+
+- **80/80 captures OK**: 20 routes × 1440/390 × light/dark × green/orange
+  (`docs/ui-pilot/final-sweep/`), 0 per-route overflow.
+- Fresh navigation shows no page errors on /direction, /payments, /treasury (the sweep's
+  `/direction` hydration message reproduces the documented pre-existing DashboardShell
+  theme-toggle family and required a forced stale localStorage between navigations).
+- A CSS import-path mistake on the finance/loyverse sub-routes was caught by `npm run
+  build` and fixed in the shell commit.
+- Bundle report (first load): `/accounting` 193 kB, `/animals` 186 kB, `/challenges/overview`
+  188 kB, `/customer-insights` 241 kB, `/direction` 320 kB, `/directory` 131 kB,
+  `/documents` 171 kB, `/employees` 184 kB, `/home` 101 kB, `/loyverse` 245 kB,
+  `/payments` 163 kB, `/shift-sales` 192 kB, `/scheduling` 146 kB, `/treasury` 145 kB —
+  consistent with the pre-migration chart-heavy routes; no new heavy dependency, no
+  fetch-per-card, no waterfall introduced.
+- Legacy-token cleanup (collapsing bridges into `--ui-*`) intentionally deferred until the
+  full-perimeter review is accepted.
+
 ## Wave 1 §2 — Customer Insights
 
 Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
