@@ -1,0 +1,264 @@
+{
+  "suite": "treasury-migration",
+  "mode": "after",
+  "total": 51,
+  "passed": 51,
+  "writes_intercepted": 8,
+  "results": [
+    {
+      "check": "module header present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compact title",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "breadcrumb present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no legacy PageHeader",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "four KPI cards",
+      "pass": true,
+      "detail": "count=4"
+    },
+    {
+      "check": "KPI labels preserved",
+      "pass": true,
+      "detail": "['Cash in shops', 'Bank balance declared', 'Reserved obligations', 'Free cash']"
+    },
+    {
+      "check": "no pill nav (single view)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "unauthenticated POST cash-counts rejected",
+      "pass": true,
+      "detail": "status=403"
+    },
+    {
+      "check": "unauthenticated PUT cash-positions rejected",
+      "pass": true,
+      "detail": "status=403"
+    },
+    {
+      "check": "unauthenticated POST reserves rejected",
+      "pass": true,
+      "detail": "status=403"
+    },
+    {
+      "check": "unauthenticated DELETE bank-accounts rejected",
+      "pass": true,
+      "detail": "status=403"
+    },
+    {
+      "check": "unauthenticated GET /api/treasury rejected",
+      "pass": true,
+      "detail": "status=401"
+    },
+    {
+      "check": "cash rows have Edit buttons",
+      "pass": true,
+      "detail": "count=9"
+    },
+    {
+      "check": "cancel writes nothing",
+      "pass": true,
+      "detail": "writes=0"
+    },
+    {
+      "check": "cash edit shows amount fields",
+      "pass": true,
+      "detail": "count=2"
+    },
+    {
+      "check": "double-submit guarded (single Save)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "cash save posted once (intercepted)",
+      "pass": true,
+      "detail": "writes=1"
+    },
+    {
+      "check": "cash save toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "edit form closed after save",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "cash save error toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "cash counter present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "1000-baht note input present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "incremental entry 23\u00d71000 = \u0e3f23,000",
+      "pass": true,
+      "detail": "total shows 23,000"
+    },
+    {
+      "check": "removal -3 \u2192 20\u00d71000 = \u0e3f20,000",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "set exact =25 \u2192 \u0e3f25,000",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ArrowUp steps to 26",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ArrowDown steps back to 25",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "save enabled while total > 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reset cleared the count",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "count save posted (intercepted)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "count save toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "count save error toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "use-as-cash-on-hand PUT intercepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "add reserve control present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reserve form opens",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "add disabled while empty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reserve POST intercepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reserve added toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reserve error toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "reserve cancel writes nothing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "add account control present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "bank account POST intercepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no horizontal overflow at 390px",
+      "pass": true,
+      "detail": "overflowPx=0"
+    },
+    {
+      "check": "no horizontal overflow at 768px",
+      "pass": true,
+      "detail": "overflowPx=0"
+    },
+    {
+      "check": "no horizontal overflow at 1440px",
+      "pass": true,
+      "detail": "overflowPx=0"
+    },
+    {
+      "check": "fixture totals identical before/after",
+      "pass": true,
+      "detail": "{\"Cash in shops\": \"\u0e3f60,850\", \"Bank balance declared\": \"\u0e3f359,650\", \"Reserved obligations\": \"\u0e3f615,000\", \"Free cash\": \"\u0e3f-187,500\", \"Total cash\": \"\u0e3f0\"} vs {\"Cash in shops\": \"\u0e3f60,850\", \"Bank balance declared\": \"\u0e3f359,650\", \"Reserved obligations\": \"\u0e3f615,000\", \"Free cash\": \"\u0e3f-187,500\", \"Total cash\": \"\u0e3f0\"}"
+    },
+    {
+      "check": "negative free cash keeps its sign",
+      "pass": true,
+      "detail": "\u0e3f-187,500"
+    },
+    {
+      "check": "Save count uses orange accent",
+      "pass": true,
+      "detail": "rgb(180, 83, 9)"
+    },
+    {
+      "check": "Save count uses green accent",
+      "pass": true,
+      "detail": "rgb(44, 111, 76)"
+    },
+    {
+      "check": "all intercepted writes stayed on treasury endpoints",
+      "pass": true,
+      "detail": "8 writes, all fulfilled locally"
+    },
+    {
+      "check": "no uncaught page errors",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

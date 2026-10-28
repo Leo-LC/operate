@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { TreasuryClient } from "@/modules/treasury/components/TreasuryClient";
 import { getModuleVisibility } from "@/lib/module-visibility";
+import "./treasury.css";
 
 export default async function TreasuryPage() {
   const session = await getServerSession(authOptions);
