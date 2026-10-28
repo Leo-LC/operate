@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { AdminTabNav } from "@/modules/admin/components/AdminTabNav";
+import "./admin.css";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -10,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const isOwner = session.user.role === "owner";
   return (
-    <div className="flex flex-col gap-6">
+    <div className="adm flex flex-col gap-6">
       <AdminTabNav isOwner={isOwner} />
       {children}
     </div>

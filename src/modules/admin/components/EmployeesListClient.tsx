@@ -783,7 +783,19 @@ export function EmployeesListClient({ locations }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="adm" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Employees</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Employees</h1>
+        </div>
+      </header>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <div style={{ display: "flex", gap: 8 }}>
           <Button size="sm" variant="secondary" onClick={handleExportDocsCsv} title="Export the visible list as CSV (opens in Google Sheets)">
