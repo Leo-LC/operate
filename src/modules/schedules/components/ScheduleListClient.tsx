@@ -249,22 +249,25 @@ export function ScheduleListClient({ initialSchedules, locations }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
-      <PageHeader
-        eyebrow="Weekly shifts"
-        title="Schedules"
-        subtitle="Weekly shift plans by shop."
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            {locations.length > 1 && (
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          {locations.length > 1 && (
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="sch-shop-label">Shop</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="sch-shop-label">
               <ShopSingleSelect options={locations} value={locationFilter} onChange={setLocationFilter} allowAll />
-            )}
-            <Button size="sm" variant="primary" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }}>
-              <PlusIcon style={{ width: 14, height: 14 }} />
-              New schedule
-            </Button>
+            </div>
           </div>
-        }
-      />
+          )}
+        </div>
+        <div className="ui-toolbar-actions">
+          <Button size="sm" variant="primary" onClick={() => { setShowCreate((v) => !v); if (locationFilter) setCreateLocation(locationFilter); }}>
+            <PlusIcon style={{ width: 14, height: 14 }} />
+            New schedule
+          </Button>
+        </div>
+      </div>
+      <p style={{ fontSize: 12, color: "var(--fg-4)", marginTop: -8 }}>Weekly shift plans by shop.</p>
 
       {/* ── Create form ─────────────────────────────────────────── */}
       {showCreate && (
