@@ -7,6 +7,7 @@ import { hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import type { ModuleKey } from "@/core/permissions/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import "./home.css";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
