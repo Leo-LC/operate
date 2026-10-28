@@ -1,3 +1,4 @@
+import "./documents.css";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -9,5 +10,5 @@ export default async function DocumentsLayout({ children }: { children: React.Re
   if (!session?.user) redirect("/");
   const permissions = await getUserPermissionsFromDb(session.user?.userId, session.user?.role);
   if (!hasModuleAccess(permissions, "documents")) redirect("/home");
-  return <>{children}</>;
+  return <div className="doc">{children}</div>;
 }
