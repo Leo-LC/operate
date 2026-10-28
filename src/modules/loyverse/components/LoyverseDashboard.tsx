@@ -583,7 +583,19 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="lov flex flex-col gap-6">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Loyverse</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Loyverse</h1>
+        </div>
+      </header>
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />

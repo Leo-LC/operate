@@ -28,8 +28,20 @@ export function LoyverseModuleClient({ canSync = false }: { canSync?: boolean })
   const [refreshKey] = React.useState(0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <ControlledTabs tabs={TABS} value={activeTab} onChange={setActiveTab} ariaLabel="Shift and Sales" />
+    <div className="lov flex flex-col gap-6">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Shift &amp; Sales</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Shift &amp; Sales</h1>
+          <ControlledTabs tabs={TABS} value={activeTab} onChange={setActiveTab} ariaLabel="Shift and Sales" variant="pills" />
+        </div>
+      </header>
 
       <div className="w-full pt-2">
         {activeTab === "shifts" && <ShiftsPreview key={`shifts-${date}-${refreshKey}`} initialDate={bangkokYesterday()} />}

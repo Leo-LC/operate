@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { DateRangePicker, ShopSingleSelect } from "@/components/ui/filters";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { ArrowLeftRightIcon, RefreshCwIcon, TableIcon } from "lucide-react";
@@ -198,10 +197,19 @@ export function LoyverseExportClient() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <PageHeader
-        title="Loyverse Export"
-      />
+    <div className="lov" style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Loyverse Export</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Loyverse Export</h1>
+        </div>
+      </header>
 
       {/* Single shop + daterange selector (shared by both tabs) */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
