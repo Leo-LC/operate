@@ -5,13 +5,16 @@ Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Pha
 (Reviews siblings) is committed at **`e998f99`**; **Wave 1 §2** (Customer Insights +
 Inbox filter disclosure) is committed at **`be6f556`**; **Wave 1 §3** is committed as
 **`7393230`** (`/reports`) and **`e5c0e9a`** (`/direction`), with the visual reprise in
-**`0869864`** / **`45ea595`**. The current group is **`c0ccb6f`** (`/directory`) and
-**`88938fc`** (`/animals`).
+**`0869864`** / **`45ea595`**. Wave 4 reduced is **`c0ccb6f`** (`/directory`, now
+**accepted**) and **`88938fc`** (`/animals`), with the Animals/Vaccines pill switch in
+**`22806e0`**. The latest group is **`6f49091`** (`/documents`) and **`02cb921`**
+(`/challenges`).
 Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, the Reviews sibling
-routes, `/customer-insights`, the Inbox filter rail, `/reports`, `/direction`, `/directory`
-and `/animals`. No other module was migrated. No deploy, push, merge or DB migration. Local
-URLs: **http://localhost:3000/customer-insights**, **/reports**, **/direction**,
-**/directory**, **/animals** (preview login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
+routes, `/customer-insights`, the Inbox filter rail, `/reports`, `/direction`, `/directory`,
+`/animals`, `/documents` and `/challenges`. No other module was migrated. No deploy, push,
+merge or DB migration. Local URLs: **http://localhost:3000/customer-insights**, `/reports`,
+`/direction`, `/directory`, `/animals`, `/documents`, `/challenges/overview` (preview
+login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
 
 The dev server is running. Sign in with the existing preview password from `.env.local`;
 the password is not recorded here.
@@ -32,7 +35,9 @@ utilities to `globals.css`. A post-review revision then realigned both module he
 the Reviews Stats breadcrumb/pill system, harmonized the period/shop selectors, and fixed
 the future-month presentation in Revenue comparison (display only — calculations untouched).
 **Wave 1 §1–§3 are accepted.** **Wave 4 reduced** then migrated `/directory` (contacts) and
-`/animals` — the next non-financial, non-employee modules — and is **implemented and
+`/animals` — `/directory` is **accepted**; `/animals` is **verified, awaiting acceptance**,
+with its view switch moved to the shared pill nav (`22806e0`). The latest group migrated
+**`/documents`** (`6f49091`) and **`/challenges`** (`02cb921`) — both **implemented and
 verified locally, awaiting user acceptance**. Nothing is pushed, merged or deployed. Live
 Customer Insights data, runtime staff access, real Google sync, a real organization
 `forest` switch and physical touch devices remain pending (details below).
@@ -202,7 +207,9 @@ All `after2` captures use real local Supabase data. The only console warning is 
 
 ## Wave 4 (reduced) — Directory + Animals
 
-Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Status: `/directory` — **accepted**. `/animals` — **verified** (automated + visual checks
+pass) → awaiting **accepted**, updated by the pill-switch follow-up `22806e0` (see the
+session section above).
 Commits: `c0ccb6f` (`/directory`), `88938fc` (`/animals`).
 Scope: `/directory` (contacts + shops) and `/animals`, chosen as the next non-financial,
 non-employee surfaces. Financial workflows (`/treasury`, `/payments`, `/accounting`,
@@ -269,6 +276,85 @@ the after set shows the shared system and the fix.
 - Animals loads the full list (108 rows) with no pagination; unchanged from before, but the
   mobile page is long.
 - CSV/PDF links were verified present, not downloaded.
+
+## Session — Animals pill switch, Documents, Challenges (28 October 2026)
+
+Status: `/animals` + `/documents` + `/challenges` are **verified** → awaiting **accepted**;
+`/directory` is **accepted**. Commits: `22806e0` (Animals pills), `6f49091` (`/documents`),
+`02cb921` (`/challenges`).
+
+### Animals follow-up — shared pill switch (`22806e0`)
+
+| Area | File | Change |
+| --- | --- | --- |
+| Animals switch | `src/modules/animals/components/AnimalsListClient.tsx` | The `ViewToggle` segmented control beside the title becomes `ControlledTabs variant="pills"` — the same `.ui-pillnav*` markup as Reviews/Reports/Direction (`role="tablist"`, `role="tab"`, `aria-selected`). View state, the dynamic `Animals / Animals|Vaccines` breadcrumb and keyboard operability are preserved; the shop filter keeps its own `aria-pressed` group. |
+
+Verification: **21/21** targeted checks (`wave4/fixes/animals-pills-report.json`) —
+semantics, click + Enter switching, breadcrumb sync, green `#2c6f4c` / orange `#b45309`
+active pill, 0 overflow at 390/768/1440; 251/251 tests; `tsc` clean; only the pre-existing
+`dueSoon` unused-var ESLint finding (confirmed present before the change); build exit 0.
+Evidence: `docs/ui-pilot/wave4/fixes/` (24 captures, both views × 3 widths × light/dark ×
+green/orange).
+
+### Wave 4 §13 — Documents (`6f49091`)
+
+Scope: `/documents` only. The module has **no file upload**: it tracks metadata, a Drive
+link, owner-gated create/edit/delete and a CSV export.
+
+| Area | File | Change |
+| --- | --- | --- |
+| Documents bridge | `src/app/(dashboard)/documents/documents.css` (new) | `.doc` scoped token bridge (applied to the layout wrapper and the portalled Modal); status-value tints via `data-alert`; row hover/urgent/muted as CSS classes; sticky first column + conditional scroll hint on phones; form grids stack on phones. |
+| Layout | `src/app/(dashboard)/documents/layout.tsx` | Imports the route CSS and wraps children in `.doc` (guard logic unchanged). |
+| Shell | `DocumentsClient.tsx` | Shared module header (breadcrumb `Documents`, compact title) replaces `PageHeader`; the four filters become labelled rows (`Search`/`Status`/`Shop`/`Category`) in `.ui-filter-rows`; Export CSV + Add document move right into `.ui-toolbar-actions`; the six status counts become `KpiStat` on `.ui-kpi-grid` (negative/positive `tone`, warn via `data-alert`, quiet cards — no tinted borders); the table uses `.ui-table-scroll` with `aria-sort` and urgent-row tinting; the Modal passes `className="doc"`. Deep links (`?select=`), permissions, CSV export, Drive links, validation and all data flows are unchanged. |
+
+Isolation: **every `/api/documents*` write (POST/PATCH/DELETE) was intercepted** in the
+verification suite — no real document row was created, changed or deleted. The success path
+was exercised against a synthetic row with a fake id; the failed-save path returned 500 and
+asserted the list stayed unchanged.
+
+Verification: **34/34** checks (`wave4b/after/documents-report.json`) — structure
+(header/breadcrumb/labels/KPIs/toolbar), required-title + `type=url` validation, cancel,
+error toast, isolated success, unauthenticated POST rejected (401/403, fresh cookieless
+context), export CSV HTTP 200 (`text/csv`), deep-link `?select=` opens read-only, 0 overflow
+at 390/768/1440, both accents on the primary action; 251/251 tests; `tsc` clean; ESLint
+clean on changed files; build exit 0. Evidence: `wave4b/before/` (12) and `wave4b/after/`
+(17) — matrix captures, modal 1440/390 (viewport-only: full-page captures misrepresent
+`position:fixed` overlays), search and empty-filter states.
+
+### Wave 5 §15 — Challenges (`02cb921`)
+
+Scope: `/challenges/overview`, `/challenges/reviews`, `/challenges/spotlight`,
+`/challenges/labo` (owner-only), `/challenges/methodology`. **Visual only** — no metric,
+formula, threshold, source or methodology text touched (`constants.ts`, `overview-data.ts`,
+`spotlight.ts`, `labels.ts` and the methodology page are byte-identical).
+
+| Area | File | Change |
+| --- | --- | --- |
+| Challenges bridge | `src/app/(dashboard)/challenges/challenges.css` (new) | `.challenges` scoped token bridge applied to the route layout, so all five sub-routes adopt the shared palette at once; categorical `--bronze`/`--purple`/`--info` map to the shared series. |
+| Layout | `src/app/(dashboard)/challenges/layout.tsx` | Imports the route CSS and wraps children in `.challenges`; owner gating for the nav unchanged. |
+| Nav → shared header | `ChallengesNav.tsx` | The underline `ModuleTabs` becomes the full Reviews anatomy: real breadcrumb (`Challenges / <section>`), compact `Challenges` title, `ModuleTabs variant="pills"`. Same three owner / five owner-only tab definitions, same `ariaLabel`. |
+| Everything else | — | Unchanged on purpose: `KpiRow` (dense label/value/target/status rows), `LocationCard`, `TeamLocationDashboard`, `ShopSpotlight`, `ReviewsAnalytics`, `DrinksLab`, the modals and the print/HTML exports keep their structure; the bridge restyles their legacy tokens. |
+
+Isolation: all `/api/challenges*` writes (PUT/POST/PATCH/DELETE) were intercepted before any
+interaction — no override, entry or setting was persisted. Reads used the real local
+Supabase data (8 location cards, 21,750 ฿ earned, October 2026).
+
+Verification: **57/57** checks (`wave5/after/challenges-report.json`) — header/breadcrumb/
+pills and active-pill-follows-route on all 5 routes, month picker, earned summary, team view
++ shop filter, view-mode persistence across reload (`challenges-view-mode`), rules modal
+thresholds, methodology accuracy spot checks (`0.45`, `190 ฿`, `9.5%`, `4%`, min 10
+reviews), 0 overflow at 390/768/1440 on all routes, orange active pill; 251/251 tests;
+`tsc` clean; ESLint clean on changed files; build exit 0. Evidence: `wave5/before/` (60)
+and `wave5/after/` (62).
+
+### Known limits (this session)
+
+- Only the preview owner account exists; non-owner rendering (Challenges hides
+  Labo/Methodology, Documents location scoping) was not exercised.
+- Real production data not used; verification ran against the local Supabase database.
+- Physical touch devices — Playwright emulation only.
+- `npm run build` overwrites the dev server's `.next` (chunk 404s, no hydration); restart
+  `npm run dev` after any build. Operational only.
 
 ## Wave 1 §2 — Customer Insights
 

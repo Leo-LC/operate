@@ -1,6 +1,79 @@
-# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1–§3, Directory/Animals
+# Handoff — Reviews Stats pilot, Phase 0, Waves 1–5 (Documents + Challenges)
 
-## Final handoff — 28 October 2026
+## Final handoff — 28 October 2026 (v2 — Animals pills, Documents, Challenges)
+
+**Last code commit:** **`02cb921`** (`Challenges: migrate to the shared UI foundation`)
+on `ui/reviews-stats-pilot`. This session's commits, in order:
+
+- **`22806e0`** — Animals: the Animals/Vaccines switch becomes the shared pill nav.
+- **`6f49091`** — Documents: migrate to the shared UI foundation (Wave 4 §13).
+- **`02cb921`** — Challenges: migrate to the shared UI foundation (Wave 5 §15).
+
+Everything is local — **not pushed, merged, deployed or migrated**.
+
+**Working tree:** clean for every tracked source and documentation file. The only remaining
+changes are unrelated and deliberately left unstaged (unchanged from the previous handoff):
+
+- deleted (pre-existing, not by this work): `docs/operate-os-redesign-plan.md` and the five
+  `docs/superpowers/{plans,specs}/…` files;
+- untracked artifacts: `.agents/`, `docs/ui-pilot/wave1/ci-after.zip`,
+  `docs/ui-pilot/wave1b/fixes.zip`, `docs/ui-pilot/wave4.zip`,
+  `operate-ui-pilot-repo-files.zip`, `skills-lock.json`.
+
+Do not restore, delete or commit those without the owner's instruction.
+
+**Modules completed**
+
+| Wave | Surface | Status |
+| --- | --- | --- |
+| Phase 0 / Wave 0 | foundation, accent preference, `reviews/stats` | **accepted** |
+| Wave 1 §1 | Reviews siblings | **accepted** |
+| Wave 1 §2 | `/customer-insights` + Inbox filter disclosure | **accepted** |
+| Wave 1 §3 | `/reports`, `/direction` + visual reprise | **accepted** |
+| Wave 4 (reduced) | `/directory` | **accepted** (owner, this session) |
+| Wave 4 (reduced) | `/animals` + pill fix `22806e0` | **verified — awaiting acceptance** |
+| Wave 4 §13 | `/documents` (`6f49091`) | **verified — awaiting acceptance** |
+| Wave 5 §15 | `/challenges`, 5 sub-routes (`02cb921`) | **verified — awaiting acceptance** |
+
+Verified ≠ accepted: the three rows above still need the owner's visual review.
+
+**Validations still awaited**
+
+1. **User acceptance of `/animals` (with the pill switch), `/documents` and `/challenges`.**
+   Evidence: `docs/ui-pilot/wave4/fixes/` (24 + report), `docs/ui-pilot/wave4b/`
+   (before 12 / after 17 + report), `docs/ui-pilot/wave5/` (before 60 / after 62 + report).
+2. **Annual equivalent-period comparison — business decision.** Not implemented. It must use
+   a **fixed group of shops covered over the whole period in both years**, and a missing
+   source row is **absent, never zero**. See `revenue-equivalent-period-proposal.md`.
+3. Optional: production data, a second role account and physical touch devices (see limits).
+
+**Known limits (this session's additions)**
+
+- Only the preview **owner** account exists locally; non-owner rendering of the three
+  surfaces was not exercised (Challenges hides Labo/Methodology for non-owners by code,
+  unchanged).
+- Documents has **no file upload**: the module tracks metadata + a Drive link; "upload"
+  coverage means the add/edit form (validation, cancel, error) and the CSV export.
+  All API writes were **intercepted** in the interaction suite — no real document row was
+  created, changed or deleted; the success path was verified against a synthetic row
+  (fake id, clearly labelled).
+- Challenges checks ran against real local Supabase data for reads, but **every
+  `/api/challenges*` write (PUT/POST/PATCH/DELETE) was intercepted** — no override, entry
+  or setting was persisted. Methodology accuracy was spot-checked on the rendered page
+  (`0.45`, `190 ฿`, `9.5%`, `4%`, min 10 reviews); the methodology page and all metric
+  sources are byte-identical (`constants.ts`, `overview-data.ts`, `spotlight.ts` untouched).
+- Physical touch devices: Playwright emulation only.
+- The local dev server must be restarted after each `npm run build` (the production build
+  overwrites the dev `.next` and hydration dies with 404 chunks). Operational note, not a
+  module limit.
+
+**Recommended next group:** none started. The remaining standard surfaces are the excluded
+ones — financial workflows (`/treasury`, `/payments`, `/accounting`, `/finance`,
+`/loyverse*`, `/shift-sales`), employee records (`/employees`, `/attendance`, `/scheduling`)
+and owner-only `/admin`. Each needs its own explicit instruction. `/wiki` and `/brand`
+remain non-standard (`/brand` likely exempt). **Stop after this group.**
+
+## Previous handoff — 28 October 2026 (Wave 4 checkpoint)
 
 **Last code commit:** **`97544e9`** (`Animals: pack the species cards on tablet/desktop`)
 on `ui/reviews-stats-pilot`. Module commits: **`c0ccb6f`** (`/directory`), **`88938fc`**

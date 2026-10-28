@@ -1,20 +1,22 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete; Wave 1 §1, §2 and §3 accepted.** Phase 0 (shared foundation +
-browser-local accent preference) is committed at `ac88b15` on `ui/reviews-stats-pilot`.
-The Reviews Stats pilot remains accepted at `e6e59c3`. **Wave 1 §1** migrated the Reviews
-siblings and is **accepted**. **Wave 1 §2** migrated `/customer-insights` and the Inbox
-filter disclosure and is **accepted**. **Wave 1 §3** migrated `/reports` (`7393230`) and
-`/direction` (`e5c0e9a`); its visual reprise (`0869864`, `45ea595`) is **accepted**.
-`/treasury` and `/payments` remain deferred because they write finance data. The annual
-equivalent-period comparison is a **separate business task**, not implemented (see
+Status: **Phase 0 complete; Wave 1 §1–§3 accepted; `/directory` accepted.** Phase 0 (shared
+foundation + browser-local accent preference) is committed at `ac88b15` on
+`ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`. **Wave 1 §1**
+migrated the Reviews siblings and is **accepted**. **Wave 1 §2** migrated `/customer-insights`
+and the Inbox filter disclosure and is **accepted**. **Wave 1 §3** migrated `/reports`
+(`7393230`) and `/direction` (`e5c0e9a`); its visual reprise (`0869864`, `45ea595`) is
+**accepted**. `/treasury` and `/payments` remain deferred because they write finance data.
+The annual equivalent-period comparison is a **separate business task**, not implemented (see
 `revenue-equivalent-period-proposal.md`): it must use a fixed group of shops covered over
 the whole period in both years, and missing data is never treated as zero.
 
-The next group is **Wave 4 reduced**: `/directory` (contacts) `c0ccb6f` and `/animals`
-`88938fc` — the next non-financial, non-employee modules. Both are **verified, awaiting
-acceptance**. No other module has been migrated. All commits are local: not pushed, merged,
-deployed or migrated.
+**Wave 4 reduced**: `/directory` (`c0ccb6f`) is **accepted**; `/animals` (`88938fc`) is
+**verified, awaiting acceptance**, with its Animals/Vaccines switch moved to the shared pill
+nav in `22806e0`. **Wave 4 §13**: `/documents` (`6f49091`) is **verified, awaiting
+acceptance**. **Wave 5 §15**: `/challenges` (`02cb921`) is **verified, awaiting acceptance**.
+No other module has been migrated. All commits are local: not pushed, merged, deployed or
+migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -29,7 +31,14 @@ future-month Revenue comparison state; `fixes/`, 10 targeted captures of the mob
 strip, pinned table labels and negative amounts).
 Wave 4 evidence: `docs/ui-pilot/wave4/` (`before/` and `after/`, 19 + 19 captures for
 `/directory` and `/animals`: 1440/768/390, light/dark, green/orange, add/edit dialogs,
-vaccines and empty states).
+vaccines and empty states; `fixes/`, 24 captures of the shared-pill Animals/Vaccines switch
+plus `animals-pills-report.json`, 21/21 checks).
+Wave 4b evidence (Documents): `docs/ui-pilot/wave4b/` (`before/` 12, `after/` 17 captures:
+matrix, modal 1440/390, search + empty-filter states, plus `documents-report.json`,
+34/34 checks).
+Wave 5 evidence (Challenges): `docs/ui-pilot/wave5/` (`before/` 60, `after/` 62 captures:
+5 routes × 1440/768/390 × light/dark × green/orange, team view, rules modal, plus
+`challenges-report.json`, 57/57 checks).
 
 ## Principles
 
@@ -417,11 +426,11 @@ Status legend: **pending** = not started; **implemented** = code changed, checks
 complete; **verified** = automated/manual checks pass; **accepted** = user accepted the
 module's result.
 
-Phase 0 is complete, Wave 0 and **Wave 1 §1, §2 and §3 are accepted**. The next group is
-**`/directory` + `/animals`** (Wave 4 reduced), chosen because they are the next
-non-financial, non-employee surfaces; financial workflows (`/treasury`, `/payments`,
-`/accounting`, `/finance`, `/loyverse*`, `/shift-sales`) and employee records
-(`/employees`, `/attendance`, `/scheduling`) stay out of this group.
+Phase 0 is complete, Wave 1 §1–§3 are accepted and `/directory` is **accepted**. The group
+that was just implemented and verified (awaiting acceptance) is **`/documents`** +
+**`/challenges`**; financial workflows (`/treasury`, `/payments`, `/accounting`, `/finance`,
+`/loyverse*`, `/shift-sales`) and employee records (`/employees`, `/attendance`,
+`/scheduling`) stay out of every group until explicitly requested.
 
 Order is by risk: read-only first, then editable tables, then custom interactions, then
 CRUD, then owner-only configuration, then non-standard surfaces. Each wave must be
@@ -478,9 +487,9 @@ surface.
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 12 | `/animals` | Page header, modal, pill, view toggle, date input | Medium — create/edit modal | **verified** (`88938fc`, awaiting acceptance) |
-| 13 | `/documents` | Page header, modal, pill, date input, filters | Medium — upload/metadata forms | pending |
-| 14 | `/directory` (contacts module) | Module tabs, pill | Low–medium — shared list, supplier/shop tabs | **verified** (`c0ccb6f`, awaiting acceptance) |
+| 12 | `/animals` | Page header, modal, pill, view toggle, date input | Medium — create/edit modal | **verified** (`88938fc`, pill switch `22806e0`, awaiting acceptance) |
+| 13 | `/documents` | Page header, modal, pill, date input, filters | Medium — upload/metadata forms | **verified** (`6f49091`, awaiting acceptance) |
+| 14 | `/directory` (contacts module) | Module tabs, pill | Low–medium — shared list, supplier/shop tabs | **accepted** (`c0ccb6f`) |
 
 #### Wave 4 gate
 
@@ -492,15 +501,15 @@ surface.
 | Permissions / data | Pass. `canWrite` owner gating, module guards, create/edit/delete, CSV/PDF, deep links unchanged. |
 | Accents / themes / widths | Pass. 1440/768/390, light/dark, green/orange; no page-level overflow (the pre-migration Animals 390 overflow is fixed). |
 | Tests / typecheck / lint / build | Pass. 251/251; `tsc` clean; only pre-existing ESLint findings; build exit 0. |
-| Captures | Pass. `wave4/before|after/` (19 + 19). |
-| Acceptance | **Pending.** Stop after this group. |
+| Captures | Pass. `wave4/before|after/` (19 + 19) + `wave4/fixes/` (24, pill switch). |
+| Acceptance | **Pending for `/animals`** (with the pill switch). `/directory` is **accepted**. |
 
 
 ### Wave 5 — engagement and administration
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 15 | `/challenges` and its 5 sub-routes | Module tabs, card, filters, modal | Medium — mostly read-only, many tabs | pending |
+| 15 | `/challenges` and its 5 sub-routes | Module tabs, card, filters, modal | Medium — mostly read-only, many tabs | **verified** (`02cb921`, awaiting acceptance) |
 | 16 | `/admin` and its 9 sub-routes; `/employees` (thin wrapper around `EmployeesListClient`) | Module tabs, card, pill button, modal, date input, filters | Very high — owner-only configuration, users, locations, automations | pending |
 
 Why last among standard screens: admin mistakes have the highest consequence, and the
@@ -550,6 +559,7 @@ across waves.
 4. The accent tints selected controls, primary actions and the **primary** chart series.
    Semantic status and multi-series colors stay independent.
 
-Phase 0 is complete; Wave 1 §1, §2 and §3 are **accepted**. The current group is
-`/directory` + `/animals`, **verified and awaiting acceptance**. Stop after it before the
-next group.
+Phase 0 is complete; Wave 1 §1, §2 and §3 are **accepted**, and `/directory` is **accepted**.
+The current group is `/documents` (`6f49091`) + `/challenges` (`02cb921`), **verified and
+awaiting acceptance** — `/animals` (`88938fc` + pill fix `22806e0`) is also still awaiting
+acceptance. Stop after this group before the next one.
