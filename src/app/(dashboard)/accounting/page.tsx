@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import "./accounting.css";
 import { AccountingClient } from "@/modules/accounting/components/AccountingClient";
 import { getAllowedLocationIds } from "@/core/permissions/server";
 import { ACCOUNTING_EXCLUDED_LOCATION_IDS } from "@/lib/constants";

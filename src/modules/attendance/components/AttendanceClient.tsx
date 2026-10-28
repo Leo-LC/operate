@@ -25,7 +25,6 @@ import {
   buildSummary,
 } from "@/modules/attendance/types";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
-import { PageHeader } from "@/components/ui/page-header";
 
 interface ShiftEntry {
   employee_id: string;
@@ -516,32 +515,53 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
-      <PageHeader
-        eyebrow={monthName}
-        title="Attendance"
-        subtitle="Click any day cell to log overtime or leave."
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
-            <MonthPicker
-              value={monthStr}
-              onChange={(m) => { const [y, mo] = m.split("-").map(Number); setYear(y); setMonth(mo); }}
-              minMonth="2000-01"
-              maxMonth={currentMonth()}
-            />
-            <Button size="sm" variant="secondary" onClick={exportMonthPdf} disabled={locationEmployees.length === 0}>
-              <PrinterIcon style={{ width: 14, height: 14 }} />
-              Export month
-            </Button>
-            {isOwner && (
-              <Button variant="ghost" size="sm" onClick={() => setShowSettings((v) => !v)} title="HR Settings">
-                <SettingsIcon style={{ width: 14, height: 14 }} />
-              </Button>
-            )}
+    <div className="att att-shell">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Attendance</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Attendance</h1>
+          <span className="ui-note" style={{ padding: "4px 10px", marginLeft: "auto", fontSize: 12 }}>{monthName} · Click any day cell to log overtime or leave.</span>
+        </div>
+      </header>
+
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="att-shop-label">Shop</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="att-shop-label">
+              <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
+            </div>
           </div>
-        }
-      />
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="att-month-label">Month</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="att-month-label">
+              <MonthPicker
+                value={monthStr}
+                onChange={(m) => { const [y, mo] = m.split("-").map(Number); setYear(y); setMonth(mo); }}
+                minMonth="2000-01"
+                maxMonth={currentMonth()}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
+          <Button size="sm" variant="secondary" onClick={exportMonthPdf} disabled={locationEmployees.length === 0}>
+            <PrinterIcon style={{ width: 14, height: 14 }} />
+            Export month
+          </Button>
+          {isOwner && (
+            <Button variant="ghost" size="sm" onClick={() => setShowSettings((v) => !v)} title="HR Settings">
+              <SettingsIcon style={{ width: 14, height: 14 }} />
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* HR Settings panel */}
       {isOwner && showSettings && (

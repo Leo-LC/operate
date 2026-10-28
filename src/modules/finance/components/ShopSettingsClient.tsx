@@ -6,7 +6,6 @@ import { ArrowRightIcon, BanknoteIcon, ReceiptTextIcon, UsersIcon } from "lucide
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { ShopSingleSelect } from "@/components/ui/filters";
 
 type Location = { id: string; name: string };
@@ -42,8 +41,31 @@ export function ShopSettingsClient() {
   }
 
   const selectedLocation = locations.find((location) => location.id === selectedId);
-  return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-    <PageHeader title="Shop settings" />
+  return <div className="fin fin-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="ui-module-header">
+      <nav aria-label="Breadcrumb">
+        <ol className="ui-breadcrumb">
+          <li>
+            <span aria-current="page">Finance</span>
+            <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+          </li>
+          <li>
+            <span aria-current="page">Shop settings</span>
+          </li>
+        </ol>
+      </nav>
+      <div className="ui-module-header-row">
+        <h1 className="ui-module-title">Shop settings</h1>
+        <nav aria-label="Finance" className="ui-pillnav">
+          <div className="ui-pillnav-item">
+            <a href="/finance/recurring-costs" className="ui-pillnav-link">Recurring costs</a>
+          </div>
+          <div className="ui-pillnav-item">
+            <a href="/finance/shop-settings" aria-current="page" className="ui-pillnav-link" data-active="true">Shop settings</a>
+          </div>
+        </nav>
+      </div>
+    </div>
     <Card style={{ gap: 8 }}><span style={{ fontSize: 12, color: "var(--fg-3)" }}>View</span><ShopSingleSelect options={locations} value={selectedId} onChange={setSelectedId} allowAll /></Card>
     {!selectedId ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 12 }}>{locations.map((location) => {
       const setting = settings.find((item) => item.location_id === location.id); const summary = summaries[location.id] ?? { employeeCount: 0, recurringMonthly: 0 };

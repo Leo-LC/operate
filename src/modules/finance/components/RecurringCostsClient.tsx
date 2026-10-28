@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
-import { PageHeader } from "@/components/ui/page-header";
 import { PillButton } from "@/components/ui/pill-button";
 import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
 import { calcPayroll } from "@/modules/finance/lib/hr";
@@ -247,8 +246,32 @@ export function RecurringCostsClient() {
   }, [costs, locations]);
   const displayedCosts = isAll ? [] : costs;
 
-  return <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-    <PageHeader title="Recurring costs" actions={canManage ? <Button size="sm" onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null} />
+  return <div className="fin fin-shell" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="ui-module-header">
+      <nav aria-label="Breadcrumb">
+        <ol className="ui-breadcrumb">
+          <li>
+            <span aria-current="page">Finance</span>
+            <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+          </li>
+          <li>
+            <span aria-current="page">Recurring costs</span>
+          </li>
+        </ol>
+      </nav>
+      <div className="ui-module-header-row">
+        <h1 className="ui-module-title">Recurring costs</h1>
+        <nav aria-label="Finance" className="ui-pillnav">
+          <div className="ui-pillnav-item">
+            <a href="/finance/recurring-costs" aria-current="page" className="ui-pillnav-link" data-active="true">Recurring costs</a>
+          </div>
+          <div className="ui-pillnav-item">
+            <a href="/finance/shop-settings" className="ui-pillnav-link">Shop settings</a>
+          </div>
+        </nav>
+        {canManage ? <Button size="sm" style={{ marginLeft: "auto" }} onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null}
+      </div>
+    </div>
     <ShopSingleSelect options={locations} value={locationId} onChange={setLocationId} allowAll />
 
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "var(--r-md)", background: "transparent", border: "1px solid var(--line)" }}>

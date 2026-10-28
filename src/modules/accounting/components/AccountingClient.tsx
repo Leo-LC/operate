@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { DownloadIcon, FileDownIcon, UploadIcon, Trash2Icon, EyeIcon, TableIcon, AlertTriangleIcon, XIcon, CloudDownloadIcon, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
-import { PageHeader } from "@/components/ui/page-header";
-import { ViewToggle } from "@/components/ui/view-toggle";
+import { ControlledTabs } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { AccountingFocusDay } from "@/modules/accounting/components/AccountingFocusDay";
 import { MonthlyFixedExpensesTable } from "@/modules/accounting/components/MonthlyFixedExpensesTable";
 import type { DailyEntry } from "@/modules/accounting/types";
@@ -184,10 +184,40 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
   const currentLocationName = locations.find((l) => l.id === locationId)?.name ?? "";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <PageHeader
-        title="Accounting"
-        actions={
+    <div className="acc acc-shell">
+      <TableScrollAffordance />
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Accounting</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Accounting</h1>
+          <ControlledTabs value={view} onChange={(next) => setView(next as typeof view)} tabs={VIEWS.map((v) => ({ value: v.id, label: v.label, icon: v.icon }))} ariaLabel="Accounting view" variant="pills" />
+        </div>
+      </header>
+
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          {locations.length > 1 && (
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="acc-shop-label">Shop</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="acc-shop-label">
+              <ShopSingleSelect options={locations} value={locationId} onChange={setLocationId} />
+            </div>
+          </div>
+          )}
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="acc-month-label">Month</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="acc-month-label">
+              <MonthPicker value={monthStr} onChange={setMonthValue} minMonth="2000-01" maxMonth={currentMonth()} />
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
             {/* Days filled badge */}
             {view !== "fixed" && (
@@ -272,20 +302,8 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
               </Button>
             )}
           </div>
-        }
-      />
-
-      {/* Selectors row */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-3)" }}>
-          {/* Location selector */}
-          {locations.length > 1 && (
-            <ShopSingleSelect options={locations} value={locationId} onChange={setLocationId} />
-          )}
-
-          {/* Month navigation */}
-          <MonthPicker value={monthStr} onChange={setMonthValue} minMonth="2000-01" maxMonth={currentMonth()} />
         </div>
+      </div>
 
       {/* Import confirmation banner */}
       {importConfirm && (
@@ -345,10 +363,6 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           </div>
         </div>
       )}
-
-        {/* View toggle — right side of selectors row */}
-        <ViewToggle value={view} onChange={setView} options={VIEWS.map((v) => ({ value: v.id, label: v.label, icon: v.icon }))} ariaLabel="Accounting view" />
-      </div>
 
       {/* Focus day */}
       {view === "focus" && (
