@@ -55,7 +55,16 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
   const isPrivileged = ["owner", "admin"].includes(userRole);
 
   const [active, setActive] = useState<TabKey>("dashboard");
-  const [visibility, setVisibility] = useState<Record<TabKey, boolean>>(() => loadVisibility());
+  // Server and client must render the SAME initial markup: localStorage is
+  // only read after mount (an initializer reading it caused the hydration
+  // mismatch between the SSR defaults and the browser-stored visibility —
+  // the eye icons differed at first paint).
+  const [visibility, setVisibility] = useState<Record<TabKey, boolean>>(DEFAULT_VISIBILITY);
+
+  // Browser-stored visibility (same-tab persistence) — only meaningful once mounted.
+  useEffect(() => {
+    setVisibility(loadVisibility());
+  }, []);
 
   // Load shared visibility from server (source of truth for Boss)
   useEffect(() => {

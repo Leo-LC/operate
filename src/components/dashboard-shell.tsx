@@ -749,10 +749,11 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
             </kbd>
           </button>
 
-          {/* Theme toggle */}
+          {/* Theme toggle — the title stays server/client-stable until mounted
+              (next-themes resolves the theme after hydration) */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode (T)`}
+            title={mounted ? `Switch to ${theme === "dark" ? "light" : "dark"} mode (T)` : "Toggle theme (T)"}
             style={{
               width: 34,
               height: 34,

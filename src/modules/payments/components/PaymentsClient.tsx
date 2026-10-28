@@ -434,7 +434,7 @@ export function PaymentsClient({ initialLocations }: Props) {
           <div className="ui-filter-row">
             <span className="ui-filter-label" id="pay-shop-label">Shop</span>
             <div className="ui-filter-control" role="group" aria-labelledby="pay-shop-label">
-              <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
+              <ShopSingleSelect options={initialLocations} value={locationId} compactMobile onChange={setLocationId} />
             </div>
           </div>
           <div className="ui-filter-row">

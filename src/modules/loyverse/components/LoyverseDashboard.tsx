@@ -89,90 +89,42 @@ function fmtPct(part: number, total: number) {
   return `${((part / total) * 100).toFixed(1)}%`;
 }
 
-function Donut({ data, colors }: { data: { label: string; value: number; sublabel?: string }[]; colors: string[] }) {
-  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
+/**
+ * Ranked horizontal bars on the shared `.ui-bar-row` classes and the single
+ * accent series — replaces the decorative multi-colour donuts (labels,
+ * values and shares are unchanged; no new metric). The DONUT was dropped
+ * rather than restyled because its colours were assigned by index and
+ * carried no business meaning.
+ */
+function RankedBars({ data }: { data: { label: string; value: number; sublabel?: string }[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">No data</div>;
-  // Attach colors before sorting so each semantic item keeps its color, then sort desc.
-  const sorted = data
-    .map((d, i) => ({ ...d, color: colors[i % colors.length] }))
-    .sort((a, b) => b.value - a.value);
-  let acc = 0;
-  const segments = sorted.map((d, i) => {
-    const start = (acc / total) * 360;
-    acc += d.value;
-    const end = (acc / total) * 360;
-    const large = end - start > 180 ? 1 : 0;
-    const r = 36;
-    const cx = 40, cy = 40;
-    const rad = (deg: number) => (deg - 90) * (Math.PI / 180);
-    const x1 = cx + r * Math.cos(rad(start));
-    const y1 = cy + r * Math.sin(rad(start));
-    const x2 = cx + r * Math.cos(rad(end));
-    const y2 = cy + r * Math.sin(rad(end));
-    const pct = fmtPct(d.value, total);
-    // Full circle (single segment): render as circle instead of degenerate pie path
-    if (start === 0 && end >= 359.999) {
-      return (
-        <g key={d.label}>
-          <title>{`${d.label}: ${fmtTHB(d.value)} (${pct})`}</title>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill={d.color}
-            style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
-            onMouseEnter={() => setHoverIdx(i)}
-            onMouseLeave={() => setHoverIdx(null)}
-          />
-        </g>
-      );
-    }
-    const dAttr = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-    return (
-      <g key={d.label}>
-        <title>{`${d.label}: ${fmtTHB(d.value)} (${pct})`}</title>
-        <path
-          d={dAttr}
-          fill={d.color}
-          style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
-          onMouseEnter={() => setHoverIdx(i)}
-          onMouseLeave={() => setHoverIdx(null)}
-        />
-      </g>
-    );
-  });
+  const sorted = [...data].filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+  const max = Math.max(...sorted.map((d) => d.value));
   return (
-    <div className="flex items-center gap-4">
-      <svg width={80} height={80} viewBox="0 0 80 80" className="shrink-0" role="img" aria-label={`Total ${fmtTHB(total)}`}>
-        <circle cx={40} cy={40} r={36} fill="var(--line-2)" />
-        {segments}
-        <circle cx={40} cy={40} r={18} fill="var(--surface)" />
-      </svg>
-      <div className="flex flex-1 flex-col gap-1.5 text-xs">
-        {sorted.map((d, i) => (
-          <div
-            key={d.label}
-            className="flex flex-col gap-0 rounded px-1 py-0.5 transition-colors"
-            style={{ background: hoverIdx === i ? "var(--line-2)" : "transparent" }}
-            onMouseEnter={() => setHoverIdx(i)}
-            onMouseLeave={() => setHoverIdx(null)}
-            title={`${d.label}: ${fmtTHB(d.value)} (${fmtPct(d.value, total)})`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: d.color }} />
-              <span className="text-[var(--fg-3)]">{d.label}</span>
-              <span className="ml-auto flex items-center gap-1.5">
-                <span className="font-mono tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
-                <span className="min-w-[48px] rounded-full bg-[var(--line-2)] px-1.5 py-0.5 text-center font-mono text-[10px] font-semibold tabular-nums text-[var(--fg-2)]">
-                  {fmtPct(d.value, total)}
-                </span>
-              </span>
-            </div>
-            {d.sublabel && <span className="ml-[18px] text-[10px] leading-none text-[var(--fg-4)]">{d.sublabel}</span>}
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col gap-2 py-1">
+      {sorted.map((d) => (
+        <div key={d.label} className="ui-bar-row" style={{ padding: "4px 0" }}>
+          <span className="text-xs text-[var(--fg-3)]" style={{ flex: "0 0 42%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {d.label}
+          </span>
+          <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--ui-series-track)", overflow: "hidden", minWidth: 0 }}>
+            <span style={{ display: "block", height: "100%", width: `${Math.max(3, (d.value / max) * 100)}%`, borderRadius: 999, background: "var(--ui-series-primary)" }} />
+          </span>
+          <span className="ml-auto flex items-center gap-1.5" style={{ flex: "0 0 auto" }}>
+            <span className="font-mono text-xs tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
+            <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{fmtPct(d.value, total)}</span>
+          </span>
+        </div>
+      ))}
+      {/* sublabels (e.g. surcharge inside card payments) render once, stacked below */}
+      {sorted.map((d) =>
+        d.sublabel ? (
+          <p key={`${d.label}-sub`} className="m-0 text-[10px] leading-none text-[var(--fg-4)]">
+            {d.label}: {d.sublabel}
+          </p>
+        ) : null,
+      )}
     </div>
   );
 }
@@ -781,15 +733,14 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <CardTitle>Sales buckets</CardTitle>
             </CardHeader>
             <CardContent>
-              <Donut
+              <RankedBars
                 data={[
                   { label: "Drinks", value: perStore.reduce((s, r) => s + r.buckets.drinks, 0) },
                   { label: "Ticket", value: perStore.reduce((s, r) => s + r.buckets.ticket, 0) },
                   { label: "Animal Food", value: perStore.reduce((s, r) => s + r.buckets.snack, 0) },
                   { label: "Goodies", value: perStore.reduce((s, r) => s + r.buckets.goodies, 0) },
                   { label: "Surcharge", value: perStore.reduce((s, r) => s + r.buckets.surcharge, 0) },
-                ].filter((d) => d.value > 0)}
-                colors={["var(--chart-1)", "var(--purple)", "var(--good)", "var(--amber)", "var(--fg-4)"]}
+                ]}
               />
             </CardContent>
           </Card>
@@ -801,7 +752,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               {(() => {
                 const surcharge = perStore.reduce((s, r) => s + r.buckets.surcharge, 0);
                 return (
-                  <Donut
+                  <RankedBars
                     data={[
                       { label: "Cash", value: perStore.reduce((s, r) => s + r.payments.cash, 0) },
                       { label: "Scan/QR", value: perStore.reduce((s, r) => s + r.payments.scan, 0) },
@@ -810,8 +761,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                         value: perStore.reduce((s, r) => s + r.payments.credit_card, 0),
                         sublabel: surcharge > 0 ? `incl. ${fmtTHB(surcharge)} fees` : undefined,
                       },
-                    ].filter((d) => d.value > 0)}
-                    colors={["var(--good)", "var(--amber)", "var(--chart-1)"]}
+                    ]}
                   />
                 );
               })()}
@@ -822,11 +772,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <CardTitle>Revenue by shop</CardTitle>
             </CardHeader>
             <CardContent>
-              <Donut
+              <RankedBars
                 data={perStore
-                  .map((s) => ({ label: capitalizeShop(s.account_key), value: s.revenue_total }))
-                  .sort((a, b) => b.value - a.value)}
-                colors={["var(--chart-1)", "var(--purple)", "var(--good)", "var(--amber)", "var(--bad)", "var(--chart-7)", "var(--chart-8)", "var(--fg-4)"]}
+                  .map((s) => ({ label: capitalizeShop(s.account_key), value: s.revenue_total }))}
               />
             </CardContent>
           </Card>

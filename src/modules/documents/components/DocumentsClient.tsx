@@ -357,7 +357,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           <div className="ui-filter-row">
             <span className="ui-filter-label" id="doc-shop-label">Shop</span>
             <div className="ui-filter-control" role="group" aria-labelledby="doc-shop-label">
-              <ShopSingleSelect options={locations} value={locationFilter} onChange={setLocationFilter} allowAll />
+              <ShopSingleSelect options={locations} value={locationFilter} compactMobile onChange={setLocationFilter} allowAll />
             </div>
           </div>
           <div className="ui-filter-row">

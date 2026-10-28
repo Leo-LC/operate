@@ -535,7 +535,7 @@ export function AttendanceClient({ initialLocations, isOwner }: Props) {
           <div className="ui-filter-row">
             <span className="ui-filter-label" id="att-shop-label">Shop</span>
             <div className="ui-filter-control" role="group" aria-labelledby="att-shop-label">
-              <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
+              <ShopSingleSelect options={initialLocations} value={locationId} compactMobile onChange={setLocationId} />
             </div>
           </div>
           <div className="ui-filter-row">

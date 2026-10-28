@@ -911,3 +911,52 @@
 .nexus-dp .rdp-in-week .rdp-day_button { background: var(--accent-soft); border-radius: 0; }
 .nexus-dp .rdp-in-week_first .rdp-day_button { border-radius: 6px 0 0 6px; }
 .nexus-dp .rdp-in-week_last .rdp-day_button { border-radius: 0 6px 6px 0; }
+
+  /* Compact single-shop filter (mobile disclosure for pill-based shop filters) */
+  .shop-compact {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .shop-compact-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: var(--ui-control-h);
+    min-width: 0;
+    padding: 0 12px;
+    border: var(--ui-line-width) solid var(--ui-control-line);
+    border-radius: 999px;
+    background: var(--ui-panel);
+    color: var(--ui-fg-1);
+    font-family: inherit;
+    font-size: var(--ui-text-body);
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 260px;
+  }
+
+  .shop-compact-trigger[aria-expanded="true"] {
+    border-color: var(--ui-accent);
+  }
+
+  .shop-compact-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    background: var(--ui-panel);
+    box-shadow: var(--ui-shadow-raised);
+    max-width: min(340px, calc(100vw - 48px));
+  }
