@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
-import { ViewToggle } from "@/components/ui/view-toggle";
+import { ControlledTabs } from "@/components/ui/module-tabs";
 import { Pill } from "@/components/ui/pill";
 import { ShopSingleSelect } from "@/components/ui/filters";
 import { PlusIcon, DownloadIcon, ListIcon, SyringeIcon, CopyIcon, TrashIcon, CheckIcon, XIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
@@ -200,14 +200,15 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
         </nav>
         <div className="ui-module-header-row">
           <h1 className="ui-module-title">Animals</h1>
-          <ViewToggle
+          <ControlledTabs
             value={view}
-            onChange={setView}
-            options={[
+            onChange={(next) => setView(next as ViewMode)}
+            tabs={[
               { value: "animals", label: "Animals", icon: ListIcon },
               { value: "vaccines", label: "Vaccines", icon: SyringeIcon },
             ]}
             ariaLabel="Animals view"
+            variant="pills"
           />
         </div>
       </div>
