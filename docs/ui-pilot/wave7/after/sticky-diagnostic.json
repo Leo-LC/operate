@@ -1,13 +1,13 @@
 {
   "scrollable": "",
-  "scrollW": 924,
+  "scrollW": 884,
   "clientW": 364,
-  "scrollLeft": 560,
+  "scrollLeft": 520,
   "cellPosition": "sticky",
   "cellLeft": "28px",
   "cellBg": "rgb(255, 255, 255)",
   "cellZ": "2",
-  "gridTemplate": "28px 220px 110px 110px 130px 130px 90px 90px",
+  "gridTemplate": "28px 180px 110px 110px 130px 130px 90px 90px",
   "paintStackAt12px": [
     "ui-table-scroll pay-scroll",
     "DIV",
@@ -15,16 +15,16 @@
     "pay"
   ],
   "paintStackAt120px": [
-    "inline-flex items-center justify-center shri",
-    "DIV",
-    "mono tabular-nums",
-    "pay-grid pay-row group/row"
-  ],
-  "paintStackAt255px": [
     "DIV",
     "DIV",
     "DIV",
     "mono tabular-nums"
+  ],
+  "paintStackAt255px": [
+    "mono tabular-nums",
+    "pay-grid pay-row group/row",
+    "ui-table-scroll pay-scroll",
+    "DIV"
   ],
   "headerProbe": {
     "headRectTop": 609.6875,

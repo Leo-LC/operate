@@ -252,3 +252,40 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* ── Cash counter desktop layout ───────────────────────────────────────────
+   Task-adapted panels: the counting surface (input) beside the history
+   (consultation) so the wide desktop stops floating the counter in empty
+   space. Logic, keyboard model and data flow are untouched. */
+
+.trs-counter-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trs-counter-history {
+  padding-top: 16px;
+}
+
+@media (min-width: 1024px) {
+  .trs-counter-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .trs-counter-surface {
+    max-width: 520px;
+  }
+
+  .trs-counter-history {
+    padding-top: 0;
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    background: var(--ui-panel);
+    box-shadow: var(--ui-shadow);
+    padding: 12px 4px 8px;
+  }
+}

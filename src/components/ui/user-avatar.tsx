@@ -31,9 +31,12 @@ const SIZES: Record<AvatarSize, { wh: number; fontSize: number }> = {
 interface UserAvatarProps extends React.ComponentProps<"div"> {
   name: string
   size?: AvatarSize
+  /** Neutral treatment (panel background, quiet border) instead of the
+      deterministic decorative hue. Opt-in; existing callers keep colors. */
+  neutral?: boolean
 }
 
-export function UserAvatar({ name, size = 28, className, style, ...props }: UserAvatarProps) {
+export function UserAvatar({ name, size = 28, neutral = false, className, style, ...props }: UserAvatarProps) {
   const { wh, fontSize } = SIZES[size]
   return (
     <div
@@ -43,10 +46,11 @@ export function UserAvatar({ name, size = 28, className, style, ...props }: User
         width: wh,
         height: wh,
         borderRadius: "var(--r-pill)",
-        background: deterministicBg(name),
+        background: neutral ? "var(--ui-panel-2)" : deterministicBg(name),
+        border: neutral ? "1px solid var(--ui-line)" : undefined,
         fontSize,
         fontWeight: 600,
-        color: "#fff",
+        color: neutral ? "var(--ui-fg-2)" : "#fff",
         letterSpacing: "0.02em",
         fontFamily: "var(--font-sans)",
         ...style,

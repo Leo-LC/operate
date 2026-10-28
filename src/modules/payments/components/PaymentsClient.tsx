@@ -69,8 +69,15 @@ export function PaymentsClient({ initialLocations }: Props) {
   const monthName = new Date(year, month - 1, 1).toLocaleDateString("en", { month: "long", year: "numeric" });
   const monthDays = new Date(year, month, 0).getDate();
 
+  // Guards against stale responses: when the shop/month filter changes faster
+  // than the network answers, only the response for the CURRENT filter may
+  // hydrate the screen. Presentation-level concurrency fix — fetches, params
+  // and contracts are unchanged.
+  const loadSeq = useRef(0);
+
   const loadData = useCallback(async () => {
     if (!locationId) return;
+    const seq = ++loadSeq.current;
     setLoading(true);
     try {
       const [recRes, empRes, revRes] = await Promise.all([
@@ -78,6 +85,7 @@ export function PaymentsClient({ initialLocations }: Props) {
         fetch("/api/admin/employees"),
         fetch(`/api/payments/revenue?year=${year}&month=${month}&location_id=${encodeURIComponent(locationId)}`),
       ]);
+      if (seq !== loadSeq.current) return; // a newer filter change superseded this response
       const recData = await recRes.json();
       const empData = await empRes.json();
       const revData = await revRes.json().catch(() => ({}));
@@ -85,7 +93,7 @@ export function PaymentsClient({ initialLocations }: Props) {
       setEmployees(Array.isArray(empData) ? empData as Employee[] : []);
       setRevenue(revRes.ok && typeof (revData as { revenue?: number }).revenue === "number" ? (revData as { revenue: number }).revenue : null);
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [locationId, year, month]);
 
@@ -395,7 +403,7 @@ export function PaymentsClient({ initialLocations }: Props) {
   const showLiveTotal = liveTotals != null && (previewCount > 0 || Math.round(liveTotals.total) !== Math.round(totals.total));
 
   return (
-    <div className="pay pay-shell">
+    <div className="pay-shell">
       <TableScrollAffordance />
       <header className="ui-module-header">
         <nav aria-label="Breadcrumb">
@@ -534,7 +542,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
                   {/* Employee */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <UserAvatar name={fullName} size={28} />
+                    <UserAvatar name={fullName} size={28} neutral />
                     <div>
                       <button
                         type="button"
@@ -709,7 +717,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                     transition: "background var(--dur) var(--ease)",
                   }}
                 >
-                  <UserAvatar name={fullName} size={32} />
+                  <UserAvatar name={fullName} size={32} neutral />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{fullName}</div>
                     <div className="mono tabular-nums" style={{ fontSize: 12, color: "var(--fg-4)" }}>
@@ -736,7 +744,7 @@ export function PaymentsClient({ initialLocations }: Props) {
             >
               {/* Header */}
               <div style={{ padding: "var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "var(--s-4)" }}>
-                <UserAvatar name={`${selectedEmployee.first_name} ${selectedEmployee.last_name ?? ""}`.trim()} size={40} />
+                <UserAvatar name={`${selectedEmployee.first_name} ${selectedEmployee.last_name ?? ""}`.trim()} size={40} neutral />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 500, color: "var(--fg)" }}>
                     {selectedEmployee.first_name} {selectedEmployee.last_name}

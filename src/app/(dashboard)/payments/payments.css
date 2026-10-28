@@ -152,10 +152,11 @@
 @media (max-width: 1023px) {
   /* fr would collapse the Employee column inside the narrow scroll
      container — give it a fixed width so the pinned column holds. Cells
-     touch (no gap) so scrolled content cannot show through the seams. */
+     touch (no gap) so scrolled content cannot show through the seams. The
+     pinned band stays narrow (checkbox + 180px name column) on phones. */
   .pay-scroll .pay-grid {
-    grid-template-columns: 28px 220px 110px 110px 130px 130px 90px 90px;
-    min-width: 920px;
+    grid-template-columns: 28px 180px 110px 110px 130px 130px 90px 90px;
+    min-width: 880px;
     gap: 0;
   }
 
