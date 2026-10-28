@@ -1,21 +1,70 @@
 # Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1–§3, Directory/Animals
 
-## Status — 28 October 2026
+## Final handoff — 28 October 2026
 
-- **Accepted:** Phase 0, Wave 0, Wave 1 §1 (Reviews siblings), §2 (Customer Insights),
-  §3 (Reports + Direction, including the visual reprise `0869864` / `45ea595`).
-- **Separate business task, not implemented:** annual equivalent-period comparison. It must
-  use a **fixed group of shops covered over the whole period in both years**; missing data
-  is **absent, never zero**. See `revenue-equivalent-period-proposal.md`.
-- **Current group:** `/directory` (contacts) + `/animals` — **verified, awaiting
-  acceptance**. Excluded from this group: `/treasury`, `/payments`, `/accounting`,
-  `/finance`, `/loyverse*`, `/shift-sales`, `/employees`, `/attendance`, `/scheduling`.
-- All commits are local; **not pushed, merged, deployed or migrated**. Stop after this group.
+**Last code commit:** **`97544e9`** (`Animals: pack the species cards on tablet/desktop`)
+on `ui/reviews-stats-pilot`. Module commits: **`c0ccb6f`** (`/directory`), **`88938fc`**
+(`/animals`), plus the KPI-packing polish **`97544e9`**; documentation **`7d25723`**. This
+handoff file is the **sole change in the final documentation commit** on top of `97544e9`.
+Everything is local — **not pushed, merged, deployed or migrated**.
+
+**Working tree:** clean for every tracked source and documentation file. The only remaining
+changes are unrelated and deliberately left unstaged:
+
+- deleted (pre-existing, not by this work): `docs/operate-os-redesign-plan.md` and the five
+  `docs/superpowers/{plans,specs}/…` files;
+- untracked artifacts: `.agents/`, `docs/ui-pilot/wave1/ci-after.zip`,
+  `docs/ui-pilot/wave1b/fixes.zip`, `docs/ui-pilot/wave4.zip`,
+  `operate-ui-pilot-repo-files.zip`, `skills-lock.json`.
+
+Do not restore, delete or commit those without the owner's instruction.
+
+**Modules completed**
+
+| Wave | Surface | Status |
+| --- | --- | --- |
+| Phase 0 / Wave 0 | foundation, accent preference, `reviews/stats` | **accepted** |
+| Wave 1 §1 | Reviews siblings | **accepted** |
+| Wave 1 §2 | `/customer-insights` + Inbox filter disclosure | **accepted** |
+| Wave 1 §3 | `/reports`, `/direction` + visual reprise | **accepted** |
+| Wave 4 (reduced) | `/directory` (contacts), `/animals` | **verified — awaiting acceptance** |
+
+**Validations still awaited**
+
+1. **User acceptance of `/directory` + `/animals`.** Evidence:
+   `docs/ui-pilot/wave4/before|after/` (19 + 19); 25/25 interaction checks; 251/251 tests;
+   `tsc` clean; build exit 0.
+2. **Annual equivalent-period comparison — business decision.** Not implemented. It must use
+   a **fixed group of shops covered over the whole period in both years**, and a missing
+   source row is **absent, never zero**. See `revenue-equivalent-period-proposal.md`.
+3. Optional: production data, a second role account and physical touch devices (see limits).
+
+**Known limits**
+
+- Only the preview **owner** account exists locally; non-owner rendering of `/direction`,
+  `/directory` and `/animals` was not exercised.
+- Verification ran against the **local Supabase database**, not production. `/api/locations`
+  returns 503 without a Google token; `/api/direction/tabs` returns all `false` locally.
+- **No physical touch devices**; responsive checks are Playwright emulation.
+- Directory: the search is client-side and only one contact exists locally; it never filters
+  shops (unchanged).
+- Animals: the full list (108 rows) loads without pagination; CSV/PDF links were verified
+  present, not downloaded.
+- **Prior-year revenue is monthly and partial** (2025 has no daily rows, 2–4 shops/month).
+  The current cumulative therefore is not like-for-like; the proposal documents the limits.
+
+**Recommended next group:** **`/documents` + `/challenges`**, in that order — the remaining
+non-financial, non-employee surfaces in the rollout. `/documents` needs upload/metadata form
+checks; `/challenges` is mostly read-only but spans five routes. Keep `/admin`, `/employees`,
+`/attendance`, `/scheduling`, `/treasury`, `/payments`, `/accounting`, `/finance`,
+`/loyverse*` and `/shift-sales` out of this group. `/wiki` and `/brand` remain non-standard
+(`/brand` likely exempt).
 
 ## Wave 4 checkpoint — Directory + Animals
 
-Checkpoint: **`c0ccb6f`** (`/directory`) and **`88938fc`** (`/animals`) on
-`ui/reviews-stats-pilot`. Local commits; not pushed, merged, deployed or migrated.
+Checkpoint: **`c0ccb6f`** (`/directory`), **`88938fc`** (`/animals`) and **`97544e9`**
+(KPI packing polish) on `ui/reviews-stats-pilot`. Local commits; not pushed, merged,
+deployed or migrated.
 
 Scope: `/directory` (shops + contacts) and `/animals`, the next non-financial,
 non-employee modules. Financial workflows and employee records were excluded.
@@ -47,7 +96,7 @@ only pre-existing ESLint findings; build exit 0. Evidence: `docs/ui-pilot/wave4/
 Pending:
 
 1. **User acceptance** for `/directory` + `/animals`; stop after this group.
-2. `/documents` and `/challenges` remain pending for later groups; `/admin`, `/employees`,
+2. Next group recommended: `/documents` + `/challenges`. `/admin`, `/employees`,
    `/attendance`, `/scheduling` and financial workflows stay excluded.
 
 
@@ -158,8 +207,9 @@ captures). Interaction suite **25/25**. Parity for the same period/shop before �
 
 ### Pending
 
-1. **Accepted** for §1, §2 and §3 (visual reprise included). The next group is
-   `/directory` + `/animals`; stop after it.
+1. **Accepted** for §1, §2 and §3 (visual reprise included). The next group
+   (`/directory` + `/animals`) was then implemented and is **verified, awaiting
+   acceptance** — see the final handoff at the top.
 2. **Business decision — equivalent-period comparison.** Choose between the cumulative
    complete period (recommended) and an estimated same-days comparison; see
    `revenue-equivalent-period-proposal.md`. The comparable scope must be a **fixed group of
