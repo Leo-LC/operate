@@ -104,16 +104,16 @@ function RankedBars({ data }: { data: { label: string; value: number; sublabel?:
   return (
     <div className="flex flex-col gap-2 py-1">
       {sorted.map((d) => (
-        <div key={d.label} className="ui-bar-row" style={{ padding: "4px 0" }}>
-          <span className="text-xs text-[var(--fg-3)]" style={{ flex: "0 0 42%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
+          <span className="text-xs text-[var(--fg-3)]" style={{ flex: "0 0 34%", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {d.label}
           </span>
           <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--ui-series-track)", overflow: "hidden", minWidth: 0 }}>
             <span style={{ display: "block", height: "100%", width: `${Math.max(3, (d.value / max) * 100)}%`, borderRadius: 999, background: "var(--ui-series-primary)" }} />
           </span>
-          <span className="ml-auto flex items-center gap-1.5" style={{ flex: "0 0 auto" }}>
+          <span className="flex items-center justify-end gap-1.5" style={{ flex: "0 0 auto" }}>
             <span className="font-mono text-xs tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
-            <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]">{fmtPct(d.value, total)}</span>
+            <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]" style={{ width: 40, textAlign: "right" }}>{fmtPct(d.value, total)}</span>
           </span>
         </div>
       ))}
