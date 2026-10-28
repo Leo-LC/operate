@@ -317,13 +317,14 @@
 
   .ui-filter-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     min-width: 0;
   }
 
   .ui-filter-label {
     flex: 0 0 62px;
+    padding-top: 8px;
     font-size: var(--ui-text-caption);
     font-weight: 500;
     color: var(--ui-fg-3);

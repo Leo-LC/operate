@@ -14,6 +14,7 @@ import type {
   SupplierOrder,
   SupplierProduct,
 } from "@/modules/directory/types";
+import "./directory.css";
 
 function pick(row: Record<string, unknown>, key: string): string | null {
   const v = row[key];
