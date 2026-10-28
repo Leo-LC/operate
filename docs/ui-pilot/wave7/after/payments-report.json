@@ -1,0 +1,224 @@
+{
+  "suite": "payments-migration",
+  "mode": "after",
+  "total": 43,
+  "passed": 43,
+  "writes_intercepted": 8,
+  "results": [
+    {
+      "check": "module header present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compact title",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "breadcrumb present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no legacy PageHeader",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "view pills Table/Detail",
+      "pass": true,
+      "detail": "n=2"
+    },
+    {
+      "check": "Table pill selected initially",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "filter labels Shop/Month",
+      "pass": true,
+      "detail": "['Shop', 'Month']"
+    },
+    {
+      "check": "actions in toolbar",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "three KPI cards",
+      "pass": true,
+      "detail": "count=3"
+    },
+    {
+      "check": "KPI labels preserved",
+      "pass": true,
+      "detail": "['Location revenue', 'Total payroll', 'Employees']"
+    },
+    {
+      "check": "unauthenticated GET rejected",
+      "pass": true,
+      "detail": "status=401"
+    },
+    {
+      "check": "unauthenticated calculate rejected",
+      "pass": true,
+      "detail": "status=401"
+    },
+    {
+      "check": "detail view shows two panes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "Detail pill selected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "back to table view",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "shop filter control present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "shop change writes nothing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "fixture totals identical before/after",
+      "pass": true,
+      "detail": "{\"Location revenue\": \"\u0e3f615,000\", \"Total payroll\": \"\u0e3f513,750\", \"Employees\": \"12\"} vs {\"Location revenue\": \"\u0e3f615,000\", \"Total payroll\": \"\u0e3f513,750\", \"Employees\": \"12\"}"
+    },
+    {
+      "check": "fixture row0 identical before/after",
+      "pass": true,
+      "detail": "SS | Somchai Srisawat | Chiang Mai | \u0e3f15,000/mo | \u0e3f15,000 | \u0e3f18,000 | \u2212\u0e3f250 (2) | \u0e3f32,750 | \u0e3f32,750 | \u2014"
+    },
+    {
+      "check": "negative adjustments keep their sign",
+      "pass": true,
+      "detail": "SS | Somchai Srisawat | Chiang Mai | \u0e3f15,000/mo | \u0e3f15,000 | \u0e3f18,000 | \u2212\u0e3f250 (2) | \u0e3f32,750 | \u0e3f32,750 | \u2014"
+    },
+    {
+      "check": "payment modal opens from row click",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "Esc closes payment modal (no write)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "override without reason blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no PATCH sent without reason",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "payment PATCH intercepted once",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "payment updated toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "modal closed after save",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "payment save error toast",
+      "pass": true,
+      "detail": "Isolated failure; Payment updated"
+    },
+    {
+      "check": "adjustment POST intercepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "adjustment added toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "zero-amount adjustment blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "generate POST intercepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "generate success toast",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "generate error toast",
+      "pass": true,
+      "detail": "Isolated failure; Period generated"
+    },
+    {
+      "check": "generate double-click guarded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "employee modal opens",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "employee PATCH intercepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "race observation done (documented, no guard changed)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no horizontal overflow at 390px",
+      "pass": true,
+      "detail": "overflowPx=0"
+    },
+    {
+      "check": "no horizontal overflow at 768px",
+      "pass": true,
+      "detail": "overflowPx=0"
+    },
+    {
+      "check": "no horizontal overflow at 1440px",
+      "pass": true,
+      "detail": "overflowPx=0"
+    },
+    {
+      "check": "active pill uses orange accent",
+      "pass": true,
+      "detail": "rgb(180, 83, 9)"
+    },
+    {
+      "check": "active pill uses green accent",
+      "pass": true,
+      "detail": "rgb(44, 111, 76)"
+    }
+  ]
+}
