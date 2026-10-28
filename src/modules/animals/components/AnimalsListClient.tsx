@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useMemo, useEffect, type ReactNode } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { KpiStat } from "@/components/ui/kpi-stat";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { Pill } from "@/components/ui/pill";
 import { ShopSingleSelect } from "@/components/ui/filters";
@@ -182,66 +184,85 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
-      <PageHeader
-        title="Animals"
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <ViewToggle
-              value={view}
-              onChange={setView}
-              options={[
-                { value: "animals", label: "Animals", icon: ListIcon },
-                { value: "vaccines", label: "Vaccines", icon: SyringeIcon },
-              ]}
-              ariaLabel="Animals view"
-            />
-            <a href="/api/animals/export" download style={{ textDecoration: "none" }}>
-              <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> CSV</Button>
-            </a>
-            <a href="/api/animals/export/pdf" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-              <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> PDF</Button>
-            </a>
-            <Button size="sm" variant="primary" onClick={() => setModal({ animal: null })}>
-              <PlusIcon style={{ width: 13, height: 13 }} /> Add animal
-            </Button>
-          </div>
-        }
-      />
+    <div className="animals">
+      <TableScrollAffordance />
+      <div className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <Link href="/animals">Animals</Link>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{view === "animals" ? "Animals" : "Vaccines"}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Animals</h1>
+          <ViewToggle
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "animals", label: "Animals", icon: ListIcon },
+              { value: "vaccines", label: "Vaccines", icon: SyringeIcon },
+            ]}
+            ariaLabel="Animals view"
+          />
+        </div>
+      </div>
 
-      {/* Shop selector */}
-      <ShopSingleSelect options={locations} value={shopFilter} onChange={setShopFilter} allowAll />
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="animals-shop-label">
+              Boutique
+            </span>
+            <div className="ui-filter-control" role="group" aria-labelledby="animals-shop-label">
+              <ShopSingleSelect options={locations} value={shopFilter} onChange={setShopFilter} allowAll allLabel="Toutes les boutiques" />
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
+          <a href="/api/animals/export" download style={{ textDecoration: "none" }}>
+            <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> CSV</Button>
+          </a>
+          <a href="/api/animals/export/pdf" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+            <Button size="sm" variant="secondary"><DownloadIcon style={{ width: 13, height: 13 }} /> PDF</Button>
+          </a>
+          <Button size="sm" variant="primary" onClick={() => setModal({ animal: null })}>
+            <PlusIcon style={{ width: 13, height: 13 }} /> Add animal
+          </Button>
+        </div>
+      </div>
 
       {view === "animals" ? (
         /* ── Animals view ──────────────────────────────────────────────── */
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
           {/* Summary cards — dynamic per species */}
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(128px, 1fr))`, gap: 10 }}>
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: "12px 14px" }}>
-              <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Animals</p>
-              <p className="mono" style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{displayedAnimals.length}</p>
-            </div>
+          <div className="ui-kpi-grid">
+            <KpiStat
+              label="Animals"
+              value={String(displayedAnimals.length)}
+              hint={shopFilter ? "Boutique sélectionnée" : "Toutes les boutiques"}
+            />
             {speciesCards.map((sp) => (
-              <div key={sp.key} style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: "12px 14px" }}>
-                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4, textTransform: "capitalize" }}>{sp.label}</p>
-                <p className="mono" style={{ fontSize: 18, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{speciesCounts.get(sp.key) ?? 0}</p>
-              </div>
+              <KpiStat
+                key={sp.key}
+                label={sp.label.charAt(0).toUpperCase() + sp.label.slice(1)}
+                value={String(speciesCounts.get(sp.key) ?? 0)}
+              />
             ))}
-            {speciesCards.length === 0 && (
-              <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent", padding: "12px 14px", opacity: 0.6 }}>
-                <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>Species</p>
-                <p className="mono" style={{ fontSize: 18, fontWeight: 600 }}>—</p>
-              </div>
-            )}
+            {speciesCards.length === 0 && <KpiStat label="Espèces" value="—" />}
           </div>
 
           {/* Animal list */}
           {displayedAnimals.length === 0 ? (
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", background: "transparent", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
+            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", padding: "48px var(--s-5)", background: "var(--surface)", textAlign: "center", color: "var(--fg-4)", fontSize: 13 }}>
               No animals found — add one to get started.
             </div>
           ) : (
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "transparent" }}>
+            <div className="ui-table-scroll" style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "var(--bg-2)", borderBottom: "1px solid var(--line)" }}>
@@ -258,6 +279,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                       <th
                         key={i}
                         onClick={() => col.sortable && col.key && toggleSort(col.key)}
+                        aria-sort={col.sortable && col.key ? (sortKey === col.key ? (sortDir === "asc" ? "ascending" : "descending") : "none") : undefined}
                         style={{
                           padding: "10px var(--s-5)", textAlign: i === 4 ? "center" : "left",
                           color: "var(--fg-3)", fontWeight: 500, fontSize: 12,
@@ -372,7 +394,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             </span>
           </div>
 
-          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden", background: "transparent", padding: "var(--s-4)" }}>
+          <div className="animals-panel">
             <VaccinationUrgencyList animals={displayedAnimals} locations={locations} onOpen={(a) => setModal({ animal: a })} />
           </div>
         </div>
@@ -391,7 +413,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
           <div style={{
             width: "100%", maxWidth: 400,
             borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "transparent", padding: 24,
+            background: "var(--surface)", padding: 24,
             boxShadow: "var(--shadow-2)",
           }}>
             <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Supprimer {deleteTarget.name} ?</h2>
@@ -470,9 +492,10 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
               onClick={() => onOpen(a)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(a); }}
               style={{
-                display: "flex",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto",
                 alignItems: "center",
-                justifyContent: "space-between",
+                gap: "4px 12px",
                 padding: "10px 16px",
                 fontSize: 13,
                 borderTop: i === 0 ? "none" : "1px solid var(--line)",
@@ -482,14 +505,14 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
               onMouseEnter={(e) => (e.currentTarget.style.background = "var(--row-hover)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontWeight: 500, color: "var(--fg)" }}>{a.name}</span>
+              <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "2px 8px", minWidth: 0 }}>
+                <span style={{ fontWeight: 500, color: "var(--fg)", overflowWrap: "anywhere" }}>{a.name}</span>
                 <span style={{ fontSize: 12, color: "var(--fg-3)", textTransform: "capitalize" }}>{a.species}</span>
                 {a.location_id && <span style={{ fontSize: 12, color: "var(--fg-4)" }}>{locMap[a.location_id] ?? ""}</span>}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, justifySelf: "end", flexShrink: 0 }}>
                 {a.next_vaccination_date && (
-                  <span className="mono" style={{ fontSize: 12, color: "var(--fg-4)" }}>{a.next_vaccination_date}</span>
+                  <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)", whiteSpace: "nowrap" }}>{a.next_vaccination_date}</span>
                 )}
                 {badge(a)}
               </div>
@@ -502,7 +525,7 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
 
   if (overdue.length === 0 && due30.length === 0 && due60.length === 0 && upcoming.length === 0 && noDate.length === 0) {
     return (
-      <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", padding: "48px 0", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
+      <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", padding: "48px 0", textAlign: "center", fontSize: 13, color: "var(--fg-4)", background: "var(--surface)" }}>
         No animals with vaccination data yet.
       </div>
     );

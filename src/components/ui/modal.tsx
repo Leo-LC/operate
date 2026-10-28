@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Dialog as ModalPrimitive } from "@base-ui/react/dialog"
 import { XIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface ModalProps {
   open: boolean
@@ -14,6 +15,8 @@ interface ModalProps {
   width?: number
   /** Compact dialogs (one or two rows): shrink to content instead of filling available height. */
   compact?: boolean
+  /** Optional module class (e.g. a scoped token bridge) applied to the portalled popup. */
+  className?: string
 }
 
 export function Modal({
@@ -25,6 +28,7 @@ export function Modal({
   footer,
   width = 560,
   compact = false,
+  className,
 }: ModalProps) {
   return (
     <ModalPrimitive.Root open={open} onOpenChange={(v) => { if (!v) onClose() }}>
@@ -38,7 +42,7 @@ export function Modal({
           }}
         />
         <ModalPrimitive.Popup
-          className="fixed inset-0 z-50 m-auto flex max-h-[90vh] w-full max-w-[92vw] flex-col data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95"
+          className={cn("fixed inset-0 z-50 m-auto flex max-h-[90vh] w-full max-w-[92vw] flex-col data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95", className)}
           style={{
             maxWidth: `min(${width}px, 92vw)`,
             background: "var(--surface)",
