@@ -403,6 +403,58 @@ plus cash-position edit, reserve form and shortcuts-popover states.
   (e.g. `20=25` → "Invalid amount" → revert). Selecting the text first (double-click)
   works as expected; `CashCounter.tsx` is byte-identical to before the migration.
 - Physical touch devices — Playwright emulation only.
+- **Finish point (kept open):** the desktop layout of the **cash counter** (the 520 px
+  centred surface) is the remaining polish item on `/treasury` — the owner asked to keep
+  it as the outstanding refinement.
+
+## Wave 1 deferred — Payments (`666f971`)
+
+Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Scope: `/payments` only. `/accounting`, `/finance`, `/loyverse*`, `/attendance`,
+`/scheduling`, `/admin` and `/employees` remain **not started**.
+
+| Area | File | Change |
+| --- | --- | --- |
+| Payments bridge | `src/app/(dashboard)/payments/payments.css` (new) | `.pay` scoped token bridge from the route page; responsive classes for the payment grid, totals rows and the detail two-pane; pinned leading band below 1024 px. |
+| Page | `src/app/(dashboard)/payments/page.tsx` | Imports the route CSS; the legacy card wrapper is removed; the no-access state is on the module tokens (guard + location scoping unchanged). |
+| Shell | `PaymentsClient.tsx` | Shared module header (breadcrumb `Payments`, compact title) with the **two real views — Table/Detail — as shared pills** (`ControlledTabs variant="pills"`, same anatomy as Animals); `Shop`/`Month` become labelled filter rows with `Generate period` + `PDF` right in the toolbar; the three `Stat` tiles become `KpiStat` on `.ui-kpi-grid` (hints preserved, "—" honest values). |
+| Table | same file | The 8-column grid (checkbox, Employee, Base, Svc chg, Adjustments, Total, Cash, Transfer) is shared via `.pay-grid` (header, rows, totals, live-total rows). Below 1024 px it scrolls inside `.ui-table-scroll` with the leading band pinned opaque (stretched cells — the grid centers cells, which collapsed empty ones to height 0 and let content show through). |
+| Detail | same file | Two-pane (320 px list + detail) stacks on phones; selection, Slip PDF and Edit payment unchanged. |
+| Unchanged on purpose | modals, `types.ts`, all API routes | The employee modal (Enter=save / Esc=close), the payment modal (override needs a reason, adjustments add/delete, total), the PDF/HTML export, `fmtThb()` (negative adjustments render `−฿…`), frozen-record semantics and every API contract. |
+
+Isolation: **every write was intercepted** — `POST /api/payments/calculate`, `PATCH
+/api/payments/[id]`, `POST /api/payments/[id]/adjustments`, `DELETE
+/api/payments/adjustments/[id]`, `PATCH /api/admin/employees/[id]` — no real payment,
+adjustment or employee was created, changed or deleted. Mocked success responses are
+shaped like the real API (full `PaymentRecord`), so client state hydration is exercised.
+
+Verification: **43/43** checks (`wave7/after/payments-report.json`) — structure
+(header/breadcrumb/pills/filters/KPIs/toolbar), view switch both ways, fixture totals
+**identical before/after** (`Location revenue ฿615,000 · Total payroll ฿513,750 ·
+Employees 12`) and first row identical (`−฿250 (2)` — negative sign kept), override
+without reason blocked (no PATCH), save success/error, Esc cancel without write,
+adjustment add + zero-amount validation, generate success/error, unauthenticated API
+rejected 401/403, 0 overflow at 390/768/1440, green/orange accents; 251/251 tests; `tsc`
+clean; ESLint clean on changed files; build exit 0.
+
+Evidence: `docs/ui-pilot/wave7/before/` (12) and `after/` (15): real-data matrix
+(1440/768/390 × light/dark × green/orange — the local DB holds one live preview row,
+PIERRE/Ekkamai, no generated records), the same matrix on the **labelled 20-employee
+fixture** (12 records, mixed cash/bank, negative adjustments), payment modal, detail view
+with selection, mobile scrolled states and `sticky-diagnostic.json`.
+
+### Known limits (Payments)
+
+- **Roles:** the module guard and location scoping run server-side; only the owner account
+  exists locally, so **staff/admin rendering and the `user_location_access` scoping were
+  not exercised** (unauthenticated API probes are rejected 401/403).
+- **No deep links and no sorting exist in this module** (nothing to preserve — verified by
+  inspection); the command palette deep link to `/payments` opens the list view.
+- **Concurrent refreshes:** the client has no request-id guard — whichever response arrives
+  last wins. Documented as pre-existing behaviour; not changed.
+- List volume was verified on the 20-row fixture; the largest production period is
+  expected to stay small (per-shop headcount).
+- Physical touch devices — Playwright emulation only.
 
 ## Wave 1 §2 — Customer Insights
 

@@ -15,9 +15,10 @@ the whole period in both years, and missing data is never treated as zero.
 switch `22806e0`) **accepted**. **Wave 4 §13**: `/documents` (`6f49091`) **accepted**.
 **Wave 5 §15**: `/challenges` (`02cb921`) **accepted** — all with their documented
 verification limits intact (owner-only account, local Supabase data, Playwright emulation).
-**Wave 1 deferred**: `/treasury` (`ef57b79`) is **verified, awaiting acceptance**;
-`/payments` is **not started**. Every remaining module is sensitive and is treated **one
-module at a time**. All commits are local: not pushed, merged, deployed or migrated.
+**Wave 1 deferred**: `/treasury` (`ef57b79`) is **verified, awaiting acceptance** (finish
+point kept: desktop layout of the cash counter); `/payments` (`666f971`) is **verified,
+awaiting acceptance**. Every remaining module is sensitive and is treated **one module at a
+time**. All commits are local: not pushed, merged, deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -453,7 +454,7 @@ surface.
 | 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | **verified** (`ef57b79`, awaiting acceptance) |
 | 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | **accepted** (`e5c0e9a`, reprise `45ea595`) |
 | 5 | `/reports` | Page header, stat, card, module tabs, modal | Medium — dense tables, export/modal flows | **accepted** (`7393230`, reprise `45ea595`) |
-| 6 | `/payments` | Page header, stat, view toggle, filters | Medium — one large client, status changes | **excluded** — financial workflow (payment status writes) |
+| 6 | `/payments` | Page header, stat, view toggle, filters | Medium — one large client, status changes | **verified** (`666f971`, awaiting acceptance) |
 
 Why first: these screens are mostly read-only, already use the shared primitives, and
 give fast feedback on the token layer without touching scheduling or payroll data.
@@ -561,8 +562,8 @@ across waves.
    Semantic status and multi-series colors stay independent.
 
 Phase 0 is complete; Wave 1 §1–§3, Wave 4 (`/directory`, `/animals`) and `/documents` +
-`/challenges` are all **accepted**. **`/treasury` is verified, awaiting acceptance**
-(`ef57b79`) — the remaining sensitive surfaces (`/payments` next, then accounting, finance,
+`/challenges` are all **accepted**. **`/treasury` and `/payments` are verified, awaiting
+acceptance** (`ef57b79`, `666f971`) — the remaining sensitive surfaces (accounting, finance,
 Loyverse, attendance, scheduling, admin) are each to be treated **one module at a time**,
 each with its own migration, verification and acceptance. No group work, no rule or
 permission change.
