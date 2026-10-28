@@ -4,13 +4,14 @@ Branch: `ui/reviews-stats-pilot`. The pilot is committed at **`e6e59c3`**; **Pha
 (shared foundations + accent preference) is committed at **`ac88b15`**; **Wave 1 §1**
 (Reviews siblings) is committed at **`e998f99`**; **Wave 1 §2** (Customer Insights +
 Inbox filter disclosure) is committed at **`be6f556`**; **Wave 1 §3** is committed as
-**`7393230`** (`/reports`) and **`e5c0e9a`** (`/direction`); the post-review visual-system
-revision described below is the current branch tip.
+**`7393230`** (`/reports`) and **`e5c0e9a`** (`/direction`), with the visual reprise in
+**`0869864`** / **`45ea595`**. The current group is **`c0ccb6f`** (`/directory`) and
+**`88938fc`** (`/animals`).
 Scope: `/reviews/stats` pilot, the Phase 0 foundation/accent work, the Reviews sibling
-routes, `/customer-insights`, the Inbox filter rail, `/reports` and `/direction`.
-**No other module was migrated.** No deploy, push, merge or DB migration. Local URLs:
-**http://localhost:3000/customer-insights**, **http://localhost:3000/reports**,
-**http://localhost:3000/direction** (preview login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
+routes, `/customer-insights`, the Inbox filter rail, `/reports`, `/direction`, `/directory`
+and `/animals`. No other module was migrated. No deploy, push, merge or DB migration. Local
+URLs: **http://localhost:3000/customer-insights**, **/reports**, **/direction**,
+**/directory**, **/animals** (preview login, `NEXT_PUBLIC_PREVIEW_MODE=true`).
 
 The dev server is running. Sign in with the existing preview password from `.env.local`;
 the password is not recorded here.
@@ -30,10 +31,14 @@ report endpoints and three view components), promoting only the genuinely shared
 utilities to `globals.css`. A post-review revision then realigned both module headers with
 the Reviews Stats breadcrumb/pill system, harmonized the period/shop selectors, and fixed
 the future-month presentation in Revenue comparison (display only — calculations untouched).
-All three are **implemented and verified locally, awaiting user acceptance**. They are not
-pushed, merged or deployed. Live Customer Insights data, runtime staff access, real Google
-sync, a real organization `forest` switch and physical touch devices remain pending
-(details below).
+**Wave 1 §1–§3 are accepted.** **Wave 4 reduced** then migrated `/directory` (contacts) and
+`/animals` — the next non-financial, non-employee modules — and is **implemented and
+verified locally, awaiting user acceptance**. Nothing is pushed, merged or deployed. Live
+Customer Insights data, runtime staff access, real Google sync, a real organization
+`forest` switch and physical touch devices remain pending (details below).
+The annual equivalent-period comparison is a **separate business task**, not implemented:
+it must use a fixed group of shops covered over the whole period in both years, and missing
+data is never counted as zero.
 
 ## Wave 1 §3 — Reports + Direction
 
@@ -116,7 +121,7 @@ All captures are **real local Supabase data** (HTTP 200, no page errors besides 
 
 ### Revision — alignment with the accepted visual system
 
-Status: **implemented and verified locally**; §3 still awaiting acceptance. Trigger: the
+Status: **accepted** (28 Oct 2026); kept as the record of the revision. Trigger: the
 first pass adopted the tokens but not the organization (flat `PageHeader`, underline tabs,
 toolbars that did not read like Reviews Stats). This revision applies the accepted reading
 order to both modules.
@@ -194,6 +199,76 @@ All `after2` captures use real local Supabase data. The only console warning is 
   (`revenue-equivalent-period-proposal.md`) documents the limits and awaits a business
   decision; no calculation was changed.
 - **Physical touch devices** were not used; responsive checks are Playwright emulation.
+
+## Wave 4 (reduced) — Directory + Animals
+
+Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
+Commits: `c0ccb6f` (`/directory`), `88938fc` (`/animals`).
+Scope: `/directory` (contacts + shops) and `/animals`, chosen as the next non-financial,
+non-employee surfaces. Financial workflows (`/treasury`, `/payments`, `/accounting`,
+`/finance`, `/loyverse*`, `/shift-sales`) and employee records (`/employees`, `/attendance`,
+`/scheduling`) were excluded from this group.
+
+### What changed
+
+| Area | File | Change |
+| --- | --- | --- |
+| Directory bridge | `src/app/(dashboard)/directory/directory.css` (new) | `.directory` scoped token bridge; module rhythm; mobile table rules (sticky first column, thin scrollbar, conditional hint); form grids stack on phones. |
+| Directory shell | `DirectoryClient.tsx`, `page.tsx` | Breadcrumb (`Directory / Shops|Contacts`), compact `Directory` title and the real two tabs as shared pills with counts. Search is shown only on Contacts (it never filtered shops); labelled `Recherche` and `Type` rows, actions right. |
+| Shops / contacts | `ShopTable.tsx`, `ContactsClient.tsx`, `SupplierDossier.tsx` | Tables use `.ui-table-scroll`; expanded panels are excluded from the sticky-column rule; the supplier order log scrolls. All write flows, owner gating and deep links unchanged. |
+| Animals bridge | `src/app/(dashboard)/animals/animals.css` (new) | `.animals` scoped token bridge; KPI rhythm; mobile table rules; responsive form/detail grids; vaccine row layout. |
+| Animals shell | `AnimalsListClient.tsx`, `page.tsx` | Breadcrumb, compact `Animals` title with the existing Animals/Vaccines switch, labelled `Boutique` filter, CSV/PDF/Add actions right. Species counts become readable `KpiStat` cards; the table keeps sorting with `aria-sort`, sticky name and a conditional scroll hint. |
+| Animals modal | `AnimalModal.tsx`, `components/ui/modal.tsx` | The shared `Modal` accepts an additive `className` applied to the portalled popup; the animal dialog passes `animals`, so it keeps the green/orange accent instead of the legacy blue. Form/detail grids stack on phones. |
+
+### Design decisions
+
+1. **Task-adapted hierarchy, not a colour swap.** Directory leads with its two real tabs and
+   only shows the contact search where it applies. Animals prioritises the list, with the
+   species counts as a compact KPI row and the view switch beside the title.
+2. **Two scoped bridges, no global repoint.** `.directory` and `.animals` map legacy names to
+   `--ui-*` inside their own routes. Existing modules are untouched except for the shared
+   `.ui-filter-label` alignment fix (multi-row shop pills). 
+3. **Permissions and data flows preserved.** `canWrite` (owner), module access guards,
+   create/edit/delete, CSV/PDF export, shop/contact deep links and vaccine history are
+   unchanged.
+4. **Portalled modal keeps the accent.** Additive `Modal className`; no change to default
+   consumers.
+5. **Missing/unknown stays legible.** Empty states use the panel surface; no invented data.
+
+### Verification matrix
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Directory interactions | Pass | tabs, contact search (match + empty), type filter, add form, contact/shop expansion, edit affordance, owner controls |
+| Animals interactions | Pass | view switch, shop filter (108→11), sort asc/desc with `aria-sort`, detail modal, add modal, module accent, vaccine view |
+| Shared regression | Pass | filter label aligns with the first control row at 390; no mobile overflow on Reports |
+| Interaction suite | **25/25** | Playwright, `wave4/` |
+| No horizontal overflow | Pass | 1440 / 768 / 390, both themes |
+| Accents / themes | Pass | green-light and orange-dark captures for both modules |
+| Tests / typecheck / lint / build | Pass | `npm run test` 251/251; `npx tsc --noEmit` clean; ESLint only pre-existing findings; `npm run build` exit 0 |
+| Captures | **19 before + 19 after** | `docs/ui-pilot/wave4/before|after/` |
+
+### Evidence
+
+`docs/ui-pilot/wave4/before/` and `after/` (19 + 19):
+
+- Directory — shops at 1440 light/dark and 390 light; contacts at 1440 light/dark, 768 light,
+  390 light/dark; add-contact form at 1440 and 390 light.
+- Animals — list at 1440 light/dark, 768 light, 390 light/dark; vaccines at 390 light;
+  add modal at 1440 and 390 light; delete confirmation at 390 light.
+
+All captures use real local Supabase data. The before set shows the pre-migration layout
+(no breadcrumb/compact header, underline tabs, blue accents) and the Animals 390 overflow;
+the after set shows the shared system and the fix.
+
+### Known limits
+
+- The local database has only one contact and one owner account; list density and
+  non-owner rendering were not exercised.
+- The directory search is client-side, as before; it still never filters shops.
+- Animals loads the full list (108 rows) with no pagination; unchanged from before, but the
+  mobile page is long.
+- CSV/PDF links were verified present, not downloaded.
 
 ## Wave 1 §2 — Customer Insights
 

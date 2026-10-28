@@ -1,4 +1,55 @@
-# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1 + §2 + §3
+# Handoff — Reviews Stats pilot, Phase 0 foundations, Wave 1 §1–§3, Directory/Animals
+
+## Status — 28 October 2026
+
+- **Accepted:** Phase 0, Wave 0, Wave 1 §1 (Reviews siblings), §2 (Customer Insights),
+  §3 (Reports + Direction, including the visual reprise `0869864` / `45ea595`).
+- **Separate business task, not implemented:** annual equivalent-period comparison. It must
+  use a **fixed group of shops covered over the whole period in both years**; missing data
+  is **absent, never zero**. See `revenue-equivalent-period-proposal.md`.
+- **Current group:** `/directory` (contacts) + `/animals` — **verified, awaiting
+  acceptance**. Excluded from this group: `/treasury`, `/payments`, `/accounting`,
+  `/finance`, `/loyverse*`, `/shift-sales`, `/employees`, `/attendance`, `/scheduling`.
+- All commits are local; **not pushed, merged, deployed or migrated**. Stop after this group.
+
+## Wave 4 checkpoint — Directory + Animals
+
+Checkpoint: **`c0ccb6f`** (`/directory`) and **`88938fc`** (`/animals`) on
+`ui/reviews-stats-pilot`. Local commits; not pushed, merged, deployed or migrated.
+
+Scope: `/directory` (shops + contacts) and `/animals`, the next non-financial,
+non-employee modules. Financial workflows and employee records were excluded.
+
+| Area | File | Change |
+| --- | --- | --- |
+| Directory bridge | `src/app/(dashboard)/directory/directory.css` (new) | `.directory` scoped token bridge; module rhythm; sticky-first-column tables with a conditional scroll hint; forms stack on phones. |
+| Directory shell | `DirectoryClient.tsx`, `page.tsx` | Breadcrumb `Directory / Shops|Contacts`, compact title, two real tabs as shared pills with counts. Search only on Contacts; labelled `Recherche`/`Type`; actions right. |
+| Directory tables | `ShopTable.tsx`, `ContactsClient.tsx`, `SupplierDossier.tsx` | `.ui-table-scroll`; expanded `colspan` panels stay static; supplier order log scrolls. Owner write flows and deep links unchanged. |
+| Animals bridge | `src/app/(dashboard)/animals/animals.css` (new) | `.animals` scoped token bridge; KPI rhythm; mobile tables; responsive form/detail/vaccine rows. |
+| Animals shell | `AnimalsListClient.tsx`, `page.tsx` | Breadcrumb, compact title + Animals/Vaccines switch, labelled `Boutique`, CSV/PDF/Add right. Species counts on `KpiStat`; sortable table with `aria-sort`, sticky name + conditional hint. |
+| Animals modal | `AnimalModal.tsx`, `components/ui/modal.tsx` | Additive `Modal className` applied to the portalled popup; the animal dialog keeps the green/orange accent. Grids stack on phones. |
+
+Decisions:
+
+1. **Task-adapted organisation.** Directory shows the search only where it applies; Animals
+   keeps the list primary and moves the species counts to a compact KPI row.
+2. **Scoped bridges only.** `.directory` / `.animals`; no global repoint. The shared
+   `.ui-filter-label` alignment fix is the only cross-module change.
+3. **Permissions/data preserved.** `canWrite`, module guards, create/edit/delete, exports,
+   deep links and vaccine history are unchanged.
+4. **No invented metrics.** Every KPI is an existing count; empty/unknown stays explicit.
+
+Gate: **25/25** interaction checks; 1440/768/390, light/dark, green/orange; no page-level
+overflow (the pre-migration Animals 390 overflow is fixed); 251/251 tests; `tsc` clean;
+only pre-existing ESLint findings; build exit 0. Evidence: `docs/ui-pilot/wave4/before|after/`
+(19 + 19).
+
+Pending:
+
+1. **User acceptance** for `/directory` + `/animals`; stop after this group.
+2. `/documents` and `/challenges` remain pending for later groups; `/admin`, `/employees`,
+   `/attendance`, `/scheduling` and financial workflows stay excluded.
+
 
 ## Wave 1 §3 checkpoint — Reports + Direction
 
@@ -107,11 +158,13 @@ captures). Interaction suite **25/25**. Parity for the same period/shop before �
 
 ### Pending
 
-1. **User acceptance** for §3 (and still §1 / §2). Do not start the next group.
+1. **Accepted** for §1, §2 and §3 (visual reprise included). The next group is
+   `/directory` + `/animals`; stop after it.
 2. **Business decision — equivalent-period comparison.** Choose between the cumulative
    complete period (recommended) and an estimated same-days comparison; see
-   `revenue-equivalent-period-proposal.md`. Do not change the calculation before the
-   decision.
+   `revenue-equivalent-period-proposal.md`. The comparable scope must be a **fixed group of
+   shops covered over the whole period in both years**, and missing data must never be
+   counted as zero. Do not change the calculation before the decision.
 2. **Real-data verification** of Reviews and Customer Insights (Google token still absent
    locally); §3 itself ran on real local data but not on production data.
 3. **Single role account.** Only the preview owner exists locally, so staff-facing

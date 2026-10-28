@@ -61,11 +61,21 @@ Donc :
 Comparer **1er janvier → 30 septembre 2026** avec **1er janvier → 30 septembre 2025**, et
 afficher deux totaux distincts :
 
-1. **Toutes boutiques** (8 vs 4) — avec la couverture affichée, explicitement non comparable.
-2. **Boutiques comparables** (2 vs 2 sur janv.–sept., ou 3 vs 3 sur févr.–sept.) — le même
-   panier de boutiques des deux côtés, avec la liste et le nombre de boutiques exclues.
+1. **Toutes boutiques** — avec la couverture affichée ; les mois sans donnée ne sont pas
+   additionnés comme des zéros, ils sont signalés comme manquants.
+2. **Boutiques comparables** — un **groupe fixe** de boutiques couvertes sur **tous les mois
+   de la période, dans les deux années**. Le groupe est choisi une fois pour toute la
+   comparaison ; il ne change pas d’un mois à l’autre. Une boutique qui manque un seul mois
+   est exclue du groupe comparable (elle n’est pas complétée par 0).
+
+Avec les données actuelles (janv.–sept.) : **Samui + Phangan** (2 boutiques). Sur
+févr.–sept. : Samui + Phangan + Ekkamai (3 boutiques). La période recommandée reste
+janv.–sept., avec la liste des boutiques exclues et le nombre de mois manquants affichés.
 
 Le mois sélectionné et l’année complète restent des cartes séparées, inchangées.
+
+**Règle de données** : la présence d’une ligne source fait foi, pas la valeur. Un mois sans
+ligne est **absent**, jamais `0`. Un montant `0` explicitement saisi reste `0`.
 
 ### B. Mois en cours, mêmes jours — impossible sans estimation
 
@@ -87,24 +97,34 @@ d’une version à l’autre.
 ## 5. Impact technique si l’option A est retenue
 
 - **API** : ajout additif à `/api/reports/revenue-comparison` :
-  - `byShopMonth: { locationId, month, current, prev }[]` (nécessaire pour calculer un
-    panier comparable ; la réponse actuelle n’a que `byMonth` agrégé et `byShopFocus`).
-  - `comparable: { throughMonth, shops, current, prev, excluded }`.
+  - `byShopMonth: { locationId, month, current, prev, currentPresent, prevPresent }[]`
+    (nécessaire pour calculer le groupe fixe ; la réponse actuelle n’a que `byMonth` agrégé
+    et `byShopFocus`).
+  - `comparable: { throughMonth, shops, current, prev, excluded, missing }`.
   - `coverage: { currentShops, prevShops, fullMonths }`.
+- **Règle de sélection** : le groupe comparable est l’intersection des boutiques ayant une
+  ligne source pour **chaque** mois de la période, sur **les deux années**. Le groupe est
+  calculé une fois, puis utilisé pour les deux totaux. Aucun remplissage par zéro.
 - **UI** : nouvelle carte « Période équivalente (janv.–sept.) » avec bascule
-  *Toutes boutiques / Boutiques comparables* ; libellés de couverture ; aucune modification
-  des cartes existantes.
+  *Toutes boutiques / Boutiques comparables* ; libellés de couverture ; liste des boutiques
+  exclues. Aucune modification des cartes existantes.
 - **Aucune modification** de `monthly_revenue_by_location`, des inputs ou des calculs
   existants. Le nouveau calcul est une agrégation en lecture des mêmes données.
-- Tests : moteur de sélection du panier comparable (mois manquants exclus des deux côtés),
-  dernier mois complet, absence de division par zéro.
+- Tests : présence vs absence de ligne (un `0` saisi reste `0`), groupe fixe identique sur
+  toute la période, exclusion d’une boutique à un seul mois manquant, dernier mois complet,
+  absence de division par zéro.
 
 ## 6. Limites à valider
 
-- Le panier comparable janv.–sept. ne contient que **2 boutiques** : il n’est pas
+- Le groupe comparable janv.–sept. ne contient que **2 boutiques** : il n’est pas
   représentatif du groupe, même s’il est méthodologiquement juste.
+- Le groupe est **fixe** : une boutique qui n’a pas tous ses mois est exclue de la
+  comparaison, même si elle a des mois exploitables. C’est le prix de la comparabilité.
 - Les inputs 2025 sont **mensuels et manuels** : pas de granularité jour, pas de charges,
   pas de marge.
+- Une donnée absente ne doit **jamais** être comptée comme zéro dans le périmètre comparable.
+  Le cumul actuel, lui, additionne l’existant ; c’est précisément ce que la nouvelle vue
+  doit rendre explicite.
 - La couverture 2025 peut encore changer si des mois sont saisis a posteriori.
 - La date complète dépend des saisies ; elle doit être recalculée à chaque requête, pas
   figée dans le code.

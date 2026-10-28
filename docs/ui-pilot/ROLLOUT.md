@@ -1,18 +1,20 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete; Wave 1 §1, §2 and §3 implemented and verified.** Phase 0
-(shared foundation + browser-local accent preference) is committed at `ac88b15` on
-`ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`.
-**Wave 1 §1** migrated the Reviews siblings (`/reviews/inbox`, `/reviews/templates`,
-`/reviews/locations`, plus the `/reviews` and `/reviews/rules` redirects) and is
-**awaiting user acceptance**. **Wave 1 §2** migrated `/customer-insights` and added the
-requested Inbox filter disclosure; it is also **awaiting user acceptance**. **Wave 1 §3**
-migrated `/reports` (`7393230`) and `/direction` (`e5c0e9a`) and is **awaiting user
-acceptance**; a post-review revision realigned both module headers with the Reviews Stats
-breadcrumb/pill system, harmonized the selectors and fixed the future-month display in
-Revenue comparison (presentation only). `/treasury` and `/payments` were deferred out of
-that group because they write finance data. No other module has been migrated. All commits
-are local: not pushed, merged, deployed or migrated.
+Status: **Phase 0 complete; Wave 1 §1, §2 and §3 accepted.** Phase 0 (shared foundation +
+browser-local accent preference) is committed at `ac88b15` on `ui/reviews-stats-pilot`.
+The Reviews Stats pilot remains accepted at `e6e59c3`. **Wave 1 §1** migrated the Reviews
+siblings and is **accepted**. **Wave 1 §2** migrated `/customer-insights` and the Inbox
+filter disclosure and is **accepted**. **Wave 1 §3** migrated `/reports` (`7393230`) and
+`/direction` (`e5c0e9a`); its visual reprise (`0869864`, `45ea595`) is **accepted**.
+`/treasury` and `/payments` remain deferred because they write finance data. The annual
+equivalent-period comparison is a **separate business task**, not implemented (see
+`revenue-equivalent-period-proposal.md`): it must use a fixed group of shops covered over
+the whole period in both years, and missing data is never treated as zero.
+
+The next group is **Wave 4 reduced**: `/directory` (contacts) `c0ccb6f` and `/animals`
+`88938fc` — the next non-financial, non-employee modules. Both are **verified, awaiting
+acceptance**. No other module has been migrated. All commits are local: not pushed, merged,
+deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -25,6 +27,9 @@ captures covering light/dark, green/orange, 1440/768/390 and the loading/error/e
 states; `after2/`, 35 captures of the post-review header/selector revision plus the
 future-month Revenue comparison state; `fixes/`, 10 targeted captures of the mobile tab
 strip, pinned table labels and negative amounts).
+Wave 4 evidence: `docs/ui-pilot/wave4/` (`before/` and `after/`, 19 + 19 captures for
+`/directory` and `/animals`: 1440/768/390, light/dark, green/orange, add/edit dialogs,
+vaccines and empty states).
 
 ## Principles
 
@@ -412,8 +417,11 @@ Status legend: **pending** = not started; **implemented** = code changed, checks
 complete; **verified** = automated/manual checks pass; **accepted** = user accepted the
 module's result.
 
-Phase 0 is complete, Wave 0 remains accepted, and **Wave 1 §1, §2 and §3 are implemented +
-verified** (awaiting acceptance). No further module starts until they are reviewed.
+Phase 0 is complete, Wave 0 and **Wave 1 §1, §2 and §3 are accepted**. The next group is
+**`/directory` + `/animals`** (Wave 4 reduced), chosen because they are the next
+non-financial, non-employee surfaces; financial workflows (`/treasury`, `/payments`,
+`/accounting`, `/finance`, `/loyverse*`, `/shift-sales`) and employee records
+(`/employees`, `/attendance`, `/scheduling`) stay out of this group.
 
 Order is by risk: read-only first, then editable tables, then custom interactions, then
 CRUD, then owner-only configuration, then non-standard surfaces. Each wave must be
@@ -430,12 +438,12 @@ surface.
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 1 | `reviews` siblings: `/reviews`, `/reviews/inbox`, `/reviews/templates`, `/reviews/rules`, `/reviews/locations` | Module tabs, filters, pill, tables, modals | Medium — inbox actions, but same domain as the pilot | **verified** (awaiting acceptance) |
-| 2 | `/customer-insights` | Page header, stat, filters, card | Low — one read-only client | **verified** (awaiting acceptance) |
-| 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | pending — deferred from §3 (cash-count/reserve/bank-account writes) |
-| 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | **verified** (`e5c0e9a`, awaiting acceptance) |
-| 5 | `/reports` | Page header, stat, card, module tabs, modal | Medium — dense tables, export/modal flows | **verified** (`7393230`, awaiting acceptance) |
-| 6 | `/payments` | Page header, stat, view toggle, filters | Medium — one large client, status changes | pending — deferred from §3 (payment status writes) |
+| 1 | `reviews` siblings: `/reviews`, `/reviews/inbox`, `/reviews/templates`, `/reviews/rules`, `/reviews/locations` | Module tabs, filters, pill, tables, modals | Medium — inbox actions, but same domain as the pilot | **accepted** |
+| 2 | `/customer-insights` | Page header, stat, filters, card | Low — one read-only client | **accepted** |
+| 3 | `/treasury` | Page header, filters, kbd | Low — single read-only screen | **excluded** — financial workflow (cash-count/reserve/bank-account writes) |
+| 4 | `/direction` | Module tabs, stat, pill button, card | Low–medium — role-specific read-only reporting | **accepted** (`e5c0e9a`, reprise `45ea595`) |
+| 5 | `/reports` | Page header, stat, card, module tabs, modal | Medium — dense tables, export/modal flows | **accepted** (`7393230`, reprise `45ea595`) |
+| 6 | `/payments` | Page header, stat, view toggle, filters | Medium — one large client, status changes | **excluded** — financial workflow (payment status writes) |
 
 Why first: these screens are mostly read-only, already use the shared primitives, and
 give fast feedback on the token layer without touching scheduling or payroll data.
@@ -464,11 +472,29 @@ not only screenshots.
 
 ### Wave 4 — CRUD lists and directories
 
+**This group:** `/directory` + `/animals` only. `/documents` (upload/metadata forms) stays
+pending for a later group; `/employees` is explicitly excluded as an employee-records
+surface.
+
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 12 | `/animals` | Page header, modal, pill, view toggle, date input | Medium — create/edit modal | pending |
+| 12 | `/animals` | Page header, modal, pill, view toggle, date input | Medium — create/edit modal | **verified** (`88938fc`, awaiting acceptance) |
 | 13 | `/documents` | Page header, modal, pill, date input, filters | Medium — upload/metadata forms | pending |
-| 14 | `/directory` (contacts module) | Module tabs, pill | Low–medium — shared list, supplier/shop tabs | pending |
+| 14 | `/directory` (contacts module) | Module tabs, pill | Low–medium — shared list, supplier/shop tabs | **verified** (`c0ccb6f`, awaiting acceptance) |
+
+#### Wave 4 gate
+
+| Gate | Result |
+| --- | --- |
+| Header/breadcrumb/pills | Pass. Directory: `Directory / Shops|Contacts`, two pill tabs with counts. Animals: `Animals / Animals|Vaccines`, view switch beside the title. |
+| Filters and actions | Pass. Directory search only on Contacts; labelled `Recherche`/`Type` rows. Animals labelled `Boutique`, actions right. |
+| Interactions | Pass. 25/25: tabs, search match/empty, type filter, add form, contact/shop expansion, edit affordance; view switch, shop filter (108→11), sort, detail/add modals, vaccines. |
+| Permissions / data | Pass. `canWrite` owner gating, module guards, create/edit/delete, CSV/PDF, deep links unchanged. |
+| Accents / themes / widths | Pass. 1440/768/390, light/dark, green/orange; no page-level overflow (the pre-migration Animals 390 overflow is fixed). |
+| Tests / typecheck / lint / build | Pass. 251/251; `tsc` clean; only pre-existing ESLint findings; build exit 0. |
+| Captures | Pass. `wave4/before|after/` (19 + 19). |
+| Acceptance | **Pending.** Stop after this group. |
+
 
 ### Wave 5 — engagement and administration
 
@@ -524,6 +550,6 @@ across waves.
 4. The accent tints selected controls, primary actions and the **primary** chart series.
    Semantic status and multi-series colors stay independent.
 
-Phase 0 is complete. Wave 1 §1 and §2 are implemented and verified but **not yet
-accepted**. Do not start the next module until both results have been reviewed and
-accepted.
+Phase 0 is complete; Wave 1 §1, §2 and §3 are **accepted**. The current group is
+`/directory` + `/animals`, **verified and awaiting acceptance**. Stop after it before the
+next group.
