@@ -30,22 +30,22 @@ Do not restore, delete or commit those without the owner's instruction.
 | Wave 1 §1 | Reviews siblings | **accepted** |
 | Wave 1 §2 | `/customer-insights` + Inbox filter disclosure | **accepted** |
 | Wave 1 §3 | `/reports`, `/direction` + visual reprise | **accepted** |
-| Wave 4 (reduced) | `/directory` | **accepted** (owner, this session) |
-| Wave 4 (reduced) | `/animals` + pill fix `22806e0` | **verified — awaiting acceptance** |
-| Wave 4 §13 | `/documents` (`6f49091`) | **verified — awaiting acceptance** |
-| Wave 5 §15 | `/challenges`, 5 sub-routes (`02cb921`) | **verified — awaiting acceptance** |
+| Wave 4 (reduced) | `/directory`, `/animals` (+ pill fix `22806e0`) | **accepted** |
+| Wave 4 §13 | `/documents` (`6f49091`) | **accepted** |
+| Wave 5 §15 | `/challenges`, 5 sub-routes (`02cb921`) | **accepted** |
 
-Verified ≠ accepted: the three rows above still need the owner's visual review.
+All modules above are accepted with their documented verification limits intact
+(owner-only preview account, local Supabase data instead of production, Playwright
+emulation instead of physical touch devices, mocked write paths). What remains is
+sensitive by nature — finance, sales analytics, time/scheduling, admin — to be treated
+**one module at a time**.
 
 **Validations still awaited**
 
-1. **User acceptance of `/animals` (with the pill switch), `/documents` and `/challenges`.**
-   Evidence: `docs/ui-pilot/wave4/fixes/` (24 + report), `docs/ui-pilot/wave4b/`
-   (before 12 / after 17 + report), `docs/ui-pilot/wave5/` (before 60 / after 62 + report).
-2. **Annual equivalent-period comparison — business decision.** Not implemented. It must use
+1. **Annual equivalent-period comparison — business decision.** Not implemented. It must use
    a **fixed group of shops covered over the whole period in both years**, and a missing
    source row is **absent, never zero**. See `revenue-equivalent-period-proposal.md`.
-3. Optional: production data, a second role account and physical touch devices (see limits).
+2. Optional: production data, a second role account and physical touch devices (see limits).
 
 **Known limits (this session's additions)**
 
@@ -67,11 +67,14 @@ Verified ≠ accepted: the three rows above still need the owner's visual review
   overwrites the dev `.next` and hydration dies with 404 chunks). Operational note, not a
   module limit.
 
-**Recommended next group:** none started. The remaining standard surfaces are the excluded
-ones — financial workflows (`/treasury`, `/payments`, `/accounting`, `/finance`,
-`/loyverse*`, `/shift-sales`), employee records (`/employees`, `/attendance`, `/scheduling`)
-and owner-only `/admin`. Each needs its own explicit instruction. `/wiki` and `/brand`
-remain non-standard (`/brand` likely exempt). **Stop after this group.**
+**Next:** nothing started. All remaining standard surfaces are sensitive — `/treasury`,
+`/payments`, `/accounting`, `/finance` (+ recurring-costs, shop-settings), `/loyverse*` +
+`/shift-sales`, `/attendance`, `/scheduling` (+ 6 sub-routes), `/admin` (+ 9 sub-routes) and
+`/employees` — and are to be treated **one module at a time**, each with its own migration,
+verification and acceptance. `/wiki`, `/brand`, `/home` and `/overview` are non-standard
+surfaces with their own decision (`/brand` likely exempt, `/overview` is a pure redirect).
+The global shell (sidebar/topbar/preferences) and the legacy-token cleanup are separate,
+later decisions. No rule or permission change in any of this.
 
 ## Previous handoff — 28 October 2026 (Wave 4 checkpoint)
 

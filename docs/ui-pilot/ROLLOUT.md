@@ -1,7 +1,7 @@
 # UI rollout — foundation, accent preference, module order
 
-Status: **Phase 0 complete; Wave 1 §1–§3 accepted; `/directory` accepted.** Phase 0 (shared
-foundation + browser-local accent preference) is committed at `ac88b15` on
+Status: **Phase 0 complete; Wave 1 §1–§3 accepted; Wave 4 and Wave 5 §15 accepted.**
+Phase 0 (shared foundation + browser-local accent preference) is committed at `ac88b15` on
 `ui/reviews-stats-pilot`. The Reviews Stats pilot remains accepted at `e6e59c3`. **Wave 1 §1**
 migrated the Reviews siblings and is **accepted**. **Wave 1 §2** migrated `/customer-insights`
 and the Inbox filter disclosure and is **accepted**. **Wave 1 §3** migrated `/reports`
@@ -11,12 +11,14 @@ The annual equivalent-period comparison is a **separate business task**, not imp
 `revenue-equivalent-period-proposal.md`): it must use a fixed group of shops covered over
 the whole period in both years, and missing data is never treated as zero.
 
-**Wave 4 reduced**: `/directory` (`c0ccb6f`) is **accepted**; `/animals` (`88938fc`) is
-**verified, awaiting acceptance**, with its Animals/Vaccines switch moved to the shared pill
-nav in `22806e0`. **Wave 4 §13**: `/documents` (`6f49091`) is **verified, awaiting
-acceptance**. **Wave 5 §15**: `/challenges` (`02cb921`) is **verified, awaiting acceptance**.
-No other module has been migrated. All commits are local: not pushed, merged, deployed or
-migrated.
+**Wave 4 reduced**: `/directory` (`c0ccb6f`) **accepted**; `/animals` (`88938fc`, pill
+switch `22806e0`) **accepted**. **Wave 4 §13**: `/documents` (`6f49091`) **accepted**.
+**Wave 5 §15**: `/challenges` (`02cb921`) **accepted** — all with their documented
+verification limits intact (owner-only account, local Supabase data, Playwright emulation).
+Every non-financial, non-employee standard module is now migrated. What remains is
+sensitive by nature: finance, sales analytics, time/scheduling, admin — each to be treated
+**individually**, one module per migration + acceptance. All commits are local: not pushed,
+merged, deployed or migrated.
 
 Source of truth for the accepted look: `DESIGN-CONTRACT.md`, `REPORT.md`,
 `FOUNDATION-CANDIDATES.md` and the screenshots in `docs/ui-pilot/screenshots/`.
@@ -487,8 +489,8 @@ surface.
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 12 | `/animals` | Page header, modal, pill, view toggle, date input | Medium — create/edit modal | **verified** (`88938fc`, pill switch `22806e0`, awaiting acceptance) |
-| 13 | `/documents` | Page header, modal, pill, date input, filters | Medium — upload/metadata forms | **verified** (`6f49091`, awaiting acceptance) |
+| 12 | `/animals` | Page header, modal, pill, view toggle, date input | Medium — create/edit modal | **accepted** (`88938fc`, pill switch `22806e0`) |
+| 13 | `/documents` | Page header, modal, pill, date input, filters | Medium — upload/metadata forms | **accepted** (`6f49091`) |
 | 14 | `/directory` (contacts module) | Module tabs, pill | Low–medium — shared list, supplier/shop tabs | **accepted** (`c0ccb6f`) |
 
 #### Wave 4 gate
@@ -502,14 +504,14 @@ surface.
 | Accents / themes / widths | Pass. 1440/768/390, light/dark, green/orange; no page-level overflow (the pre-migration Animals 390 overflow is fixed). |
 | Tests / typecheck / lint / build | Pass. 251/251; `tsc` clean; only pre-existing ESLint findings; build exit 0. |
 | Captures | Pass. `wave4/before|after/` (19 + 19) + `wave4/fixes/` (24, pill switch). |
-| Acceptance | **Pending for `/animals`** (with the pill switch). `/directory` is **accepted**. |
+| Acceptance | **Accepted.** `/directory` and `/animals` (with the pill switch) accepted by the owner. |
 
 
 ### Wave 5 — engagement and administration
 
 | Order | Surface (routes) | Shared patterns today | Risk | Status |
 | --- | --- | --- | --- | --- |
-| 15 | `/challenges` and its 5 sub-routes | Module tabs, card, filters, modal | Medium — mostly read-only, many tabs | **verified** (`02cb921`, awaiting acceptance) |
+| 15 | `/challenges` and its 5 sub-routes | Module tabs, card, filters, modal | Medium — mostly read-only, many tabs | **accepted** (`02cb921`) |
 | 16 | `/admin` and its 9 sub-routes; `/employees` (thin wrapper around `EmployeesListClient`) | Module tabs, card, pill button, modal, date input, filters | Very high — owner-only configuration, users, locations, automations | pending |
 
 Why last among standard screens: admin mistakes have the highest consequence, and the
@@ -559,7 +561,8 @@ across waves.
 4. The accent tints selected controls, primary actions and the **primary** chart series.
    Semantic status and multi-series colors stay independent.
 
-Phase 0 is complete; Wave 1 §1, §2 and §3 are **accepted**, and `/directory` is **accepted**.
-The current group is `/documents` (`6f49091`) + `/challenges` (`02cb921`), **verified and
-awaiting acceptance** — `/animals` (`88938fc` + pill fix `22806e0`) is also still awaiting
-acceptance. Stop after this group before the next one.
+Phase 0 is complete; Wave 1 §1–§3, Wave 4 (`/directory`, `/animals`) and `/documents` +
+`/challenges` are all **accepted**. Every non-financial, non-employee standard module is
+migrated. What remains (finance, sales analytics, time/scheduling, admin) is sensitive and
+is to be treated **one module at a time**, each with its own migration, verification and
+acceptance. No group work, no rule or permission change.
