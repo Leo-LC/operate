@@ -1,12 +1,18 @@
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { KIND_LABELS, paletteToStyles, type ShiftPalette } from "@/modules/scheduling/lib/colors";
 
 /** The shift kinds that carry real meaning on the grids; render these as a
  *  small always-visible swatch row so cell colors are never the only carrier
- *  of meaning (hover/Settings-recall is not a substitute). */
+ *  of meaning (hover/Settings-recall is not a substitute). Theme-aware so the
+ *  swatches match the cells in both modes. */
 const LEGEND_KINDS = ["opening", "daytime", "closing", "off"] as const;
 
 export function ShiftKindLegend({ palette, className }: { palette?: ShiftPalette | null; className?: string }) {
-  const styles = paletteToStyles(palette ?? {});
+  const { resolvedTheme } = useTheme();
+  const [dark, setDark] = useState(false);
+  useEffect(() => setDark(resolvedTheme === "dark"), [resolvedTheme]);
+  const styles = paletteToStyles(palette ?? {}, dark);
   return (
     <div
       className={className ?? "flex flex-wrap items-center gap-3 text-xs print:hidden"}

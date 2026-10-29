@@ -398,24 +398,25 @@ export function TreasuryClient() {
         />
         <KpiStat
           label="Free cash"
-          value={thb(freeCash)}
+          value={hasData ? thb(freeCash) : "—"}
           tone={!hasData ? undefined : freeCash < 0 ? "negative" : freeCash < totalReserved * 0.2 ? undefined : "positive"}
           data-alert={hasData && freeCash >= 0 && freeCash < totalReserved * 0.2 ? "warn" : undefined}
           hint={hasData ? statusLabel : "No data recorded"}
         />
       </div>
 
-      {/* Free cash formula */}
+      {/* Free cash formula — figures are shown only when at least one source
+          is recorded; otherwise nothing here reads as a known amount. */}
       <div className="trs-formula">
-        <span className="mono tabular-nums">{thb(totalCash)} cash</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalCash) : "—"} cash</span>
         <span>+</span>
-        <span className="mono tabular-nums">{thb(totalBank)} bank</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalBank) : "—"} bank</span>
         <span>+</span>
-        <span className="mono tabular-nums">{thb(totalExpectedTransfer)} transfers</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalExpectedTransfer) : "—"} transfers</span>
         <span>−</span>
-        <span className="mono tabular-nums">{thb(totalReserved)} reserves</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalReserved) : "—"} reserves</span>
         <span>=</span>
-        <span className="mono tabular-nums" style={{ fontWeight: 700, color: statusColor }}>{thb(freeCash)} free cash</span>
+        <span className="mono tabular-nums" style={hasData ? { fontWeight: 700, color: statusColor } : undefined}>{hasData ? thb(freeCash) : "—"} free cash</span>
         <span className="trs-formula-pill" style={hasData ? { background: statusColor } : { background: "var(--ui-panel-2)", color: "var(--ui-fg-3)", border: "1px solid var(--ui-line)" }}>
           {hasData ? statusLabel : "No data"}
         </span>

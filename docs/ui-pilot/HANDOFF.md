@@ -54,6 +54,26 @@ at 390 on all 8 routes; gates: 251/251 tests, `tsc` clean, ESLint 0 new findings
 exit 0; dev server restarted after the build (documented op note). Screens +
 `polish-verification.json` in `docs/ui-pilot/final-polish/`.
 
+**Bounded follow-up (same day, v5b — no new workstream).** (1) Scheduling Annual/Weekly cell
+text is now theme- and contrast-driven: in dark mode the kind hue lightens toward the minimum
+step reaching **≥4.5:1 measured against the composite the tint actually renders over** the
+dark card (`paletteToStyles(palette, dark)` + unit test; light behavior byte-identical,
+palette overrides and Settings editing untouched — the same clamp applies to stored hues in
+dark only). (2) Treasury Free-cash KPI and the formula figures print `—` and "No data
+recorded"/"No data" when no source is recorded (no computed zero reads as a known amount).
+(3) Weekly gets the same compact shop disclosure (≤768px), `.ui-table-scroll .sch-scroll`
+wrapper and `TableScrollAffordance` as Annual; last column verified reachable at 390
+(scrollLeft == max, right edge in viewport). (4) Recapture with **rendered theme/accent
+assertions** (`final-polish/final-verification.json`, 66/66): every capture verifies
+`<html class>` dark/light and `data-accent` explicitly (the earlier "light"-named captures
+had rendered dark), Treasury free cash `—`/hints ×4/formula dashes ×5, Annual+Weekly min
+rendered cell contrast ≥4.58 (dark) / ≥5.0 (light), Employees closure proof (one Add, one
+Export docs CSV, one "Create employee", cancel without write) and Customer Insights closure
+proof (breadcrumb current-page segment; scope line **"All shops · All time"** derived from
+the mocked read, KPI **431** = fixture value) in true light and dark. Gates: 252/252 tests
+(+1 contrast unit test), `tsc` clean, ESLint clean on the six changed files, build exit 0;
+**local commits only — writes intercepted, nothing pushed, merged, deployed or migrated in this step.**
+
 **Not done on purpose (still documented as backlog):** Employees/Animals list
 restructuring; Loyverse shop-panel ergonomics; legacy-token collapse (excluded by
 instruction); the off-ramp font-size tail beyond the flagged worst spots; Direction's

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, ClipboardPasteIcon, TriangleAlertIcon } from "lucide-react";
@@ -73,7 +74,10 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
   const [grid, setGrid] = useState<Record<string, EditorCell>>({});
   const [settings, setSettings] = useState<BranchSettings | null>(null);
   const [palette, setPalette] = useState<ShiftPalette | null>(null);
-  const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
+  // Grid colors adapt to the rendered theme (dark needs lightened text tones).
+  const { resolvedTheme } = useTheme();
+  const [dark, setDark] = useState(false);
+  useEffect(() => setDark(resolvedTheme === "dark"), [resolvedTheme]);  const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [focus, setFocus] = useState<FocusPos | null>(null);
@@ -528,7 +532,7 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
     return { min: "2024-01", max: addMonthsStr(cur, 18) };
   }, []);
 
-  const styles = useMemo(() => paletteToStyles(palette ?? {}), [palette]);
+  const styles = useMemo(() => paletteToStyles(palette ?? {}, dark), [palette, dark]);
 
   // ── One half-cell (IN or OUT). OFF days render a single merged cell, centered. ──
   function renderSub(

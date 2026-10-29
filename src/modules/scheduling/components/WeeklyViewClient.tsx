@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ShopSingleSelect } from "@/components/ui/filters/ShopSingleSelect";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { WeekPicker } from "@/modules/scheduling/components/WeekPicker";
 import {
   WeekExportCard,
@@ -123,7 +125,12 @@ export function WeeklyViewClient({ locations, initialLocationId, initialWeek, ca
     return perEmp;
   }, [employees, days, shifts, settings]);
 
-  const styles = useMemo(() => paletteToStyles(palette ?? {}), [palette]);
+  // Uniformity with Annual: grid colors and cell text follow the rendered
+  // theme (dark needs lightened tones); <768px gets the compact shop selector.
+  const { resolvedTheme } = useTheme();
+  const [dark, setDark] = useState(false);
+  useEffect(() => setDark(resolvedTheme === "dark"), [resolvedTheme]);
+  const styles = useMemo(() => paletteToStyles(palette ?? {}, dark), [palette, dark]);
 
   const breakMinutes = settings?.default_break_minutes ?? 30;
 
@@ -369,7 +376,8 @@ export function WeeklyViewClient({ locations, initialLocationId, initialWeek, ca
 
   return (
     <div className="flex flex-col gap-5">
-      <ShopSingleSelect options={locations} value={locationId} onChange={changeLocation} />
+      <TableScrollAffordance />
+      <ShopSingleSelect options={locations} value={locationId} onChange={changeLocation} compactMobile />
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <Button variant="outline" size="sm" onClick={() => shiftWeek(-1)}>← Prev week</Button>
         <WeekPicker week={week} onChange={setWeek} />
@@ -391,7 +399,7 @@ export function WeeklyViewClient({ locations, initialLocationId, initialWeek, ca
 
       <ShiftKindLegend palette={palette} />
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="ui-table-scroll sch-scroll rounded-lg border border-border bg-card">
         {loading ? (
           <div className="p-8 text-sm text-muted-foreground">Loading week…</div>
         ) : (

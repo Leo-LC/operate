@@ -1,0 +1,332 @@
+[
+  {
+    "check": "[light-green] theme rendered (light)",
+    "ok": true,
+    "detail": "font-sans __variable_176161 __variable_5f34dc light"
+  },
+  {
+    "check": "[light-green] accent rendered",
+    "ok": true,
+    "detail": "green"
+  },
+  {
+    "check": "[light-green] treasury free cash is '—' when nothing recorded",
+    "ok": true,
+    "detail": "—"
+  },
+  {
+    "check": "[light-green] treasury 'No data recorded' ×4",
+    "ok": true,
+    "detail": "count=4"
+  },
+  {
+    "check": "[light-green] treasury formula figures are '—'",
+    "ok": true,
+    "detail": "— cash + — bank + — transfers − — reserves = — free cash No data"
+  },
+  {
+    "check": "[light-green] treasury formula pill says 'No data'",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[light-green] annual: min rendered cell contrast ≥ 4.5",
+    "ok": true,
+    "detail": "{'text': 'OFF', 'fg': [103, 114, 107], 'bgInherit': [255, 255, 255], 'ratio': 5}"
+  },
+  {
+    "check": "[light-green] annual: legend labels match cells",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[light-green] weekly: min rendered cell contrast ≥ 4.5",
+    "ok": true,
+    "detail": "{'text': 'AOM Chiang M', 'fg': [25, 29, 27], 'bgInherit': [255, 255, 255], 'ratio': 17.03}"
+  },
+  {
+    "check": "[light-green] weekly: affordance conditional (flag == real overflow)",
+    "ok": true,
+    "detail": "{'ds': False, 'over': False}"
+  },
+  {
+    "check": "[light-green] employees: single Add employee (1)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[light-green] employees: single Export docs CSV (1)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[light-green] employees: 'Create employee' appears once",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[light-green] employees: form cancelled without write",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[light-green] ci: KPI equals fixture total",
+    "ok": true,
+    "detail": "431"
+  },
+  {
+    "check": "[light-green] ci: scope line derived from response meta",
+    "ok": true,
+    "detail": "All shops · All time"
+  },
+  {
+    "check": "[light-green] ci: breadcrumb carries the module (Customer Insights)",
+    "ok": true,
+    "detail": "Customer Insights"
+  },
+  {
+    "check": "[light-green] no page errors",
+    "ok": true,
+    "detail": "[]"
+  },
+  {
+    "check": "[dark-green] theme rendered (dark)",
+    "ok": true,
+    "detail": "font-sans __variable_176161 __variable_5f34dc dark"
+  },
+  {
+    "check": "[dark-green] accent rendered",
+    "ok": true,
+    "detail": "green"
+  },
+  {
+    "check": "[dark-green] treasury free cash is '—' when nothing recorded",
+    "ok": true,
+    "detail": "—"
+  },
+  {
+    "check": "[dark-green] treasury 'No data recorded' ×4",
+    "ok": true,
+    "detail": "count=4"
+  },
+  {
+    "check": "[dark-green] treasury formula figures are '—'",
+    "ok": true,
+    "detail": "— cash + — bank + — transfers − — reserves = — free cash No data"
+  },
+  {
+    "check": "[dark-green] treasury formula pill says 'No data'",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-green] annual: min rendered cell contrast ≥ 4.5",
+    "ok": true,
+    "detail": "{'text': 'OFF', 'fg': [127, 138, 133], 'bgInherit': [29, 32, 34], 'ratio': 4.58}"
+  },
+  {
+    "check": "[dark-green] annual: legend labels match cells",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-green] annual: legend/gcell tones differ from raw defaults (theme-aware)",
+    "ok": true,
+    "detail": "rgb(112, 157, 133)"
+  },
+  {
+    "check": "[dark-green] weekly: min rendered cell contrast ≥ 4.5",
+    "ok": true,
+    "detail": "{'text': 'AOM Chiang M', 'fg': [238, 241, 239], 'bgInherit': [29, 32, 34], 'ratio': 14.4}"
+  },
+  {
+    "check": "[dark-green] weekly: affordance conditional (flag == real overflow)",
+    "ok": true,
+    "detail": "{'ds': False, 'over': False}"
+  },
+  {
+    "check": "[dark-green] employees: single Add employee (1)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-green] employees: single Export docs CSV (1)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-green] employees: 'Create employee' appears once",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[dark-green] employees: form cancelled without write",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-green] ci: KPI equals fixture total",
+    "ok": true,
+    "detail": "431"
+  },
+  {
+    "check": "[dark-green] ci: scope line derived from response meta",
+    "ok": true,
+    "detail": "All shops · All time"
+  },
+  {
+    "check": "[dark-green] ci: breadcrumb carries the module (Customer Insights)",
+    "ok": true,
+    "detail": "Customer Insights"
+  },
+  {
+    "check": "[dark-green] no page errors",
+    "ok": true,
+    "detail": "[]"
+  },
+  {
+    "check": "[dark-orange] theme rendered (dark)",
+    "ok": true,
+    "detail": "font-sans __variable_176161 __variable_5f34dc dark"
+  },
+  {
+    "check": "[dark-orange] accent rendered",
+    "ok": true,
+    "detail": "orange"
+  },
+  {
+    "check": "[dark-orange] treasury free cash is '—' when nothing recorded",
+    "ok": true,
+    "detail": "—"
+  },
+  {
+    "check": "[dark-orange] treasury 'No data recorded' ×4",
+    "ok": true,
+    "detail": "count=4"
+  },
+  {
+    "check": "[dark-orange] treasury formula figures are '—'",
+    "ok": true,
+    "detail": "— cash + — bank + — transfers − — reserves = — free cash No data"
+  },
+  {
+    "check": "[dark-orange] treasury formula pill says 'No data'",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-orange] annual: min rendered cell contrast ≥ 4.5",
+    "ok": true,
+    "detail": "{'text': 'OFF', 'fg': [127, 138, 133], 'bgInherit': [29, 32, 34], 'ratio': 4.58}"
+  },
+  {
+    "check": "[dark-orange] annual: legend labels match cells",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-orange] annual: legend/gcell tones differ from raw defaults (theme-aware)",
+    "ok": true,
+    "detail": "rgb(112, 157, 133)"
+  },
+  {
+    "check": "[dark-orange] weekly: min rendered cell contrast ≥ 4.5",
+    "ok": true,
+    "detail": "{'text': 'AOM Chiang M', 'fg': [238, 241, 239], 'bgInherit': [29, 32, 34], 'ratio': 14.4}"
+  },
+  {
+    "check": "[dark-orange] weekly: affordance conditional (flag == real overflow)",
+    "ok": true,
+    "detail": "{'ds': False, 'over': False}"
+  },
+  {
+    "check": "[dark-orange] employees: single Add employee (1)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-orange] employees: single Export docs CSV (1)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-orange] employees: 'Create employee' appears once",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "check": "[dark-orange] employees: form cancelled without write",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[dark-orange] ci: KPI equals fixture total",
+    "ok": true,
+    "detail": "431"
+  },
+  {
+    "check": "[dark-orange] ci: scope line derived from response meta",
+    "ok": true,
+    "detail": "All shops · All time"
+  },
+  {
+    "check": "[dark-orange] ci: breadcrumb carries the module (Customer Insights)",
+    "ok": true,
+    "detail": "Customer Insights"
+  },
+  {
+    "check": "[dark-orange] no page errors",
+    "ok": true,
+    "detail": "[]"
+  },
+  {
+    "check": "[m-light-green] weekly: compact shop selector present at 390",
+    "ok": true,
+    "detail": "count=1"
+  },
+  {
+    "check": "[m-light-green] weekly: disclosure opens with reach-able pills",
+    "ok": true,
+    "detail": "aria-expanded=true, pills=8"
+  },
+  {
+    "check": "[m-light-green] weekly: disclosure closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[m-light-green] weekly: affordance flagged when overflowing at 390",
+    "ok": true,
+    "detail": "{'ds': True, 'over': True}"
+  },
+  {
+    "check": "[m-light-green] weekly: last column reachable when scrolled",
+    "ok": true,
+    "detail": "{'right': 377, 'vw': 390, 'max': 586, 'sl': 586}"
+  },
+  {
+    "check": "[m-dark-green] weekly: compact shop selector present at 390",
+    "ok": true,
+    "detail": "count=1"
+  },
+  {
+    "check": "[m-dark-green] weekly: disclosure opens with reach-able pills",
+    "ok": true,
+    "detail": "aria-expanded=true, pills=8"
+  },
+  {
+    "check": "[m-dark-green] weekly: disclosure closes",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "[m-dark-green] weekly: affordance flagged when overflowing at 390",
+    "ok": true,
+    "detail": "{'ds': True, 'over': True}"
+  },
+  {
+    "check": "[m-dark-green] weekly: last column reachable when scrolled",
+    "ok": true,
+    "detail": "{'right': 377, 'vw': 390, 'max': 586, 'sl': 586}"
+  }
+]
