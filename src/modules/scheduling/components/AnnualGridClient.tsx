@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, ClipboardPasteIcon, TriangleAlertIcon } from "lucide-react";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { ShopSingleSelect } from "@/components/ui/filters/ShopSingleSelect";
 import { MonthPicker } from "@/components/ui/filters/MonthPicker";
 import { Drawer } from "@/components/ui/drawer";
@@ -644,8 +645,9 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
 
   return (
     <div className="flex flex-col gap-5">
+      <TableScrollAffordance />
       {/* Branch pills */}
-      <ShopSingleSelect options={locations} value={locationId} onChange={changeLocation} />
+      <ShopSingleSelect options={locations} value={locationId} onChange={changeLocation} compactMobile />
 
       {/* Month + status + advisor */}
       <div className="flex flex-wrap items-center gap-3">
@@ -677,7 +679,7 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
       </div>
 
       {/* Grid — page scrolls vertically, table scrolls horizontally */}
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="ui-table-scroll sch-scroll rounded-lg border border-border bg-card">
         {loading ? (
           <div className="p-8 text-sm text-muted-foreground">Loading {formatMonthLabel(month)}…</div>
         ) : employees.length === 0 ? (

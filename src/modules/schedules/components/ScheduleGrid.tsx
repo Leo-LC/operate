@@ -1,4 +1,5 @@
 "use client";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, format, parseISO } from "date-fns";
@@ -548,7 +549,9 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
 
       {/* ── Schedule table ──────────────────────────────────────── */}
       {employees.length > 0 && (
-        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <>
+        <TableScrollAffordance />
+        <div className="ui-table-scroll sch-scroll" style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
           <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead style={{ background: "var(--bg-2)", borderBottom: "2px solid var(--line)" }}>
               <tr>
@@ -623,6 +626,7 @@ export function ScheduleGrid({ schedule, initialShifts, employees }: Props) {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* ── Heatmap ─────────────────────────────────────────────── */}

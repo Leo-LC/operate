@@ -114,3 +114,23 @@
     display: none;
   }
 }
+
+/* Conditional horizontal-scroll hint on the planning grids (only when the
+   grid actually overflows — TableScrollAffordance sets data-scrollable). */
+@media (max-width: 1023px) {
+  .sch-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+  }
+
+  .sch-scroll[data-scrollable]::before {
+    content: "↔ Défilez horizontalement";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 4px 10px 6px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}
