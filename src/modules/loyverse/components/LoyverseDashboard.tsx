@@ -105,7 +105,7 @@ function RankedBars({ data }: { data: { label: string; value: number; sublabel?:
     <div className="flex flex-col gap-2 py-1">
       {sorted.map((d) => (
         <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
-          <span className="text-xs text-[var(--fg-3)]" style={{ flex: "0 0 34%", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="text-xs text-[var(--fg-3)]" style={{ flex: "0 0 34%", minWidth: 0, whiteSpace: "normal", lineHeight: 1.25 }}>
             {d.label}
           </span>
           <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--ui-series-track)", overflow: "hidden", minWidth: 0 }}>
@@ -798,10 +798,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             const failingAccount = lastRun?.per_account?.find((a) => a.account_key === store.account_key && a.error);
             const isDegraded = Boolean(failingAccount || store.unmapped.line_items > 0 || store.unmapped.payments > 0);
             const bucketEntries = [
-              { label: "Drinks", value: store.buckets.drinks, color: "var(--chart-1)" },
-              { label: "Tickets", value: store.buckets.ticket, color: "var(--purple)" },
-              { label: "Animal Food", value: store.buckets.snack, color: "var(--good)" },
-              { label: "Goodies", value: store.buckets.goodies, color: "var(--amber)" },
+              { label: "Drinks", value: store.buckets.drinks },
+              { label: "Tickets", value: store.buckets.ticket },
+              { label: "Animal Food", value: store.buckets.snack },
+              { label: "Goodies", value: store.buckets.goodies },
             ]
               .filter((b) => b.value > 0)
               .sort((a, b) => b.value - a.value);
@@ -855,11 +855,11 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                     <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Sales breakdown</p>
                     {bucketEntries.map((b) => (
                       <div key={b.label} className="flex items-center gap-2">
-                        <span className="w-[72px] shrink-0 text-[11px] text-[var(--fg-3)]">{b.label}</span>
+                        <span className="min-w-[84px] shrink-0 text-[11px] text-[var(--fg-3)]">{b.label}</span>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--line-2)]">
-                          <div className="h-full rounded-full" style={{ width: `${(b.value / bucketMax) * 100}%`, background: b.color }} />
+                          <div className="h-full rounded-full" style={{ width: `${(b.value / bucketMax) * 100}%`, background: "var(--accent)" }} />
                         </div>
-                        <span className="w-[72px] shrink-0 text-right font-mono text-[11px] tabular-nums text-[var(--fg-2)]">{fmtTHB(b.value)}</span>
+                        <span className="shrink-0 text-right font-mono text-[11px] tabular-nums text-[var(--fg-2)]" style={{ minWidth: 64 }}>{fmtTHB(b.value)}</span>
                       </div>
                     ))}
                   </div>
