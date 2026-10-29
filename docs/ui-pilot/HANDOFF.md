@@ -1,5 +1,46 @@
 # Handoff — Operate UI/UX redesign: full perimeter migrated
 
+## Final handoff — 29 October 2026 (v4 — closure pass)
+
+**Last commits:** `5b82998`…`6fda18d` (see v3) then the closure pass:
+`2b4a3e7` (Employees single action zone + contrast token), `b6bea39` (CI breadcrumb +
+honest scope line + view-aware breadcrumbs + compact ≤768px), `30aa064` (scheduling
+scroll affordance), `1befea1` (honest no-data statuses), `6a51ce1` (Loyverse bucket
+bars), `66acb0a`+`6fda18d` (evidence). Local only.
+
+**Constat → correction → preuve** (all reproduced before fixing):
+
+1. **Direction hydration** — localStorage read in a state initializer (SSR defaults ≠
+   browser-stored visibility → eye-icon mismatch → client-render fallback). Fixed: same
+   defaults both sides, localStorage read after mount; shell theme-title mismatch fixed
+   the same way. Proof: reproduction harness shows zero hydration errors across direct
+   loads, cross-module navigation, stored dark/orange, light-after-dark.
+2. **Employees duplicate actions** — the legacy flex-end action block survived between
+   the shared header and the toolbar (2× Export/Add, also with the form open). Fixed:
+   one toolbar; form submit relabelled "Create employee" (no duplicate labels). Proof:
+   closure-report checks + captures closed/open.
+3. **CI scope labels** — mismatch came from an incoherent fixture; fixtures now scope-
+   consistent (All time → filtered nulls → "All shops · All time"); separator renders
+   only when both parts exist; scope keeps deriving from the response meta (requestId
+   guard covers slow refreshes).
+4. **Breadcrumbs/views** — CI breadcrumb added; Accounting/Payments/Employees carry the
+   active view; compact shop filter engages at ≤768px inclusive.
+5. **Scheduling** — conditional scroll hints + pinned Date/Staff on Annual/Weekly
+   (verified initial + last-column reachable at 768; drag/edit untouched).
+6. **Honest statuses** — Accounting focus day no longer shows "Positive" on a "—"
+   amount (JS null ≥ 0 quirk); Treasury shows "No data" (neutral) when nothing is
+   recorded instead of "OK".
+7. **Loyverse** — bucket bars on the shared accent, readable labels/values; light
+   `--ui-fg-4` contrast fixed 3.83 → 4.63 (canvas) / 4.59 (panel), AA 4.5 met.
+8. **Reviews Stats parity** — re-verified against `e6e59c3` served from a worktree on
+   the same database: identical KPIs, chart weeks and anatomy; every pixel difference
+   traces to documented post-baseline content evolutions (meta delta line, 1–3★
+   call-out, sidebar items) — see `closure/stats-parity-report.json`.
+
+**Still not verified:** admin/staff rendering (owner-only account), production data,
+physical touch devices. **Backlog (documented, not blocking):** Employees/Animals list
+restructuring, Loyverse shop-panel ergonomics, legacy-token collapse after acceptance.
+
 ## Final handoff — 28 October 2026 (v3 — full mission)
 
 **Last code commit:** the shell bridge (`861c684`) plus the posts-acceptance stages on

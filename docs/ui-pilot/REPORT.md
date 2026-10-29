@@ -505,6 +505,34 @@ static document); all pure redirects were confirmed.
 - Legacy-token cleanup (collapsing bridges into `--ui-*`) intentionally deferred until the
   full-perimeter review is accepted.
 
+## Closure pass — 29 October 2026 (fixes + honest evidence)
+
+Every finding was reproduced before fixing; per-capture assertions in
+`docs/ui-pilot/closure/closure-report.json` (32/32) distinguish rendu, débordement,
+erreurs runtime, comportement fonctionnel, revue visuelle and données réelles/fixtures.
+
+| Constat (reproduced) | Correction | Preuve |
+| --- | --- | --- |
+| Direction fell back to client rendering on revisited loads | localStorage read moved out of the state initializer (both servers now render the defaults); shell theme-title made mount-stable | reproduction harness: 0 hydration errors (direct, cross-module, stored dark/orange, light-after-dark) — `direction-revisit-1440-dark-orange.png` |
+| Employees rendered Export/Add twice (legacy action block survived between header and toolbar) | one toolbar in a stable position; form submit relabelled "Create employee" | `employees-closed/-form-open-1440-light-green.png`; checks: toolbar Add ×1, Create ×1 |
+| CI scope line could show an orphan separator and a mismatched period label | fixtures made scope-consistent (All time → filtered nulls → "All shops · All time"); separator rendered only when both parts exist; label still derived from the response (requestId guard covers slow refreshes) | `ci-alltime-…` / `ci-filtered-…` (asserted scope "Chiang Mai · Custom range", KPI 431) |
+| Missing CI breadcrumb; single-view modules did not need invented levels | CI breadcrumb added; Accounting/Payments/Employees breadcrumbs carry the active view | captures in closure/ |
+| Compact shop filter skipped exactly 768px | matchMedia max-width 768 inclusive; consumers verified (Payments, Employees, Attendance, Documents) | `payments-390-*` show the disclosure |
+| Annual/Weekly cut columns without a scroll cue | shared TableScrollAffordance + .sch-scroll conditional hint; Date/Staff pinned | `scheduling-*-768-initial/last-column-…` (last column reachable, scrollLeft == max) |
+| Accounting "Positive" badge on a "—" amount (JS `null >= 0`) | badge renders only for a numeric net | closure capture + code check |
+| Treasury "OK" with nothing recorded | "No data" neutral pill/hint when no cash position, bank balance or reserve exists | real local data (all unset) |
+| Loyverse truncated categories; decorative bucket colours | accent-only bucket bars, non-truncating labels, fixed value column | `loyverse-{390,768,1440}-…` (real sync data) |
+| Light `--ui-fg-4` at 3.83:1 (white) / 4.25:1 (canvas) | token darkened to #67726b → 4.63/5.0, AA 4.5 met without font changes | measured in all four theme×accent combos |
+
+Reviews Stats parity re-verified against `e6e59c3` (worktree on :3001, same database):
+identical KPIs, chart weeks and anatomy; every pixel difference traces to documented
+post-baseline content evolutions — see `closure/stats-parity-report.json`.
+
+Limits still open: admin/staff rendering unverified (owner-only account); production data
+and physical devices unexercised; the equivalent-period comparison remains a separate
+business decision; backlog (non-blocking): Employees/Animals list restructuring, Loyverse
+shop-panel ergonomics, legacy-token collapse after acceptance.
+
 ## Wave 1 §2 — Customer Insights
 
 Status: **verified** (automated + visual checks pass) → awaiting **accepted**.
