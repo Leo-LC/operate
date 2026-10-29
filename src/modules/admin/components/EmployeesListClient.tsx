@@ -789,6 +789,10 @@ export function EmployeesListClient({ locations }: Props) {
           <ol className="ui-breadcrumb">
             <li>
               <span aria-current="page">Employees</span>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{view === "list" ? "List" : "Documents"}</span>
             </li>
           </ol>
         </nav>
@@ -806,27 +810,6 @@ export function EmployeesListClient({ locations }: Props) {
           />
         </div>
       </header>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="sm" variant="secondary" onClick={handleExportDocsCsv} title="Export the visible list as CSV (opens in Google Sheets)">
-            <DownloadIcon className="size-4" />
-            Export docs CSV
-          </Button>
-          <Button size="sm" onClick={() => {
-            const next = !showAdd;
-            setShowAdd(next);
-            setEditingId(null);
-            if (next && shopFilter) {
-              setFormLocIds(new Set([shopFilter]));
-              setFormPrimaryLoc(shopFilter);
-            }
-          }}>
-            <PlusIcon className="size-4" />
-            Add employee
-          </Button>
-        </div>
-      </div>
-
       <div className="ui-toolbar">
         <div className="ui-filter-rows">
           <div className="ui-filter-row">
@@ -919,7 +902,7 @@ export function EmployeesListClient({ locations }: Props) {
           onEligibleChange={(id, val) => setFormEligible((prev) => ({ ...prev, [id]: val }))}
           onSubmit={(e) => void handleAdd(e)}
           onCancel={resetAddForm}
-          submitLabel="Add employee"
+          submitLabel="Create employee"
         />
       )}
 
