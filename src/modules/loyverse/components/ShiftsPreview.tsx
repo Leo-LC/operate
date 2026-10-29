@@ -612,7 +612,7 @@ function AccountingCopySection({
                 </th>
               ))}
             </tr>
-            <tr className="bg-[var(--bg-2)] text-[9px] text-[var(--fg-4)]">
+            <tr className="bg-[var(--bg-2)] text-[10px] text-[var(--fg-4)]">
               {(VISIBLE_COLUMNS as unknown as string[]).map((c) => (
                 <th key={`${c}-key`} className="whitespace-nowrap px-2 pb-1 pt-0 text-left font-mono font-normal normal-case tracking-normal">
                   {c}

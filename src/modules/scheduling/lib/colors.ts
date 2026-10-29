@@ -12,13 +12,17 @@ export const KIND_LABELS: Record<ShiftKind, string> = {
   invalid: "Check",
 };
 
-/** Default hex colors (editable in Scheduling → Settings). */
+/**
+ * Defaults restrained to the accepted Operate palette (DESIGN.md): one muted
+ * emerald accent, a neutral series and amber for closing — no saturated blue.
+ * Users can still override any value in Scheduling → Settings (stored hex).
+ */
 export const PALETTE_DEFAULTS: Record<"opening" | "daytime" | "closing" | "off" | "unscheduled", string> = {
-  opening: "#16a34a",
-  daytime: "#2563eb",
-  closing: "#ea580c",
-  off: "#64748b",
-  unscheduled: "#94a3b8",
+  opening: "#2c6f4c",
+  daytime: "#55605a",
+  closing: "#b45309",
+  off: "#5f6b64",
+  unscheduled: "#67726b",
 };
 
 export const EDITABLE_KINDS = [

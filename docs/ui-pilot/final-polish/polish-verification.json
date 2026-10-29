@@ -1,0 +1,127 @@
+[
+  {
+    "check": "treasury: 3 aggregate cards carry 'No data recorded'",
+    "ok": true,
+    "detail": "count=4"
+  },
+  {
+    "check": "accounting: renders (status area present)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "payments: 'generated payments' wording present",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "payments: no French chip remnant",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "payments: live chip present",
+    "ok": true,
+    "detail": "chips=9, live-row copy: True"
+  },
+  {
+    "check": "scheduling: plan list shows no invented section tag",
+    "ok": true,
+    "detail": "count=0"
+  },
+  {
+    "check": "scheduling: annual keeps its tag",
+    "ok": true,
+    "detail": "['Scheduling']"
+  },
+  {
+    "check": "annual: legend present",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "annual: legend names all 4 kinds",
+    "ok": true,
+    "detail": "Opening\nDaytime\nClosing\nOFF"
+  },
+  {
+    "check": "annual: no legacy saturated defaults in grid",
+    "ok": true,
+    "detail": "['#2c6f4c', '#55605a', '#b45309']"
+  },
+  {
+    "check": "annual: restrained defaults present",
+    "ok": true,
+    "detail": "['#2c6f4c', '#55605a', '#b45309']"
+  },
+  {
+    "check": "week: legend present",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "loyverse: labelled loading or resolved content",
+    "ok": true,
+    "detail": "loading_seen=True"
+  },
+  {
+    "check": "loyverse: never a blank body",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "loyverse: content or honest empty",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "shift-sales: no 9px key row left",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "check": "390 no overflow /treasury",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /accounting",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /payments",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /scheduling",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /scheduling/annual",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /scheduling/week",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /loyverse",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "390 no overflow /shift-sales",
+    "ok": true,
+    "detail": "[390, 390]"
+  },
+  {
+    "check": "no page errors across runs",
+    "ok": true,
+    "detail": "[]"
+  }
+]

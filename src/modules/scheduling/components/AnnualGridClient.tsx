@@ -22,7 +22,7 @@ import { addDaysStr, computeShiftHours, formatTotalHours, mondayOf } from "@/mod
 import { autoColon, isValidTimeLoose, normTime } from "@/modules/scheduling/lib/time-input";
 import { validateCell, validateStaffing } from "@/modules/scheduling/lib/validation";
 import { classifyShift, paletteToStyles, type ShiftPalette } from "@/modules/scheduling/lib/colors";
-
+import { ShiftKindLegend } from "@/modules/scheduling/components/ShiftKindLegend";
 interface Props {
   locations: Array<{ id: string; name: string }>;
   initialLocationId: string;
@@ -677,6 +677,9 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
           {issues.length === 0 && <span>All clear</span>}
         </button>
       </div>
+
+      {/* Legend — cell colours stay readable without hover/recall */}
+      <ShiftKindLegend palette={palette} />
 
       {/* Grid — page scrolls vertically, table scrolls horizontally */}
       <div className="ui-table-scroll sch-scroll rounded-lg border border-border bg-card">

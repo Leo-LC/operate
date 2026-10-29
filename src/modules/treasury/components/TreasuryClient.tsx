@@ -381,9 +381,21 @@ export function TreasuryClient() {
 
       {/* Top summary — shared KPI cards on the responsive grid */}
       <div className="ui-kpi-grid">
-        <KpiStat label="Cash in shops" value={thb(totalCash)} />
-        <KpiStat label="Bank balance declared" value={thb(totalBank)} />
-        <KpiStat label="Reserved obligations" value={thb(totalReserved)} />
+        <KpiStat
+          label="Cash in shops"
+          value={hasData ? thb(totalCash) : "—"}
+          hint={!hasData ? "No data recorded" : undefined}
+        />
+        <KpiStat
+          label="Bank balance declared"
+          value={hasData ? thb(totalBank) : "—"}
+          hint={!hasData ? "No data recorded" : undefined}
+        />
+        <KpiStat
+          label="Reserved obligations"
+          value={hasData ? thb(totalReserved) : "—"}
+          hint={!hasData ? "No data recorded" : undefined}
+        />
         <KpiStat
           label="Free cash"
           value={thb(freeCash)}

@@ -584,15 +584,20 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       {error && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="py-6">
-                <div className="h-4 w-20 rounded bg-[var(--line-2)]" />
-                <div className="mt-3 h-6 w-24 rounded bg-[var(--line)]" />
-              </CardContent>
-            </Card>
-          ))}
+        <div aria-busy="true">
+          <p role="status" className="mb-3 text-sm text-[var(--fg-3)]">
+            Loading Loyverse data…
+          </p>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="py-6">
+                  <div className="h-4 w-20 rounded bg-[var(--line-2)]" />
+                  <div className="mt-3 h-6 w-24 rounded bg-[var(--line)]" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : kpi ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -651,7 +656,16 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             </CardContent>
           </Card>
         </div>
-      ) : null}
+      ) : (
+        <Card>
+          <CardContent className="py-10 text-center">
+            <p className="text-sm text-[var(--fg-4)]">No Loyverse data for this period.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">
+              Use the Sync button above to fetch the latest numbers.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {!loading && rangeDays === 1 && (
         <Card>

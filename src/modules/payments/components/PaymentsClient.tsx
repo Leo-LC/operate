@@ -478,12 +478,20 @@ export function PaymentsClient({ initialLocations }: Props) {
         <KpiStat
           label="Total payroll"
           value={stats.total > 0 ? fmtThb(stats.total) : "—"}
-          hint={previewCount > 0 ? `${monthName} · ${previewCount} poste(s) en temps réel` : monthName}
+          hint={
+            stats.total > 0
+              ? previewCount > 0
+                ? `${monthName} · generated records + ${previewCount} live row${previewCount === 1 ? "" : "s"} not generated`
+                : monthName
+              : previewCount > 0
+                ? `${monthName} · live rows only — no generated payments`
+                : `${monthName} · no generated payments`
+          }
         />
         <KpiStat
           label="Employees"
           value={String(stats.headcount)}
-          hint={`${stats.headcount === 1 ? "person" : "people"} with records`}
+          hint={`${stats.headcount === 1 ? "person" : "people"} with generated payments`}
         />
       </div>
 
@@ -567,13 +575,13 @@ export function PaymentsClient({ initialLocations }: Props) {
                       {preview && (
                         <div
                           style={{
-                            display: "inline-flex", fontSize: 10, fontWeight: 600,
+                            display: "inline-flex", fontSize: 11, fontWeight: 600,
                             color: "var(--accent)", background: "var(--accent-soft)",
                             border: "1px solid var(--accent)", borderRadius: "var(--r-pill)",
                             padding: "1px 7px", marginTop: 2,
                           }}
                         >
-                          Temps réel · non généré
+                          Live · not generated
                         </div>
                       )}
                       {!emp.base_salary_monthly && !preview && (
@@ -692,7 +700,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
           <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
             Click <strong>Generate period</strong> to snapshot base salary and service charge for every employee — records stay frozen afterwards so overrides keep their meaning.
-            Rows marked <strong>Temps réel</strong> are live previews (current salary and service charge to date) for employees without a record yet.
+            Rows marked <strong>Live · not generated</strong> are live previews (current salary and service charge to date) for employees without a record yet.
             Click a generated row to edit base salary, service charge and adjustments — every override needs a reason.
           </p>
         </div>

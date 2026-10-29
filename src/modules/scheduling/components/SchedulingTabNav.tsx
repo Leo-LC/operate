@@ -12,7 +12,9 @@ const ALL_TABS = [
 export function SchedulingTabNav({ isOwner = false }: { isOwner?: boolean }) {
   const pathname = usePathname();
   const TABS = ALL_TABS.filter((t) => isOwner || !t.ownerOnly);
-  const sectionLabel = TABS.find((t) => pathname === t.href || pathname.startsWith(`${t.href}/`))?.label ?? "Annual";
+  // Only a real tab label may appear here; unlisted routes (the plan list,
+  // /scheduling/import, /scheduling/[id]) render no invented section name.
+  const tab = TABS.find((t) => pathname === t.href || pathname.startsWith(`${t.href}/`));
 
   return (
     <div className="ui-module-header sch-nav">
@@ -26,7 +28,7 @@ export function SchedulingTabNav({ isOwner = false }: { isOwner?: boolean }) {
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Scheduling</h1>
         <ModuleTabs tabs={TABS} ariaLabel="Scheduling" variant="pills" />
-        <span className="sch-section" aria-hidden>{sectionLabel}</span>
+        {tab && <span className="sch-section" aria-hidden>{tab.label}</span>}
       </div>
     </div>
   );

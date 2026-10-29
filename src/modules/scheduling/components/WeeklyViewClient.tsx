@@ -20,6 +20,7 @@ import {
 import { addDaysStr, computeShiftHours, formatTotalHours } from "@/modules/scheduling/lib/math";
 import { parseShiftValue } from "@/modules/scheduling/lib/time-input";
 import { classifyShift, paletteToStyles, type ShiftPalette } from "@/modules/scheduling/lib/colors";
+import { ShiftKindLegend } from "@/modules/scheduling/components/ShiftKindLegend";
 
 interface Props {
   locations: Array<{ id: string; name: string }>;
@@ -387,6 +388,8 @@ export function WeeklyViewClient({ locations, initialLocationId, initialWeek, ca
           </Button>
         </div>
       </div>
+
+      <ShiftKindLegend palette={palette} />
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         {loading ? (
