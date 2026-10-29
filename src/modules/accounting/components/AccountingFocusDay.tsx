@@ -379,11 +379,15 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
           }}>
             {entry ? thb(net) : "—"}
           </div>
-          {entry && (
+          {entry && typeof net === "number" && (
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <Pill tone={net >= 0 ? "good" : "bad"}>
                 {net >= 0 ? "Positive" : "Negative"}
               </Pill>
+            </div>
+          )}
+          {entry && (
+            <div style={{ marginTop: typeof net === "number" ? 0 : 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Pill tone="neutral">Entry recorded</Pill>
             </div>
           )}

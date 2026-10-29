@@ -351,6 +351,15 @@ export function TreasuryClient() {
   const statusColor = freeCash < 0 ? "var(--bad)" : freeCash < totalReserved * 0.2 ? "var(--warn)" : "var(--good)";
   const statusLabel = freeCash < 0 ? "Critical" : freeCash < totalReserved * 0.2 ? "Watch" : "OK";
 
+  // Nothing recorded yet (no cash position, no declared bank balance, no
+  // reserve): "OK" would assert a healthy position the data does not
+  // support — presentation-only honest label from existing fields.
+  const anySourceRecorded =
+    (data?.cashPositions ?? []).some((p) => p.cash_on_hand != null || p.expected_transfer != null) ||
+    (data?.bankAccounts ?? []).some((a) => a.declared_balance != null) ||
+    (data?.reserves ?? []).length > 0;
+  const hasData = !!data && anySourceRecorded;
+
   if (loading) return (
     <div className="trs" style={{ display: "flex", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>Loading…</div>
   );
@@ -378,9 +387,9 @@ export function TreasuryClient() {
         <KpiStat
           label="Free cash"
           value={thb(freeCash)}
-          tone={freeCash < 0 ? "negative" : freeCash < totalReserved * 0.2 ? undefined : "positive"}
-          data-alert={freeCash >= 0 && freeCash < totalReserved * 0.2 ? "warn" : undefined}
-          hint={statusLabel}
+          tone={!hasData ? undefined : freeCash < 0 ? "negative" : freeCash < totalReserved * 0.2 ? undefined : "positive"}
+          data-alert={hasData && freeCash >= 0 && freeCash < totalReserved * 0.2 ? "warn" : undefined}
+          hint={hasData ? statusLabel : "No data recorded"}
         />
       </div>
 
@@ -395,8 +404,8 @@ export function TreasuryClient() {
         <span className="mono tabular-nums">{thb(totalReserved)} reserves</span>
         <span>=</span>
         <span className="mono tabular-nums" style={{ fontWeight: 700, color: statusColor }}>{thb(freeCash)} free cash</span>
-        <span className="trs-formula-pill" style={{ background: statusColor }}>
-          {statusLabel}
+        <span className="trs-formula-pill" style={hasData ? { background: statusColor } : { background: "var(--ui-panel-2)", color: "var(--ui-fg-3)", border: "1px solid var(--ui-line)" }}>
+          {hasData ? statusLabel : "No data"}
         </span>
       </div>
 
