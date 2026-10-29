@@ -1,5 +1,66 @@
 # Handoff — Operate UI/UX redesign: full perimeter migrated
 
+## Final pass — 29 October 2026 (v5 — Impeccable critique → audit → targeted polish)
+
+Context capture (Impeccable init + document, grounded in the docs/ui-pilot contract and
+the accepted Reviews Stats system): **PRODUCT.md** and **DESIGN.md** (+ `.impeccable/design.json`
+sidecar) written at the repo root. The product is recorded as **Operate** (Capybara Coffee
+internal operations) — correcting the previous "Nexus Hub" working-context label. DESIGN.md
+documents the incumbent accepted system; the active-pill description was corrected to the
+shipped solid-accent fill.
+
+Critique (dual-agent: design review + detector/browser evidence) over the closure-pass
+modules (direction, employees, customer-insights, accounting, payments, treasury,
+scheduling, loyverse): **26/40**, 1×P0 + 3×P1 + 1×P2 verified in source before fixing.
+Snapshot: `.impeccable/critique/2026-10-29T03-56-56Z__closure-pass-affected-modules.md`.
+Audit evidence: detector 126 findings → 88 real (all advisory, mostly off-ramp font sizes in
+legacy/detector-flagged files), 38 false positives; browser: 0 page errors, 0 horizontal
+overflow across 10 routes × 1440/390 × light/dark.
+
+**Polish implemented (presentation only — no calculation, API, permission or data change;**
+every in-page write path untouched, no test writes performed):
+
+1. **[P0] Accounting focus day** (`AccountingFocusDay.tsx`): recorded-zero no longer reads
+   as no-data (`thb(0)` → `฿0`; "—" stays only for no entry), and the status pill is now
+   honest: Positive (net > 0) / Negative (net < 0) / **neutral "Zero"** at exactly 0 — the
+   previous green "Positive" under a "—" is gone (verified live at 1440, `final-polish/`).
+   The active day chip text uses `--accent-fg` instead of a hard-coded warm-white literal.
+2. **Scheduling shift-kind colors** (`lib/colors.ts`): defaults restrained to the system
+   palette (`#2c6f4c` opening, `#55605a` daytime, `#b45309` closing, `#5f6b64` off,
+   `#67726b` unscheduled; invalid → `#a63b30`) — the saturated blue is gone. Stored user
+   palettes in `scheduling_global_settings.palette` are unaffected; Settings editing intact.
+3. **Scheduling legend** (`ShiftKindLegend.tsx`, new): Opening/Daytime/Closing/OFF swatch row
+   on the annual and weekly grids (print-hidden), so cell colors are never the only carrier.
+4. **Scheduling nav honesty** (`SchedulingTabNav.tsx`): the redundant section tag now shows
+   only real tab labels; the plan list/import/detail routes no longer display a wrong "Annual".
+5. **Payments copy** (`PaymentsClient.tsx`): "Employees 0 people with records" now says
+   "with generated payments"; the payroll KPI hint explains live rows vs generated records;
+   the row chip and its caption are unified to English "Live · not generated" (was
+   "Temps réel · non généré" inside an English module).
+6. **Treasury aggregate honesty** (`TreasuryClient.tsx`): with nothing recorded, the three
+   summary cards show "—" + "No data recorded" instead of "฿0" (same rule as the closure's
+   free-cash fix).
+7. **Loyverse states** (`LoyverseDashboard.tsx`): loading shows a labelled
+   `role="status"` "Loading Loyverse data…" above the skeletons (no more wordless pulse);
+   an empty result renders an honest "No Loyverse data for this period." panel (was a blank
+   body). `ShiftsPreview.tsx` column-key row 9px → 10px.
+
+**Verification:** `final-polish/polish-verification.json` — 25/25 checks (every changed
+surface renders the intended state: accounting ฿0/Zero, treasury No data ×3, payments
+wording + chips, scheduling legend/tag/no saturated defaults, loyverse labelled
+loading/resolved/never-blank, shift-sales key row), 0 page errors, no page-level overflow
+at 390 on all 8 routes; gates: 251/251 tests, `tsc` clean, ESLint 0 new findings (the one
+`fmtDelta` unused-var error in `LoyverseDashboard` is pre-existing on HEAD), `npm run build`
+exit 0; dev server restarted after the build (documented op note). Screens +
+`polish-verification.json` in `docs/ui-pilot/final-polish/`.
+
+**Not done on purpose (still documented as backlog):** Employees/Animals list
+restructuring; Loyverse shop-panel ergonomics; legacy-token collapse (excluded by
+instruction); the off-ramp font-size tail beyond the flagged worst spots; Direction's
+unused `DirectionTrends.tsx` component (dead code, zero references — reported, deletion
+left to the owner); admin/staff runtime, production data, physical devices still
+unverified. Local commits only — **nothing pushed, merged, deployed or migrated.**
+
 ## Final handoff — 29 October 2026 (v4 — closure pass)
 
 **Last commits:** `5b82998`…`6fda18d` (see v3) then the closure pass:
