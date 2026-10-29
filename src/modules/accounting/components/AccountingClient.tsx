@@ -191,6 +191,10 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
           <ol className="ui-breadcrumb">
             <li>
               <span aria-current="page">Accounting</span>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{VIEWS.find((v) => v.id === view)?.label}</span>
             </li>
           </ol>
         </nav>

@@ -136,6 +136,13 @@ export function CustomerInsightsClient() {
   return (
     <div className="ci">
       <header className="ui-module-header ci-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Customer Insights</span>
+            </li>
+          </ol>
+        </nav>
         <div className="ui-module-header-row">
           <h1 className="ui-module-title">Customer Insights</h1>
           <div className="ci-header-actions">
@@ -237,7 +244,8 @@ export function CustomerInsightsClient() {
                   value={chartsLoading ? "—" : (data?.totalSubmissions ?? 0).toLocaleString()}
                   comparison={
                     <p className="ci-kpi-scope">
-                      {scopeShop} · {periodLabel}
+                      {scopeShop}
+                      {periodLabel ? ` · ${periodLabel}` : ""}
                     </p>
                   }
                   hint={kpiHint}

@@ -410,6 +410,10 @@ export function PaymentsClient({ initialLocations }: Props) {
           <ol className="ui-breadcrumb">
             <li>
               <span aria-current="page">Payments</span>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{view === "table" ? "Table" : "Detail"}</span>
             </li>
           </ol>
         </nav>

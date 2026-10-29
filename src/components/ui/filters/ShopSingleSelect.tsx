@@ -63,7 +63,7 @@ export function ShopSingleSelect({
       setCompact(false);
       return;
     }
-    const mq = window.matchMedia("(max-width: 767px)");
+    const mq = window.matchMedia("(max-width: 768px)");
     const update = () => setCompact(mq.matches);
     update();
     mq.addEventListener("change", update);
