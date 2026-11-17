@@ -99,7 +99,7 @@ const config: Config = {
         "s-9": "var(--s-9)",
       },
       fontFamily: {
-        sans:       ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans:       ["var(--font-sans, system-ui)", "system-ui", "sans-serif"],
         serif:      ["var(--font-serif)", "Georgia", "serif"],
         display:    ["var(--font-display)", "Georgia", "serif"],
         script:     ["var(--font-script)", "cursive"],
