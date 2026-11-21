@@ -22,6 +22,11 @@ export const MERCH_CA_TIERS = [
 /** First month ("YYYY-MM") the CA multiplier applies. Earlier months keep the old rule (full bonus). */
 export const MERCH_CA_RULE_START_MONTH = "2026-11";
 
+/** True when `month` is governed by the CA-multiplier rule (Nov 2026 onwards). */
+export function merchCaRuleApplies(month?: string): boolean {
+  return !!month && month >= MERCH_CA_RULE_START_MONTH;
+}
+
 /**
  * Multiplier applied to the merch tier bonus for `month`.
  * `revenueRatio` = actual CA / sales target (null = no target configured → not gated).

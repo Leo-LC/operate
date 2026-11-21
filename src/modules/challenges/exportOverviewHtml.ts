@@ -132,13 +132,18 @@ function buildSummaryRows(locations: LocationOverview[], teamMode?: boolean, adj
       // Merch bonus is scaled by the sales target (Nov 2026+): 0× → "Locked", ½× → paid amount.
       const merchLocked = merchPasses === true && loc.merchandising.caMultiplier === 0;
       const rowCls = idx % 2 === 1 ? ' class="alt"' : "";
+      // CA multiplier note (Nov 2026 rule): % of target reached + applied rate.
+      const merchCaNote =
+        loc.merchandising.caScaled && loc.revenue.ratio !== null
+          ? `<br><span class="muted">CA ${Math.round(loc.revenue.ratio * 100)}% of target → ×${loc.merchandising.caMultiplier === 0.5 ? "½" : loc.merchandising.caMultiplier}</span>`
+          : "";
       const adjustedTag = adjustedIds?.has(loc.locationId) ? ' <span class="adjusted-tag">Adjusted</span>' : "";
 
       return `<tr${rowCls}>
         <td class="shop">${escHtml(shortName(loc.locationTitle))}${adjustedTag}</td>
         <td>${salesTargetCell(loc, teamMode)}</td>
         <td class="bonus-total">${loc.totalBonus > 0 ? `<span class="pass">${loc.totalBonus.toLocaleString()} ฿</span>` : '<span class="muted">0 ฿</span>'}</td>
-        <td>${metricSummaryCell(merchPasses, pct(loc.merchandising.ratio), loc.merchandising.bonus, merchLocked, loc.merchandising.plannedBonus, teamMode, teamMode ? buildMerchContext(loc) : undefined)}</td>
+        <td>${metricSummaryCell(merchPasses, pct(loc.merchandising.ratio), loc.merchandising.bonus, merchLocked, loc.merchandising.plannedBonus, teamMode, teamMode ? buildMerchContext(loc) : undefined)}${merchCaNote}</td>
         <td>${metricSummaryCell(loc.snacks.passes, loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—", loc.snacks.bonus, revenueLocked, SNACKS_BONUS, teamMode, teamMode ? buildSnacksContext(loc) : undefined)}</td>
         <td>${metricSummaryCell(loc.panierMoyen.passes, loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—", loc.panierMoyen.bonus, revenueLocked, PANIER_BONUS, teamMode, teamMode ? buildPanierContext(loc) : undefined)}</td>
         <td>${metricSummaryCell(loc.opex.passes, pct(loc.opex.ratio), loc.opex.bonus, revenueLocked, OPEX_BONUS, teamMode, teamMode ? buildOpexContext(loc) : undefined)}</td>
@@ -165,6 +170,11 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
   const merchLocked = merchPasses === true && loc.merchandising.caMultiplier === 0;
   const merchTarget = loc.merchandising.tier > 0 ? MERCH_TIER_LABELS[loc.merchandising.tier] : "≥ 7%";
   const merchCtx = buildMerchContext(loc);
+  // CA multiplier note (Nov 2026 rule): % of target reached + applied rate.
+  const merchCaSuffix =
+    loc.merchandising.caScaled && loc.revenue.ratio !== null
+      ? ` · CA ${Math.round(loc.revenue.ratio * 100)}% of target → ×${loc.merchandising.caMultiplier === 0.5 ? "½" : loc.merchandising.caMultiplier}`
+      : "";
   const snacksCtx = buildSnacksContext(loc);
   const panierCtx = buildPanierContext(loc);
   const opexCtx = buildOpexContext(loc);
@@ -175,7 +185,7 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.productsPct : CHALLENGE_LABELS.productsPct,
       value: teamMode ? merchCtx.value : pct(loc.merchandising.ratio),
-      target: teamMode ? (merchCtx.hint ?? merchTarget) : merchTarget,
+      target: teamMode ? (merchCtx.hint ?? merchTarget) : `${merchTarget}${merchCaSuffix}`,
       passes: merchPasses,
       bonus: loc.merchandising.bonus,
       locked: merchLocked,

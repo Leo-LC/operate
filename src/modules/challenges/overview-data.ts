@@ -5,6 +5,7 @@ import {
   MERCH_TIERS,
   MERCH_BONUS_BY_TIER,
   merchCaMultiplier,
+  merchCaRuleApplies,
   SNACKS_THRESHOLD,
   SNACKS_BONUS,
   PANIER_THRESHOLD,
@@ -57,6 +58,8 @@ export interface LocationOverview {
     plannedBonus: number;
     /** CA-achievement multiplier: 0 | 0.5 | 1 (always 1 before Nov 2026). */
     caMultiplier: number;
+    /** True when the month is governed by the CA-multiplier rule (Nov 2026+). */
+    caScaled: boolean;
     /** Paid bonus = plannedBonus × caMultiplier. */
     bonus: number;
   };
@@ -290,6 +293,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
     const merchPlannedBonus = MERCH_BONUS_BY_TIER[merchTier];
     const merchMultiplier = merchCaMultiplier(revenueRatio, month);
     const merchBonus = Math.round(merchPlannedBonus * merchMultiplier);
+    const merchCaScaled = merchCaRuleApplies(month);
 
     let snackRatio: number | null = null;
     if (snacksSold !== null && entryCount !== null && entryCount > 0) {
@@ -355,6 +359,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
         tier: merchTier,
         plannedBonus: merchPlannedBonus,
         caMultiplier: merchMultiplier,
+        caScaled: merchCaScaled,
         bonus: merchBonus,
       },
       snacks: { ratio: snackRatio, passes: snackPasses, bonus: snackBonus },

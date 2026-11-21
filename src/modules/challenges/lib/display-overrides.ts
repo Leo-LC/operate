@@ -2,6 +2,7 @@ import {
   MERCH_TIERS,
   MERCH_BONUS_BY_TIER,
   merchCaMultiplier,
+  merchCaRuleApplies,
   SNACKS_THRESHOLD,
   SNACKS_BONUS,
   PANIER_THRESHOLD,
@@ -131,6 +132,7 @@ export function applyDisplayOverrides(
   const merchPlannedBonus = MERCH_BONUS_BY_TIER[merchTier];
   loc.merchandising.plannedBonus = merchPlannedBonus;
   loc.merchandising.caMultiplier = merchCaMultiplier(loc.revenue.ratio, month);
+  loc.merchandising.caScaled = merchCaRuleApplies(month);
   loc.merchandising.bonus = Math.round(merchPlannedBonus * loc.merchandising.caMultiplier);
 
   // 3. Animal food.

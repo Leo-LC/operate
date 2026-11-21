@@ -23,7 +23,7 @@ function baseLoc(): LocationOverview {
     snacksSoldP2: 150,
     snacksSoldP3: 150,
     revenue: { amount: 1_200_000, threshold: 1_200_000, unlocked: true, ratio: 1 },
-    merchandising: { ratio: 0.05, tier: 0, plannedBonus: 0, caMultiplier: 1, bonus: 0 },
+    merchandising: { ratio: 0.05, tier: 0, plannedBonus: 0, caMultiplier: 1, caScaled: true, bonus: 0 },
     snacks: { ratio: 0.4, passes: false, bonus: 0 },
     panierMoyen: { value: 1000, passes: true, bonus: 1250 },
     opex: { ratio: 100_000 / 1_200_000, passes: true, threshold: 0.095, bonus: 1250 },

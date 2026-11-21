@@ -112,8 +112,16 @@ function buildMerchMetric(loc: LocationOverview, ctx: AdviceContext): TeamMetric
       gapPrimary = "Target achieved";
       gapPasses = true;
       // CA multiplier note (Nov 2026 rule) — the merch bonus scales with the sales target.
-      if (caMultiplier === 0) gapSecondary = "Bonus locked — CA below 50% of the sales target";
-      else if (caMultiplier === 0.5) gapSecondary = "Bonus halved — CA at 50–75% of the sales target";
+      const pctTarget = loc.revenue.ratio !== null ? Math.round(loc.revenue.ratio * 100) : null;
+      if (caMultiplier === 0) {
+        gapSecondary = pctTarget !== null
+          ? `Bonus locked — CA at ${pctTarget}% of the sales target (< 50%)`
+          : "Bonus locked — CA below 50% of the sales target";
+      } else if (caMultiplier === 0.5) {
+        gapSecondary = pctTarget !== null
+          ? `Bonus halved — CA at ${pctTarget}% of the sales target (50–75%)`
+          : "Bonus halved — CA at 50–75% of the sales target";
+      }
     } else if (sales !== null && sales > 0) {
       const ptsGap = targetPct - ratio * 100;
       const merchNeeded = Math.ceil(sales * MERCH_TIERS[2].threshold - (goodies ?? 0));

@@ -42,8 +42,12 @@ export function buildMerchContext(loc: LocationOverview): MetricContext {
 
   // CA multiplier note (Nov 2026 rule) — only when the bonus is actually scaled.
   let caNote = "";
-  if (tier > 0 && caMultiplier === 0) caNote = " · bonus locked (CA < 50% of target)";
-  else if (tier > 0 && caMultiplier === 0.5) caNote = " · bonus halved (CA 50–75% of target)";
+  const pctTarget = loc.revenue.ratio !== null ? Math.round(loc.revenue.ratio * 100) : null;
+  if (tier > 0 && caMultiplier === 0) {
+    caNote = pctTarget !== null ? ` · CA ${pctTarget}% of target → bonus ×0` : " · bonus locked (CA < 50% of target)";
+  } else if (tier > 0 && caMultiplier === 0.5) {
+    caNote = pctTarget !== null ? ` · CA ${pctTarget}% of target → bonus ×½` : " · bonus halved (CA 50–75% of target)";
+  }
 
   if (ratio === null || sales === null || sales <= 0) {
     return { value: "—", hint: "Target: 7% of sales" };
