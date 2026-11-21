@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LightbulbIcon,
-  ListTodoIcon,
   TriangleAlertIcon,
   StickyNoteIcon,
   CheckIcon,
@@ -16,16 +15,15 @@ import {
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { NOTE_KIND_LABELS, timeAgoFr } from "@/modules/notes/types";
+import { NOTE_KIND_LABELS, moduleDisplayName, timeAgoFr } from "@/modules/notes/types";
 import type { NoteKind, PageNote } from "@/modules/notes/types";
 
 const KIND_META: Record<NoteKind, { icon: LucideIcon; color: string; bg: string }> = {
-  idea: { icon: LightbulbIcon, color: "var(--accent)", bg: "var(--accent-soft)" },
-  todo: { icon: ListTodoIcon, color: "var(--good)", bg: "var(--good-soft)" },
-  warning: { icon: TriangleAlertIcon, color: "var(--warn)", bg: "var(--warn-soft)" },
+  suggestion: { icon: LightbulbIcon, color: "var(--accent)", bg: "var(--accent-soft)" },
+  alerte: { icon: TriangleAlertIcon, color: "var(--warn)", bg: "var(--warn-soft)" },
 };
 
-const KIND_ORDER: NoteKind[] = ["idea", "todo", "warning"];
+const KIND_ORDER: NoteKind[] = ["suggestion", "alerte"];
 
 function authorLabel(note: PageNote): string {
   if (note.author_name && note.author_name.trim()) return note.author_name.trim();
@@ -44,7 +42,7 @@ export function PageNotes() {
   const [allNotes, setAllNotes] = useState<PageNote[]>([]);
   const [allLoaded, setAllLoaded] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
-  const [newKind, setNewKind] = useState<NoteKind>("idea");
+  const [newKind, setNewKind] = useState<NoteKind>("suggestion");
   const [newBody, setNewBody] = useState("");
   const [saving, setSaving] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
@@ -342,7 +340,7 @@ export function PageNotes() {
         open={open}
         onClose={() => setOpen(false)}
         title="Notes de travail"
-        description={pathname}
+        description={moduleDisplayName(pathname)}
         width={420}
       >
         {/* Tabs */}
@@ -500,6 +498,7 @@ export function PageNotes() {
                   <Link
                     href={path}
                     onClick={() => setOpen(false)}
+                    title={path}
                     className="hover:!text-[var(--fg)]"
                     style={{
                       fontSize: 12,
@@ -511,7 +510,7 @@ export function PageNotes() {
                       gap: 6,
                     }}
                   >
-                    {path}
+                    {moduleDisplayName(path)}
                     <span
                       style={{
                         fontSize: 10,

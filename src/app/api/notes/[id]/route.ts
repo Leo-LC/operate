@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
   if (body.kind !== undefined) {
     if (!isNoteKind(body.kind)) {
-      return Response.json({ error: "kind must be idea, todo or warning" }, { status: 400 });
+      return Response.json({ error: "kind must be suggestion or alerte" }, { status: 400 });
     }
     updates.kind = body.kind;
   }

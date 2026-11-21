@@ -1,7 +1,7 @@
 /** Page notes ("j'aimerais ajouter cette fonctionnalité", "attention erreur ici", …)
  *  attached to a dashboard route. Shared between owner + admin. */
 
-export const NOTE_KINDS = ["idea", "todo", "warning"] as const;
+export const NOTE_KINDS = ["suggestion", "alerte"] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
 
 export interface PageNote {
@@ -19,9 +19,8 @@ export interface PageNote {
 }
 
 export const NOTE_KIND_LABELS: Record<NoteKind, string> = {
-  idea: "Idée",
-  todo: "À faire",
-  warning: "Alerte",
+  suggestion: "Suggestion",
+  alerte: "Alerte",
 };
 
 export function isNoteKind(value: unknown): value is NoteKind {
@@ -31,6 +30,48 @@ export function isNoteKind(value: unknown): value is NoteKind {
 export function moduleKeyFromPath(path: string): string | null {
   const first = path.split("/").filter(Boolean)[0];
   return first ?? null;
+}
+
+/* Route prefix → module display name (longest prefix wins). */
+const MODULE_ROUTE_LABELS: [prefix: string, label: string][] = [
+  ["/loyverse-preview", "Shifts & Sales"],
+  ["/shift-sales", "Shifts & Sales"],
+  ["/loyverse-sandbox", "Loyverse Sandbox"],
+  ["/loyverse-export", "Loyverse Export"],
+  ["/loyverse", "Loyverse"],
+  ["/customer-insights", "Customer Insights"],
+  ["/finance/recurring-costs", "Recurring costs"],
+  ["/finance/shop-settings", "Shop settings"],
+  ["/direction", "Direction"],
+  ["/reviews", "Reviews"],
+  ["/challenges", "Challenges"],
+  ["/scheduling", "Scheduling"],
+  ["/attendance", "Attendance"],
+  ["/payments", "Payments"],
+  ["/employees", "Employees"],
+  ["/accounting", "Accounting"],
+  ["/reports", "Reports"],
+  ["/treasury", "Treasury"],
+  ["/documents", "Documents"],
+  ["/animals", "Animals"],
+  ["/directory", "Directory"],
+  ["/wiki", "Wiki"],
+  ["/brand", "Brand"],
+  ["/admin", "Admin"],
+  ["/home", "Home"],
+  ["/overview", "Overview"],
+];
+
+/** "/loyverse" → "Loyverse", "/finance/recurring-costs" → "Recurring costs".
+ *  Unknown routes fall back to a prettified first segment. */
+export function moduleDisplayName(path: string): string {
+  for (const [prefix, label] of MODULE_ROUTE_LABELS) {
+    if (path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`)) {
+      return label;
+    }
+  }
+  const first = path.split("/").filter(Boolean)[0];
+  return first ? first.charAt(0).toUpperCase() + first.slice(1) : path;
 }
 
 export function groupNotesByPath(notes: PageNote[]): Map<string, PageNote[]> {

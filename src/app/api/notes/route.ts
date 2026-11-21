@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     return Response.json({ error: `body required (${MAX_BODY_LENGTH} chars max)` }, { status: 400 });
   }
   if (!isNoteKind(kind)) {
-    return Response.json({ error: "kind must be idea, todo or warning" }, { status: 400 });
+    return Response.json({ error: "kind must be suggestion or alerte" }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();
