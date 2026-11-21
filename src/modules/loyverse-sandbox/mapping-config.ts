@@ -68,12 +68,12 @@ export const PAYMENT_TYPE_KEYWORDS: Record<PaymentBucket, string[]> = {
   other: [],
 };
 
-// Samui temporary POS fix — keep until POS is updated (see AGENTS / spec)
-// Snack item renamed "A Snacks" → "Animal food" (Sept 2026). Match by substring
-// so legacy receipts ("A Snacks") and renamed ones ("Animal food",
-// "A.ANIMAL FOOD 100") all resolve — item-name only, Samui categories are
-// unreliable (the guard in resolveSalesBucketForSamui still discards
-// category-based snack/ticket).
+// Samui legacy-POS mapping — kept for historical receipts / drinks-rate lab.
+// The legacy POS (store "Capybara Coffee Samui", retired Nov 2026) named items
+// "A Snacks" → "Animal food" (Sept 2026) and miscategorized entries under
+// Drinks. The new standardized POS (store "Samui", categories Ticket/Drink/
+// Snacks/Merch/Fee) is handled by the category trust in
+// resolveSalesBucketForSamui below.
 export const SAMUI_SNACK_ITEM_NORMALIZED = "a snacks";
 export const SAMUI_ENTRY_ITEM_NORMALIZED = new Set<string>(["a entry adult", "a entry child"]);
 
@@ -151,6 +151,13 @@ export function resolveSalesBucketForSamui(
   const normalized = normalizeItemName(itemName);
   if (isSamuiSnackItem(itemName)) return "snack";
   if (SAMUI_ENTRY_ITEM_NORMALIZED.has(normalized)) return "ticket";
+  // New Samui POS (Nov 2026) is standardized with the other shops: categories
+  // "Ticket" and "Snacks" are reliable ("Adult"/"Kid" entries, "Animal Food").
+  // The legacy POS never used these exact category names, so historical
+  // receipts keep the legacy guard below.
+  const cat = (categoryName ?? "").trim().toLowerCase();
+  if (cat === "ticket") return "ticket";
+  if (cat === "snack" || cat === "snacks") return "snack";
   const bucket = resolveSalesBucket(categoryId, categoryName, itemName);
   // For Samui, only the explicit items above count as snack/ticket; ignore category-based tickets/snacks
   if (bucket === "snack" || bucket === "ticket") return "other";

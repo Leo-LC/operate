@@ -210,11 +210,51 @@ describe("snacks → Animal food rename (Sept 2026)", () => {
     expect(meta.unmapped_line_items).toBe(0);
   });
 
+  it("aggregates new Samui POS (Nov 2026) 'Adult'/'Kid' under Ticket without unmapped", () => {
+    const receipts: LoyverseReceipt[] = [
+      mkReceipt({
+        receipt_date: "2026-11-21T03:00:00.000Z",
+        created_at: "2026-11-21T03:00:00.000Z",
+        line_items: [
+          { item_id: "item-adult", item_name: "Adult", total_money: 400, quantity: 1 },
+          { item_id: "item-kid", item_name: "Kid", total_money: 200, quantity: 1 },
+          { item_id: "item-af", item_name: "Animal Food", total_money: 100, quantity: 1 },
+        ],
+      }),
+    ];
+    const map = new Map<string, string | null>([
+      ["item-adult", "cat-ticket"],
+      ["item-kid", "cat-ticket"],
+      ["item-af", "cat-snacks"],
+    ]);
+    const cats = new Map<string, string>([
+      ["cat-ticket", "Ticket"],
+      ["cat-snacks", "Snacks"],
+    ]);
+    const { proposed, challenges, meta } = aggregateReceipts(receipts, "2026-11-21", "store-1", map, cats, { isSamui: true });
+    expect(proposed.sales_ticket_net).toBe(600);
+    expect(proposed.sales_snack_net).toBe(100);
+    expect(challenges.tickets_sold).toBe(2);
+    expect(challenges.snacks_sold).toBe(1);
+    expect(meta.unmapped_line_items).toBe(0);
+  });
+
   it("keeps Samui legacy 'A Snacks' resolving to snack", () => {
     expect(resolveSalesBucketForSamui("cat-drinks", "Drinks", "A Snacks")).toBe("snack");
     expect(resolveSalesBucketForSamui("cat-drinks", "Drinks", "A ENTRY child")).toBe("ticket");
-    // guard preserved: non-explicit category-based snacks still ignored for Samui
-    expect(resolveSalesBucketForSamui("cat-snack", "Snacks", "Random bar")).toBe("other");
+    // guard preserved: category-based snacks under a non-standard category name still ignored for Samui
+    expect(resolveSalesBucketForSamui("cat-x", "Random", "Random bar")).toBe("other");
+  });
+
+  it("trusts standardized 'Ticket'/'Snacks' categories (new POS, Nov 2026)", () => {
+    // New POS items: "Adult"/"Kid" entries under "Ticket", "Animal Food" under "Snacks".
+    expect(resolveSalesBucketForSamui("cat-t", "Ticket", "Adult")).toBe("ticket");
+    expect(resolveSalesBucketForSamui("cat-t", "Ticket", "Kid")).toBe("ticket");
+    expect(resolveSalesBucketForSamui("cat-s", "Snacks", "Animal Food")).toBe("snack");
+    // standardized drink/merch/fee keep the generic behavior
+    expect(resolveSalesBucketForSamui("cat-d", "Drink", "Cappuccino")).toBe("drinks");
+    expect(resolveSalesBucketForSamui("cat-m", "Merch", "Plush")).toBe("goodies");
+    expect(resolveSalesBucketForSamui("cat-f", "Fee", "Card Fee 3%")).toBe("surcharge");
   });
 
   it("keeps Capy merch as goodies, Capy snack as snack", () => {
