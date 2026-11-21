@@ -6,6 +6,35 @@ export const MERCH_TIERS = [
   { threshold: 0.07, bonus: 1500 },
 ] as const;
 
+/** Merch bonus by tier index (0 = below all tiers). Index matches `merchTier` in overview-data. */
+export const MERCH_BONUS_BY_TIER = [0, MERCH_TIERS[2].bonus, MERCH_TIERS[1].bonus, MERCH_TIERS[0].bonus] as const;
+
+/**
+ * Sales-target (CA) multiplier on the merch bonus — new rule from Nov 2026.
+ * The tier bonus ("montant prévu") is scaled by how much of the sales target
+ * the shop reached: < 50% → no bonus · 50–75% → half · ≥ 75% → full.
+ */
+export const MERCH_CA_TIERS = [
+  { minRatio: 0.75, multiplier: 1 },
+  { minRatio: 0.5, multiplier: 0.5 },
+] as const;
+
+/** First month ("YYYY-MM") the CA multiplier applies. Earlier months keep the old rule (full bonus). */
+export const MERCH_CA_RULE_START_MONTH = "2026-11";
+
+/**
+ * Multiplier applied to the merch tier bonus for `month`.
+ * `revenueRatio` = actual CA / sales target (null = no target configured → not gated).
+ */
+export function merchCaMultiplier(revenueRatio: number | null, month: string | undefined): number {
+  if (!month || month < MERCH_CA_RULE_START_MONTH) return 1;
+  if (revenueRatio === null) return 1;
+  for (const tier of MERCH_CA_TIERS) {
+    if (revenueRatio >= tier.minRatio) return tier.multiplier;
+  }
+  return 0;
+}
+
 export const SNACKS_THRESHOLD = 0.45;
 export const SNACKS_BONUS = 1250;
 export const PANIER_THRESHOLD = 190;

@@ -411,7 +411,7 @@ function KpiRow({
 
 const CHALLENGE_RULES: { label: string; target: string; bonus: string }[] = [
   { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
-  { label: "Merchandise", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
+  { label: "Merchandise", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿ × sales target (≥ 75% → 100% · 50–75% → 50% · < 50% → none, from Nov 2026)" },
   { label: "Animal Food", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
   { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
   { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
@@ -922,6 +922,8 @@ function LocationCard({
 
   const merchTier = loc.merchandising.tier;
   const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  // Merch bonus is scaled by the sales target (Nov 2026+): locked at 0× when CA < 50% of target.
+  const merchLockedOut = merchPass === true && loc.merchandising.caMultiplier === 0;
 
   // 6 gated/ungated challenges counted for the "X / 6 achieved" summary.
   const challengeStates: (boolean | null)[] = [
@@ -940,7 +942,7 @@ function LocationCard({
     return "missed";
   }
 
-  const merch = rowState(merchPass, false);
+  const merch = rowState(merchPass, merchLockedOut);
   const snacks = rowState(loc.snacks.passes, revenueLocked);
   const panier = rowState(loc.panierMoyen.passes, revenueLocked);
   const opex = rowState(loc.opex.passes, revenueLocked);
@@ -1271,10 +1273,10 @@ export function ChallengesOverview({
       byLoc.set(row.location_id, map);
     }
     return locations.map((real) => {
-      const applied = applyDisplayOverrides(real, byLoc.get(real.locationId) ?? {});
+      const applied = applyDisplayOverrides(real, byLoc.get(real.locationId) ?? {}, month);
       return { real, display: applied.loc, adjusted: applied.adjusted, hasOverride: applied.hasOverride };
     });
-  }, [data, overrideRows]);
+  }, [data, overrideRows, month]);
 
   // Summary stats (display values — what will be printed)
   const totalEarned = entries.reduce((s, e) => s + e.display.totalBonus, 0);

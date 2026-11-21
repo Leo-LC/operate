@@ -37,7 +37,7 @@ export const PERIOD_LABELS = {
 
 export const LEGEND_ITEMS = [
   { label: CHALLENGE_LABELS.salesTarget, max: "must hit to unlock bonuses", tiers: "1.2M / 0.9M / 0.7M ฿" },
-  { label: CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿", tiers: "7% → 1 500 · 8% → 3 000 · 9% → 5 000" },
+  { label: CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿ × sales target", tiers: "7% → 1 500 · 8% → 3 000 · 9% → 5 000 · CA ≥ 75%: full · 50–75%: half · < 50%: none" },
   { label: CHALLENGE_LABELS.snacks, max: "1 250 ฿", tiers: "≥ 0.45" },
   { label: CHALLENGE_LABELS.spendPerVisit, max: "1 250 ฿", tiers: "≥ 190 ฿" },
   { label: CHALLENGE_LABELS.runningCostsPct, max: "1 250 ฿", tiers: "< 9.5%" },
@@ -47,7 +47,7 @@ export const LEGEND_ITEMS = [
 
 export const TEAM_LEGEND_ITEMS = [
   { label: TEAM_CHALLENGE_LABELS.salesTarget, max: "unlocks bonuses", tiers: "1.2M / 0.9M / 0.7M ฿" },
-  { label: TEAM_CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿", tiers: "7% · 8% · 9% of sales" },
+  { label: TEAM_CHALLENGE_LABELS.productsPct, max: "up to 5 000 ฿ × sales target", tiers: "7% · 8% · 9% of sales · CA ≥ 75%: full · 50–75%: half · < 50%: none" },
   { label: TEAM_CHALLENGE_LABELS.snacks, max: "1 250 ฿", tiers: "~1 animal food / 2 visitors" },
   { label: TEAM_CHALLENGE_LABELS.spendPerVisit, max: "1 250 ฿", tiers: "190 ฿ / visitor" },
   { label: TEAM_CHALLENGE_LABELS.runningCostsPct, max: "1 250 ฿", tiers: "under 9.5% of sales" },

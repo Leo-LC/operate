@@ -1,5 +1,7 @@
 import {
   MERCH_TIERS,
+  MERCH_BONUS_BY_TIER,
+  merchCaMultiplier,
   SNACKS_THRESHOLD,
   SNACKS_BONUS,
   PANIER_THRESHOLD,
@@ -57,8 +59,6 @@ export interface AppliedDisplayOverrides {
   hasOverride: boolean;
 }
 
-const MERCH_BONUS_BY_TIER = [0, 1500, 3000, 5000] as const;
-
 function merchTierFor(ratio: number | null): 0 | 1 | 2 | 3 {
   if (ratio === null) return 0;
   if (ratio >= MERCH_TIERS[0].threshold) return 3;
@@ -75,10 +75,14 @@ export function isDisplayOverrideKey(key: string): key is DisplayOverrideKey {
  * Pure overlay: returns a COPY of `source` with display values applied and
  * every derived status/bonus recomputed with the same thresholds as
  * `overview-data.ts`. `source` is never mutated.
+ *
+ * `month` ("YYYY-MM") drives the merch CA multiplier — pass the displayed month
+ * so the new-rule (Nov 2026+) scaling matches overview-data.ts. Omitted → old rule.
  */
 export function applyDisplayOverrides(
   source: LocationOverview,
   overrides: DisplayOverrideInput,
+  month?: string,
 ): AppliedDisplayOverrides {
   const adjusted: Partial<Record<DisplayOverrideKey, AdjustedMetric>> = {};
   const hasAny = DISPLAY_OVERRIDE_KEYS.some((k) => overrides[k] !== undefined);
@@ -116,7 +120,7 @@ export function applyDisplayOverrides(
     threshold !== null ? (loc.revenue.amount ?? 0) / threshold : null;
   const revenueLocked = threshold !== null && !revenueUnlocked;
 
-  // 2. Merch % — the only metric NOT gated by the sales target.
+  // 2. Merch % — scaled by the sales target (CA multiplier) from Nov 2026.
   const merchOverride = overrides.merch_ratio;
   if (merchOverride !== undefined) {
     record("merch_ratio", loc.merchandising.ratio, merchOverride);
@@ -124,7 +128,10 @@ export function applyDisplayOverrides(
   }
   const merchTier = merchTierFor(loc.merchandising.ratio);
   loc.merchandising.tier = merchTier;
-  loc.merchandising.bonus = MERCH_BONUS_BY_TIER[merchTier] as 0;
+  const merchPlannedBonus = MERCH_BONUS_BY_TIER[merchTier];
+  loc.merchandising.plannedBonus = merchPlannedBonus;
+  loc.merchandising.caMultiplier = merchCaMultiplier(loc.revenue.ratio, month);
+  loc.merchandising.bonus = Math.round(merchPlannedBonus * loc.merchandising.caMultiplier);
 
   // 3. Animal food.
   const snacksOverride = overrides.snacks_ratio;
@@ -187,7 +194,7 @@ export function applyDisplayOverrides(
     loc.reviews.ratingPass === true && !revenueLocked ? REVIEWS_RATING_BONUS : 0;
 
   loc.totalBonus =
-    (MERCH_BONUS_BY_TIER[loc.merchandising.tier] ?? 0) +
+    loc.merchandising.bonus +
     loc.snacks.bonus +
     loc.panierMoyen.bonus +
     loc.opex.bonus +

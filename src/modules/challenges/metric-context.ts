@@ -36,9 +36,14 @@ export function buildRevenueContext(loc: LocationOverview): MetricContext {
 }
 
 export function buildMerchContext(loc: LocationOverview): MetricContext {
-  const { ratio, tier } = loc.merchandising;
+  const { ratio, tier, caMultiplier } = loc.merchandising;
   const sales = loc.salesNetIncVat;
   const goodies = loc.salesGoodiesNet;
+
+  // CA multiplier note (Nov 2026 rule) — only when the bonus is actually scaled.
+  let caNote = "";
+  if (tier > 0 && caMultiplier === 0) caNote = " · bonus locked (CA < 50% of target)";
+  else if (tier > 0 && caMultiplier === 0.5) caNote = " · bonus halved (CA 50–75% of target)";
 
   if (ratio === null || sales === null || sales <= 0) {
     return { value: "—", hint: "Target: 7% of sales" };
@@ -48,9 +53,9 @@ export function buildMerchContext(loc: LocationOverview): MetricContext {
   const goodiesAmt = goodies ?? 0;
   const pctStr = `${(ratio * 100).toFixed(1)}%`;
 
-  if (tier >= 3) return { value: `${pctStr} · Tier 3`, hint: `${fmt(goodiesAmt, 0)} ฿ merch` };
-  if (tier >= 2) return { value: `${pctStr} · Tier 2`, hint: `${fmt(goodiesAmt, 0)} ฿ merch` };
-  if (tier >= 1) return { value: `${pctStr} · Tier 1`, hint: `${fmt(goodiesAmt, 0)} ฿ merch` };
+  if (tier >= 3) return { value: `${pctStr} · Tier 3`, hint: `${fmt(goodiesAmt, 0)} ฿ merch${caNote}` };
+  if (tier >= 2) return { value: `${pctStr} · Tier 2`, hint: `${fmt(goodiesAmt, 0)} ฿ merch${caNote}` };
+  if (tier >= 1) return { value: `${pctStr} · Tier 1`, hint: `${fmt(goodiesAmt, 0)} ฿ merch${caNote}` };
 
   return {
     value: `${pctStr} · ${fmt(goodiesAmt, 0)} / ${fmt(tier1Target, 0)} ฿`,

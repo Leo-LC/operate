@@ -129,6 +129,8 @@ function buildSummaryRows(locations: LocationOverview[], teamMode?: boolean, adj
     .map((loc, idx) => {
       const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
       const merchPasses = loc.merchandising.tier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+      // Merch bonus is scaled by the sales target (Nov 2026+): 0× → "Locked", ½× → paid amount.
+      const merchLocked = merchPasses === true && loc.merchandising.caMultiplier === 0;
       const rowCls = idx % 2 === 1 ? ' class="alt"' : "";
       const adjustedTag = adjustedIds?.has(loc.locationId) ? ' <span class="adjusted-tag">Adjusted</span>' : "";
 
@@ -136,7 +138,7 @@ function buildSummaryRows(locations: LocationOverview[], teamMode?: boolean, adj
         <td class="shop">${escHtml(shortName(loc.locationTitle))}${adjustedTag}</td>
         <td>${salesTargetCell(loc, teamMode)}</td>
         <td class="bonus-total">${loc.totalBonus > 0 ? `<span class="pass">${loc.totalBonus.toLocaleString()} ฿</span>` : '<span class="muted">0 ฿</span>'}</td>
-        <td>${metricSummaryCell(merchPasses, pct(loc.merchandising.ratio), loc.merchandising.bonus, false, 0, teamMode, teamMode ? buildMerchContext(loc) : undefined)}</td>
+        <td>${metricSummaryCell(merchPasses, pct(loc.merchandising.ratio), loc.merchandising.bonus, merchLocked, loc.merchandising.plannedBonus, teamMode, teamMode ? buildMerchContext(loc) : undefined)}</td>
         <td>${metricSummaryCell(loc.snacks.passes, loc.snacks.ratio !== null ? loc.snacks.ratio.toFixed(2) : "—", loc.snacks.bonus, revenueLocked, SNACKS_BONUS, teamMode, teamMode ? buildSnacksContext(loc) : undefined)}</td>
         <td>${metricSummaryCell(loc.panierMoyen.passes, loc.panierMoyen.value !== null ? `${fmt(loc.panierMoyen.value, 0)} ฿` : "—", loc.panierMoyen.bonus, revenueLocked, PANIER_BONUS, teamMode, teamMode ? buildPanierContext(loc) : undefined)}</td>
         <td>${metricSummaryCell(loc.opex.passes, pct(loc.opex.ratio), loc.opex.bonus, revenueLocked, OPEX_BONUS, teamMode, teamMode ? buildOpexContext(loc) : undefined)}</td>
@@ -160,6 +162,7 @@ interface MetricDetail {
 function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDetail[] {
   const revenueLocked = loc.revenue.threshold !== null && loc.revenue.unlocked === false;
   const merchPasses = loc.merchandising.tier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  const merchLocked = merchPasses === true && loc.merchandising.caMultiplier === 0;
   const merchTarget = loc.merchandising.tier > 0 ? MERCH_TIER_LABELS[loc.merchandising.tier] : "≥ 7%";
   const merchCtx = buildMerchContext(loc);
   const snacksCtx = buildSnacksContext(loc);
@@ -175,8 +178,8 @@ function buildMetricDetails(loc: LocationOverview, teamMode?: boolean): MetricDe
       target: teamMode ? (merchCtx.hint ?? merchTarget) : merchTarget,
       passes: merchPasses,
       bonus: loc.merchandising.bonus,
-      locked: false,
-      potentialBonus: 0,
+      locked: merchLocked,
+      potentialBonus: loc.merchandising.plannedBonus,
     },
     {
       label: teamMode ? TEAM_CHALLENGE_LABELS.snacks : CHALLENGE_LABELS.snacks,
@@ -452,7 +455,8 @@ function salesTargetLabel(
   return { label: "In progress", cls: "muted" };
 }
 
-const MERCH_BONUS_BY_TIER = [0, 1500, 3000, 5000] as const;
+/** Best possible merch bonus (tier 3) — the "up to" ceiling in team views. */
+const MERCH_MAX_BONUS = 5000;
 
 function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
   const name = escHtml(shortLocationName(loc.locationTitle));
@@ -468,12 +472,14 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
 
   const merchTier = loc.merchandising.tier;
   const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
-  const merchBonus = MERCH_BONUS_BY_TIER[merchTier] ?? 0;
+  // Merch bonus is scaled by the sales target (Nov 2026+): 0× → "waiting", ½× → paid at half.
+  const merchLocked = merchPass === true && loc.merchandising.caMultiplier === 0;
+  const merchBonus = loc.merchandising.bonus;
 
-  // Per-challenge state: "earned" = target hit AND payable (sales reached, or merch which never needs sales).
-  // "waiting" = target hit BUT sales target missed → would have been paid otherwise.
+  // Per-challenge state: "earned" = target hit AND payable (sales reached, or merch ≥ 75% of target).
+  // "waiting" = target hit BUT the CA multiplier holds the bonus (sales target missed).
   const states: { passes: boolean | null; locked: boolean; earned: number; waiting: number; max: number }[] = [
-    { passes: merchPass, locked: false, earned: merchBonus, waiting: 0, max: 5000 },
+    { passes: merchPass, locked: merchLocked, earned: merchBonus, waiting: merchLocked ? loc.merchandising.plannedBonus : 0, max: MERCH_MAX_BONUS },
     { passes: loc.snacks.passes, locked: revenueLocked, earned: loc.snacks.bonus, waiting: loc.snacks.passes === true && revenueLocked ? SNACKS_BONUS : 0, max: SNACKS_BONUS },
     { passes: loc.panierMoyen.passes, locked: revenueLocked, earned: loc.panierMoyen.bonus, waiting: loc.panierMoyen.passes === true && revenueLocked ? PANIER_BONUS : 0, max: PANIER_BONUS },
     { passes: loc.opex.passes, locked: revenueLocked, earned: loc.opex.bonus, waiting: loc.opex.passes === true && revenueLocked ? OPEX_BONUS : 0, max: OPEX_BONUS },
@@ -509,7 +515,9 @@ function buildTeamDashboardBlock(loc: LocationOverview, month: string): string {
       // Plain-language progress line under the numbers: what is missing, or confirmation.
       const progressLine =
         status === "earned"
-          ? "Target hit — bonus paid."
+          ? i === 0 && s.earned > 0 && s.earned < loc.merchandising.plannedBonus
+            ? "Target hit — bonus halved (sales target 50–75% reached)."
+            : "Target hit — bonus paid."
           : status === "waiting"
             ? "Target hit — paid once sales target is reached."
             : status === "missed"

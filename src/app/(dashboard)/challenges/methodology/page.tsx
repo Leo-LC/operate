@@ -93,14 +93,15 @@ export default async function MethodologyPage() {
           <Field label="Edit">Owner only — use the pencil button on the shop card on the Challenges Overview page.</Field>
           <Field label="Effect">
             Animal Food, Spend per visit, Running costs, and both Review metrics are only awarded if the shop clears
-            its sales target. Product sales % is always active regardless.
+            its sales target. The merch bonus is scaled by sales-target achievement (see below) — from Nov 2026 it
+            needs at least 50% of the target to pay anything.
           </Field>
         </MetricCard>
       </Section>
 
       {/* Merchandise */}
       <Section title="Metrics">
-        <MetricCard title={CHALLENGE_LABELS.productsPct} gated={false} bonus="up to 5,000 ฿">
+        <MetricCard title={CHALLENGE_LABELS.productsPct} gated={false} bonus="up to 5,000 ฿ × sales target">
           <Field label="DB table"><Code>daily_entries</Code></Field>
           <Field label="Formula">
             <Code>sales_goodies_net / salesNetIncVat</Code>
@@ -110,7 +111,11 @@ export default async function MethodologyPage() {
               ≥ 7% → 1,500 ฿ &nbsp;|&nbsp; ≥ 8% → 3,000 ฿ &nbsp;|&nbsp; ≥ 9% → 5,000 ฿
             </span>
           </Field>
-          <Field label="Gate">Not subject to the sales target.</Field>
+          <Field label="Gate">
+            Scaled by sales-target achievement (from Nov 2026): CA &lt; 50% of target → no bonus ·
+            50–75% → 50% of the tier bonus · ≥ 75% → full tier bonus. Before Nov 2026 the tier bonus
+            was paid in full regardless of CA.
+          </Field>
         </MetricCard>
 
         <MetricCard title={CHALLENGE_LABELS.snacks} gated bonus="1,250 ฿">
