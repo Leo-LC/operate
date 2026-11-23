@@ -1,4 +1,4 @@
-import { resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
+import { LEGACY_PAYMENT_TYPE_BUCKETS, resolvePaymentBucket } from "@/modules/loyverse-sandbox/mapping-config";
 import { detectDayShiftAnomalies } from "./shift-anomalies";
 
 // ── Accounting copy-row config — same order as Google Sheets DAILY_ENTRIES ──
@@ -200,24 +200,38 @@ export function buildAccountingValuesFromShifts(
   const shiftPaymentsCount = useShiftFigures
     ? shifts.reduce((acc, s) => acc + (Array.isArray(s["payments"]) ? (s["payments"] as unknown[]).length : 0), 0)
     : 0;
+  let paymentsFromSnapshot = !useShiftFigures && shifts.length > 0 && snapshot !== null;
   if (useShiftFigures && shiftPaymentsCount > 0) {
     const buckets: Record<string, number> = { cash: 0, scan: 0, credit_card: 0 };
+    let unresolved = 0;
     for (const s of shifts) {
       if (!Array.isArray(s["payments"])) continue;
       for (const p of s["payments"] as Record<string, unknown>[]) {
         const pid = String(p["payment_type_id"] ?? "");
-        const name = paymentMap.get(pid) ?? pid;
+        const name = paymentMap.get(pid);
         const type = p["type"] as string | undefined;
-        const bucket = resolvePaymentBucket(type ?? null, name ?? null);
+        const legacy = LEGACY_PAYMENT_TYPE_BUCKETS[pid];
+        if (!legacy && name === undefined) unresolved++;
+        const bucket = legacy ?? resolvePaymentBucket(type ?? null, name ?? null);
         const amt = n(p["money_amount"]);
         if (bucket === "cash") buckets.cash += amt;
         else if (bucket === "scan") buckets.scan += amt;
         else if (bucket === "credit_card") buckets.credit_card += amt;
       }
     }
-    out["payment_cash"] = formatCopyNumber(buckets.cash);
-    out["payment_scan"] = formatCopyNumber(buckets.scan);
-    out["payment_credit_card"] = formatCopyNumber(buckets.credit_card);
+    if (unresolved > 0 && snapshot) {
+      // A POS swap recreates payment types with new ids; unknown ids can't be
+      // bucketed from the shift alone. The receipt-based snapshot carries the
+      // complete, day-correct buckets — use it wholesale.
+      out["payment_cash"] = formatCopyNumber(n(snapshot.payment_cash));
+      out["payment_scan"] = formatCopyNumber(n(snapshot.payment_scan));
+      out["payment_credit_card"] = formatCopyNumber(n(snapshot.payment_credit_card));
+      paymentsFromSnapshot = true;
+    } else {
+      out["payment_cash"] = formatCopyNumber(buckets.cash);
+      out["payment_scan"] = formatCopyNumber(buckets.scan);
+      out["payment_credit_card"] = formatCopyNumber(buckets.credit_card);
+    }
   } else if (snapshot) {
     out["payment_cash"] = formatCopyNumber(n(snapshot.payment_cash));
     out["payment_scan"] = formatCopyNumber(n(snapshot.payment_scan));
@@ -231,7 +245,7 @@ export function buildAccountingValuesFromShifts(
   return {
     values: out,
     warning: anomaly.warning,
-    paymentsFromSnapshot: !useShiftFigures && shifts.length > 0 && snapshot !== null,
+    paymentsFromSnapshot,
   };
 }
 

@@ -68,6 +68,37 @@ export const PAYMENT_TYPE_KEYWORDS: Record<PaymentBucket, string[]> = {
   other: [],
 };
 
+/**
+ * Payment types recreated during a POS/account swap get NEW ids — the old ids
+ * no longer exist in the live /payment_types list, so name-based bucketing
+ * fails ("other") and payment columns end up empty for every pre-swap day.
+ * Buckets below were resolved by matching each id's shift amounts against the
+ * receipt-based daily snapshots (payment_cash/scan/credit_card) — unanimous
+ * on 43–110 shifts per id, one cash/scan/card triple per old POS.
+ */
+export const LEGACY_PAYMENT_TYPE_BUCKETS: Record<string, PaymentBucket> = {
+  // phangan — old store 4d12e209… (replaced 2026-11-18)
+  "1854f7dc-b7fc-4744-b1f7-2ac18b128b01": "cash",
+  "a062576e-896b-4299-8756-14c7927b4981": "scan",
+  "8356782f-c02c-4d46-a6c0-9fa929e8b3db": "credit_card",
+  // samui — old store c5fdd307…
+  "de56b5ea-a2b3-492f-981c-86d1e7c6a17c": "cash",
+  "0659eac1-9e34-4c79-b888-216f1c06344a": "scan",
+  "dee2b4db-bb84-48a2-9de7-9ae3693d0cbc": "credit_card",
+  // silom — old store ff1994ea…
+  "eefa48e7-5be8-407f-9345-19252fd2b64c": "cash",
+  "2b32f876-62a9-4afb-9ca1-020438defb1b": "scan",
+  "ed62ccbb-35a2-493e-9c09-9287f34505e2": "credit_card",
+  // chiangmai — old store 9cec70ef…
+  "5beb634a-064f-4238-a9d7-31ab59d17a9c": "cash",
+  "f005b36c-52e9-42b3-94c7-cf2b566f8061": "scan",
+  "6627fc93-6b28-45e1-b567-14bf179a072b": "credit_card",
+  // pattaya — old store 5b36d7b8…
+  "e913ea9d-e857-4c2e-a426-451d902063ed": "cash",
+  "ebb1d2d2-087d-47e1-936e-96366c97b736": "scan",
+  "6a18c702-e9b9-4f42-b596-27e648cba76a": "credit_card",
+};
+
 // Samui legacy-POS mapping — kept for historical receipts / drinks-rate lab.
 // The legacy POS (store "Capybara Coffee Samui", retired Nov 2026) named items
 // "A Snacks" → "Animal food" (Sept 2026) and miscategorized entries under

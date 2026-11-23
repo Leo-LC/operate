@@ -92,6 +92,59 @@ describe("overnight / incoherent shifts — Karon 22/23 Sept", () => {
   });
 });
 
+describe("POS-swap legacy payment types — Phangan 9–17 Nov", () => {
+  const snapshot = {
+    sales_drinks_net: 5000,
+    sales_ticket_net: 3811,
+    sales_snack_net: 0,
+    sales_goodies_net: 0,
+    sales_card_surcharge: 0,
+    vat_7: 616,
+    payment_cash: 3650,
+    payment_scan: 0,
+    payment_credit_card: 5161,
+  };
+  // ids recréés lors du swap de POS : absents de la liste live des payment types
+  const legacyCash = "1854f7dc-b7fc-4744-b1f7-2ac18b128b01";
+  const legacyCard = "8356782f-c02c-4d46-a6c0-9fa929e8b3db";
+  const unknownId = "00000000-0000-0000-0000-000000000000";
+  const mkShift = (payments: { payment_type_id: string; money_amount: number }[]) => ({
+    opened_at: "2026-11-09T02:32:19.000Z",
+    closed_at: "2026-11-09T14:11:45.000Z",
+    surcharge: 0,
+    taxes: [{ money_amount: 10 }],
+    payments,
+  });
+
+  it("buckets legacy payment type ids via the alias table", () => {
+    const { values, paymentsFromSnapshot } = buildAccountingValuesFromShifts(
+      [mkShift([
+        { payment_type_id: legacyCash, money_amount: 3650 },
+        { payment_type_id: legacyCard, money_amount: 5161 },
+      ])],
+      snapshot,
+      "2026-11-09",
+      new Map(), // paymentMap vide : le nom des ids legacy n'est pas fetchable
+    );
+    expect(values["payment_cash"]).toBe("3650");
+    expect(values["payment_credit_card"]).toBe("5161");
+    expect(values["payment_scan"]).toBe("0");
+    expect(paymentsFromSnapshot).toBe(false);
+  });
+
+  it("falls back to snapshot payments when a shift payment id is unknown", () => {
+    const { values, paymentsFromSnapshot } = buildAccountingValuesFromShifts(
+      [mkShift([{ payment_type_id: unknownId, money_amount: 12345 }])],
+      snapshot,
+      "2026-11-09",
+      new Map(),
+    );
+    expect(paymentsFromSnapshot).toBe(true);
+    expect(values["payment_cash"]).toBe("3650"); // snapshot, not 12345
+    expect(values["payment_credit_card"]).toBe("5161");
+  });
+});
+
 describe("thousands separator — display formatted, copy raw", () => {
   it("formats 1000000 as 1,000,000 for display", () => {
     expect(formatDisplayNumber("1000000")).toBe("1,000,000");
