@@ -3,7 +3,16 @@
 // sales, payment breakdown, cash control, cash movements.
 // No invented rows: every value comes from an existing Loyverse key.
 
+import { LEGACY_PAYMENT_TYPE_BUCKETS } from "@/modules/loyverse-sandbox/mapping-config";
+
 export type ShiftLike = Record<string, unknown>;
+
+const BUCKET_LABELS: Record<string, string> = {
+  cash: "Cash",
+  scan: "Scan/QR",
+  credit_card: "Card",
+  other: "Other",
+};
 
 export function num(v: unknown): number {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -70,7 +79,13 @@ export function summarizePayments(shifts: ShiftLike[], paymentMap: Map<string, s
     if (!Array.isArray(s["payments"])) continue;
     for (const p of s["payments"] as Record<string, unknown>[]) {
       const pid = String(p["payment_type_id"] ?? p["payment_type"] ?? "?");
-      const label = paymentMap.get(pid) ?? String(p["payment_type"] ?? pid);
+      // Ids recréés lors d'un swap de POS : absents de la liste live, on
+      // retombe sur le bucket déduit de la table legacy (sinon UUID brut).
+      const label =
+        paymentMap.get(pid) ??
+        (LEGACY_PAYMENT_TYPE_BUCKETS[pid]
+          ? BUCKET_LABELS[LEGACY_PAYMENT_TYPE_BUCKETS[pid]]
+          : String(p["payment_type"] ?? pid));
       const amt = num(p["money_amount"] ?? p["amount"]);
       const prev = m.get(pid);
       if (prev) prev.amount += amt;
