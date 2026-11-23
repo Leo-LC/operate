@@ -36,35 +36,40 @@ async function copyToClipboard(text: string): Promise<void> {
 interface Props {
   days: string[];
   selectedStore: string | null;
+  /** All Loyverse store_ids of the selected shop (location group, POS-swap safe). */
+  storeFilter: Set<string> | null;
   shiftRows: ShiftRow[];
   snapshotRows: SnapshotRow[];
   paymentMap: Map<string, string>;
   loading: boolean;
 }
 
-export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, paymentMap, loading }: Props) {
+export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, snapshotRows, paymentMap, loading }: Props) {
   const [copiedAll, setCopiedAll] = React.useState(false);
   const [copiedDay, setCopiedDay] = React.useState<string | null>(null);
 
   const shiftByDate = React.useMemo(() => {
     const m = new Map<string, ShiftRow[]>();
     for (const r of shiftRows) {
-      if (r.store_id !== selectedStore) continue;
+      if (!storeFilter?.has(r.store_id)) continue;
       const arr = m.get(r.date) ?? [];
       arr.push(r);
       m.set(r.date, arr);
     }
     return m;
-  }, [shiftRows, selectedStore]);
+  }, [shiftRows, storeFilter]);
 
   const snapshotByDate = React.useMemo(() => {
     const m = new Map<string, SnapshotRow>();
+    const hasRealData = (r: SnapshotRow): boolean =>
+      (Number(r.revenue_total ?? 0) || Number(r.receipt_count ?? 0)) > 0;
     for (const r of snapshotRows) {
-      if (r.store_id !== selectedStore) continue;
-      if (!m.has(r.date)) m.set(r.date, r);
+      if (!storeFilter?.has(r.store_id)) continue;
+      const existing = m.get(r.date);
+      if (!existing || (hasRealData(r) && !hasRealData(existing))) m.set(r.date, r);
     }
     return m;
-  }, [snapshotRows, selectedStore]);
+  }, [snapshotRows, storeFilter]);
 
   const rows = React.useMemo(() => {
     return days.map((date) => {

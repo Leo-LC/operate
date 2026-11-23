@@ -20,6 +20,7 @@ import type { SnapshotLike } from "@/modules/loyverse/lib/accounting-copy";
 export type ShiftRow = {
   id: string;
   store_id: string;
+  location_id?: string | null;
   date: string;
   shifts: Record<string, unknown>[];
   shift_count: number;
@@ -28,10 +29,19 @@ export type ShiftRow = {
 export type SnapshotRow = SnapshotLike & {
   id: string;
   store_id: string;
+  location_id?: string | null;
   date: string;
+  revenue_total?: number | string | null;
+  receipt_count?: number | string | null;
 };
 
-type Shop = { store_id: string; account_key: string };
+/**
+ * A shop is a Nexus location, not a single Loyverse store_id: when the POS is
+ * swapped mid-history (new store_id in Loyverse), the snapshots of previous
+ * days keep the old store_id. Grouping all store_ids of the same location
+ * keeps the full history visible under one shop entry.
+ */
+type Shop = { key: string; name: string; storeIds: string[] };
 
 type ExportTab = "copy" | "pay";
 
@@ -72,18 +82,28 @@ export function LoyverseExportClient() {
             .catch(() => null),
         ]);
         const perStore =
-          (dashRes?.per_store as { store_id: string; account_key: string }[] | undefined) ?? [];
+          (dashRes?.per_store as
+            | { store_id: string; account_key: string; location_id: string | null }[]
+            | undefined) ?? [];
         const map = new Map<string, Shop>();
-        for (const s of perStore) map.set(s.store_id, { store_id: s.store_id, account_key: s.account_key });
-        if (map.size === 0 && statusRes?.accounts) {
-          for (const a of statusRes.accounts as { key: string }[]) {
-            if (!map.has(a.key)) map.set(a.key, { store_id: a.key, account_key: a.key });
+        for (const s of perStore) {
+          const key = s.location_id ?? s.store_id;
+          const existing = map.get(key);
+          if (existing) {
+            if (!existing.storeIds.includes(s.store_id)) existing.storeIds.push(s.store_id);
+          } else {
+            map.set(key, { key, name: capitalizeShop(s.account_key), storeIds: [s.store_id] });
           }
         }
-        const list = Array.from(map.values()).sort((a, b) => a.account_key.localeCompare(b.account_key));
+        if (map.size === 0 && statusRes?.accounts) {
+          for (const a of statusRes.accounts as { key: string }[]) {
+            if (!map.has(a.key)) map.set(a.key, { key: a.key, name: capitalizeShop(a.key), storeIds: [a.key] });
+          }
+        }
+        const list = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
         if (!cancelled) {
           setShops(list);
-          if (list.length > 0) setSelectedStore((prev) => prev ?? list[0]!.store_id);
+          if (list.length > 0) setSelectedStore((prev) => prev ?? list[0]!.key);
         }
       } catch {
         /* shops stay empty, error shown on range fetch */
@@ -124,6 +144,20 @@ export function LoyverseExportClient() {
     return datesInRange(from, to).length > MAX_DAYS;
   }, [from, to]);
   const invalidRange = from > to;
+
+  // All Loyverse store_ids belonging to the selected shop (location group),
+  // including any other store of the same location seen in the loaded rows —
+  // covers a POS swap whose old store is no longer in the 30d dashboard window.
+  const storeFilter = React.useMemo(() => {
+    const shop = shops.find((s) => s.key === selectedStore);
+    if (!shop) return null;
+    const set = new Set(shop.storeIds);
+    for (const r of [...snapshotRows, ...shiftRows]) {
+      if (set.has(r.store_id)) continue;
+      if (r.location_id && r.location_id === shop.key) set.add(r.store_id);
+    }
+    return set;
+  }, [shops, selectedStore, snapshotRows, shiftRows]);
 
   const fetchRange = React.useCallback(async (f: string, t: string) => {
     setLoading(true);
@@ -211,7 +245,7 @@ export function LoyverseExportClient() {
             <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
           ) : (
             <ShopSingleSelect
-              options={shops.map((shop) => ({ id: shop.store_id, name: capitalizeShop(shop.account_key) }))}
+              options={shops.map((shop) => ({ id: shop.key, name: shop.name }))}
               value={selectedStore ?? ""}
               onChange={(id) => setSelectedStore(id || null)}
             />
@@ -271,6 +305,7 @@ export function LoyverseExportClient() {
         <ExportCopyTab
           days={days}
           selectedStore={selectedStore}
+          storeFilter={storeFilter}
           shiftRows={shiftRows}
           snapshotRows={snapshotRows}
           paymentMap={paymentMap}
@@ -280,6 +315,7 @@ export function LoyverseExportClient() {
         <PayInOutTab
           days={days}
           selectedStore={selectedStore}
+          storeFilter={storeFilter}
           shiftRows={shiftRows}
           loading={loading}
         />
