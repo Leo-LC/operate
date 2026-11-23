@@ -238,39 +238,50 @@ export function LoyverseExportClient() {
       />
 
       {/* Single shop + daterange selector (shared by both tabs) */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Shop</span>
-          {shops.length === 0 ? (
-            <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
-          ) : (
-            <ShopSingleSelect
-              options={shops.map((shop) => ({ id: shop.key, name: shop.name }))}
-              value={selectedStore ?? ""}
-              onChange={(id) => setSelectedStore(id || null)}
-            />
-          )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Shop</span>
+            {shops.length === 0 ? (
+              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
+            ) : (
+              <ShopSingleSelect
+                options={shops.map((shop) => ({ id: shop.key, name: shop.name }))}
+                value={selectedStore ?? ""}
+                onChange={(id) => setSelectedStore(id || null)}
+              />
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Période</span>
-          <DateRangePicker value={{ from, to }} onChange={(range) => { setFrom(range.from); setTo(range.to); }} today={today} />
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Période</span>
+            <DateRangePicker value={{ from, to }} onChange={(range) => { setFrom(range.from); setTo(range.to); }} today={today} />
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
+            <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || forceSyncing || loading || days.length === 0}>
+              <RefreshCwIcon size={13} />
+              {syncing ? "Synchronisation…" : `Synchroniser${days.length > 1 ? ` (${days.length} j)` : ""}`}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleForceSync}
+              disabled={syncing || forceSyncing || loading || days.length === 0}
+              title="Re-télécharge chaque jour de la période depuis Loyverse et écrase les données locales — utile après un changement de mapping"
+            >
+              <RefreshCwIcon size={13} />
+              {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
+            </Button>
+          </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
-          <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || forceSyncing || loading || days.length === 0}>
-            <RefreshCwIcon size={13} />
-            {syncing ? "Synchronisation…" : `Synchroniser${days.length > 1 ? ` (${days.length} j)` : ""}`}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleForceSync}
-            disabled={syncing || forceSyncing || loading || days.length === 0}
-            title="Re-synchronise tous les jours de la plage, même déjà synchronisés — utile après un changement de mapping"
-          >
-            <RefreshCwIcon size={13} />
-            {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
-          </Button>
-        </div>
+        <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>
+          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Synchroniser</strong> — complète les jours de la période
+          absents ou incomplets en base (&lt;= 5 jours : tout est re-téléchargé).{" "}
+          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Forcer re-sync</strong> — re-télécharge chaque jour de la
+          période depuis Loyverse et écrase les données locales, même déjà synchronisées (après un changement de mapping ou de
+          catalogue).
+        </p>
       </div>
 
       {invalidRange && (

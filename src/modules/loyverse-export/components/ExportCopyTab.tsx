@@ -87,7 +87,6 @@ export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, sna
   }, [days, shiftByDate, snapshotByDate, paymentMap]);
 
   const dataRows = rows.filter((r) => r.hasData);
-  const missingCount = rows.length - dataRows.length;
   const warnedRows = rows.filter((r) => r.warning);
 
   async function handleCopyAll() {
@@ -105,10 +104,7 @@ export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, sna
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
-        <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>
-          Données Loyverse à copier dans Accounting — même ordre que Shift &amp; Sales (tabulations, une ligne par jour).
-        </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
         <Button size="sm" onClick={handleCopyAll} disabled={dataRows.length === 0}>
           {copiedAll ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
           {copiedAll ? "copié" : `copier ${dataRows.length} ligne${dataRows.length > 1 ? "s" : ""}`}
@@ -189,14 +185,6 @@ export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, sna
             </tbody>
           </table>
         </div>
-      )}
-
-      {rows.length > 0 && (
-        <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
-          {dataRows.length} jour{dataRows.length > 1 ? "s" : ""} avec données
-          {missingCount > 0 ? ` · ${missingCount} jour${missingCount > 1 ? "s" : ""} sans données (synchronise la plage)` : ""} ·
-          affichage avec séparateur des milliers, copie brute (sans séparateur) pour Sheets.
-        </p>
       )}
     </div>
   );
