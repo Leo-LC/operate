@@ -19,9 +19,11 @@ import {
 } from "@/lib/constants";
 import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
+import { toast } from "sonner";
 import { ArrowUpIcon } from "lucide-react";
 import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
 import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
+import { formatReviewsForCopy } from "@/modules/reviews/lib/review-copy";
 import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
 import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
 import { ReviewsControlsBar } from "@/modules/reviews/components/ReviewsControlsBar";
@@ -285,6 +287,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
     ? applyLimit([...threeFiltered, ...twoFiltered, ...oneFiltered])
     : attentionInDisplay;
 
+  /** Same order the attention section renders: lowest stars first. */
+  const attentionSorted = useMemo(
+    () => [...attentionDisplayed].sort((a, b) => starNum(a) - starNum(b)),
+    [attentionDisplayed]
+  );
+
   const attentionWithRepliesInDisplay = useMemo(
     () =>
       attentionDisplayed.filter(
@@ -292,6 +300,18 @@ export function DashboardClient({ user }: DashboardClientProps) {
       ),
     [attentionDisplayed, replyDrafts]
   );
+
+  const handleCopyAllAttention = useCallback(async () => {
+    if (attentionSorted.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(formatReviewsForCopy(attentionSorted));
+      toast.success(
+        `Copied ${attentionSorted.length} review${attentionSorted.length === 1 ? "" : "s"}`
+      );
+    } catch {
+      toast.error("Failed to copy reviews");
+    }
+  }, [attentionSorted]);
 
   const getCommentForMixedList = useCallback(
     (reviewId: string) => {
@@ -505,14 +525,32 @@ export function DashboardClient({ user }: DashboardClientProps) {
                             filters.ratings.has("two") ||
                             filters.ratings.has("three")) && (
                             <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="1-3 star reviews">
-                              {(oneFiltered.length + twoFiltered.length) > 0 && (
+                              {attentionSorted.length > 0 && (
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", background: "var(--bad-soft)", border: "1px solid var(--bad)" }}>
                                   <span style={{ fontSize: 11, fontWeight: 600, color: "var(--bad)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Negative / Urgent</span>
                                   <span style={{ fontSize: 11, color: "var(--bad)" }}>— reply manually and escalate if needed. Contact: contact@capybaracoffeethailand.com</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleCopyAllAttention()}
+                                    style={{
+                                      marginLeft: "auto",
+                                      flexShrink: 0,
+                                      fontSize: 11,
+                                      fontWeight: 500,
+                                      color: "var(--bad)",
+                                      background: "transparent",
+                                      border: "none",
+                                      cursor: "pointer",
+                                      textDecoration: "underline",
+                                      textUnderlineOffset: 2,
+                                    }}
+                                  >
+                                    Copy all
+                                  </button>
                                 </div>
                               )}
                               <ReviewListVirtual
-                                reviews={[...attentionDisplayed].sort((a, b) => starNum(a) - starNum(b))}
+                                reviews={attentionSorted}
                                 getComment={(id) => replyDrafts[id] ?? ""}
                                 onCommentChange={setDraft}
                                 onReplySent={handleReplySent}
