@@ -12,10 +12,30 @@ const STAR_RATING_MAP: Record<string, number> = {
   FIVE: 5,
 };
 
-async function fetchAllReviewsForLocation(
+/** Incremental margin: a page stops the fetch once every review on it is
+ *  older than watermark − margin. Replies/edits keep the review's original
+ *  createTime and the list order is not contractually sorted, so keep a
+ *  generous buffer. */
+const INCREMENTAL_MARGIN_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Full-pass safety net: incremental page-skipping could miss edge cases
+ *  (re-ordered rows, restored reviews, column backfills). Everything is
+ *  rewritten on day 1–2 of the month (UTC). */
+function isMonthlyFullPass(now = new Date()): boolean {
+  return now.getUTCDate() <= 2;
+}
+
+/**
+ * Pages through a location's reviews. With `sinceMs`, stops early: once a
+ * whole page is older than the cutoff (reviews come newest-first in
+ * practice), the remaining pages cannot contain newer reviews. Locations
+ * with no cached history pass no cutoff and fetch everything.
+ */
+async function fetchReviewsForLocation(
   accessToken: string,
   accountId: string,
   locationName: string,
+  sinceMs?: number,
 ): Promise<Review[]> {
   const out: Review[] = [];
   let pageToken: string | undefined;
@@ -31,18 +51,32 @@ async function fetchAllReviewsForLocation(
       throw new Error(`Reviews API error for ${locationName}: ${res.status} ${err}`);
     }
     const data = (await res.json()) as { reviews?: Review[]; nextPageToken?: string };
-    if (data.reviews) out.push(...data.reviews);
+    const page = data.reviews ?? [];
+    out.push(...page);
+    if (
+      sinceMs !== undefined &&
+      page.length > 0 &&
+      page.every((r) => {
+        const t = r.createTime ? Date.parse(r.createTime) : NaN;
+        return Number.isNaN(t) || t < sinceMs;
+      })
+    ) {
+      break;
+    }
     pageToken = data.nextPageToken;
   } while (pageToken);
 
   return out;
 }
 
-async function hasLocationUuidColumn(
+/** Column presence check — dual-write style guards (see hasLocationUuidColumn
+ *  pattern): reads fail cleanly on pre-migration databases. */
+async function hasColumns(
   supabase: ReturnType<typeof getSupabaseServerClient>,
   table: "reviews_cache" | "location_gbp_ratings",
+  columns: string,
 ): Promise<boolean> {
-  const { error } = await supabase.from(table).select("location_uuid").limit(0);
+  const { error } = await supabase.from(table).select(columns).limit(0);
   return !error;
 }
 
@@ -50,19 +84,34 @@ export type ReviewsSyncResult = {
   synced: number;
   locations: number;
   syncedAt: string;
+  mode: "full" | "incremental";
 };
+
+export interface ReviewsSyncOptions {
+  /** Fetch + rewrite every review, skipping the update_time differential.
+   *  Used to backfill comment/media_count on existing rows (pass ?full=1 on
+   *  the manual sync route); the monthly full pass does it automatically. */
+  full?: boolean;
+}
 
 /**
  * Sync Google Business reviews → reviews_cache + location_gbp_ratings.
  * Shared by the manual route (POST /api/challenges/reviews/sync) and the
  * nightly sequential orchestrator (syncAllChallenges). Throws on fatal error
  * (no Google token); per-location failures are logged and skipped.
+ *
+ * Fetch strategy (see ReviewsSyncOptions): incremental by default — pages
+ * stop at the location's newest cached review minus a margin; full when
+ * requested or on the monthly pass. Either way the cache accumulates every
+ * review (replied or not) with its text (comment) and attached media count.
  */
-export async function syncReviews(): Promise<ReviewsSyncResult> {
+export async function syncReviews(opts: ReviewsSyncOptions = {}): Promise<ReviewsSyncResult> {
   const accessToken = await getOrganizationAccessToken();
   if (!accessToken) {
     throw new Error("Google token not configured — sign in with Google first");
   }
+
+  const full = opts.full === true || isMonthlyFullPass();
 
   const [gbpEntries, activeExternalIds, dbNames] = await Promise.all([
     fetchAllLocationsAcrossAccounts(accessToken),
@@ -80,15 +129,34 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
   for (const row of (locRows ?? []) as Array<{ id: string; external_id: string | null }>) {
     if (row.external_id) uuidByExternalId.set(row.external_id, row.id);
   }
-  const [uuidCacheOk, uuidRatingsOk] = await Promise.all([
-    hasLocationUuidColumn(supabase, "reviews_cache"),
-    hasLocationUuidColumn(supabase, "location_gbp_ratings"),
+  const [uuidCacheOk, uuidRatingsOk, archiveColsOk] = await Promise.all([
+    hasColumns(supabase, "reviews_cache", "location_uuid"),
+    hasColumns(supabase, "location_gbp_ratings", "location_uuid"),
+    // comment + media_count (migration 20261125000000): review text and the
+    // number of photos/videos the reviewer attached.
+    hasColumns(supabase, "reviews_cache", "comment, media_count"),
   ]);
   const syncedAt = new Date().toISOString();
   let totalSynced = 0;
 
-  // Accumulate all-time rating stats per location from fetched reviews
-  const locationStats = new Map<string, { title: string; ratingSum: number; count: number }>();
+  // Incremental watermark: newest cached create_time per location. Locations
+  // with no cached rows fetch their entire history (brand-new shop archive).
+  const watermarks = new Map<string, number>();
+  if (!full) {
+    const { data: wmRows } = await supabase
+      .from("reviews_cache")
+      .select("location_id, create_time")
+      .eq("organization_id", DEFAULT_ORG_ID);
+    for (const row of (wmRows ?? []) as Array<{ location_id: string; create_time: string }>) {
+      const t = Date.parse(row.create_time);
+      if (Number.isNaN(t)) continue;
+      const prev = watermarks.get(row.location_id);
+      if (prev === undefined || t > prev) watermarks.set(row.location_id, t);
+    }
+  }
+
+  // Locations processed this run → title (drives the ratings rewrite below)
+  const processed = new Map<string, string>();
 
   const concurrency = 4;
   for (let i = 0; i < gbpEntries.length; i += concurrency) {
@@ -101,9 +169,12 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
         // Admin → Shops name wins (rename without code change), then the
         // hardcoded map, then the live GBP title.
         const locationTitle = dbNames.get(shortName) ?? LOCATION_NAMES[shortName] ?? loc.title ?? shortName;
+        processed.set(shortName, locationTitle);
 
         try {
-          const reviews = await fetchAllReviewsForLocation(accessToken, accountId, shortName);
+          const wm = watermarks.get(shortName);
+          const sinceMs = full || wm === undefined ? undefined : wm - INCREMENTAL_MARGIN_MS;
+          const reviews = await fetchReviewsForLocation(accessToken, accountId, shortName, sinceMs);
 
           if (reviews.length === 0) return;
 
@@ -125,6 +196,10 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
                 star_rating: starNum,
                 has_reply: !!r.reviewReply,
                 reviewer_display_name: r.reviewer?.displayName ?? null,
+                // Archive columns (pre-migration DBs stay TEXT-only).
+                ...(archiveColsOk
+                  ? { comment: r.comment ?? null, media_count: r.media?.length ?? 0 }
+                  : {}),
                 create_time: r.createTime,
                 update_time: r.updateTime,
                 synced_at: syncedAt,
@@ -134,35 +209,29 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
 
           if (rows.length === 0) return;
 
-          // All-time rating stats from the full fetched set (independent of
-          // whether rows are actually written to the cache).
-          let ratingSum = 0;
-          let count = 0;
-          for (const r of rows) {
-            ratingSum += r!.star_rating;
-            count++;
-          }
-          locationStats.set(shortName, { title: locationTitle, ratingSum, count });
-
-          // Only write rows that are new or whose update_time changed, to
+          // Full pass rewrites everything (backfills new columns); incremental
+          // only writes rows that are new or whose update_time changed, to
           // avoid rewriting every review on every daily sync (Disk IO + bloat).
-          const ids = rows.map((r) => r!.id);
-          const existingUpdateTimes = new Map<string, string>();
-          for (let offset = 0; offset < ids.length; offset += 200) {
-            const page = ids.slice(offset, offset + 200);
-            const { data: existing } = await supabase
-              .from("reviews_cache")
-              .select("id, update_time")
-              .in("id", page);
-            for (const row of existing ?? []) {
-              existingUpdateTimes.set(row.id as string, row.update_time as string);
+          let toWrite = rows;
+          if (!full) {
+            const ids = rows.map((r) => r!.id);
+            const existingUpdateTimes = new Map<string, string>();
+            for (let offset = 0; offset < ids.length; offset += 200) {
+              const page = ids.slice(offset, offset + 200);
+              const { data: existing } = await supabase
+                .from("reviews_cache")
+                .select("id, update_time")
+                .in("id", page);
+              for (const row of existing ?? []) {
+                existingUpdateTimes.set(row.id as string, row.update_time as string);
+              }
             }
-          }
 
-          const toWrite = rows.filter((r) => {
-            const prev = existingUpdateTimes.get(r!.id);
-            return prev === undefined || prev !== r!.update_time;
-          });
+            toWrite = rows.filter((r) => {
+              const prev = existingUpdateTimes.get(r!.id);
+              return prev === undefined || prev !== r!.update_time;
+            });
+          }
 
           if (toWrite.length === 0) return;
 
@@ -185,19 +254,40 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
     );
   }
 
-  // Upsert all-time ratings computed from synced reviews
-  const ratingRows = Array.from(locationStats.entries()).map(([locationId, stats]) => ({
-    location_id: locationId,
-    organization_id: DEFAULT_ORG_ID,
-    // Dual-write: internal UUID join key (see reviews_cache above).
-    ...(uuidRatingsOk && uuidByExternalId.get(locationId)
-      ? { location_uuid: uuidByExternalId.get(locationId)! }
-      : {}),
-    location_title: stats.title,
-    average_rating: Math.round((stats.ratingSum / stats.count) * 10) / 10,
-    total_review_count: stats.count,
-    synced_at: syncedAt,
-  }));
+  // All-time rating stats, aggregated from the cache itself (NOT the fetched
+  // subset — under incremental mode it only holds recent pages, and the
+  // challenges "Review rating" metric needs the all-time snapshot). Read
+  // after the writes above so freshly synced rows are included.
+  const { data: cacheRows } = await supabase
+    .from("reviews_cache")
+    .select("location_id, star_rating")
+    .eq("organization_id", DEFAULT_ORG_ID);
+  const agg = new Map<string, { ratingSum: number; count: number }>();
+  for (const row of (cacheRows ?? []) as Array<{ location_id: string; star_rating: number }>) {
+    const cur = agg.get(row.location_id) ?? { ratingSum: 0, count: 0 };
+    cur.ratingSum += row.star_rating;
+    cur.count += 1;
+    agg.set(row.location_id, cur);
+  }
+
+  const ratingRows = Array.from(processed.entries()).flatMap(([locationId, title]) => {
+    const stats = agg.get(locationId);
+    if (!stats || stats.count === 0) return [];
+    return [
+      {
+        location_id: locationId,
+        organization_id: DEFAULT_ORG_ID,
+        // Dual-write: internal UUID join key (see reviews_cache above).
+        ...(uuidRatingsOk && uuidByExternalId.get(locationId)
+          ? { location_uuid: uuidByExternalId.get(locationId)! }
+          : {}),
+        location_title: title,
+        average_rating: Math.round((stats.ratingSum / stats.count) * 10) / 10,
+        total_review_count: stats.count,
+        synced_at: syncedAt,
+      },
+    ];
+  });
 
   if (ratingRows.length > 0) {
     await supabase
@@ -205,5 +295,5 @@ export async function syncReviews(): Promise<ReviewsSyncResult> {
       .upsert(ratingRows, { onConflict: "location_id,organization_id" });
   }
 
-  return { synced: totalSynced, locations: gbpEntries.length, syncedAt };
+  return { synced: totalSynced, locations: gbpEntries.length, syncedAt, mode: full ? "full" : "incremental" };
 }

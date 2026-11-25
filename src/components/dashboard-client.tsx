@@ -86,7 +86,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
   const {
     bulkSending,
-    bulkProgress,
     bulkConfirm,
     openBulkConfirm,
     cancelBulkConfirm,
@@ -578,8 +577,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
       <BulkReplyPanel
         bulkConfirm={bulkConfirm}
-        bulkSending={bulkSending}
-        bulkProgress={bulkProgress}
         onCancel={cancelBulkConfirm}
         onConfirm={(list) => {
           cancelBulkConfirm();

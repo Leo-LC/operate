@@ -13,7 +13,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await syncReviews();
+    // ?full=1 → rewrite every review (backfills comment/media_count on
+    // existing rows; see sync-reviews.ts). Default is incremental.
+    const full = new URL(request.url).searchParams.get("full") === "1";
+    const result = await syncReviews({ full });
     return Response.json(result);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Sync failed";

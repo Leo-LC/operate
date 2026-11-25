@@ -13,6 +13,7 @@ import type { Review } from "@/types/review";
 import type { ReviewWithLocation } from "@/types/review";
 import { getOrganizationAccessToken } from "@/lib/google-token";
 import { readAutoSendEnabled, readStoredReplyConfig } from "@/modules/reviews/lib/server-config";
+import { archiveUnrepliedReviews } from "@/modules/reviews/lib/archive";
 
 /**
  * Shared review-fetch + reply logic for:
@@ -164,6 +165,15 @@ export async function fetchUnrepliedAcrossLocations(
       details.push(detail);
       if (accountId) accountByLocation.set(detail.id, accountId);
     }
+  }
+
+  // Best-effort archive: persist fetched reviews (text, media count, origin)
+  // into reviews_cache immediately instead of waiting for the nightly sync.
+  try {
+    const archived = await archiveUnrepliedReviews(allUnreplied);
+    if (archived > 0) console.log(`[reviews] archived ${archived} fetched review(s) to reviews_cache`);
+  } catch (e) {
+    console.error("[reviews] archive after sync failed:", e instanceof Error ? e.message : e);
   }
 
   return { reviews: allUnreplied, details, accountByLocation };

@@ -19,6 +19,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
 import { ModuleVisitTracker } from "@/components/module-visit-tracker";
 import { PageNotes } from "@/components/page-notes";
+import { BulkReplyIndicator } from "@/modules/reviews/components/bulk-reply-indicator";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -789,6 +790,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} permissions={permissions} />
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <ModuleVisitTracker />
+      <BulkReplyIndicator />
       {(isOwner || permissions.global_role === "admin") && <PageNotes />}
       {isDirection && (
         <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="Mon mot de passe" description="Définir ou changer votre mot de passe.">
