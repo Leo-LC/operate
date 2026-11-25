@@ -151,7 +151,7 @@ export function ReviewsStatsClient() {
       />
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Stat
           className="min-w-0"
           label={`Reviews (last ${periodHint})`}
@@ -179,6 +179,12 @@ export function ReviewsStatsClient() {
           label="Replied"
           value={overall ? fmtPct(overall.replyRate) : "—"}
           hint={hasCurrent ? "with a public reply" : "Waiting for the review sync"}
+        />
+        <Stat
+          className="min-w-0"
+          label="With photos"
+          value={overall ? fmtPct(overall.photoRate) : "—"}
+          hint={hasCurrent ? "reviewer-attached photos" : "Waiting for the review sync"}
         />
         <Stat
           className="min-w-0"

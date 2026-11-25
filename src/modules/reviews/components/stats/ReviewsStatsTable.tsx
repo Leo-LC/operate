@@ -7,7 +7,7 @@ import { ReviewsStatsTrend } from "./ReviewsStatsTrend";
 
 const STAR_COLORS = ["var(--bad)", "var(--bad-muted)", "var(--warn)", "var(--good-muted)", "var(--good)"];
 
-type SortKey = "count" | "avg" | "replyRate";
+type SortKey = "count" | "avg" | "replyRate" | "photoRate";
 
 const BAR_GRANULARITY: Record<string, "day" | "week" | "month"> = {
   "7d": "day",
@@ -115,7 +115,7 @@ export function ReviewsStatsTable({ shops, preset, loading }: Props) {
 
   const sorted = useMemo(() => {
     const val = (s: ShopStats): number | null =>
-      sortKey === "count" ? s.count : sortKey === "avg" ? s.avg : s.replyRate;
+      sortKey === "count" ? s.count : sortKey === "avg" ? s.avg : (sortKey === "photoRate" ? s.photoRate : s.replyRate);
     return [...shops].sort((a, b) => {
       const va = val(a), vb = val(b);
       if (va == null && vb == null) return a.title.localeCompare(b.title);
@@ -176,6 +176,7 @@ export function ReviewsStatsTable({ shops, preset, loading }: Props) {
             <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("count")}>Reviews{sortIcon("count")}</th>
             <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("avg")}>Avg rating{sortIcon("avg")}</th>
             <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("replyRate")}>Replied{sortIcon("replyRate")}</th>
+            <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("photoRate")}>Photos{sortIcon("photoRate")}</th>
             <th style={{ ...thStyle, cursor: "default" }}>Ratings 1★–5★</th>
             <th style={{ ...thStyle, cursor: "default", width: 34 }} aria-label="Expand" />
           </tr>
@@ -236,6 +237,12 @@ function FragmentRow({ shop, isOpen, onToggle, granularity }: {
             <span>{fmtPct(shop.replyRate)}</span>
           </span>
         </td>
+        <td style={tdStyle} className="tabular-nums">
+          <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+            <span>{fmtPct(shop.photoRate)}</span>
+            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>with photos</span>
+          </span>
+        </td>
         <td style={tdStyle}>
           <DistributionBar distribution={shop.distribution} count={shop.count} />
         </td>
@@ -245,7 +252,7 @@ function FragmentRow({ shop, isOpen, onToggle, granularity }: {
       </tr>
       {isOpen && (
         <tr>
-          <td colSpan={6} style={{ borderBottom: "1px solid var(--line)", padding: "8px 12px 12px", background: "var(--surface)" }}>
+          <td colSpan={7} style={{ borderBottom: "1px solid var(--line)", padding: "8px 12px 12px", background: "var(--surface)" }}>
             <ReviewsStatsTrend
               points={shop.points}
               total={shop.count}
