@@ -65,7 +65,7 @@ export async function archiveUnrepliedReviews(reviews: ReviewWithLocation[]): Pr
         star_rating: starNum,
         has_reply: !!r.reviewReply,
         reviewer_display_name: r.reviewer?.displayName ?? null,
-        ...(archiveColsOk ? { comment: r.comment ?? null, media_count: r.media?.length ?? 0 } : {}),
+        ...(archiveColsOk ? { comment: r.comment ?? null, media_count: r.reviewMediaItems?.length ?? 0 } : {}),
         create_time: r.createTime,
         update_time: r.updateTime,
         synced_at: syncedAt,

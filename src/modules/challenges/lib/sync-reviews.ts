@@ -198,7 +198,7 @@ export async function syncReviews(opts: ReviewsSyncOptions = {}): Promise<Review
                 reviewer_display_name: r.reviewer?.displayName ?? null,
                 // Archive columns (pre-migration DBs stay TEXT-only).
                 ...(archiveColsOk
-                  ? { comment: r.comment ?? null, media_count: r.media?.length ?? 0 }
+                  ? { comment: r.comment ?? null, media_count: r.reviewMediaItems?.length ?? 0 }
                   : {}),
                 create_time: r.createTime,
                 update_time: r.updateTime,
@@ -243,6 +243,19 @@ export async function syncReviews(opts: ReviewsSyncOptions = {}): Promise<Review
             console.error(`[challenges/sync] upsert error for ${shortName}:`, error.message);
           } else {
             totalSynced += toWrite.length;
+            // Full pass is authoritative: purge rows for this location written
+            // under a previous Google account path (review ids embed
+            // `accounts/{accountId}/…`; the locations moved accounts once, so
+            // stale copies linger and double-count every DB-side aggregation).
+            const del = await supabase
+              .from("reviews_cache")
+              .delete()
+              .eq("location_id", shortName)
+              .eq("organization_id", DEFAULT_ORG_ID)
+              .not("id", "like", `accounts/${accountId}/%`);
+            if (del.error) {
+              console.error(`[challenges/sync] zombie purge error for ${shortName}:`, del.error.message);
+            }
           }
         } catch (e) {
           console.error(

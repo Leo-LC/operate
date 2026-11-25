@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ReviewWithLocation } from "@/types/review";
+import { CopyButton } from "@/modules/directory/components/CopyButton";
+import { formatReviewForCopy } from "@/modules/reviews/lib/review-copy";
 import {
   REPLY_CATEGORIES,
   type ReplyCategory,
@@ -54,12 +56,14 @@ const TRUNCATE_LEN = 200;
 const REPORT_REVIEW_URL = "https://support.google.com/business/answer/2622994";
 
 /**
- * Public Google link for this review. Deep-links with `reviewid` (undocumented
- * but honored by Google Search so far — verify after a Google change); it
- * lands on the shop's public reviews list, where every review has a
- * ⋮ → "Report review" option, so no more shop-hunting on GBP to flag one.
+ * Public Google link for this review. Priority: Google's own reviewReplyUrl
+ * (deep link to the review in the Business Profile UI, where replying and
+ * reporting happen). Fallback: the shop's public reviews list via placeId —
+ * each review there has a ⋮ → "Report review" option. Last resort: the
+ * Google Help article.
  */
 function googleReviewUrl(review: ReviewWithLocation): string | null {
+  if (review.reviewReplyUrl) return review.reviewReplyUrl;
   if (!review.placeId) return null;
   const base = `https://search.google.com/local/reviews?placeid=${encodeURIComponent(review.placeId)}`;
   return review.reviewId ? `${base}&reviewid=${encodeURIComponent(review.reviewId)}` : base;
@@ -183,6 +187,9 @@ export function ReviewCard({
           <Stars rating={review.starRating} />
         </div>
         <div className="flex items-center gap-1.5">
+          {variant === "attention" && (
+            <CopyButton value={formatReviewForCopy(review)} label="Review" />
+          )}
           {(() => {
             const url = googleReviewUrl(review);
             const label = "Open review on Google (report it from there)";
