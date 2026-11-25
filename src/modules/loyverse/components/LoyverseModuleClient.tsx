@@ -13,13 +13,13 @@ import { AnalysisPanel } from "./AnalysisPanel";
 import { bangkokToday, bangkokYesterday } from "@/lib/dates";
 
 const TABS = [
-  { value: "shifts", label: "Shifts (veille)", icon: ClockIcon },
-  { value: "accounting", label: "Accounting", icon: CalculatorIcon },
-  { value: "challenges", label: "Challenges", icon: TrophyIcon },
-  { value: "analysis", label: "Analyse", icon: BarChart3Icon },
-  { value: "reco", label: "Réconciliation (probation)", icon: ScaleIcon },
-  { value: "unmapped", label: "Unmapped", icon: AlertTriangleIcon },
-  { value: "debug", label: "Debug", icon: BeakerIcon },
+  { value: "shifts", label: "Shifts (veille)", icon: ClockIcon, visibilityKey: "tab:loyverse.shifts" },
+  { value: "accounting", label: "Accounting", icon: CalculatorIcon, visibilityKey: "tab:loyverse.accounting" },
+  { value: "challenges", label: "Challenges", icon: TrophyIcon, visibilityKey: "tab:loyverse.challenges" },
+  { value: "analysis", label: "Analyse", icon: BarChart3Icon, visibilityKey: "tab:loyverse.analysis" },
+  { value: "reco", label: "Réconciliation (probation)", icon: ScaleIcon, visibilityKey: "tab:loyverse.reco" },
+  { value: "unmapped", label: "Unmapped", icon: AlertTriangleIcon, visibilityKey: "tab:loyverse.unmapped" },
+  { value: "debug", label: "Debug", icon: BeakerIcon, visibilityKey: "tab:loyverse.debug" },
 ];
 
 export function LoyverseModuleClient({ canSync = false }: { canSync?: boolean }) {

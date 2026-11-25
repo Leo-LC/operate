@@ -10,11 +10,11 @@ import {
   PawPrintIcon, FileTextIcon, CalculatorIcon, TrendingUpIcon,
   UsersIcon, BookOpenIcon, PaletteIcon, ShieldIcon, SearchIcon, ReceiptTextIcon, SlidersHorizontalIcon, CopyIcon,
   SunIcon, MoonIcon, LogOutIcon, TrophyIcon, VaultIcon, MenuIcon, XIcon, PlugIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, CrownIcon, StoreIcon,
-  EyeIcon, EyeOffIcon,
   type LucideIcon,
 } from "lucide-react";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import type { UserPermissions } from "@/core/permissions/types";
+import { UiVisibilityProvider, useUiVisibilityValue, VisibilityEye } from "@/components/visibility";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
 import { ModuleVisitTracker } from "@/components/module-visit-tracker";
@@ -105,14 +105,6 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-/* Modules masked globally until the owner releases them (eye toggle in sidebar).
-   Maps sidebar item id -> module_visibility key. */
-const GATED_NAV: Record<string, string> = {
-  attendance: "attendance",
-  scheduling: "schedules",
-  treasury: "treasury",
-};
-
 /* Deterministic avatar colour from initials */
 const AVATAR_HUES = [24, 38, 185, 145, 260, 310];
 function avatarColor(seed: string): string {
@@ -144,21 +136,11 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwd, setPwd] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
-  const [moduleVisibility, setModuleVisibility] = useState<Record<string, boolean> | null>(null);
   const isOwner = permissions.global_role === "owner";
   useEffect(() => setMounted(true), []);
-  /* Global release flags for gated modules (owner eye-toggle). Defaults to masked on error. */
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/admin/module-visibility", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (!cancelled && j && typeof j === "object") setModuleVisibility(j as Record<string, boolean>);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-  useEffect(() => {
+  /* Unified eye-toggle state: one fetch shared with the tab bars and palette via context. */
+  const visibility = useUiVisibilityValue(permissions.global_role);
+  const { isVisible, canSeeHidden, canToggle, toggle } = visibility;  useEffect(() => {
     try {
       const v = localStorage.getItem("nexus-sidebar-collapsed");
       if (v === "1") setSidebarCollapsed(true);
@@ -270,24 +252,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
     finally { setPwdSaving(false); }
   }
 
-  async function toggleModuleRelease(key: string) {
-    const next = !(moduleVisibility?.[key] ?? false);
-    setModuleVisibility((prev) => ({ ...(prev ?? {}), [key]: next }));
-    try {
-      const res = await fetch("/api/admin/module-visibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ module_key: key, visible: next }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success(next ? "Module released" : "Module masked");
-    } catch {
-      setModuleVisibility((prev) => ({ ...(prev ?? {}), [key]: !next }));
-      toast.error("Failed to update visibility");
-    }
-  }
-
   return (
+    <UiVisibilityProvider value={visibility}>
     <div
       style={{
         display: "flex",
@@ -413,9 +379,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
               if (!item.module && item.id !== "loyverse-sandbox" && item.id !== "customer-insights") return false;
               if (item.id === "loyverse-sandbox" && permissions.global_role !== "owner") return false;
               if (item.id === "customer-insights" && permissions.global_role !== "owner") return false;
-              /* Gated modules: owner always sees them, others only once released */
-              const gateKey = GATED_NAV[item.id];
-              if (gateKey && !isOwner && !(moduleVisibility?.[gateKey] ?? false)) return false;
+              /* Masked modules (owner eye): hidden for everyone, dimmed for owner/admin */
+              if (!canSeeHidden && !isVisible(`module:${item.id}`)) return false;
               return true;
             });
             if (visibleItems.length === 0) return null;
@@ -440,6 +405,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                   {visibleItems.map((item) => {
                     const active = isActive(item.href);
                     const Icon = item.icon;
+                    const masked = canSeeHidden && !isVisible(`module:${item.id}`);
                     if (item.disabled) {
                       return (
                         <div
@@ -486,6 +452,7 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                           borderRadius: 6,
                           fontSize: 12.5,
                           fontWeight: active ? 600 : 450,
+                          opacity: masked ? 0.55 : 1,
                           color: active ? "#fff" : "var(--fg-3)",
                           background: active ? "var(--accent)" : "transparent",
                           border: `1px solid ${active ? "var(--accent)" : "transparent"}`,
@@ -505,31 +472,14 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
                         />
                         <span className="app-sidebar-label">{item.label}</span>
                       </Link>
-                      {isOwner && GATED_NAV[item.id] && !sidebarCollapsed && (
-                        <button
-                          type="button"
-                          onClick={() => void toggleModuleRelease(GATED_NAV[item.id])}
-                          title={(moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? `Mask "${item.label}" for everyone` : `Release "${item.label}" to authorized roles`}
-                          aria-label={(moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? `Mask ${item.label}` : `Release ${item.label}`}
-                          style={{
-                            width: 24,
-                            height: 24,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderRadius: "var(--r-sm)",
-                            border: "1px solid transparent",
-                            background: "transparent",
-                            color: (moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? "var(--fg-3)" : "var(--fg-mute)",
-                            opacity: (moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? 0.9 : 0.45,
-                            cursor: "pointer",
-                            flexShrink: 0,
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--row-hover)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                        >
-                          {(moduleVisibility?.[GATED_NAV[item.id]] ?? false) ? <EyeIcon size={13} /> : <EyeOffIcon size={13} />}
-                        </button>
+                      {canToggle && !sidebarCollapsed && (
+                        <VisibilityEye
+                          visible={!masked}
+                          label={item.label}
+                          onToggle={() => toggle(`module:${item.id}`)}
+                          size={24}
+                          margin={0}
+                        />
                       )}
                       </div>
                     );
@@ -813,5 +763,6 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
         </Modal>
       )}
     </div>
+    </UiVisibilityProvider>
   );
 }

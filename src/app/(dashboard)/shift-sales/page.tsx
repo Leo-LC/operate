@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { hasModuleAccess } from "@/core/permissions/guards";
+import { isAccessibleForSession } from "@/lib/module-visibility";
 import { LoyverseModuleClient } from "@/modules/loyverse/components/LoyverseModuleClient";
 
 export default async function LoyversePreviewPage() {
@@ -11,6 +12,8 @@ export default async function LoyversePreviewPage() {
   const perms = await getUserPermissionsFromDb(session!.user!.userId, session!.user!.role);
   const canAccess = perms.global_role === "owner" || perms.global_role === "admin" || hasModuleAccess(perms, "loyverse_preview");
   if (!canAccess) redirect("/loyverse");
+  // Masked nav item (owner eye): owner/admin still access it, others are redirected.
+  if (!(await isAccessibleForSession(session!.user!.role, "module:loyverse-preview"))) redirect("/loyverse");
   // Sync réservé owner/admin/direction (même règle que /loyverse).
   const role = session!.user!.role ?? "";
   const canSync = ["owner", "admin", "direction"].includes(role);
