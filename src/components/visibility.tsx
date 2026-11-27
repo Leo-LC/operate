@@ -6,8 +6,10 @@ import { toast } from "sonner";
 
 /**
  * Shared client state for the "eye" visibility toggles.
- * One fetch for the whole app (mounted once in DashboardShell); the sidebar,
- * the command palette and every tab bar read the same context.
+ * The map is seeded server-side by the dashboard layout (first paint already
+ * honors masks); the one client fetch below is only a refresh for long-lived
+ * sessions. The sidebar, the command palette and every tab bar read the same
+ * context.
  */
 export interface UiVisibilityValue {
   /** False only when the key is explicitly masked; absent key = visible. */
@@ -29,12 +31,19 @@ const NOOP_VALUE: UiVisibilityValue = {
   toggle: () => {},
 };
 
-export function useUiVisibilityValue(role: string): UiVisibilityValue {
-  const [map, setMap] = useState<Record<string, boolean>>({});
+export function useUiVisibilityValue(
+  role: string,
+  initialVisibility?: Record<string, boolean>
+): UiVisibilityValue {
+  // Seed with the server-read map so masked elements are hidden from the very
+  // first paint (no fail-open window before the fetch resolves).
+  const [map, setMap] = useState<Record<string, boolean>>(initialVisibility ?? {});
   const canSeeHidden = role === "owner" || role === "admin";
   const canToggle = role === "owner";
 
   useEffect(() => {
+    // Refresh only: with the server-seeded map a failed fetch keeps the last
+    // known (correct) state instead of falling back to "everything visible".
     let cancelled = false;
     fetch("/api/admin/module-visibility", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))

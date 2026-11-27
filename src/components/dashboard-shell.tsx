@@ -27,6 +27,8 @@ import { toast } from "sonner";
 interface DashboardShellProps {
   email: string;
   permissions: UserPermissions;
+  /** Server-read module_visibility map seeding the eye state (no first-paint flash). */
+  initialVisibility?: Record<string, boolean>;
   children: React.ReactNode;
 }
 
@@ -122,7 +124,7 @@ function initials(name: string): string {
     .join("");
 }
 
-export function DashboardShell({ email, permissions, children }: DashboardShellProps) {
+export function DashboardShell({ email, permissions, initialVisibility, children }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -138,8 +140,8 @@ export function DashboardShell({ email, permissions, children }: DashboardShellP
   const [pwdSaving, setPwdSaving] = useState(false);
   const isOwner = permissions.global_role === "owner";
   useEffect(() => setMounted(true), []);
-  /* Unified eye-toggle state: one fetch shared with the tab bars and palette via context. */
-  const visibility = useUiVisibilityValue(permissions.global_role);
+  /* Unified eye-toggle state: seeded server-side, refreshed via one shared fetch. */
+  const visibility = useUiVisibilityValue(permissions.global_role, initialVisibility);
   const { isVisible, canSeeHidden, canToggle, toggle } = visibility;  useEffect(() => {
     try {
       const v = localStorage.getItem("nexus-sidebar-collapsed");
