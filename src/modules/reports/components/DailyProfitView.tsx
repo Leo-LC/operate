@@ -324,5 +324,3 @@ const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collap
 const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)", fontWeight: 500, textAlign: "right", background: "var(--bg-2)", whiteSpace: "nowrap" };
 const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };
 const tdNumber: React.CSSProperties = { padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", fontFamily: "var(--font-mono)" };
-const operatorStyle: React.CSSProperties = { fontSize: 20, opacity: .55 };
-const tabStyle = (active: boolean): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 13px", border: 0, borderBottom: active ? "2px solid var(--bronze)" : "2px solid transparent", background: "transparent", color: active ? "var(--fg)" : "var(--fg-4)", fontSize: 12, fontWeight: active ? 650 : 500, cursor: "pointer" });

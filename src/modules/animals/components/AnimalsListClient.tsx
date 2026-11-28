@@ -468,8 +468,6 @@ function VaccinationUrgencyList({ animals, locations, onOpen }: { animals: Anima
     if (a.next_vaccination_date <= in60) { due60.push(a); continue; }
     upcoming.push(a);
   }
-  // keep legacy alias for header count
-  const dueSoon = due30;
 
   const sortByDate = (arr: Animal[]) =>
     [...arr].sort((a, b) => (a.next_vaccination_date ?? "").localeCompare(b.next_vaccination_date ?? ""));

@@ -7,10 +7,7 @@
    ========================================================================== */
 
 .rep {
-     cash/primary = accent, scan = neutral, card = warn. */
-
-
-
+  /* Payment mix chart: cash/primary = accent, scan = neutral, card = warn. */
   display: flex;
   flex-direction: column;
   gap: var(--ui-section-gap);
