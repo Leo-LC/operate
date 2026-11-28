@@ -39,8 +39,8 @@ export function LoyverseModuleClient({ canSync = false }: { canSync?: boolean })
         </nav>
         <div className="ui-module-header-row">
           <h1 className="ui-module-title">Shift &amp; Sales</h1>
-          <ControlledTabs tabs={TABS} value={activeTab} onChange={setActiveTab} ariaLabel="Shift and Sales" variant="pills" />
         </div>
+        <ControlledTabs tabs={TABS} value={activeTab} onChange={setActiveTab} ariaLabel="Shift and Sales" />
       </header>
 
       <div className="w-full pt-2">

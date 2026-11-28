@@ -200,7 +200,7 @@ export function AccountingClient({ locations, canManage, initialLocationId }: Pr
         </nav>
         <div className="ui-module-header-row">
           <h1 className="ui-module-title">Accounting</h1>
-          <ControlledTabs value={view} onChange={(next) => setView(next as typeof view)} tabs={VIEWS.map((v) => ({ value: v.id, label: v.label, icon: v.icon }))} ariaLabel="Accounting view" variant="pills" />
+          <ControlledTabs value={view} onChange={(next) => setView(next as typeof view)} tabs={VIEWS.map((v) => ({ value: v.id, label: v.label, icon: v.icon }))} ariaLabel="Accounting view" variant="segmented" />
         </div>
       </header>
 

@@ -806,7 +806,7 @@ export function EmployeesListClient({ locations }: Props) {
               { value: "matrix", label: "Documents" },
             ]}
             ariaLabel="Employees view"
-            variant="pills"
+            variant="segmented"
           />
         </div>
       </header>

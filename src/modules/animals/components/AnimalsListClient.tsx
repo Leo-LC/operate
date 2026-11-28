@@ -208,7 +208,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               { value: "vaccines", label: "Vaccines", icon: SyringeIcon },
             ]}
             ariaLabel="Animals view"
-            variant="pills"
+            variant="segmented"
           />
         </div>
       </div>

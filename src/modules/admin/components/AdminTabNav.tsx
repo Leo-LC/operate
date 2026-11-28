@@ -29,9 +29,9 @@ export function AdminTabNav({ isOwner = true }: { isOwner?: boolean }) {
       </nav>
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Admin</h1>
-        <ModuleTabs tabs={TABS} ariaLabel="Admin" variant="pills" />
         <span className="adm-section" aria-hidden>{sectionLabel}</span>
       </div>
+      <ModuleTabs tabs={TABS} ariaLabel="Admin" />
     </div>
   );
 }

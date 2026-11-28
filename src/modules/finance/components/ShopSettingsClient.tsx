@@ -56,12 +56,12 @@ export function ShopSettingsClient() {
       </nav>
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Shop settings</h1>
-        <nav aria-label="Finance" className="ui-pillnav">
-          <div className="ui-pillnav-item">
-            <a href="/finance/recurring-costs" className="ui-pillnav-link">Recurring costs</a>
+        <nav aria-label="Finance" className="ui-segmented">
+          <div className="ui-segmented-itemwrap">
+            <a href="/finance/recurring-costs" className="ui-segmented-item">Recurring costs</a>
           </div>
-          <div className="ui-pillnav-item">
-            <a href="/finance/shop-settings" aria-current="page" className="ui-pillnav-link" data-active="true">Shop settings</a>
+          <div className="ui-segmented-itemwrap">
+            <a href="/finance/shop-settings" aria-current="page" className="ui-segmented-item" data-active="true">Shop settings</a>
           </div>
         </nav>
       </div>

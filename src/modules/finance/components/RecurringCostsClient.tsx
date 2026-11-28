@@ -261,12 +261,12 @@ export function RecurringCostsClient() {
       </nav>
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Recurring costs</h1>
-        <nav aria-label="Finance" className="ui-pillnav">
-          <div className="ui-pillnav-item">
-            <a href="/finance/recurring-costs" aria-current="page" className="ui-pillnav-link" data-active="true">Recurring costs</a>
+        <nav aria-label="Finance" className="ui-segmented">
+          <div className="ui-segmented-itemwrap">
+            <a href="/finance/recurring-costs" aria-current="page" className="ui-segmented-item" data-active="true">Recurring costs</a>
           </div>
-          <div className="ui-pillnav-item">
-            <a href="/finance/shop-settings" className="ui-pillnav-link">Shop settings</a>
+          <div className="ui-segmented-itemwrap">
+            <a href="/finance/shop-settings" className="ui-segmented-item">Shop settings</a>
           </div>
         </nav>
         {canManage ? <Button size="sm" style={{ marginLeft: "auto" }} onClick={() => { setShowForm((value) => !value); setEditing(null); }}><PlusIcon size={14} />Add cost</Button> : null}

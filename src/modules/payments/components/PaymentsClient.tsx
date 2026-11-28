@@ -427,7 +427,7 @@ export function PaymentsClient({ initialLocations }: Props) {
               { value: "detail", label: "Detail", icon: EyeIcon },
             ]}
             ariaLabel="Payments view"
-            variant="pills"
+            variant="segmented"
           />
         </div>
       </header>

@@ -33,30 +33,6 @@ export interface ControlledTab {
   visibilityKey?: string;
 }
 
-const BAR_STYLE: React.CSSProperties = {
-  position: "relative",
-  display: "flex",
-  gap: 0,
-  borderBottom: "1px solid var(--line)",
-  overflowX: "auto",
-  scrollbarWidth: "none",
-};
-
-const TAB_STYLE: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "0 var(--s-3)",
-  height: 36,
-  fontSize: 13,
-  fontWeight: 500,
-  border: "none",
-  background: "none",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-  textDecoration: "none",
-};
-
 function useSlidingUnderline(activeIndex: number, tabCount: number) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Array<HTMLElement | null>>([]);
@@ -100,43 +76,20 @@ function Indicator({ left, width, visible }: { left: number; width: number; visi
   return (
     <span
       aria-hidden
-      style={{
-        position: "absolute",
-        bottom: -1,
-        left,
-        width,
-        height: 2,
-        background: "var(--accent)",
-        borderRadius: 2,
-        opacity: visible ? 1 : 0,
-        transition: "left 240ms var(--ease), width 240ms var(--ease), opacity 200ms var(--ease)",
-        pointerEvents: "none",
-      }}
+      className="ui-tabnav-indicator"
+      style={{ left, width, opacity: visible ? 1 : 0 }}
     />
   );
 }
 
 /**
- * Single app-wide tab style (underline variant).
- * Matches the Direction module pattern: text tabs over a 1px line,
- * active tab marked with a 2px accent underline that slides when switching tabs.
+ * Module navigation: real sibling routes as text tabs over a 1px line, with a
+ * 2px accent underline that slides when switching tabs. Masked tabs
+ * (owner eye) are hidden for everyone, dimmed for owner/admin.
  */
-export function ModuleTabs({
-  tabs,
-  ariaLabel,
-  variant = "underline",
-}: {
-  tabs: readonly ModuleTab[];
-  ariaLabel?: string;
-  /**
-   * Opt-in visual variant. Default stays the app-wide underline style; the
-   * pill variant is used by Reviews Stats and is available to later modules.
-   */
-  variant?: "underline" | "pills";
-}) {
+export function ModuleTabs({ tabs, ariaLabel }: { tabs: readonly ModuleTab[]; ariaLabel?: string }) {
   const { isVisible, canSeeHidden, canToggle, toggle } = useUiVisibility();
   const pathname = usePathname();
-  // Masked tabs (owner eye): hidden for everyone, dimmed for owner/admin.
   const shown = tabs.filter((t) => !t.visibilityKey || canSeeHidden || isVisible(t.visibilityKey));
   const activeIndex = Math.max(
     0,
@@ -144,46 +97,8 @@ export function ModuleTabs({
   );
   const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, shown.length);
 
-  if (variant === "pills") {
-    return (
-      <nav aria-label={ariaLabel} className="ui-pillnav">
-        {shown.map((tab, i) => {
-          const active = i === activeIndex;
-          const Icon = tab.icon;
-          const masked = !!tab.visibilityKey && !isVisible(tab.visibilityKey);
-          return (
-            <div
-              key={tab.href}
-              className="ui-pillnav-item"
-              data-dimmed={tab.dimmed || masked ? "true" : undefined}
-            >
-              <Link
-                href={tab.href}
-                aria-current={active ? "page" : undefined}
-                className="ui-pillnav-link"
-                data-active={active ? "true" : undefined}
-              >
-                {Icon ? <Icon size={14} /> : null}
-                {tab.label}
-              </Link>
-              {tab.visibilityKey && canToggle ? (
-                <VisibilityEye
-                  visible={!masked}
-                  label={tab.label}
-                  onToggle={() => toggle(tab.visibilityKey!)}
-                />
-              ) : (
-                tab.extra
-              )}
-            </div>
-          );
-        })}
-      </nav>
-    );
-  }
-
   return (
-    <nav aria-label={ariaLabel} style={BAR_STYLE}>
+    <nav aria-label={ariaLabel} className="ui-tabnav">
       <div ref={containerRef} style={{ display: "flex", gap: 0, position: "relative" }}>
         {shown.map((tab, i) => {
           const active = i === activeIndex;
@@ -192,28 +107,15 @@ export function ModuleTabs({
           return (
             <div
               key={tab.href}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                opacity: tab.dimmed || masked ? 0.55 : 1,
-              }}
+              className="ui-tabnav-item"
+              data-dimmed={tab.dimmed || masked ? "true" : undefined}
             >
               <Link
                 ref={setTabRef(i) as React.Ref<HTMLAnchorElement>}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                style={{
-                  ...TAB_STYLE,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? "var(--fg)" : "var(--fg-4)",
-                  transition: "color 150ms",
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.color = "var(--fg-2)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.color = "var(--fg-4)";
-                }}
+                className="ui-tabnav-link"
+                data-active={active ? "true" : undefined}
               >
                 {Icon ? <Icon size={14} /> : null}
                 {tab.label}
@@ -237,11 +139,10 @@ export function ModuleTabs({
 }
 
 /**
- * Same underline style for state-driven tab bars (no route change).
- * Used by Direction, Reports, Shift & Sales, Directory, …
- *
- * `variant="pills"` opts into the shared pill navigation (same markup and
- * classes as `ModuleTabs`), for module headers built from state-driven tabs.
+ * State-driven tab bars (no route change). `underline` matches ModuleTabs for
+ * module-level views; `segmented` is the compact switch for small view
+ * toggles (Table/Detail, Animals/Vaccines, Daily Entry/Fixed Costs…).
+ * Masked tabs (owner eye) are hidden for everyone, dimmed for owner/admin.
  */
 export function ControlledTabs({
   tabs,
@@ -254,7 +155,7 @@ export function ControlledTabs({
   value: string;
   onChange: (value: string) => void;
   ariaLabel?: string;
-  variant?: "underline" | "pills";
+  variant?: "underline" | "segmented";
 }) {
   const { isVisible, canSeeHidden, canToggle, toggle } = useUiVisibility();
   // Masked tabs (owner eye): hidden for everyone, dimmed for owner/admin.
@@ -263,11 +164,13 @@ export function ControlledTabs({
     0,
     shown.findIndex((t) => t.value === value)
   );
+  // The underline indicator hook must run on every render, before the
+  // segmented early return.
   const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, shown.length);
 
-  if (variant === "pills") {
+  if (variant === "segmented") {
     return (
-      <div aria-label={ariaLabel} role="tablist" className="ui-pillnav">
+      <div aria-label={ariaLabel} role="tablist" className="ui-segmented">
         {shown.map((tab, i) => {
           const Icon = tab.icon;
           const isActive = i === activeIndex;
@@ -275,7 +178,7 @@ export function ControlledTabs({
           return (
             <div
               key={tab.value}
-              className="ui-pillnav-item"
+              className="ui-segmented-itemwrap"
               data-dimmed={tab.dimmed || masked ? "true" : undefined}
             >
               <button
@@ -283,7 +186,7 @@ export function ControlledTabs({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => onChange(tab.value)}
-                className="ui-pillnav-link"
+                className="ui-segmented-item"
                 data-active={isActive ? "true" : undefined}
                 title={tab.label}
               >
@@ -307,7 +210,7 @@ export function ControlledTabs({
   }
 
   return (
-    <div aria-label={ariaLabel} role="tablist" style={BAR_STYLE}>
+    <div aria-label={ariaLabel} role="tablist" className="ui-tabnav">
       <div ref={containerRef} style={{ display: "flex", gap: 0, position: "relative" }}>
         {shown.map((tab, i) => {
           const Icon = tab.icon;
@@ -316,11 +219,8 @@ export function ControlledTabs({
           return (
             <div
               key={tab.value}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                opacity: tab.dimmed || masked ? 0.55 : 1,
-              }}
+              className="ui-tabnav-item"
+              data-dimmed={tab.dimmed || masked ? "true" : undefined}
             >
               <button
                 ref={setTabRef(i) as React.Ref<HTMLButtonElement>}
@@ -328,18 +228,8 @@ export function ControlledTabs({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => onChange(tab.value)}
-                style={{
-                  ...TAB_STYLE,
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? "var(--fg)" : "var(--fg-4)",
-                  transition: "color 150ms",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.color = "var(--fg-2)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.color = "var(--fg-4)";
-                }}
+                className="ui-tabnav-link"
+                data-active={isActive ? "true" : undefined}
                 title={tab.label}
               >
                 {Icon ? <Icon size={14} /> : null}

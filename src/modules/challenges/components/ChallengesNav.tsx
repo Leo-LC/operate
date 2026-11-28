@@ -50,8 +50,8 @@ export function ChallengesNav({ isOwner }: { isOwner?: boolean }) {
       </nav>
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Challenges</h1>
-        <ModuleTabs tabs={tabs} ariaLabel="Challenges" variant="pills" />
       </div>
+      <ModuleTabs tabs={tabs} ariaLabel="Challenges" />
     </div>
   );
 }

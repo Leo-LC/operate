@@ -29,14 +29,6 @@
   }
 }
 
-/* ── Tab bar ───────────────────────────────────────────────────────────────
-   Pills wrap onto a second line on phones instead of scrolling, so the
-   active tab is always visible without a hidden overflow affordance. */
-
-.rep .ui-pillnav {
-  min-width: 0;
-}
-
 /* ── Mobile tables ─────────────────────────────────────────────────────────
    Keep the row label (date, shop, month, item) pinned while the figures scroll,
    and show a real horizontal scrollbar so the overflow is discoverable. */

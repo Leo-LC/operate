@@ -57,8 +57,8 @@ export function ReviewsTabNav({ role }: ReviewsTabNavProps) {
       </nav>
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Reviews</h1>
-        <ModuleTabs tabs={tabs} ariaLabel="Reviews" variant="pills" />
       </div>
+      <ModuleTabs tabs={tabs} ariaLabel="Reviews" />
     </div>
   );
 }

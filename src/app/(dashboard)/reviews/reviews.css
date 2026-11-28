@@ -123,7 +123,7 @@
   height: 28px;
   padding: 0 10px;
   border: var(--ui-line-width) solid var(--ui-line);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-sm);
   background: transparent;
   color: var(--ui-fg-2);
   font-size: var(--ui-text-caption);
@@ -204,7 +204,7 @@
   height: 22px;
   padding: 0 8px;
   border: var(--ui-line-width) solid var(--ui-line);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-sm);
   background: transparent;
   color: var(--ui-fg-3);
   font-size: var(--ui-text-caption);
@@ -664,7 +664,7 @@
   justify-content: center;
   height: 26px;
   padding: 0 11px;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-sm);
   border: var(--ui-line-width) solid var(--ui-line);
   background: transparent;
   color: var(--ui-fg-3);

@@ -139,10 +139,10 @@
 }
 
 .ci-pill-row button {
-  height: var(--ui-control-h);
-  padding: 0 11px;
+  height: 28px;
+  padding: 0 10px;
   border: var(--ui-line-width) solid var(--ui-control-line);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-sm);
   background: var(--ui-panel);
   color: var(--ui-fg-2);
   font-size: var(--ui-text-sm);
@@ -195,10 +195,10 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  height: var(--ui-control-h);
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 10px;
   border: var(--ui-line-width) solid var(--ui-control-line);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-sm);
   background: var(--ui-panel);
   color: var(--ui-fg-2);
   font-size: var(--ui-text-sm);

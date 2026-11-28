@@ -1569,14 +1569,13 @@ export function ReportsClient() {
         </nav>
         <div className="ui-module-header-row">
           <h1 className="ui-module-title">Reports</h1>
-          <ControlledTabs
-            variant="pills"
-            tabs={TABS}
-            value={activeTab}
-            onChange={(v) => setActiveTab(v as typeof activeTab)}
-            ariaLabel="Reports"
-          />
         </div>
+        <ControlledTabs
+          tabs={TABS}
+          value={activeTab}
+          onChange={(v) => setActiveTab(v as typeof activeTab)}
+          ariaLabel="Reports"
+        />
       </div>
 
       {activeTab === "daily-profit" ? (

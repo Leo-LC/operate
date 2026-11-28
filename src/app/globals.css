@@ -425,65 +425,138 @@
     }
   }
 
-  /* Pill module navigation — opt-in ModuleTabs variant. */
-  .ui-pillnav {
+  /* ── Module tab navigation (underline) ─────────────────────────────────────
+     Route-level module nav: text tabs over a 1px line; the active tab is
+     marked by a 2px accent underline that slides on tab change. Shape and
+     weight carry the active state — never a colored fill. */
+  .ui-tabnav {
+    position: relative;
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
+    gap: 0;
     min-width: 0;
+    border-bottom: var(--ui-line-width) solid var(--ui-line);
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .ui-pillnav-item {
+  .ui-tabnav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ui-tabnav-item {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
   }
 
-  .ui-pillnav-item[data-dimmed="true"] .ui-pillnav-link:not([data-active="true"]) {
+  .ui-tabnav-item[data-dimmed="true"] {
     opacity: 0.55;
   }
 
-  .ui-pillnav-link {
+  .ui-tabnav-link {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: var(--ui-control-h);
-    padding: 0 12px;
-    border: var(--ui-line-width) solid var(--ui-control-line);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--ui-fg-2);
+    height: 34px;
+    padding: 0 10px;
+    border: none;
+    background: none;
+    border-radius: 6px 6px 0 0;
     font-family: inherit;
     font-size: var(--ui-text-body);
     font-weight: 500;
+    color: var(--ui-fg-3);
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease);
+    transition: color 140ms var(--ease), background 140ms var(--ease);
   }
 
-  .ui-pillnav-link:hover {
-    background: var(--ui-panel-2);
-    border-color: var(--ui-fg-3);
+  .ui-tabnav-link:hover {
     color: var(--ui-fg-1);
+    background: var(--ui-row-hover);
   }
 
-  .ui-pillnav-link:focus-visible {
+  .ui-tabnav-link:focus-visible {
     outline: 2px solid var(--ui-focus);
-    outline-offset: 2px;
+    outline-offset: -2px;
   }
 
-  .ui-pillnav-link[data-active="true"] {
-    background: var(--ui-accent);
-    border-color: var(--ui-accent);
-    color: var(--ui-accent-fg);
+  .ui-tabnav-link[data-active="true"] {
+    color: var(--ui-fg-1);
     font-weight: 600;
   }
 
-  .ui-pillnav-link[data-active="true"]:hover {
+  .ui-tabnav-indicator {
+    position: absolute;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
     background: var(--ui-accent);
-    color: var(--ui-accent-fg);
+    pointer-events: none;
+    transition: left 240ms var(--ease), width 240ms var(--ease), opacity 200ms var(--ease);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-tabnav-indicator {
+      transition: none;
+    }
+  }
+
+  /* ── Segmented control ────────────────────────────────────────────────────
+     Compact switch for two-option view toggles (Table/Detail…). The active
+     segment is a raised panel chip — no colored fill. */
+  .ui-segmented {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: 8px;
+    background: var(--ui-panel-2);
+    min-width: 0;
+  }
+
+  .ui-segmented-itemwrap {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .ui-segmented-itemwrap[data-dimmed="true"] {
+    opacity: 0.55;
+  }
+
+  .ui-segmented-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ui-fg-3);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 140ms var(--ease), background 140ms var(--ease);
+  }
+
+  .ui-segmented-item:hover {
+    color: var(--ui-fg-1);
+  }
+
+  .ui-segmented-item:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: -2px;
+  }
+
+  .ui-segmented-item[data-active="true"] {
+    background: var(--ui-panel);
+    color: var(--ui-fg-1);
+    font-weight: 600;
+    box-shadow: var(--ui-shadow);
   }
 
   /* ── Module header (breadcrumb + compact title + pill nav) ─────────────
@@ -678,7 +751,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .ui-pillnav-link,
     .ui-accent-option {
       transition: none;
     }
@@ -948,11 +1020,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    height: var(--ui-control-h);
+    height: 28px;
     min-width: 0;
-    padding: 0 12px;
+    padding: 0 10px;
     border: var(--ui-line-width) solid var(--ui-control-line);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-sm);
     background: var(--ui-panel);
     color: var(--ui-fg-1);
     font-family: inherit;

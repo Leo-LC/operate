@@ -50,36 +50,25 @@
 
 /* ── Tab bar ────────────────────────────────────────────────────────────────
    Seven tabs plus the owner eye toggles do not fit in one phone-width row.
-   Pills wrap from 768px up (all tabs visible); on phones they scroll
-   horizontally, with a real thin scrollbar and edge fades so the overflow is
-   discoverable and the last eye toggle can be reached. */
+   On phones the underline strip scrolls horizontally with a thin scrollbar so
+   the overflow is discoverable and the last eye toggle can be reached. */
 
 @media (max-width: 767px) {
-  .dir .ui-pillnav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
+  .dir .ui-tabnav {
     scrollbar-width: thin;
     scrollbar-color: var(--ui-line-strong) transparent;
-    padding: 2px 16px 8px 10px;
-    scroll-padding-inline: 12px;
-    background-image:
-      linear-gradient(to right, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent)),
-      linear-gradient(to left, var(--ui-panel), color-mix(in srgb, var(--ui-panel) 20%, transparent));
-    background-position: left center, right center;
-    background-size: 24px 100%, 24px 100%;
-    background-repeat: no-repeat;
   }
 
-  .dir .ui-pillnav::-webkit-scrollbar {
+  .dir .ui-tabnav::-webkit-scrollbar {
+    display: block;
     height: 6px;
   }
 
-  .dir .ui-pillnav::-webkit-scrollbar-track {
+  .dir .ui-tabnav::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .dir .ui-pillnav::-webkit-scrollbar-thumb {
+  .dir .ui-tabnav::-webkit-scrollbar-thumb {
     background: var(--ui-line-strong);
     border-radius: 999px;
   }

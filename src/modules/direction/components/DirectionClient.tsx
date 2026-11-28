@@ -76,22 +76,21 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
           </nav>
           <div className="ui-module-header-row">
             <h1 className="ui-module-title">Direction</h1>
-            {/* Tab bar with eye toggle per tab for privileged users */}
-            <ControlledTabs
-              variant="pills"
-              tabs={controlledTabs}
-              value={active}
-              onChange={(v) => setActive(v as TabKey)}
-              ariaLabel="Direction"
-            />
           </div>
+          {/* Tab bar with eye toggle per tab for privileged users */}
+          <ControlledTabs
+            tabs={controlledTabs}
+            value={active}
+            onChange={(v) => setActive(v as TabKey)}
+            ariaLabel="Direction"
+          />
           {/* Seven tabs do not fit a phone: say that the strip scrolls. */}
           <p className="ui-scroll-note">↔ Faites défiler les onglets</p>
         </div>
       </div>
 
-      {/* Loyverse is not migrated yet: it renders outside the `.dir` bridge so
-          the legacy tokens keep applying to it. */}
+      {/* The Loyverse tab keeps its own page rhythm (module header + KPIs),
+          so it renders as a sibling of the Direction panel stack. */}
       {active === "loyverse" ? (
         <LoyverseDashboard canSync={canSync} />
       ) : (

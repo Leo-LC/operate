@@ -131,7 +131,7 @@ export function DirectoryClient({
         <div className="ui-module-header-row">
           <h1 className="ui-module-title">Directory</h1>
           <ControlledTabs
-            variant="pills"
+            variant="segmented"
             tabs={TABS.map((t) => ({
               value: t.value,
               label: `${t.label} (${t.value === "shops" ? sortedShops.length : contacts.length})`,

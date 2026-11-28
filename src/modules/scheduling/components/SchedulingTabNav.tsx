@@ -27,9 +27,9 @@ export function SchedulingTabNav({ isOwner = false }: { isOwner?: boolean }) {
       </nav>
       <div className="ui-module-header-row">
         <h1 className="ui-module-title">Scheduling</h1>
-        <ModuleTabs tabs={TABS} ariaLabel="Scheduling" variant="pills" />
         {tab && <span className="sch-section" aria-hidden>{tab.label}</span>}
       </div>
+      <ModuleTabs tabs={TABS} ariaLabel="Scheduling" />
     </div>
   );
 }
