@@ -47,6 +47,8 @@ interface DayPay {
 interface Props {
   days: string[];
   selectedStore: string | null;
+  /** All Loyverse store_ids of the selected shop (location group, POS-swap safe). */
+  storeFilter: Set<string> | null;
   shiftRows: ShiftRow[];
   loading: boolean;
 }
@@ -78,12 +80,14 @@ function MovementList({ items, emptyLabel }: { items: CashMovementLine[]; emptyL
   );
 }
 
-export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) {
+export function PayInOutTab({ days, selectedStore, storeFilter, shiftRows, loading }: Props) {
   const [copied, setCopied] = React.useState(false);
 
   const rows: DayPay[] = React.useMemo(() => {
     return days.map((date) => {
-      const dayRows = shiftRows.filter((r) => r.store_id === selectedStore && r.date === date);
+      const dayRows = shiftRows.filter(
+        (r) => Boolean(storeFilter?.has(r.store_id)) && r.date === date,
+      );
       const hasData = dayRows.length > 0;
       const shifts = dayRows.flatMap((r) => (Array.isArray(r.shifts) ? r.shifts : []) as Record<string, unknown>[]);
       const movements = hasData ? summarizeCashMovements(shifts) : [];
@@ -98,7 +102,7 @@ export function PayInOutTab({ days, selectedStore, shiftRows, loading }: Props) 
       for (const m of movements) if (m.kind === "out") totalOut += m.amount;
       return { date, payIn, payOut, totalIn, totalOut, hasData, shiftWarning };
     });
-  }, [days, shiftRows, selectedStore]);
+  }, [days, shiftRows, storeFilter]);
 
   const movementCount = rows.reduce((a, r) => a + r.payIn.length + r.payOut.length, 0);
 

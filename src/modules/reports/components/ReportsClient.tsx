@@ -1504,11 +1504,11 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
 type ReportsTab = "daily-profit" | "operations" | "byshop" | "revenue-compare";
 
-const TABS: { value: ReportsTab; label: string }[] = [
-  { value: "daily-profit", label: "Daily P&L" },
-  { value: "revenue-compare", label: "Revenue comparison" },
-  { value: "operations", label: "Operations" },
-  { value: "byshop", label: "By Shop" },
+const TABS: { value: ReportsTab; label: string; visibilityKey: string }[] = [
+  { value: "daily-profit", label: "Daily P&L", visibilityKey: "tab:reports.daily-profit" },
+  { value: "revenue-compare", label: "Revenue comparison", visibilityKey: "tab:reports.revenue-compare" },
+  { value: "operations", label: "Operations", visibilityKey: "tab:reports.operations" },
+  { value: "byshop", label: "By Shop", visibilityKey: "tab:reports.byshop" },
 ];
 
 export function ReportsClient() {

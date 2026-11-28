@@ -24,7 +24,7 @@ const MIX_COLORS = [
   "var(--ui-series-primary)",
 ];
 
-type SortKey = "count" | "avg" | "replyRate" | "lowShare";
+type SortKey = "count" | "avg" | "replyRate" | "photoRate" | "lowShare";
 
 function detailId(key: string): string {
   return `branch-detail-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -34,6 +34,7 @@ function sortValue(shop: ShopStats, key: SortKey): number | null {
   if (key === "count") return shop.count;
   if (key === "avg") return shop.avg;
   if (key === "replyRate") return shop.replyRate;
+  if (key === "photoRate") return shop.photoRate;
   return lowStarShare(shop.distribution, shop.count);
 }
 
@@ -202,9 +203,9 @@ export function ReviewsStatsTable({ shops, granularity, periodLabel, loading, un
         >
           <table className="rs-table">
             <caption className="sr-only">
-              Reviews, average rating, public reply rate, 1–3 star share and rating mix per branch,
-              with the comparison against the prior {periodLabel}. Ratings show two decimals;
-              rating comparisons use unrounded averages.
+              Reviews, average rating, public reply rate, photo share, 1–3 star share and rating mix
+              per branch, with the comparison against the prior {periodLabel}. Ratings show two
+              decimals; rating comparisons use unrounded averages.
             </caption>
             <thead>
               <tr>
@@ -212,6 +213,7 @@ export function ReviewsStatsTable({ shops, granularity, periodLabel, loading, un
                 {headerCell("count", "Reviews")}
                 {headerCell("avg", "Avg rating /5")}
                 {headerCell("replyRate", "Reply rate")}
+                {headerCell("photoRate", "Photos")}
                 {headerCell("lowShare", "1–3★ share")}
                 <th scope="col" className="rs-th" title="1★ on the left, 5★ on the right">
                   Rating mix
@@ -302,6 +304,12 @@ function RowGroup({
         </td>
         <td className="rs-num">
           <span className="rs-cell-stack">
+            <span className="rs-cell-main">{formatPercent(shop.photoRate)}</span>
+            <span className="rs-cell-sub" data-tone="neutral">with photos</span>
+          </span>
+        </td>
+        <td className="rs-num">
+          <span className="rs-cell-stack">
             <span className="rs-cell-main">{formatPercent(lowShare)}</span>
             <DeltaLine comparison={sharePointComparison(lowShare, priorLowShare, periodLabel)} />
           </span>
@@ -328,7 +336,7 @@ function RowGroup({
       </tr>
       {isOpen && (
         <tr id={detailId(shop.key)}>
-          <td colSpan={7} className="rs-expanded">
+          <td colSpan={8} className="rs-expanded">
             <p className="rs-expanded-sub">
               {shop.priorCount > 0
                 ? `Previous ${periodLabel}: ${formatCount(shop.priorCount)} reviews · ${formatRating(

@@ -356,6 +356,7 @@ function KpiRow({
   targetMet,
   status,
   loading,
+  note,
 }: {
   label: string;
   value: string;
@@ -363,6 +364,8 @@ function KpiRow({
   targetMet: boolean;
   status: KpiStatus;
   loading: boolean;
+  /** Optional explanatory line under the row (e.g. merch CA multiplier). */
+  note?: string;
 }) {
   if (loading) {
     return (
@@ -405,13 +408,16 @@ function KpiRow({
           <span className="text-[11px] text-[var(--fg-4)]">No data</span>
         )}
       </span>
+      {note && (
+        <p className="col-span-4 -mt-0.5 text-[10px] leading-snug text-[var(--fg-4)]">{note}</p>
+      )}
     </div>
   );
 }
 
 const CHALLENGE_RULES: { label: string; target: string; bonus: string }[] = [
   { label: "Sales target", target: "Per shop (unlocks gated bonuses)", bonus: "—" },
-  { label: "Merchandise", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿" },
+  { label: "Merchandise", target: "≥ 7% → 8% → 9% of sales", bonus: "1,500 → 3,000 → 5,000 ฿ × sales target (≥ 75% → 100% · 50–75% → 50% · < 50% → none, from Nov 2026)" },
   { label: "Animal Food", target: "≥ 0.45 / visitor", bonus: "1,250 ฿" },
   { label: "Spend per visit", target: "≥ 190 ฿", bonus: "1,250 ฿" },
   { label: "Running costs", target: "< 9.5% of sales", bonus: "1,250 ฿" },
@@ -425,6 +431,27 @@ const STATUS_MEANINGS: { status: string; meaning: string }[] = [
   { status: "Missed", meaning: "Below target — compare Current vs Target." },
   { status: "No data", meaning: "Counters not synced yet — check Loyverse sync." },
 ];
+
+/**
+ * One-line explanation under the merch KPI row: % of the sales target reached
+ * and the applied CA multiplier (Nov 2026 rule). Undefined for legacy months
+ * (pre-Nov 2026) or when no target/CA data exists.
+ */
+function buildMerchCaNote(loc: LocationOverview): string | undefined {
+  const { tier, caMultiplier, plannedBonus, bonus, caScaled } = loc.merchandising;
+  const pctTarget = loc.revenue.ratio !== null ? Math.round(loc.revenue.ratio * 100) : null;
+  if (!caScaled || pctTarget === null) return undefined;
+  if (tier === 0) {
+    return `CA at ${pctTarget}% of target · merch % below 7% — no bonus`;
+  }
+  if (caMultiplier === 0) {
+    return `CA at ${pctTarget}% of target (< 50%) → merch bonus ×0`;
+  }
+  if (caMultiplier === 0.5) {
+    return `CA at ${pctTarget}% of target (50–75%) → merch bonus ×½ (${fmt(bonus, 0)} of ${fmt(plannedBonus, 0)} ฿)`;
+  }
+  return `CA at ${pctTarget}% of target (≥ 75%) → merch bonus ×1 (full ${fmt(plannedBonus, 0)} ฿)`;
+}
 
 function ChallengeRulesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -922,6 +949,11 @@ function LocationCard({
 
   const merchTier = loc.merchandising.tier;
   const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  // Merch bonus is scaled by the sales target (Nov 2026+): locked at 0× when CA < 50% of target.
+  const merchLockedOut = merchPass === true && loc.merchandising.caMultiplier === 0;
+
+  // Explain the CA multiplier under the merch row: % of target reached + applied rate.
+  const merchCaNote = buildMerchCaNote(loc);
 
   // 6 gated/ungated challenges counted for the "X / 6 achieved" summary.
   const challengeStates: (boolean | null)[] = [
@@ -940,7 +972,7 @@ function LocationCard({
     return "missed";
   }
 
-  const merch = rowState(merchPass, false);
+  const merch = rowState(merchPass, merchLockedOut);
   const snacks = rowState(loc.snacks.passes, revenueLocked);
   const panier = rowState(loc.panierMoyen.passes, revenueLocked);
   const opex = rowState(loc.opex.passes, revenueLocked);
@@ -1060,6 +1092,7 @@ function LocationCard({
           target="≥ 7%"
           targetMet={merchPass === true}
           status={merch}
+          note={merchCaNote}
           loading={loading}
         />
         <KpiRow
@@ -1271,10 +1304,10 @@ export function ChallengesOverview({
       byLoc.set(row.location_id, map);
     }
     return locations.map((real) => {
-      const applied = applyDisplayOverrides(real, byLoc.get(real.locationId) ?? {});
+      const applied = applyDisplayOverrides(real, byLoc.get(real.locationId) ?? {}, month);
       return { real, display: applied.loc, adjusted: applied.adjusted, hasOverride: applied.hasOverride };
     });
-  }, [data, overrideRows]);
+  }, [data, overrideRows, month]);
 
   // Summary stats (display values — what will be printed)
   const totalEarned = entries.reduce((s, e) => s + e.display.totalBonus, 0);

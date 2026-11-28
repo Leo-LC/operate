@@ -36,35 +36,40 @@ async function copyToClipboard(text: string): Promise<void> {
 interface Props {
   days: string[];
   selectedStore: string | null;
+  /** All Loyverse store_ids of the selected shop (location group, POS-swap safe). */
+  storeFilter: Set<string> | null;
   shiftRows: ShiftRow[];
   snapshotRows: SnapshotRow[];
   paymentMap: Map<string, string>;
   loading: boolean;
 }
 
-export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, paymentMap, loading }: Props) {
+export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, snapshotRows, paymentMap, loading }: Props) {
   const [copiedAll, setCopiedAll] = React.useState(false);
   const [copiedDay, setCopiedDay] = React.useState<string | null>(null);
 
   const shiftByDate = React.useMemo(() => {
     const m = new Map<string, ShiftRow[]>();
     for (const r of shiftRows) {
-      if (r.store_id !== selectedStore) continue;
+      if (!storeFilter?.has(r.store_id)) continue;
       const arr = m.get(r.date) ?? [];
       arr.push(r);
       m.set(r.date, arr);
     }
     return m;
-  }, [shiftRows, selectedStore]);
+  }, [shiftRows, storeFilter]);
 
   const snapshotByDate = React.useMemo(() => {
     const m = new Map<string, SnapshotRow>();
+    const hasRealData = (r: SnapshotRow): boolean =>
+      (Number(r.revenue_total ?? 0) || Number(r.receipt_count ?? 0)) > 0;
     for (const r of snapshotRows) {
-      if (r.store_id !== selectedStore) continue;
-      if (!m.has(r.date)) m.set(r.date, r);
+      if (!storeFilter?.has(r.store_id)) continue;
+      const existing = m.get(r.date);
+      if (!existing || (hasRealData(r) && !hasRealData(existing))) m.set(r.date, r);
     }
     return m;
-  }, [snapshotRows, selectedStore]);
+  }, [snapshotRows, storeFilter]);
 
   const rows = React.useMemo(() => {
     return days.map((date) => {
@@ -82,7 +87,6 @@ export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, pa
   }, [days, shiftByDate, snapshotByDate, paymentMap]);
 
   const dataRows = rows.filter((r) => r.hasData);
-  const missingCount = rows.length - dataRows.length;
   const warnedRows = rows.filter((r) => r.warning);
 
   async function handleCopyAll() {
@@ -100,10 +104,7 @@ export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, pa
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
-        <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>
-          Données Loyverse à copier dans Accounting — même ordre que Shift &amp; Sales (tabulations, une ligne par jour).
-        </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
         <Button size="sm" onClick={handleCopyAll} disabled={dataRows.length === 0}>
           {copiedAll ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
           {copiedAll ? "copié" : `copier ${dataRows.length} ligne${dataRows.length > 1 ? "s" : ""}`}
@@ -184,14 +185,6 @@ export function ExportCopyTab({ days, selectedStore, shiftRows, snapshotRows, pa
             </tbody>
           </table>
         </div>
-      )}
-
-      {rows.length > 0 && (
-        <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
-          {dataRows.length} jour{dataRows.length > 1 ? "s" : ""} avec données
-          {missingCount > 0 ? ` · ${missingCount} jour${missingCount > 1 ? "s" : ""} sans données (synchronise la plage)` : ""} ·
-          affichage avec séparateur des milliers, copie brute (sans séparateur) pour Sheets.
-        </p>
       )}
     </div>
   );

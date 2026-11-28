@@ -18,9 +18,11 @@ import {
 } from "@/lib/constants";
 import { selectedLocationsStorageKey } from "@/lib/storage-keys";
 import type { ReviewWithLocation } from "@/types/review";
+import { toast } from "sonner";
 import { ArrowUpIcon } from "lucide-react";
 import { useReplyConfig } from "@/modules/reviews/hooks/useReplyConfig";
 import { useReviews, starNum, readSavedLocationIds } from "@/modules/reviews/hooks/useReviews";
+import { formatReviewsForCopy } from "@/modules/reviews/lib/review-copy";
 import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
 import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
 import { ReviewsControlsBar } from "@/modules/reviews/components/ReviewsControlsBar";
@@ -86,7 +88,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
   const {
     bulkSending,
-    bulkProgress,
     bulkConfirm,
     openBulkConfirm,
     cancelBulkConfirm,
@@ -286,6 +287,12 @@ export function DashboardClient({ user }: DashboardClientProps) {
     ? applyLimit([...threeFiltered, ...twoFiltered, ...oneFiltered])
     : attentionInDisplay;
 
+  /** Same order the attention section renders: lowest stars first. */
+  const attentionSorted = useMemo(
+    () => [...attentionDisplayed].sort((a, b) => starNum(a) - starNum(b)),
+    [attentionDisplayed]
+  );
+
   const attentionWithRepliesInDisplay = useMemo(
     () =>
       attentionDisplayed.filter(
@@ -293,6 +300,18 @@ export function DashboardClient({ user }: DashboardClientProps) {
       ),
     [attentionDisplayed, replyDrafts]
   );
+
+  const handleCopyAllAttention = useCallback(async () => {
+    if (attentionSorted.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(formatReviewsForCopy(attentionSorted));
+      toast.success(
+        `Copied ${attentionSorted.length} review${attentionSorted.length === 1 ? "" : "s"}`
+      );
+    } catch {
+      toast.error("Failed to copy reviews");
+    }
+  }, [attentionSorted]);
 
   const getCommentForMixedList = useCallback(
     (reviewId: string) => {
@@ -497,10 +516,19 @@ export function DashboardClient({ user }: DashboardClientProps) {
                                 <div className="revs-urgent">
                                   <span className="revs-urgent-label">Negative / Urgent</span>
                                   <span className="revs-urgent-copy">— reply manually and escalate if needed. Contact: contact@capybaracoffeethailand.com</span>
+                                  {attentionSorted.length > 0 && (
+                                    <button
+                                      type="button"
+                                      className="revs-urgent-copy-btn"
+                                      onClick={() => void handleCopyAllAttention()}
+                                    >
+                                      Copy all
+                                    </button>
+                                  )}
                                 </div>
                               )}
                               <ReviewListVirtual
-                                reviews={[...attentionDisplayed].sort((a, b) => starNum(a) - starNum(b))}
+                                reviews={attentionSorted}
                                 getComment={(id) => replyDrafts[id] ?? ""}
                                 onCommentChange={setDraft}
                                 onReplySent={handleReplySent}
@@ -560,8 +588,6 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
       <BulkReplyPanel
         bulkConfirm={bulkConfirm}
-        bulkSending={bulkSending}
-        bulkProgress={bulkProgress}
         onCancel={cancelBulkConfirm}
         onConfirm={(list) => {
           cancelBulkConfirm();

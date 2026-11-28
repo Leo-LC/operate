@@ -19,6 +19,7 @@ import type { SnapshotLike } from "@/modules/loyverse/lib/accounting-copy";
 export type ShiftRow = {
   id: string;
   store_id: string;
+  location_id?: string | null;
   date: string;
   shifts: Record<string, unknown>[];
   shift_count: number;
@@ -27,10 +28,19 @@ export type ShiftRow = {
 export type SnapshotRow = SnapshotLike & {
   id: string;
   store_id: string;
+  location_id?: string | null;
   date: string;
+  revenue_total?: number | string | null;
+  receipt_count?: number | string | null;
 };
 
-type Shop = { store_id: string; account_key: string };
+/**
+ * A shop is a Nexus location, not a single Loyverse store_id: when the POS is
+ * swapped mid-history (new store_id in Loyverse), the snapshots of previous
+ * days keep the old store_id. Grouping all store_ids of the same location
+ * keeps the full history visible under one shop entry.
+ */
+type Shop = { key: string; name: string; storeIds: string[] };
 
 type ExportTab = "copy" | "pay";
 
@@ -71,18 +81,28 @@ export function LoyverseExportClient() {
             .catch(() => null),
         ]);
         const perStore =
-          (dashRes?.per_store as { store_id: string; account_key: string }[] | undefined) ?? [];
+          (dashRes?.per_store as
+            | { store_id: string; account_key: string; location_id: string | null }[]
+            | undefined) ?? [];
         const map = new Map<string, Shop>();
-        for (const s of perStore) map.set(s.store_id, { store_id: s.store_id, account_key: s.account_key });
-        if (map.size === 0 && statusRes?.accounts) {
-          for (const a of statusRes.accounts as { key: string }[]) {
-            if (!map.has(a.key)) map.set(a.key, { store_id: a.key, account_key: a.key });
+        for (const s of perStore) {
+          const key = s.location_id ?? s.store_id;
+          const existing = map.get(key);
+          if (existing) {
+            if (!existing.storeIds.includes(s.store_id)) existing.storeIds.push(s.store_id);
+          } else {
+            map.set(key, { key, name: capitalizeShop(s.account_key), storeIds: [s.store_id] });
           }
         }
-        const list = Array.from(map.values()).sort((a, b) => a.account_key.localeCompare(b.account_key));
+        if (map.size === 0 && statusRes?.accounts) {
+          for (const a of statusRes.accounts as { key: string }[]) {
+            if (!map.has(a.key)) map.set(a.key, { key: a.key, name: capitalizeShop(a.key), storeIds: [a.key] });
+          }
+        }
+        const list = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
         if (!cancelled) {
           setShops(list);
-          if (list.length > 0) setSelectedStore((prev) => prev ?? list[0]!.store_id);
+          if (list.length > 0) setSelectedStore((prev) => prev ?? list[0]!.key);
         }
       } catch {
         /* shops stay empty, error shown on range fetch */
@@ -123,6 +143,20 @@ export function LoyverseExportClient() {
     return datesInRange(from, to).length > MAX_DAYS;
   }, [from, to]);
   const invalidRange = from > to;
+
+  // All Loyverse store_ids belonging to the selected shop (location group),
+  // including any other store of the same location seen in the loaded rows —
+  // covers a POS swap whose old store is no longer in the 30d dashboard window.
+  const storeFilter = React.useMemo(() => {
+    const shop = shops.find((s) => s.key === selectedStore);
+    if (!shop) return null;
+    const set = new Set(shop.storeIds);
+    for (const r of [...snapshotRows, ...shiftRows]) {
+      if (set.has(r.store_id)) continue;
+      if (r.location_id && r.location_id === shop.key) set.add(r.store_id);
+    }
+    return set;
+  }, [shops, selectedStore, snapshotRows, shiftRows]);
 
   const fetchRange = React.useCallback(async (f: string, t: string) => {
     setLoading(true);
@@ -212,39 +246,50 @@ export function LoyverseExportClient() {
       </header>
 
       {/* Single shop + daterange selector (shared by both tabs) */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Shop</span>
-          {shops.length === 0 ? (
-            <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
-          ) : (
-            <ShopSingleSelect
-              options={shops.map((shop) => ({ id: shop.store_id, name: capitalizeShop(shop.account_key) }))}
-              value={selectedStore ?? ""}
-              onChange={(id) => setSelectedStore(id || null)}
-            />
-          )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Shop</span>
+            {shops.length === 0 ? (
+              <span style={{ fontSize: 12, color: "var(--fg-4)" }}>Chargement shops…</span>
+            ) : (
+              <ShopSingleSelect
+                options={shops.map((shop) => ({ id: shop.key, name: shop.name }))}
+                value={selectedStore ?? ""}
+                onChange={(id) => setSelectedStore(id || null)}
+              />
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Période</span>
-          <DateRangePicker value={{ from, to }} onChange={(range) => { setFrom(range.from); setTo(range.to); }} today={today} />
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Période</span>
+            <DateRangePicker value={{ from, to }} onChange={(range) => { setFrom(range.from); setTo(range.to); }} today={today} />
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
+            <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || forceSyncing || loading || days.length === 0}>
+              <RefreshCwIcon size={13} />
+              {syncing ? "Synchronisation…" : `Synchroniser${days.length > 1 ? ` (${days.length} j)` : ""}`}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleForceSync}
+              disabled={syncing || forceSyncing || loading || days.length === 0}
+              title="Re-télécharge chaque jour de la période depuis Loyverse et écrase les données locales — utile après un changement de mapping"
+            >
+              <RefreshCwIcon size={13} />
+              {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
+            </Button>
+          </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
-          <Button size="sm" variant="secondary" onClick={handleSync} disabled={syncing || forceSyncing || loading || days.length === 0}>
-            <RefreshCwIcon size={13} />
-            {syncing ? "Synchronisation…" : `Synchroniser${days.length > 1 ? ` (${days.length} j)` : ""}`}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleForceSync}
-            disabled={syncing || forceSyncing || loading || days.length === 0}
-            title="Re-synchronise tous les jours de la plage, même déjà synchronisés — utile après un changement de mapping"
-          >
-            <RefreshCwIcon size={13} />
-            {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
-          </Button>
-        </div>
+        <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>
+          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Synchroniser</strong> — complète les jours de la période
+          absents ou incomplets en base (&lt;= 5 jours : tout est re-téléchargé).{" "}
+          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Forcer re-sync</strong> — re-télécharge chaque jour de la
+          période depuis Loyverse et écrase les données locales, même déjà synchronisées (après un changement de mapping ou de
+          catalogue).
+        </p>
       </div>
 
       {invalidRange && (
@@ -279,6 +324,7 @@ export function LoyverseExportClient() {
         <ExportCopyTab
           days={days}
           selectedStore={selectedStore}
+          storeFilter={storeFilter}
           shiftRows={shiftRows}
           snapshotRows={snapshotRows}
           paymentMap={paymentMap}
@@ -288,6 +334,7 @@ export function LoyverseExportClient() {
         <PayInOutTab
           days={days}
           selectedStore={selectedStore}
+          storeFilter={storeFilter}
           shiftRows={shiftRows}
           loading={loading}
         />

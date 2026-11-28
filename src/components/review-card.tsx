@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ReviewWithLocation } from "@/types/review";
+import { CopyButton } from "@/modules/directory/components/CopyButton";
+import { formatReviewForCopy } from "@/modules/reviews/lib/review-copy";
 import {
   REPLY_CATEGORIES,
   type ReplyCategory,
@@ -52,7 +54,22 @@ function formatDate(iso: string) {
 
 const TRUNCATE_LEN = 200;
 
+/** Last-resort fallback when the review has no placeId (Google Help article). */
 const REPORT_REVIEW_URL = "https://support.google.com/business/answer/2622994";
+
+/**
+ * Public Google link for this review. Priority: Google's own reviewReplyUrl
+ * (deep link to the review in the Business Profile UI, where replying and
+ * reporting happen). Fallback: the shop's public reviews list via placeId —
+ * each review there has a ⋮ → "Report review" option. Last resort: the
+ * Google Help article.
+ */
+function googleReviewUrl(review: ReviewWithLocation): string | null {
+  if (review.reviewReplyUrl) return review.reviewReplyUrl;
+  if (!review.placeId) return null;
+  const base = `https://search.google.com/local/reviews?placeid=${encodeURIComponent(review.placeId)}`;
+  return review.reviewId ? `${base}&reviewid=${encodeURIComponent(review.reviewId)}` : base;
+}
 
 interface ReviewCardProps {
   review: ReviewWithLocation;
@@ -172,16 +189,25 @@ export function ReviewCard({
           <Stars rating={review.starRating} />
         </div>
         <div className="flex items-center gap-1.5">
-          <a
-            href={REPORT_REVIEW_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground inline-flex rounded p-1 transition-colors"
-            title="Open review help (Google Help)"
-            aria-label="Open review help"
-          >
-            <ExternalLinkIcon className="size-4" />
-          </a>
+          {variant === "attention" && (
+            <CopyButton value={formatReviewForCopy(review)} label="Review" />
+          )}
+          {(() => {
+            const url = googleReviewUrl(review);
+            const label = "Open review on Google (report it from there)";
+            return (
+              <a
+                href={url ?? REPORT_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground inline-flex rounded p-1 transition-colors"
+                title={url ? label : "Open review help (Google Help)"}
+                aria-label={url ? label : "Open review help"}
+              >
+                <ExternalLinkIcon className="size-4" />
+              </a>
+            );
+          })()}
           <span className="text-muted-foreground text-xs">{formatDate(review.createTime)}</span>
         </div>
       </CardHeader>

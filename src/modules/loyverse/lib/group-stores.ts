@@ -30,6 +30,7 @@ export type StoreEntry = {
   ticket_count: number;
   receipt_count: number;
   snacks_sold: number;
+  drinks_sold: number;
   avg_ticket: number;
   buckets: StoreBuckets;
   payments: StorePayments;
@@ -83,6 +84,7 @@ function mergeMembers(groupKey: string, members: StoreEntry[]): GroupedStore {
   let ticket_count = 0;
   let receipt_count = 0;
   let snacks_sold = 0;
+  let drinks_sold = 0;
   let line_items = 0;
   let pays = 0;
   const store_ids: string[] = [];
@@ -91,6 +93,7 @@ function mergeMembers(groupKey: string, members: StoreEntry[]): GroupedStore {
     ticket_count += m.ticket_count;
     receipt_count += m.receipt_count;
     snacks_sold += m.snacks_sold;
+    drinks_sold += m.drinks_sold;
     line_items += m.unmapped.line_items;
     pays += m.unmapped.payments;
     buckets.drinks += m.buckets.drinks;
@@ -112,6 +115,7 @@ function mergeMembers(groupKey: string, members: StoreEntry[]): GroupedStore {
     ticket_count,
     receipt_count,
     snacks_sold,
+    drinks_sold,
     avg_ticket: ticket_count > 0 ? revenue_total / ticket_count : 0,
     buckets,
     payments,

@@ -136,6 +136,7 @@ export function DirectoryClient({
               value: t.value,
               label: `${t.label} (${t.value === "shops" ? sortedShops.length : contacts.length})`,
               icon: t.icon,
+              visibilityKey: `tab:directory.${t.value}`,
             }))}
             value={tab}
             onChange={(v) => switchTab(v as DirectoryTab)}

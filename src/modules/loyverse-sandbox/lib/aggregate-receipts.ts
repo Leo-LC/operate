@@ -112,6 +112,7 @@ export function aggregateReceipts(
   };
   let snacksSold = 0;
   let ticketsSold = 0;
+  let drinksSold = 0;
 
   const dayReceipts = receipts.filter(
     (r) => r.store_id === storeId && isSameDay(r, date),
@@ -145,6 +146,7 @@ export function aggregateReceipts(
       switch (bucket) {
         case "drinks":
           proposed.sales_drinks_net += amount;
+          drinksSold += (line.quantity ?? 0) * mult;
           break;
         case "ticket":
           proposed.sales_ticket_net += amount;
@@ -192,6 +194,7 @@ export function aggregateReceipts(
       entry_count: meta.sale_count - meta.refund_count,
       snacks_sold: Math.max(0, Math.round(snacksSold)),
       tickets_sold: Math.max(0, Math.round(ticketsSold)),
+      drinks_sold: Math.max(0, Math.round(drinksSold)),
     },
     meta,
   };

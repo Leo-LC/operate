@@ -3,6 +3,9 @@ import { DEFAULT_ORG_ID } from "@/lib/constants";
 import { loadRevenueThresholdOverrides } from "@/modules/challenges/settings";
 import {
   MERCH_TIERS,
+  MERCH_BONUS_BY_TIER,
+  merchCaMultiplier,
+  merchCaRuleApplies,
   SNACKS_THRESHOLD,
   SNACKS_BONUS,
   PANIER_THRESHOLD,
@@ -51,6 +54,13 @@ export interface LocationOverview {
   merchandising: {
     ratio: number | null;
     tier: 0 | 1 | 2 | 3;
+    /** Tier bonus before the CA multiplier ("montant prévu"). */
+    plannedBonus: number;
+    /** CA-achievement multiplier: 0 | 0.5 | 1 (always 1 before Nov 2026). */
+    caMultiplier: number;
+    /** True when the month is governed by the CA-multiplier rule (Nov 2026+). */
+    caScaled: boolean;
+    /** Paid bonus = plannedBonus × caMultiplier. */
     bonus: number;
   };
   snacks: {
@@ -278,6 +288,13 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
     const revenueLocked = revenueThreshold !== null && !revenueUnlocked;
     const revenueRatio = revenueThreshold !== null ? (salesNetIncVat ?? 0) / revenueThreshold : null;
 
+    // Merch bonus: tier amount ("montant prévu") × CA-achievement multiplier
+    // (new rule from Nov 2026 — see MERCH_CA_TIERS in constants.ts).
+    const merchPlannedBonus = MERCH_BONUS_BY_TIER[merchTier];
+    const merchMultiplier = merchCaMultiplier(revenueRatio, month);
+    const merchBonus = Math.round(merchPlannedBonus * merchMultiplier);
+    const merchCaScaled = merchCaRuleApplies(month);
+
     let snackRatio: number | null = null;
     if (snacksSold !== null && entryCount !== null && entryCount > 0) {
       snackRatio = snacksSold / entryCount;
@@ -314,7 +331,7 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
     const volumeBonus = volumePass === true && !revenueLocked ? REVIEWS_VOLUME_BONUS : 0;
     const ratingBonus = ratingPass === true && !revenueLocked ? REVIEWS_RATING_BONUS : 0;
 
-    const totalBonus = [0, 1500, 3000, 5000][merchTier] + snackBonus + panierBonus + opexBonus + volumeBonus + ratingBonus;
+    const totalBonus = merchBonus + snackBonus + panierBonus + opexBonus + volumeBonus + ratingBonus;
 
     return {
       locationId,
@@ -337,7 +354,14 @@ export async function getChallengesOverview(month: string): Promise<LocationOver
         unlocked: revenueThreshold === null ? null : revenueUnlocked,
         ratio: revenueRatio,
       },
-      merchandising: { ratio: merchRatio, tier: merchTier, bonus: [0, 1500, 3000, 5000][merchTier] as 0 },
+      merchandising: {
+        ratio: merchRatio,
+        tier: merchTier,
+        plannedBonus: merchPlannedBonus,
+        caMultiplier: merchMultiplier,
+        caScaled: merchCaScaled,
+        bonus: merchBonus,
+      },
       snacks: { ratio: snackRatio, passes: snackPasses, bonus: snackBonus },
       panierMoyen: { value: panierValue, passes: panierPasses, bonus: panierBonus },
       opex: { ratio: opexRatio, passes: opexPasses, threshold: opexThreshold, bonus: opexBonus },

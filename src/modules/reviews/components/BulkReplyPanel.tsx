@@ -1,7 +1,5 @@
 "use client";
-import { Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import type { ReviewWithLocation } from "@/types/review";
 import type { BulkConfirm } from "@/modules/reviews/hooks/useBulkSend";
 
@@ -21,22 +19,21 @@ const PANEL: React.CSSProperties = {
 
 interface BulkReplyPanelProps {
   bulkConfirm: BulkConfirm | null;
-  bulkSending: boolean;
-  bulkProgress: { current: number; total: number } | null;
   onCancel: () => void;
   onConfirm: (list: ReviewWithLocation[]) => void;
 }
 
+/** Confirmation dialog for bulk replies. Send progress is NOT shown here —
+ *  it lives in the non-blocking BulkReplyIndicator (app shell), so the user
+ *  can navigate while the batch runs (see bulk-queue.ts). */
 export function BulkReplyPanel({
   bulkConfirm,
-  bulkSending,
-  bulkProgress,
   onCancel,
   onConfirm,
 }: BulkReplyPanelProps) {
   return (
     <>
-      {bulkConfirm && !bulkSending && bulkConfirm.list.length > 0 && (
+      {bulkConfirm && bulkConfirm.list.length > 0 && (
         <div style={BACKDROP}>
           <div style={PANEL}>
             <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Send bulk replies?</h2>
@@ -55,25 +52,6 @@ export function BulkReplyPanel({
                 Continue
               </Button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {bulkSending && bulkProgress && (
-        <div style={BACKDROP}>
-          <div style={{ ...PANEL, maxWidth: 440 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Loader2Icon className="size-4 animate-spin" style={{ color: "var(--fg-3)" }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>Sending replies…</h2>
-            </div>
-            <p style={{ marginTop: 8, fontSize: 12, color: "var(--fg-3)" }}>
-              Sending reply {bulkProgress.current} of {bulkProgress.total}. Please keep this window
-              open.
-            </p>
-            <Progress
-              value={(bulkProgress.current / bulkProgress.total) * 100}
-              className="mt-3"
-            />
           </div>
         </div>
       )}

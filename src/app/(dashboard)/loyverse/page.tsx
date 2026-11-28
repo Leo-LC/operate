@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { hasModuleAccess } from "@/core/permissions/guards";
+import { isAccessibleForSession } from "@/lib/module-visibility";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import "./loyverse.css";
 
@@ -14,6 +15,8 @@ export default async function LoyversePage() {
   // Grant/revoke per user from the admin panel; reviewers never get it.
   const perms = await getUserPermissionsFromSession(session);
   if (!hasModuleAccess(perms, "loyverse")) redirect("/home");
+  // Masked module (owner eye): owner/admin still access it, others are redirected.
+  if (!(await isAccessibleForSession(session.user.role, "module:loyverse"))) redirect("/home");
 
   // Formerly /overview — now /loyverse is the primary dashboard for every user.
   const role = session!.user!.role ?? "";

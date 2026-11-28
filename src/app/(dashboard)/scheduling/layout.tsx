@@ -3,26 +3,19 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { hasModuleAccess, isOperationalAdmin } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
-import { getModuleVisibility } from "@/lib/module-visibility";
+import { isAccessibleForSession } from "@/lib/module-visibility";
 import { SchedulingTabNav } from "@/modules/scheduling/components/SchedulingTabNav";
 import "./scheduling.css";
 
 export default async function SchedulingLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
-  if (session.user.role === "owner") {
-    return (
-      <div className="sch">
-        <SchedulingTabNav isOwner />
-        {children}
-      </div>
-    );
-  }
-  const [permissions, visibility] = await Promise.all([
+  const [permissions, visible] = await Promise.all([
     getUserPermissionsFromDb(session.user?.userId, session.user?.role),
-    getModuleVisibility(),
+    // Masked module (owner eye): owner/admin still access it, others are redirected.
+    isAccessibleForSession(session.user.role, "module:scheduling"),
   ]);
-  if (!visibility.schedules || !hasModuleAccess(permissions, "schedules")) redirect("/home");
+  if (!visible || !hasModuleAccess(permissions, "schedules")) redirect("/home");
   return (
     <div className="sch">
       <SchedulingTabNav isOwner={isOperationalAdmin(session.user.role)} />

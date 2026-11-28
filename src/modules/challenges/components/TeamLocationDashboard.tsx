@@ -11,8 +11,6 @@ import {
 } from "@/modules/challenges/constants";
 import { buildTeamMetrics, shortLocationName, type TeamMetricRow } from "@/modules/challenges/team-metrics";
 
-const MERCH_BONUS_BY_TIER = [0, 1500, 3000, 5000] as const;
-
 type TeamRowStatus = "earned" | "waiting" | "missed" | "nodata";
 
 interface RowState {
@@ -116,9 +114,12 @@ function AdviceCard({ metric, state }: { metric: TeamMetricRow; state: RowState 
 
 function MetricTableRow({ metric, state }: { metric: TeamMetricRow; state: RowState }) {
   const status = rowStatus(state);
+  const merchHalved = metric.id === "merch" && status === "earned" && state.earned > 0 && state.earned < state.max;
   const progressLine =
     status === "earned"
-      ? "Target hit — bonus paid."
+      ? merchHalved
+        ? "Target hit — bonus halved (sales target 50–75% reached)."
+        : "Target hit — bonus paid."
       : status === "waiting"
         ? "Target hit — paid once sales target is reached."
         : status === "missed"
@@ -190,12 +191,20 @@ export function TeamLocationDashboard({
 
   const merchTier = loc.merchandising.tier;
   const merchPass = merchTier > 0 ? true : loc.merchandising.ratio !== null ? false : null;
+  // Merch bonus is scaled by the sales target (Nov 2026+): locked at 0× when CA < 50% of target.
+  const merchLocked = merchPass === true && loc.merchandising.caMultiplier === 0;
 
   // Same model as the Team PDF: "earned" = target hit AND payable
-  // (sales reached — merchandise never needs sales). "waiting" = target hit
-  // but sales missed → would have been paid otherwise.
+  // (sales ≥ 75% of target — or the old rule before Nov 2026). "waiting" = target hit
+  // but the CA multiplier holds the bonus.
   const states: RowState[] = [
-    { passes: merchPass, locked: false, earned: MERCH_BONUS_BY_TIER[merchTier] ?? 0, waiting: 0, max: 5000 },
+    {
+      passes: merchPass,
+      locked: merchLocked,
+      earned: loc.merchandising.bonus,
+      waiting: merchLocked ? loc.merchandising.plannedBonus : 0,
+      max: 5000,
+    },
     { passes: loc.snacks.passes, locked: revenueLocked, earned: loc.snacks.bonus, waiting: loc.snacks.passes === true && revenueLocked ? SNACKS_BONUS : 0, max: SNACKS_BONUS },
     { passes: loc.panierMoyen.passes, locked: revenueLocked, earned: loc.panierMoyen.bonus, waiting: loc.panierMoyen.passes === true && revenueLocked ? PANIER_BONUS : 0, max: PANIER_BONUS },
     { passes: loc.opex.passes, locked: revenueLocked, earned: loc.opex.bonus, waiting: loc.opex.passes === true && revenueLocked ? OPEX_BONUS : 0, max: OPEX_BONUS },

@@ -353,6 +353,11 @@ export function ReviewsStatsClient() {
               }
             />
             <KpiStat
+              label="With photos"
+              value={formatPercent(overall?.photoRate ?? null)}
+              hint={hasCurrent ? "reviewer-attached photos" : emptyHint}
+            />
+            <KpiStat
               label="1–3★ share"
               value={formatPercent(lowShare)}
               comparison={overall ? <ComparisonText comparison={sharePointComparison(lowShare, priorLowShare, periodLabel)} /> : null}

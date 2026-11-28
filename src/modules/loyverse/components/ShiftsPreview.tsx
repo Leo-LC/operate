@@ -543,7 +543,9 @@ function AccountingCopySection({
   paymentMap: Map<string, string>;
 }) {
   const [copied, setCopied] = React.useState(false);
-  const snapshot = snapshotRows[0] ?? null;
+  // Un swap de POS laisse des lignes snapshot vides (nouveau store) à côté des
+  // vraies données (ancien store) — préférer un snapshot non vide.
+  const snapshot = (snapshotRows.find((r) => (r.receipt_count ?? 0) > 0) ?? snapshotRows[0]) ?? null;
   // Aggregate ALL shifts of the day (a day can hold several shifts); the
   // shared builder falls back to the snapshot when a shift is incoherent.
   const allShifts = React.useMemo(
@@ -646,7 +648,9 @@ function AccountingCopySection({
 export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   const [date, setDate] = React.useState<string>(() => initialDate ?? bangkokYesterday());
   const [selectedStore, setSelectedStore] = React.useState<string | null>(null);
-  const [shops, setShops] = React.useState<{ store_id: string; account_key: string; location_id: string | null }[]>([]);
+  // Un shop = une location Nexus ; tous les store_id Loyverse du groupe
+  // (l'ancien POS garde son historique sous son propre store_id).
+  const [shops, setShops] = React.useState<{ key: string; name: string; account_key: string; storeIds: string[] }[]>([]);
   const [shiftRows, setShiftRows] = React.useState<ShiftRow[]>([]);
   const [salesRows, setSalesRows] = React.useState<SalesRow[]>([]);
   const [snapshotRows, setSnapshotRows] = React.useState<SnapshotRow[]>([]);
@@ -664,17 +668,25 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           fetch("/api/loyverse/status", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         ]);
         const perStore = (dashRes?.per_store as { store_id: string; account_key: string; location_id: string | null }[] | undefined) ?? [];
-        const map = new Map<string, { store_id: string; account_key: string; location_id: string | null }>();
-        for (const s of perStore) map.set(s.store_id, { store_id: s.store_id, account_key: s.account_key, location_id: s.location_id });
+        const map = new Map<string, { key: string; name: string; account_key: string; storeIds: string[] }>();
+        for (const s of perStore) {
+          const key = s.location_id ?? s.store_id;
+          const existing = map.get(key);
+          if (existing) {
+            if (!existing.storeIds.includes(s.store_id)) existing.storeIds.push(s.store_id);
+          } else {
+            map.set(key, { key, name: capitalizeShop(s.account_key), account_key: s.account_key, storeIds: [s.store_id] });
+          }
+        }
         if (map.size === 0 && statusRes?.accounts) {
           for (const a of statusRes.accounts as { key: string; label: string }[]) {
-            if (!map.has(a.key)) map.set(a.key, { store_id: a.key, account_key: a.key, location_id: null });
+            if (!map.has(a.key)) map.set(a.key, { key: a.key, name: capitalizeShop(a.key), account_key: a.key, storeIds: [a.key] });
           }
         }
         const list = Array.from(map.values()).sort((a, b) => a.account_key.localeCompare(b.account_key));
         if (!cancelled) {
           setShops(list);
-          if (list.length > 0 && !selectedStore) setSelectedStore(list[0].store_id);
+          if (list.length > 0 && !selectedStore) setSelectedStore(list[0].key);
         }
       } catch {}
     }
@@ -720,13 +732,24 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
   React.useEffect(() => { fetchAll(date); }, [date, fetchAll]);
 
   const todayStr = bangkokToday();
-  const shiftForStore = React.useMemo(() => shiftRows.filter((r) => r.store_id === selectedStore), [shiftRows, selectedStore]);
-  const salesForStore = React.useMemo(() => salesRows.filter((r) => r.store_id === selectedStore), [salesRows, selectedStore]);
-  const snapshotForStore = React.useMemo(() => snapshotRows.filter((r) => r.store_id === selectedStore), [snapshotRows, selectedStore]);
+  // Tous les store_ids de la location sélectionnée (+ ceux vus dans les
+  // lignes chargées partageant la location — couvre un swap hors fenêtre 30j).
+  const storeFilter = React.useMemo(() => {
+    const shop = shops.find((s) => s.key === selectedStore);
+    if (!shop) return null;
+    const set = new Set(shop.storeIds);
+    for (const r of [...shiftRows, ...salesRows, ...snapshotRows]) {
+      if (!set.has(r.store_id) && r.location_id && r.location_id === shop.key) set.add(r.store_id);
+    }
+    return set;
+  }, [shops, selectedStore, shiftRows, salesRows, snapshotRows]);
+  const shiftForStore = React.useMemo(() => (storeFilter ? shiftRows.filter((r) => storeFilter.has(r.store_id)) : []), [shiftRows, storeFilter]);
+  const salesForStore = React.useMemo(() => (storeFilter ? salesRows.filter((r) => storeFilter.has(r.store_id)) : []), [salesRows, storeFilter]);
+  const snapshotForStore = React.useMemo(() => (storeFilter ? snapshotRows.filter((r) => storeFilter.has(r.store_id)) : []), [snapshotRows, storeFilter]);
   const hasShift = shiftForStore.length > 0;
   const hasSales = salesForStore.length > 0;
   const isArchived = hasShift && hasSales;
-  const selectedShop = shops.find((s) => s.store_id === selectedStore) ?? null;
+  const selectedShop = shops.find((s) => s.key === selectedStore) ?? null;
   const totalShifts = shiftForStore.reduce((s, r) => s + (r.shift_count ?? r.shifts.length), 0);
 
   const handleSync = async () => {
@@ -764,7 +787,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
             </Button>
             <span className="ml-auto flex items-center gap-2 text-xs">
               {isArchived ? <Pill tone="good" size="sm" dot>Archivé</Pill> : date === todayStr ? <Pill tone="neutral" size="sm" dot>Ouvert</Pill> : <Pill tone="warn" size="sm" dot>À synchroniser</Pill>}
-              <span className="text-[var(--fg-4)]">{selectedShop ? capitalizeShop(selectedShop.account_key) : "—"} · {date}</span>
+              <span className="text-[var(--fg-4)]">{selectedShop ? selectedShop.name : "—"} · {date}</span>
             </span>
           </div>
 
@@ -775,7 +798,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                 <span className="text-xs text-[var(--fg-4)]">Chargement shops…</span>
               ) : (
                 <ShopSingleSelect
-                  options={shops.map((shop) => ({ id: shop.store_id, name: capitalizeShop(shop.account_key) }))}
+                  options={shops.map((shop) => ({ id: shop.key, name: shop.name }))}
                   value={selectedStore ?? ""}
                   onChange={setSelectedStore}
                 />
@@ -794,7 +817,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
       ) : !hasShift && !hasSales ? (
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm font-medium text-[var(--fg-3)]">Aucune donnée archivée pour {selectedShop ? capitalizeShop(selectedShop.account_key) : selectedStore} le {date}</p>
+            <p className="text-sm font-medium text-[var(--fg-3)]">Aucune donnée archivée pour {selectedShop ? selectedShop.name : selectedStore} le {date}</p>
             <p className="mt-1 text-xs text-[var(--fg-4)]">Ce jour est sauvegardé dès la première synchro (shift + ventes) et reste accessible même à J+60.</p>
             <Button size="sm" className="mt-3" onClick={handleSync} disabled={syncing}>{syncing ? "…" : `Synchroniser ${date}`}</Button>
           </CardContent>
@@ -804,8 +827,8 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
           <CardHeader className="pb-3">
             <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
               <StoreIcon className="size-4 text-[var(--bronze)]" />
-              <span className="capitalize">{selectedShop ? capitalizeShop(selectedShop.account_key) : shiftForStore[0]?.account_key ?? salesForStore[0]?.account_key ?? "—"}</span>
-              <span className="font-mono text-xs font-normal text-[var(--fg-4)]">· {selectedStore.slice(0, 8)}… · {date}</span>
+              <span className="capitalize">{selectedShop ? selectedShop.name : shiftForStore[0]?.account_key ?? salesForStore[0]?.account_key ?? "—"}</span>
+              <span className="font-mono text-xs font-normal text-[var(--fg-4)]">· {date}</span>
               <Pill tone={totalShifts ? "good" : "neutral"} size="sm" dot>{totalShifts} shifts</Pill>
               <span className="ml-auto text-xs font-normal text-[var(--fg-4)]">fetch {fmtDateTime(shiftForStore[0]?.fetched_at ?? salesForStore[0]?.fetched_at ?? null)}</span>
             </CardTitle>

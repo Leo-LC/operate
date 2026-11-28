@@ -33,6 +33,8 @@ export interface StatPart {
   period: "current" | "prior";
   star: number; // 1..5
   replied: boolean;
+  /** Reviewer attached photos/videos (media_count > 0). */
+  withMedia: boolean;
   /** Bucket key for current-period parts ("YYYY-MM-DD" or "YYYY-MM"); "" for prior. */
   key: string;
   n: number;
@@ -58,6 +60,8 @@ export interface StatsSummary {
   priorAvg: number | null;
   /** Share of reviews that have a public reply, 0..1 (null when empty). */
   replyRate: number | null;
+  /** Share of reviews that carry reviewer-attached photos/videos, 0..1 (null when empty). */
+  photoRate: number | null;
   /** Bucketed 1★..5★, index 0 = 1★. */
   distribution: [number, number, number, number, number];
   /** Same bucketing for the prior window (null when the prior window is empty). */
@@ -216,12 +220,12 @@ export function computeReviewsStats(
   const buckets = buildBuckets(g, currentFrom, addDaysUTC(endExclusive, -1));
   const pointsByShop = new Map<string, Map<string, { count: number; ratingSum: number }>>();
   const overall = {
-    count: 0, ratingSum: 0, replied: 0,
+    count: 0, ratingSum: 0, replied: 0, photos: 0,
     priorCount: 0, priorRatingSum: 0,
     distribution: emptyDistribution(),
     priorDistribution: emptyDistribution(),
   };
-  const perShop = new Map<string, { count: number; ratingSum: number; replied: number; priorCount: number; priorRatingSum: number; distribution: Distribution; priorDistribution: Distribution }>();
+  const perShop = new Map<string, { count: number; ratingSum: number; replied: number; photos: number; priorCount: number; priorRatingSum: number; distribution: Distribution; priorDistribution: Distribution }>();
 
   for (const part of parts) {
     if (!validStar(part.star) || !part.locationId) continue;
@@ -232,6 +236,7 @@ export function computeReviewsStats(
       overall.count += weight;
       overall.ratingSum += weight * part.star;
       if (part.replied) overall.replied += weight;
+      if (part.withMedia) overall.photos += weight;
       overall.distribution[part.star - 1] += weight;
     }
     if (part.period === "prior" && selected) {
@@ -242,13 +247,14 @@ export function computeReviewsStats(
 
     let acc = perShop.get(part.locationId);
     if (!acc) {
-      acc = { count: 0, ratingSum: 0, replied: 0, priorCount: 0, priorRatingSum: 0, distribution: emptyDistribution(), priorDistribution: emptyDistribution() };
+      acc = { count: 0, ratingSum: 0, replied: 0, photos: 0, priorCount: 0, priorRatingSum: 0, distribution: emptyDistribution(), priorDistribution: emptyDistribution() };
       perShop.set(part.locationId, acc);
     }
     if (part.period === "current") {
       acc.count += weight;
       acc.ratingSum += weight * part.star;
       if (part.replied) acc.replied += weight;
+      if (part.withMedia) acc.photos += weight;
       acc.distribution[part.star - 1] += weight;
 
       if (part.key) {
@@ -296,6 +302,7 @@ export function computeReviewsStats(
         priorCount: acc.priorCount,
         priorAvg: acc.priorCount > 0 ? acc.priorRatingSum / acc.priorCount : null,
         replyRate: acc.count > 0 ? acc.replied / acc.count : null,
+        photoRate: acc.count > 0 ? acc.photos / acc.count : null,
         distribution: acc.distribution,
         priorDistribution: acc.priorCount > 0 ? acc.priorDistribution : null,
         points: map
@@ -321,6 +328,7 @@ export function computeReviewsStats(
       priorCount: overall.priorCount,
       priorAvg: overall.priorCount > 0 ? overall.priorRatingSum / overall.priorCount : null,
       replyRate: overall.count > 0 ? overall.replied / overall.count : null,
+      photoRate: overall.count > 0 ? overall.photos / overall.count : null,
       distribution: overall.distribution,
       priorDistribution: overall.priorCount > 0 ? overall.priorDistribution : null,
     },

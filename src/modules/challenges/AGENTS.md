@@ -24,8 +24,11 @@ Rules to keep accurate:
 - Revenue = `sales_drinks_net + sales_ticket_net + sales_snack_net + sales_goodies_net +
   sales_card_surcharge`. The `sales_*_net` fields are already VAT-inclusive — do **not**
   add `vat_7`.
-- Merch % (`sales_goodies_net / revenue`) is the only metric NOT gated by the sales target.
-  Animal Food, Spend per visit, Running costs, Review count and Review rating are only awarded
+- Merch % (`sales_goodies_net / revenue`) picks the tier bonus (7/8/9% → 1,500/3,000/5,000 ฿),
+  which is then scaled by sales-target achievement: from Nov 2026
+  (`MERCH_CA_RULE_START_MONTH` in `constants.ts`) CA < 50% of target → no bonus,
+  50–75% → half, ≥ 75% → full (`merchCaMultiplier`). Animal Food, Spend per visit,
+  Running costs, Review count and Review rating are only awarded
   when the shop clears its sales target. Display label is "Animal Food" (POS rename, Sept 2026);
   DB columns stay `snacks_sold` / `sales_snack_net`.
 - `entry_count` / `snacks_sold` come from `challenge_counters` (100% Loyverse sync,

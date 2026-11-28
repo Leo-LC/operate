@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     if (guard.allowedLocationIds !== null && guard.allowedLocationIds.length === 0) {
       return Response.json({
         date_range: { start: startStr, end: effectiveEnd, days },
-        kpis: { revenue_total: 0, vat_7: 0, ticket_count: 0, receipt_count: 0, snacks_sold: 0, store_count: 0, avg_ticket: 0, delta_vs_week_ago_pct: null },
+        kpis: { revenue_total: 0, vat_7: 0, ticket_count: 0, receipt_count: 0, snacks_sold: 0, drinks_sold: 0, store_count: 0, avg_ticket: 0, delta_vs_week_ago_pct: null },
         per_store: [],
         snapshots: [],
       });
@@ -84,6 +84,7 @@ export async function GET(request: Request) {
       ticket_count: currentRows.reduce((s, r) => s + ticketsSoldForRow(r as Record<string, unknown>), 0),
       receipt_count: currentRows.reduce((s, r) => s + Number(r.receipt_count ?? 0), 0),
       snacks_sold: currentRows.reduce((s, r) => s + Number(r.snacks_sold ?? 0), 0),
+      drinks_sold: currentRows.reduce((s, r) => s + Number(r.drinks_sold ?? 0), 0),
       store_count: new Set(currentRows.map((r) => r.store_id)).size,
     };
     const avgTicket = kpis.ticket_count > 0 ? kpis.revenue_total / kpis.ticket_count : 0;
@@ -98,6 +99,7 @@ export async function GET(request: Request) {
       ticket_count: number;
       receipt_count: number;
       snacks_sold: number;
+      drinks_sold: number;
       avg_ticket: number;
       buckets: { drinks: number; ticket: number; snack: number; goodies: number; surcharge: number };
       payments: { cash: number; scan: number; credit_card: number };
@@ -111,6 +113,7 @@ export async function GET(request: Request) {
       const tc = ticketsSoldForRow(r as Record<string, unknown>);
       const rc = Number(r.receipt_count ?? 0);
       const ss = Number(r.snacks_sold ?? 0);
+      const ds = Number(r.drinks_sold ?? 0);
       const buckets = {
         drinks: Number(r.sales_drinks_net ?? 0),
         ticket: Number(r.sales_ticket_net ?? 0),
@@ -137,6 +140,7 @@ export async function GET(request: Request) {
           ticket_count: tc,
           receipt_count: rc,
           snacks_sold: ss,
+          drinks_sold: ds,
           avg_ticket: 0,
           buckets: { ...buckets },
           payments: { ...payments },
@@ -147,6 +151,7 @@ export async function GET(request: Request) {
         existing.ticket_count += tc;
         existing.receipt_count += rc;
         existing.snacks_sold += ss;
+        existing.drinks_sold += ds;
         existing.buckets.drinks += buckets.drinks;
         existing.buckets.ticket += buckets.ticket;
         existing.buckets.snack += buckets.snack;

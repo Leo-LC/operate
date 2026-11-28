@@ -18,7 +18,7 @@
     text-transform: uppercase;
     color: var(--fg-4);
     font-weight: 600;
-    font-family: var(--font-sans);
+    font-family: var(--font-sans, system-ui);
   }
 
   /* Expandable table rows (e.g. employees) — smooth accordion via grid rows.
@@ -847,7 +847,7 @@
   * { border-color: var(--border); outline-color: var(--ring); }
 
   html {
-    font-family: var(--font-sans), system-ui, sans-serif;
+    font-family: var(--font-sans, system-ui), system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.5;
     font-feature-settings: 'cv11','ss01';

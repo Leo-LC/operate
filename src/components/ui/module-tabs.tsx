@@ -3,6 +3,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUiVisibility, VisibilityEye } from "@/components/visibility";
 
 export interface ModuleTab {
   label: string;
@@ -12,6 +13,12 @@ export interface ModuleTab {
   extra?: React.ReactNode;
   /** Rendered muted (e.g. hidden for the target audience but visible to privileged users). */
   dimmed?: boolean;
+  /**
+   * Unified visibility key (`tab:<module>.<tab>`): masked tabs disappear for
+   * member/reviewer/direction/staff and render dimmed with an eye for owner/admin.
+   * Only the owner gets the eye toggle (via the shared visibility context).
+   */
+  visibilityKey?: string;
 }
 
 export interface ControlledTab {
@@ -22,6 +29,8 @@ export interface ControlledTab {
   extra?: React.ReactNode;
   /** Rendered muted (e.g. hidden for the target audience but visible to privileged users). */
   dimmed?: boolean;
+  /** Same unified visibility gating as ModuleTab.visibilityKey. */
+  visibilityKey?: string;
 }
 
 const BAR_STYLE: React.CSSProperties = {
@@ -125,24 +134,28 @@ export function ModuleTabs({
    */
   variant?: "underline" | "pills";
 }) {
+  const { isVisible, canSeeHidden, canToggle, toggle } = useUiVisibility();
   const pathname = usePathname();
+  // Masked tabs (owner eye): hidden for everyone, dimmed for owner/admin.
+  const shown = tabs.filter((t) => !t.visibilityKey || canSeeHidden || isVisible(t.visibilityKey));
   const activeIndex = Math.max(
     0,
-    tabs.findIndex((t) => pathname === t.href || pathname.startsWith(`${t.href}/`))
+    shown.findIndex((t) => pathname === t.href || pathname.startsWith(`${t.href}/`))
   );
-  const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, tabs.length);
+  const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, shown.length);
 
   if (variant === "pills") {
     return (
       <nav aria-label={ariaLabel} className="ui-pillnav">
-        {tabs.map((tab, i) => {
+        {shown.map((tab, i) => {
           const active = i === activeIndex;
           const Icon = tab.icon;
+          const masked = !!tab.visibilityKey && !isVisible(tab.visibilityKey);
           return (
             <div
               key={tab.href}
               className="ui-pillnav-item"
-              data-dimmed={tab.dimmed ? "true" : undefined}
+              data-dimmed={tab.dimmed || masked ? "true" : undefined}
             >
               <Link
                 href={tab.href}
@@ -153,7 +166,15 @@ export function ModuleTabs({
                 {Icon ? <Icon size={14} /> : null}
                 {tab.label}
               </Link>
-              {tab.extra}
+              {tab.visibilityKey && canToggle ? (
+                <VisibilityEye
+                  visible={!masked}
+                  label={tab.label}
+                  onToggle={() => toggle(tab.visibilityKey!)}
+                />
+              ) : (
+                tab.extra
+              )}
             </div>
           );
         })}
@@ -164,16 +185,17 @@ export function ModuleTabs({
   return (
     <nav aria-label={ariaLabel} style={BAR_STYLE}>
       <div ref={containerRef} style={{ display: "flex", gap: 0, position: "relative" }}>
-        {tabs.map((tab, i) => {
+        {shown.map((tab, i) => {
           const active = i === activeIndex;
           const Icon = tab.icon;
+          const masked = !!tab.visibilityKey && !isVisible(tab.visibilityKey);
           return (
             <div
               key={tab.href}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                opacity: tab.dimmed ? 0.55 : 1,
+                opacity: tab.dimmed || masked ? 0.55 : 1,
               }}
             >
               <Link
@@ -196,7 +218,15 @@ export function ModuleTabs({
                 {Icon ? <Icon size={14} /> : null}
                 {tab.label}
               </Link>
-              {tab.extra}
+              {tab.visibilityKey && canToggle ? (
+                <VisibilityEye
+                  visible={!masked}
+                  label={tab.label}
+                  onToggle={() => toggle(tab.visibilityKey!)}
+                />
+              ) : (
+                tab.extra
+              )}
             </div>
           );
         })}
@@ -226,23 +256,27 @@ export function ControlledTabs({
   ariaLabel?: string;
   variant?: "underline" | "pills";
 }) {
+  const { isVisible, canSeeHidden, canToggle, toggle } = useUiVisibility();
+  // Masked tabs (owner eye): hidden for everyone, dimmed for owner/admin.
+  const shown = tabs.filter((t) => !t.visibilityKey || canSeeHidden || isVisible(t.visibilityKey));
   const activeIndex = Math.max(
     0,
-    tabs.findIndex((t) => t.value === value)
+    shown.findIndex((t) => t.value === value)
   );
-  const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, tabs.length);
+  const { containerRef, setTabRef, indicator } = useSlidingUnderline(activeIndex, shown.length);
 
   if (variant === "pills") {
     return (
       <div aria-label={ariaLabel} role="tablist" className="ui-pillnav">
-        {tabs.map((tab, i) => {
+        {shown.map((tab, i) => {
           const Icon = tab.icon;
           const isActive = i === activeIndex;
+          const masked = !!tab.visibilityKey && !isVisible(tab.visibilityKey);
           return (
             <div
               key={tab.value}
               className="ui-pillnav-item"
-              data-dimmed={tab.dimmed ? "true" : undefined}
+              data-dimmed={tab.dimmed || masked ? "true" : undefined}
             >
               <button
                 type="button"
@@ -256,7 +290,15 @@ export function ControlledTabs({
                 {Icon ? <Icon size={14} /> : null}
                 {tab.label}
               </button>
-              {tab.extra}
+              {tab.visibilityKey && canToggle ? (
+                <VisibilityEye
+                  visible={!masked}
+                  label={tab.label}
+                  onToggle={() => toggle(tab.visibilityKey!)}
+                />
+              ) : (
+                tab.extra
+              )}
             </div>
           );
         })}
@@ -267,16 +309,17 @@ export function ControlledTabs({
   return (
     <div aria-label={ariaLabel} role="tablist" style={BAR_STYLE}>
       <div ref={containerRef} style={{ display: "flex", gap: 0, position: "relative" }}>
-        {tabs.map((tab, i) => {
+        {shown.map((tab, i) => {
           const Icon = tab.icon;
           const isActive = i === activeIndex;
+          const masked = !!tab.visibilityKey && !isVisible(tab.visibilityKey);
           return (
             <div
               key={tab.value}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                opacity: tab.dimmed ? 0.55 : 1,
+                opacity: tab.dimmed || masked ? 0.55 : 1,
               }}
             >
               <button
@@ -302,7 +345,15 @@ export function ControlledTabs({
                 {Icon ? <Icon size={14} /> : null}
                 {tab.label}
               </button>
-              {tab.extra}
+              {tab.visibilityKey && canToggle ? (
+                <VisibilityEye
+                  visible={!masked}
+                  label={tab.label}
+                  onToggle={() => toggle(tab.visibilityKey!)}
+                />
+              ) : (
+                tab.extra
+              )}
             </div>
           );
         })}

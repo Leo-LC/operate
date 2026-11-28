@@ -5,6 +5,7 @@ import { DirectionClient } from "@/modules/direction/components/DirectionClient"
 import { getUserPermissionsFromSession } from "@/core/permissions/server";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import "./direction.css";
+import { isAccessibleForSession } from "@/lib/module-visibility";
 
 export default async function DirectionPage() {
   const session = await getServerSession(authOptions);
@@ -14,6 +15,8 @@ export default async function DirectionPage() {
   const perms = await getUserPermissionsFromSession(session);
   // Direction page is gated by the "direction" module (owner/admin bypass, direction role has implicit access)
   if (!hasModuleAccess(perms, "direction") && perms.global_role !== "direction") redirect("/home");
+  // Masked module (owner eye): owner/admin still access it, others are redirected.
+  if (!(await isAccessibleForSession(role, "module:direction"))) redirect("/home");
 
   const canSync = ["owner", "admin", "direction"].includes(role);
 

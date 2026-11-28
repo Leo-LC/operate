@@ -21,6 +21,7 @@ function part(overrides: Partial<StatPart> = {}): StatPart {
     period: "current",
     star: 5,
     replied: false,
+    withMedia: false,
     key: "",
     n: 1,
     ...overrides,
@@ -141,11 +142,34 @@ describe("computeReviewsStats", () => {
     expect(res.overall.priorDistribution).toEqual([1, 1, 0, 0, 0]);
   });
 
+  it("derives the photo rate from withMedia parts", () => {
+    const res = computeReviewsStats(
+      [
+        part({ withMedia: true }),
+        part({ withMedia: true, star: 4, locationId: "locations/B" }),
+        part({ star: 1, locationId: "locations/B" }),
+        // prior window: ignored by the current photoRate
+        part({ period: "prior", withMedia: true, star: 2 }),
+      ],
+      [{ locationId: "locations/A", title: "Shop A" }, { locationId: "locations/B", title: "Shop B" }],
+      "30d",
+      null,
+      NOW,
+    );
+    expect(res.overall.count).toBe(3);
+    expect(res.overall.photoRate).toBeCloseTo(2 / 3);
+    const shopA = res.shops.find((s) => s.key === "locations/A");
+    const shopB = res.shops.find((s) => s.key === "locations/B");
+    expect(shopA?.photoRate).toBe(1); // 1/1
+    expect(shopB?.photoRate).toBe(0.5); // 1/2
+  });
+
   it("handles empty data without NaN", () => {
     const res = computeReviewsStats([], [], "30d", null, NOW);
     expect(res.overall.count).toBe(0);
     expect(res.overall.avg).toBeNull();
     expect(res.overall.replyRate).toBeNull();
+    expect(res.overall.photoRate).toBeNull();
     expect(res.overall.priorDistribution).toBeNull();
     expect(res.shops).toEqual([]);
     expect(res.overallPoints.every((p) => p.count === 0)).toBe(true);
