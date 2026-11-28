@@ -10,6 +10,12 @@ interface StatProps extends React.ComponentProps<"div"> {
   sparkline?: React.ReactNode
   icon?: React.ReactNode
   iconColor?: string
+  /**
+   * "top" (default): value right under the label.
+   * "bottom": label stays top-left, value pinned to the bottom-left of the
+   * card at a larger size — for KPI cards where the metric should dominate.
+   */
+  valueLayout?: "top" | "bottom"
 }
 
 export function Stat({
@@ -21,6 +27,7 @@ export function Stat({
   sparkline,
   icon,
   iconColor = "var(--accent)",
+  valueLayout = "top",
   className,
   ...props
 }: StatProps) {
@@ -30,6 +37,7 @@ export function Stat({
       : deltaDir === "down"
         ? "var(--bad)"
         : "var(--fg-4)"
+  const bottom = valueLayout === "bottom"
 
   return (
     <div className={cn("flex flex-col flex-1", className)} {...props} style={{ minHeight: 72, ...props.style }}>
@@ -66,12 +74,13 @@ export function Stat({
       <span
         className="mono tabular-nums"
         style={{
-          fontSize: 22,
+          fontSize: bottom ? 28 : 22,
           fontWeight: 700,
           color: "var(--fg)",
           lineHeight: 1.1,
           letterSpacing: "-0.02em",
-          marginTop: 8,
+          marginTop: bottom ? "auto" : 8,
+          ...(bottom && { whiteSpace: "nowrap" }),
         }}
       >
         {value}
@@ -90,7 +99,7 @@ export function Stat({
           {delta}
         </span>
       ) : (
-        <span style={{ marginTop: 4, height: 11 }} aria-hidden />
+        bottom ? null : <span style={{ marginTop: 4, height: 11 }} aria-hidden />
       )}
       {sparkline && <div style={{ marginTop: 6 }}>{sparkline}</div>}
       {hint && <span style={{ fontSize: 11, color: "var(--fg-4)", lineHeight: 1.3, marginTop: "auto", paddingTop: 8 }}>{hint}</span>}

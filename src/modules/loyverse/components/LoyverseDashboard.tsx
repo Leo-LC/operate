@@ -642,6 +642,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 value={fmtTHB(kpi.revenue_total)}
                 icon={<TrendingUpIcon className="size-4" />}
                 iconColor="var(--bronze)"
+                valueLayout="bottom"
               />
             </CardContent>
           </Card>
@@ -652,6 +653,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 value={fmtInt(kpi.ticket_count)}
                 icon={<UsersIcon className="size-4" />}
                 iconColor="var(--info)"
+                valueLayout="bottom"
               />
             </CardContent>
           </Card>
@@ -662,6 +664,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 value={fmtInt(kpi.drinks_sold)}
                 icon={<CoffeeIcon className="size-4" />}
                 iconColor="var(--purple)"
+                valueLayout="bottom"
               />
             </CardContent>
           </Card>
@@ -672,6 +675,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 value={fmtTHB(snackAmount)}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--good)"
+                valueLayout="bottom"
               />
             </CardContent>
           </Card>
@@ -682,6 +686,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 value={fmtTHB(merchAmount)}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--warn)"
+                valueLayout="bottom"
               />
             </CardContent>
           </Card>
