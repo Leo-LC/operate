@@ -89,13 +89,13 @@ export function ChallengesPreview({ date }: { date: string }) {
                 <span className="text-xs text-[var(--fg-4)]">{row.account_key}</span>
               </div>
               <p className="text-xs text-[var(--fg-4)]">
-                Revenue {fmtTHB(row.loyverse.revenue)}{row.thresholds.revenue_threshold !== null ? ` / seuil ${fmtTHB(row.thresholds.revenue_threshold)}` : ""} · {row.loyverse.entry_count} entrées · {row.loyverse.snacks_sold} snacks
+                Revenue {fmtTHB(row.loyverse.revenue)}{row.thresholds.revenue_threshold !== null ? ` / threshold ${fmtTHB(row.thresholds.revenue_threshold)}` : ""} · {row.loyverse.entry_count} entries · {row.loyverse.snacks_sold} snacks
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded bg-[var(--bg-2)] px-2 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Entrées</p>
+                  <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Entries</p>
                   <p className="font-mono text-sm font-semibold tabular-nums">{fmt(row.loyverse.entry_count)}</p>
                   {row.thresholds.revenue_gated !== null && (
                     <Pill tone={row.thresholds.revenue_gated ? "good" : "warn"} size="sm" className="mt-1">
@@ -104,7 +104,7 @@ export function ChallengesPreview({ date }: { date: string }) {
                   )}
                 </div>
                 <div className="rounded bg-[var(--bg-2)] px-2 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Snacks / entrée</p>
+                  <p className="text-[10px] uppercase tracking-wide text-[var(--fg-4)]">Snacks / entry</p>
                   <p className="font-mono text-sm font-semibold tabular-nums">{row.loyverse.entry_count > 0 ? fmtPct(row.loyverse.snacks_ratio) : "—"}</p>
                   <Pill tone={row.thresholds.snacks_pass ? "good" : "warn"} size="sm" className="mt-1">
                     {row.thresholds.snacks_pass ? "≥ 45%" : "< 45%"}
@@ -131,7 +131,7 @@ export function ChallengesPreview({ date }: { date: string }) {
                 )}
               </div>
               <p className="text-[11px] leading-snug text-[var(--fg-4)]">
-                Snacks, panier, merch sont gatés par le seuil ventes. Seul merch % est évalué même si sales KO — cf AGENTS.md.
+                Snacks, basket, merch are gated by the sales threshold. Only merch % is evaluated even when sales are KO — cf AGENTS.md.
               </p>
             </CardContent>
           </Card>

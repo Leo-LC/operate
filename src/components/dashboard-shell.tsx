@@ -243,16 +243,16 @@ export function DashboardShell({ email, permissions, initialVisibility, children
   const displayName = email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   async function handleSavePwd() {
-    if (!pwd || pwd.length < 6) { toast.error("6 caractères minimum"); return; }
+    if (!pwd || pwd.length < 6) { toast.error("Minimum 6 characters"); return; }
     setPwdSaving(true);
     try {
       const res = await fetch("/api/me/password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pwd }) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((j as { error?: string }).error || "Erreur");
-      toast.success("Mot de passe mis à jour");
+      if (!res.ok) throw new Error((j as { error?: string }).error || "Error");
+      toast.success("Password updated");
       setPwdOpen(false);
       setPwd("");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
     finally { setPwdSaving(false); }
   }
 
@@ -781,21 +781,21 @@ export function DashboardShell({ email, permissions, initialVisibility, children
         </div>
       </Modal>
       {isDirection && (
-        <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="Mon mot de passe" description="Définir ou changer votre mot de passe.">
+        <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="My password" description="Set or change your password.">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-3)" }}>Nouveau mot de passe</label>
+            <label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-3)" }}>New password</label>
             <input
               type="password"
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
-              placeholder="6 caractères minimum"
+              placeholder="Minimum 6 characters"
               autoFocus
               style={{ height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, outline: "none" }}
               onKeyDown={(e) => { if (e.key === "Enter") void handleSavePwd(); }}
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
-              <Button variant="secondary" size="sm" onClick={() => setPwdOpen(false)} disabled={pwdSaving}>Annuler</Button>
-              <Button size="sm" onClick={() => void handleSavePwd()} disabled={pwdSaving || pwd.length < 6}>{pwdSaving ? "Enregistrement…" : "Enregistrer"}</Button>
+              <Button variant="secondary" size="sm" onClick={() => setPwdOpen(false)} disabled={pwdSaving}>Cancel</Button>
+              <Button size="sm" onClick={() => void handleSavePwd()} disabled={pwdSaving || pwd.length < 6}>{pwdSaving ? "Saving…" : "Save"}</Button>
             </div>
           </div>
         </Modal>

@@ -17,7 +17,7 @@ const TABS = [
   { value: "accounting", label: "Accounting", icon: CalculatorIcon, visibilityKey: "tab:loyverse.accounting" },
   { value: "challenges", label: "Challenges", icon: TrophyIcon, visibilityKey: "tab:loyverse.challenges" },
   { value: "analysis", label: "Analyse", icon: BarChart3Icon, visibilityKey: "tab:loyverse.analysis" },
-  { value: "reco", label: "Réconciliation (probation)", icon: ScaleIcon, visibilityKey: "tab:loyverse.reco" },
+  { value: "reco", label: "Reconciliation (probation)", icon: ScaleIcon, visibilityKey: "tab:loyverse.reco" },
   { value: "unmapped", label: "Unmapped", icon: AlertTriangleIcon, visibilityKey: "tab:loyverse.unmapped" },
   { value: "debug", label: "Debug", icon: BeakerIcon, visibilityKey: "tab:loyverse.debug" },
 ];
@@ -53,7 +53,7 @@ export function LoyverseModuleClient({ canSync = false }: { canSync?: boolean })
         {activeTab === "debug" && (
           <div className="rounded-[var(--r-md)] border border-[var(--line)] bg-[var(--surface)] p-4">
             <p className="mb-4 text-xs text-[var(--fg-4)]">
-              Ancien sandbox fusionné — API Explorer, Mapping Preview, Store Mapping, Demo Report. Conservé pour debug.
+              Merged legacy sandbox — API Explorer, Mapping Preview, Store Mapping, Demo Report. Kept for debugging.
             </p>
             <LoyverseSandboxClient />
           </div>

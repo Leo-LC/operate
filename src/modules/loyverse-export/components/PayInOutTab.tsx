@@ -122,13 +122,13 @@ export function PayInOutTab({ days, selectedStore, storeFilter, shiftRows, loadi
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "var(--s-3)", flexWrap: "wrap" }}>
         <Button size="sm" variant="secondary" onClick={handleCopyCsv} disabled={movementCount === 0} title="Copier les mouvements en CSV (date,type,motif,montant brut)">
           {copied ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-          {copied ? "copié" : "CSV"}
+          {copied ? "copied" : "CSV"}
         </Button>
       </div>
 
       {!selectedStore ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
-          Sélectionne un shop ci-dessus.
+          Select a shop above.
         </p>
       ) : loading ? (
         <div className="animate-pulse" style={{ height: 120, borderRadius: "var(--r-md)", background: "var(--line-2)" }} />
@@ -155,7 +155,7 @@ export function PayInOutTab({ days, selectedStore, storeFilter, shiftRows, loadi
                     <div>
                     {formatDateDDMMYYYY(date)}
                     {shiftWarning ? (
-                      <span title={shiftWarning} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="shift incohérent">
+                      <span title={shiftWarning} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="inconsistent shift">
                         ⚠️
                       </span>
                     ) : null}
@@ -168,14 +168,14 @@ export function PayInOutTab({ days, selectedStore, storeFilter, shiftRows, loadi
                   </td>
                   <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top", borderLeft: "1px solid var(--line-2)" }}>
                     {!hasData ? (
-                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
+                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>to sync</span>
                     ) : (
                       <MovementList items={payOut} emptyLabel="—" />
                     )}
                   </td>
                   <td style={{ padding: "8px 10px", fontSize: 12, verticalAlign: "top", borderLeft: "1px solid var(--line-2)" }}>
                     {!hasData ? (
-                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
+                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>to sync</span>
                     ) : (
                       <MovementList items={payIn} emptyLabel="—" />
                     )}

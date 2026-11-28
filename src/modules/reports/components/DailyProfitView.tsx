@@ -17,7 +17,76 @@ interface Props {
   to: string;
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
+  /** Shared view: English on /reports, French inside Direction. */
+  locale?: "en" | "fr";
 }
+
+const DP_LABELS: Record<"en" | "fr", Record<string, string>> = {
+  en: {
+    period: "Period",
+    shops: "Shops",
+    allShops: "All shops",
+    refreshSheets: "Refresh Sheets",
+    manage: "Manage P&L",
+    loading: "Computing the daily result…",
+    unavailable: "Daily P&L unavailable",
+    revenue: "Revenue",
+    daysUnit: "days",
+    hr: "HR costs",
+    hrHint: "Weighted salaries",
+    fixed: "Fixed costs",
+    fixedHint: "Fixed costs + service",
+    opex: "Operating costs",
+    opexHint: "Accounting data",
+    result: "Result",
+    margin: "margin",
+    dailyTrend: "Daily trend",
+    noDays: "No financial day in this period.",
+    dailyDetail: "Daily detail",
+    colRevenue: "Revenue",
+    colOpex: "Operating costs",
+    colPayroll: "Salaries",
+    colFixed: "Fixed costs",
+    colService: "Service",
+    colBonus: "Bonus",
+    costSplit: "Cost split",
+    shopContribution: "Shop contribution",
+    estimated: "estimated",
+    actual: "actual",
+  },
+  fr: {
+    period: "Période",
+    shops: "Boutiques",
+    allShops: "Toutes les boutiques",
+    refreshSheets: "Actualiser Sheets",
+    manage: "Gérer le P&L",
+    loading: "Calcul du résultat quotidien…",
+    unavailable: "Résultat quotidien non disponible",
+    revenue: "Chiffre d'affaires",
+    daysUnit: "jours",
+    hr: "Charges RH",
+    hrHint: "Salaires pondérés",
+    fixed: "Charges fixes",
+    fixedHint: "Frais fixes + service",
+    opex: "Charges d'exploitation",
+    opexHint: "Données comptables",
+    result: "Résultat",
+    margin: "marge",
+    dailyTrend: "Évolution quotidienne",
+    noDays: "Aucun jour financier sur cette période.",
+    dailyDetail: "Détail quotidien",
+    colRevenue: "Chiffre d'affaires",
+    colOpex: "Charges d'exploitation",
+    colPayroll: "Salaires",
+    colFixed: "Charges fixes",
+    colService: "Service",
+    colBonus: "Prime",
+    costSplit: "Répartition des coûts",
+    shopContribution: "Contribution par boutique",
+    estimated: "estimé",
+    actual: "réel",
+  },
+};
 
 function money(value: number) {
   const absolute = Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -84,7 +153,8 @@ function Metric({ label, value, hint, tone = "neutral" }: { label: string; value
   );
 }
 
-export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
+export function DailyProfitView({ from, to, onFromChange, onToChange, locale = "en" }: Props) {
+  const L = DP_LABELS[locale];
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [data, setData] = useState<DailyProfitResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,7 +216,7 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
       <div className="ui-toolbar">
         <div className="ui-filter-rows">
           <div className="ui-filter-row">
-            <span className="ui-filter-label" id="daily-period-label">Période</span>
+            <span className="ui-filter-label" id="daily-period-label">{L.period}</span>
             <div className="ui-filter-control" role="group" aria-labelledby="daily-period-label">
               <DateRangePicker
                 value={{ from, to }}
@@ -156,13 +226,13 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
             </div>
           </div>
           <div className="ui-filter-row">
-            <span className="ui-filter-label" id="daily-shops-label">Boutiques</span>
+            <span className="ui-filter-label" id="daily-shops-label">{L.shops}</span>
             <div className="ui-filter-control" role="group" aria-labelledby="daily-shops-label">
               <ShopMultiSelect
                 options={scopeOptions}
                 selected={selectedLocationIds}
                 onChange={setSelectedLocationIds}
-                allLabel="Toutes les boutiques"
+                allLabel={L.allShops}
                 getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
               />
             </div>
@@ -170,41 +240,41 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
         </div>
         {data?.canManage && (
           <div className="ui-toolbar-actions">
-            <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>
-            <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>
+            <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />{L.refreshSheets}</Button>
+            <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />{L.manage}</Button>
           </div>
         )}
       </div>
 
-      {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calcul du résultat quotidien…</Card>}
-      {!loading && error && <Card style={{ borderColor: "var(--bad)", background: "var(--bad-soft)", gap: 8 }}><strong>Résultat quotidien non disponible</strong><span style={{ color: "var(--fg-3)" }}>{error}</span></Card>}
+      {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>{L.loading}</Card>}
+      {!loading && error && <Card style={{ borderColor: "var(--bad)", background: "var(--bad-soft)", gap: 8 }}><strong>{L.unavailable}</strong><span style={{ color: "var(--fg-3)" }}>{error}</span></Card>}
 
       {!loading && data && (
         <>
           <div className="ui-kpi-grid">
-            <Metric label="Chiffre d'affaires" value={money(data.summary.revenue)} hint={`${data.daily.length} jours`} />
-            <Metric label="Charges RH" value={money(data.summary.payroll)} hint="Salaires pondérés" tone="bad" />
-            <Metric label="Charges fixes" value={money(data.summary.recurringCosts + data.summary.serviceCharge)} hint="Frais fixes + service" tone="bad" />
-            <Metric label="Charges d'exploitation" value={money(data.summary.directExpenses)} hint="Données comptables" tone="bad" />
-            <Metric label="Résultat" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} marge · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
+            <Metric label={L.revenue} value={money(data.summary.revenue)} hint={`${data.daily.length} ${L.daysUnit}`} />
+            <Metric label={L.hr} value={money(data.summary.payroll)} hint={L.hrHint} tone="bad" />
+            <Metric label={L.fixed} value={money(data.summary.recurringCosts + data.summary.serviceCharge)} hint={L.fixedHint} tone="bad" />
+            <Metric label={L.opex} value={money(data.summary.directExpenses)} hint={L.opexHint} tone="bad" />
+            <Metric label={L.result} value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} ${L.margin} · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
           </div>
 
           <Card style={{ gap: 8 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Évolution quotidienne</h2></div>
+              <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{L.dailyTrend}</h2></div>
             </div>
-            {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>Aucun jour financier sur cette période.</p>}
+            {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>{L.noDays}</p>}
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(260px,.8fr)]" style={{ gap: "var(--s-4)", alignItems: "start" }}>
             <Card flush>
-              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Détail quotidien</strong></div>
-              <div className="ui-table-scroll"><table style={tableStyle}><thead><tr>{["Date", "Chiffre d'affaires", "Charges d'exploitation", "Salaires", "Charges fixes", "Service", "Prime"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
+              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>{L.dailyDetail}</strong></div>
+              <div className="ui-table-scroll"><table style={tableStyle}><thead><tr>{["Date", L.colRevenue, L.colOpex, L.colPayroll, L.colFixed, L.colService, L.colBonus].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-              <Card style={{ gap: 10 }}><strong>Répartition des coûts</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
-              <Card style={{ gap: 10 }}><strong>Contribution par boutique</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, fontSize: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span style={{ flexShrink: 0, padding: "0 6px", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", fontSize: 10, lineHeight: "16px", color: "var(--fg-4)" }}>{row.estimatedAmount > 0 ? "estimé" : "réel"}</span></span><span className="mono" style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{money(row.revenue)}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>{L.costSplit}</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>{L.shopContribution}</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, fontSize: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span style={{ flexShrink: 0, padding: "0 6px", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", fontSize: 10, lineHeight: "16px", color: "var(--fg-4)" }}>{row.estimatedAmount > 0 ? L.estimated : L.actual}</span></span><span className="mono" style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{money(row.revenue)}</span></div>)}</Card>
             </div>
           </div>
         </>

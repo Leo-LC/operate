@@ -153,7 +153,7 @@ function Controls({
       <div className="ui-filter-rows">
         <div className="ui-filter-row">
           <span className="ui-filter-label" id="rep-period-label">
-            Période
+            Period
           </span>
           <div className="ui-filter-control" role="group" aria-labelledby="rep-period-label">
             <DateRangePicker
@@ -166,14 +166,14 @@ function Controls({
         {locations.length > 0 && (
           <div className="ui-filter-row">
             <span className="ui-filter-label" id="rep-shops-label">
-              Boutiques
+              Shops
             </span>
             <div className="ui-filter-control" role="group" aria-labelledby="rep-shops-label">
               <ShopMultiSelect
                 options={locations}
                 selected={selectedShops}
                 onChange={onShopsChange}
-                allLabel="Toutes les boutiques"
+                allLabel="All shops"
               />
             </div>
           </div>
@@ -348,13 +348,13 @@ const PERF_METRICS: MetricDef[] = [
   },
 ];
 
-function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
+function PerformanceMetrics({ shops, sectionLabel }: { shops: ShopAgg[]; sectionLabel: string }) {
   const activeShops = shops.filter((s) => s.revenue > 0);
   if (activeShops.length === 0) return null;
 
   return (
     <Card>
-      <SectionHeader label="Indicateurs de performance" />
+      <SectionHeader label={sectionLabel} />
       <div className="ui-table-scroll">
         <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -414,7 +414,51 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
 
 // ── Operations Tab ────────────────────────────────────────────────────────────
 
-export function OperationsView({ data }: { data: AccountingData }) {
+/**
+ * Shared between /reports (English) and Direction › Détails (French).
+ * `locale` defaults to English; only Direction passes "fr".
+ */
+export type OperationsLocale = "en" | "fr";
+
+const OPERATIONS_LABELS: Record<OperationsLocale, Record<string, string>> = {
+  en: {
+    revenue: "Revenue",
+    afterOpex: "After operating costs",
+    afterHr: "Net profit (after HR)",
+    hrShare: "HR / Sales",
+    vat: "VAT collected",
+    vs: "vs",
+    perf: "Performance indicators",
+    revenueMix: "Revenue breakdown",
+    opex: "Operating expenses",
+    hr: "HR breakdown",
+    payments: "Payment methods",
+    monthly: "Monthly fixed expenses",
+    hrRatios: "HR & cash ratios",
+    vatCosts: "VAT & total costs",
+    shopCompare: "Shop comparison",
+  },
+  fr: {
+    revenue: "Chiffre d'affaires",
+    afterOpex: "Après charges",
+    afterHr: "Après RH",
+    hrShare: "Part RH / Ventes",
+    vat: "TVA encaissée",
+    vs: "vs",
+    perf: "Indicateurs de performance",
+    revenueMix: "Répartition du CA",
+    opex: "Charges d'exploitation",
+    hr: "Détail RH",
+    payments: "Moyens de paiement",
+    monthly: "Charges mensuelles",
+    hrRatios: "Ratios RH",
+    vatCosts: "TVA et coûts",
+    shopCompare: "Comparaison par boutique",
+  },
+};
+
+export function OperationsView({ data, locale = "en" }: { data: AccountingData; locale?: OperationsLocale }) {
+  const L = OPERATIONS_LABELS[locale];
   const { overview: o, byShop, previousPeriod, dailyTotals, monthlyExpenses } = data;
   const p = previousPeriod.overview;
   const prevMonthName = monthShortLabel(previousPeriod.period.to);
@@ -481,46 +525,46 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* KPI row */}
       <div className="ui-kpi-grid">
         <KpiCard
-          label="Chiffre d'affaires"
+          label={L.revenue}
           value={`฿${fmtN(o.revenue)}`}
           delta={revenueDelta.delta}
           deltaDir={revenueDelta.dir}
-          hint={`vs ${prevMonthName}`}
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="Après charges"
+          label={L.afterOpex}
           value={fmtMoney(netAfterExpenses)}
           delta={netAfterExpDelta.delta}
           deltaDir={netAfterExpDelta.dir}
-          hint={`vs ${prevMonthName}`}
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="Après RH"
+          label={L.afterHr}
           value={fmtMoney(o.netProfit)}
           delta={netAfterHrDelta.delta}
           deltaDir={netAfterHrDelta.dir}
-          hint={`vs ${prevMonthName}`}
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="Part RH / Ventes"
+          label={L.hrShare}
           value={fmtPct(hrPctOfSales)}
           delta={hrPctDelta.delta}
           deltaDir={hrPctDelta.dir}
-          hint={`vs ${prevMonthName}`}
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="TVA encaissée"
+          label={L.vat}
           value={`฿${fmtN(o.vat)}`}
           delta={vatDelta.delta}
           deltaDir={vatDelta.dir}
-          hint={`vs ${prevMonthName}`}
+          hint={`${L.vs} ${prevMonthName}`}
         />
       </div>
 
       {/* Revenue Mix + Cost Drivers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Répartition du CA" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label={L.revenueMix} icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {revenueRows.map((r, i) => (
@@ -534,7 +578,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
         </Card>
 
         <Card>
-          <SectionHeader label="Charges d'exploitation" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label={L.opex} icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {costRows.map((r, i) => (
@@ -550,7 +594,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* HR Breakdown */}
       <Card>
-        <SectionHeader label="Détail RH" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label={L.hr} icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div className="ui-bar-head">
             <span />
@@ -597,7 +641,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Payment Methods */}
       <Card>
-        <SectionHeader label="Moyens de paiement" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label={L.payments} icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div className="ui-bar-head">
             <span />
@@ -622,7 +666,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Monthly Expenses + HR Ratios & Pending */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Charges mensuelles" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label={L.monthly} icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
           <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -664,7 +708,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
         </Card>
 
         <Card>
-          <SectionHeader label="Ratios RH" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label={L.hrRatios} icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
           <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -696,7 +740,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* VAT & Total Costs */}
       <Card>
-        <SectionHeader label="TVA et coûts" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label={L.vatCosts} icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
         <div className="ui-table-scroll">
           <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -730,7 +774,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Per-shop comparison (kept from previous layout — not part of reference image but useful) */}
       {sortedShops.length > 1 && (
         <Card>
-          <SectionHeader label="Comparaison par boutique" />
+          <SectionHeader label={L.shopCompare} />
           <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -792,7 +836,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Performance metrics */}
       {sortedShops.some((s) => s.revenue > 0) && (
-        <PerformanceMetrics shops={sortedShops} />
+        <PerformanceMetrics shops={sortedShops} sectionLabel={L.perf} />
       )}
     </div>
   );

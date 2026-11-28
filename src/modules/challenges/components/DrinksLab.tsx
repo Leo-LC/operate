@@ -59,8 +59,8 @@ export function DrinksLab() {
         <MonthPicker value={month} onChange={setMonth} />
         {!loading && !error && rows.length > 0 && (
           <p className="text-[13px] text-[var(--fg-3)]">
-            Taux = <span className="font-mono font-semibold text-[var(--fg)]">boissons / adultes</span>{" "}
-            <span className="text-[var(--fg-4)]">(quantités Loyverse, détail boissons / adultes sous chaque taux)</span>
+            Rate = <span className="font-mono font-semibold text-[var(--fg)]">drinks / adults</span>{" "}
+            <span className="text-[var(--fg-4)]">(Loyverse quantities, drinks / adults detail under each rate)</span>
           </p>
         )}
       </div>
@@ -83,8 +83,8 @@ export function DrinksLab() {
                 <th className="px-3 py-2 text-left text-[11px] font-medium text-[var(--fg-4)]">Shop</th>
                 <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">P1 · 1–10</th>
                 <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">P2 · 11–20</th>
-                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">P3 · 21–fin</th>
-                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">Total mois</th>
+                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">P3 · 21–end</th>
+                <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--fg-4)]">Month total</th>
               </tr>
             </thead>
             <tbody>
@@ -103,10 +103,10 @@ export function DrinksLab() {
       )}
 
       <p className="max-w-3xl text-[11px] leading-relaxed text-[var(--fg-4)]">
-        Expérimentation — source <span className="font-mono">loyverse_daily_sales.sales_by_item</span> (quantités
-        Loyverse, remboursements déduits). Adultes = items d&apos;entrée contenant « adult » (Adult, AA ADULT, A.Adult,
-        A ENTRY adult — enfants Kid/Child exclus, merch « Tshirt Adult » exclu). Boissons = items{" "}
-        <span className="font-mono">drinks</span> (règles Samui dédiées, lignes de frais carte « 3% Card » exclues). « — » = aucun adulte sur la période.
+        Experiment — source <span className="font-mono">loyverse_daily_sales.sales_by_item</span> (Loyverse
+        quantities, refunds deducted). Adults = entry items containing “adult” (Adult, AA ADULT, A.Adult,
+        A ENTRY adult — Kid/Child entries excluded, “Tshirt Adult” merch excluded). Drinks = items{" "}
+        <span className="font-mono">drinks</span> (dedicated Samui rules, “3% Card” fee lines excluded). “—” = no adult in the period.
       </p>
     </div>
   );

@@ -138,9 +138,9 @@ export function LoyverseAccountsCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-[var(--fg-4)]">
-          Source de vérité : table <code>loyverse_accounts</code> (modifiable ici, sans redeploy).
-          Les tokens ne sont jamais affichés — seuls les 4 derniers caractères pour identification.
-          Après ajout, mappe chaque store dans <code>locations</code> puis lance une sync.
+          Source of truth: the <code>loyverse_accounts</code> table (editable here, no redeploy).
+          Tokens are never displayed — only the last 4 characters for identification.
+          After adding, map each store in <code>locations</code> then run a sync.
         </p>
 
         {loading && <p className="text-sm text-[var(--fg-4)]">Loading…</p>}
@@ -157,12 +157,12 @@ export function LoyverseAccountsCard() {
                 </Pill>
                 {!a.is_active && (
                   <Pill size="sm" tone="neutral">
-                    désactivé
+                    disabled
                   </Pill>
                 )}
                 {a.masked && <code className="text-xs text-[var(--fg-4)]">{a.masked}</code>}
                 {a.env_fallback && (
-                  <span className="text-xs text-[var(--warn)]">env-only — ajoute-le en DB pour le rendre éditable</span>
+                  <span className="text-xs text-[var(--warn)]">env-only — add it to the DB to make it editable</span>
                 )}
                 {canEdit && a.source === "db" && (
                   <span className="ml-auto flex items-center gap-1">
@@ -177,7 +177,7 @@ export function LoyverseAccountsCard() {
                       Token
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleToggle(a.key, a.is_active)}>
-                      {a.is_active ? "Désactiver" : "Activer"}
+                      {a.is_active ? "Disable" : "Enable"}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleDelete(a.key)}>
                       Retirer
@@ -187,7 +187,7 @@ export function LoyverseAccountsCard() {
               </div>
             ))}
             {accounts.length === 0 && (
-              <p className="text-sm text-[var(--fg-4)]">Aucun compte configuré.</p>
+              <p className="text-sm text-[var(--fg-4)]">No account configured.</p>
             )}
           </div>
         )}
@@ -195,7 +195,7 @@ export function LoyverseAccountsCard() {
         {storesHint && storesHint.stores.length > 0 && (
           <div className="rounded-lg border border-[var(--info)]/30 bg-[var(--info-soft)] p-2 text-xs">
             <p className="font-medium">
-              Stores détectés pour “{storesHint.key}” — reporte leurs IDs dans `locations` :
+              Stores detected for “{storesHint.key}” — copy their IDs into `locations`:
             </p>
             <ul className="mt-1 space-y-0.5">
               {storesHint.stores.map((s) => (
@@ -241,7 +241,7 @@ export function LoyverseAccountsCard() {
               />
             </label>
             <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Vérification…" : "Ajouter + vérifier"}
+              {saving ? "Checking…" : "Add + check"}
             </Button>
           </form>
         )}

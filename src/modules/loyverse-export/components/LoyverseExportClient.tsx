@@ -263,7 +263,7 @@ export function LoyverseExportClient() {
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "end", gap: "var(--s-3)" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Période</span>
+            <span style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-4)" }}>Period</span>
             <DateRangePicker value={{ from, to }} onChange={(range) => { setFrom(range.from); setTo(range.to); }} today={today} />
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)", marginLeft: "auto" }}>
@@ -276,7 +276,7 @@ export function LoyverseExportClient() {
               variant="secondary"
               onClick={handleForceSync}
               disabled={syncing || forceSyncing || loading || days.length === 0}
-              title="Re-télécharge chaque jour de la période depuis Loyverse et écrase les données locales — utile après un changement de mapping"
+              title="Re-downloads every day of the period from Loyverse and overwrites local data — useful after a mapping change"
             >
               <RefreshCwIcon size={13} />
               {forceSyncing ? (forceProgress ?? "Re-sync…") : "Forcer re-sync"}
@@ -284,20 +284,20 @@ export function LoyverseExportClient() {
           </div>
         </div>
         <p style={{ fontSize: 11, color: "var(--fg-4)", margin: 0 }}>
-          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Synchroniser</strong> — complète les jours de la période
-          absents ou incomplets en base (&lt;= 5 jours : tout est re-téléchargé).{" "}
-          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Forcer re-sync</strong> — re-télécharge chaque jour de la
-          période depuis Loyverse et écrase les données locales, même déjà synchronisées (après un changement de mapping ou de
-          catalogue).
+          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Sync</strong> — fills the days of the period
+          missing or incomplete in the database (&lt;= 5 days: everything is re-downloaded).{" "}
+          <strong style={{ fontWeight: 500, color: "var(--fg-3)" }}>Force re-sync</strong> — re-downloads every day of the
+          period from Loyverse and overwrites local data, even already synced (after a mapping or
+          catalogue change).
         </p>
       </div>
 
       {invalidRange && (
-        <p style={{ fontSize: 12, color: "var(--warn)" }}>La date de début doit être avant la date de fin.</p>
+        <p style={{ fontSize: 12, color: "var(--warn)" }}>The start date must be before the end date.</p>
       )}
       {rangeClamped && (
         <p style={{ fontSize: 12, color: "var(--warn)" }}>
-          Plage limitée à {MAX_DAYS} jours — seuls les {MAX_DAYS} premiers jours sont affichés.
+          Range limited to {MAX_DAYS} days — only the first {MAX_DAYS} days are shown.
         </p>
       )}
       {error && (

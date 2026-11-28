@@ -20,7 +20,7 @@ export interface PageNote {
 
 export const NOTE_KIND_LABELS: Record<NoteKind, string> = {
   suggestion: "Suggestion",
-  alerte: "Alerte",
+  alerte: "Alert",
 };
 
 export function isNoteKind(value: unknown): value is NoteKind {
@@ -85,18 +85,18 @@ export function groupNotesByPath(notes: PageNote[]): Map<string, PageNote[]> {
 }
 
 /** Compact relative time in French, e.g. "à l'instant", "il y a 3 j". */
-export function timeAgoFr(iso: string, now: number = Date.now()): string {
+export function timeAgo(iso: string, now: number = Date.now()): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const diffMs = Math.max(0, now - then);
   const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `il y a ${hours} h`;
+  if (hours < 24) return `${hours} h ago`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `il y a ${days} j`;
+  if (days < 30) return `${days} d ago`;
   const months = Math.floor(days / 30);
-  if (months < 12) return `il y a ${months} mois`;
-  return `il y a ${Math.floor(months / 12)} an(s)`;
+  if (months < 12) return `${months} mo ago`;
+  return `${Math.floor(months / 12)} yr ago`;
 }

@@ -131,7 +131,7 @@
   }
 
   .pay-scroll[data-scrollable]::before {
-    content: "↔ Défilez horizontalement";
+    content: "↔ Scroll horizontally";
     display: block;
     position: sticky;
     left: 0;

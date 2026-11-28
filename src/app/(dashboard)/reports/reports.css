@@ -73,7 +73,7 @@
   /* Explicit affordance below each table, pinned to the left edge while the
      figures scroll. */
   .rep .ui-table-scroll[data-scrollable]::before {
-    content: "↔ Défilez horizontalement";
+    content: "↔ Scroll horizontally";
     display: block;
     position: sticky;
     left: 0;

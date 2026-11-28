@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { NOTE_KIND_LABELS, moduleDisplayName, timeAgoFr } from "@/modules/notes/types";
+import { NOTE_KIND_LABELS, moduleDisplayName, timeAgo } from "@/modules/notes/types";
 import type { NoteKind, PageNote } from "@/modules/notes/types";
 
 const KIND_META: Record<NoteKind, { icon: LucideIcon; color: string; bg: string }> = {
@@ -107,11 +107,11 @@ export function PageNotes() {
         body: JSON.stringify({ path: pathname, kind: newKind, body: text }),
       });
       const j = (await res.json().catch(() => ({}))) as { note?: PageNote; error?: string };
-      if (!res.ok || !j.note) throw new Error(j.error || "Erreur");
+      if (!res.ok || !j.note) throw new Error(j.error || "Error");
       setPageNotes((prev) => [j.note as PageNote, ...prev]);
       setAllLoaded(false);
       setNewBody("");
-      toast.success("Note ajoutée");
+      toast.success("Note added");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -133,7 +133,7 @@ export function PageNotes() {
     } catch {
       void loadPageNotes(pathname);
       setAllLoaded(false);
-      toast.error("Impossible de mettre à jour la note");
+      toast.error("Could not update the note");
     }
   }
 
@@ -146,7 +146,7 @@ export function PageNotes() {
     } catch {
       void loadPageNotes(pathname);
       setAllLoaded(false);
-      toast.error("Impossible de supprimer la note");
+      toast.error("Could not delete the note");
     }
   }
 
@@ -186,7 +186,7 @@ export function PageNotes() {
           <span style={{ flex: 1 }} />
           <button
             onClick={() => void handleToggleResolved(note)}
-            title={note.resolved ? "Rouvrir" : "Marquer comme traité"}
+            title={note.resolved ? "Reopen" : "Mark as done"}
             style={{
               width: 24,
               height: 24,
@@ -205,7 +205,7 @@ export function PageNotes() {
           </button>
           <button
             onClick={() => void handleDelete(note)}
-            title="Supprimer"
+            title="Delete"
             style={{
               width: 24,
               height: 24,
@@ -255,7 +255,7 @@ export function PageNotes() {
             {initials(authorLabel(note))}
           </span>
           <span style={{ fontSize: 11, color: "var(--fg-mute)" }}>
-            {authorLabel(note)} · {timeAgoFr(note.created_at)}
+            {authorLabel(note)} · {timeAgo(note.created_at)}
           </span>
         </div>
       </div>
@@ -289,8 +289,8 @@ export function PageNotes() {
       {/* Floating corner button */}
       <button
         onClick={() => setOpen((v) => !v)}
-        title={`Notes de travail (N)${activeCount ? ` · ${activeCount} active${activeCount > 1 ? "s" : ""}` : ""}`}
-        aria-label="Notes de travail"
+        title={`Working notes (N)${activeCount ? ` · ${activeCount} active` : ""}`}
+        aria-label="Working notes"
         style={{
           position: "fixed",
           right: 20,
@@ -339,7 +339,7 @@ export function PageNotes() {
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
-        title="Notes de travail"
+        title="Working notes"
         description={moduleDisplayName(pathname)}
         width={420}
       >
@@ -372,7 +372,7 @@ export function PageNotes() {
                 boxShadow: tab === t ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
               }}
             >
-              {t === "page" ? `Cette page${activeCount ? ` (${activeCount})` : ""}` : "Toutes les notes"}
+              {t === "page" ? `This page${activeCount ? ` (${activeCount})` : ""}` : "All notes"}
             </button>
           ))}
         </div>
@@ -429,7 +429,7 @@ export function PageNotes() {
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void handleAdd();
                 }}
-                placeholder="Ex. « ici on devrait voir apparaître… », « j'aimerais ajouter… », « attention erreur… »"
+                placeholder={'e.g. "this should show up here…", "I\'d like to add…", "watch out, error here…"'}
                 rows={3}
                 style={{
                   resize: "none",
@@ -447,7 +447,7 @@ export function PageNotes() {
               <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 10, color: "var(--fg-mute)" }}>⌘↵</span>
                 <Button size="sm" onClick={() => void handleAdd()} disabled={saving || !newBody.trim()}>
-                  {saving ? "…" : "Ajouter"}
+                  {saving ? "…" : "Add"}
                 </Button>
               </div>
             </div>
@@ -455,7 +455,7 @@ export function PageNotes() {
             {/* Active notes */}
             {unresolved.length === 0 ? (
               <p style={{ fontSize: 12, color: "var(--fg-mute)", textAlign: "center", padding: "16px 0", margin: 0 }}>
-                Aucune note active sur cette page.
+                No active notes on this page.
               </p>
             ) : (
               unresolved.map((note) => <div key={note.id}>{renderNote(note, false)}</div>)
@@ -476,7 +476,7 @@ export function PageNotes() {
                   }}
                   className="hover:!text-[var(--fg-3)]"
                 >
-                  {showResolved ? "▾" : "▸"} Traitées ({resolved.length})
+                  {showResolved ? "▾" : "▸"} Done ({resolved.length})
                 </button>
                 {showResolved && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
@@ -490,7 +490,7 @@ export function PageNotes() {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {byPath.size === 0 ? (
               <p style={{ fontSize: 12, color: "var(--fg-mute)", textAlign: "center", padding: "16px 0", margin: 0 }}>
-                {allLoaded ? "Aucune note active. Ajoutez-en depuis n'importe quelle page." : "Chargement…"}
+                {allLoaded ? "No active notes. Add one from any page." : "Loading…"}
               </p>
             ) : (
               Array.from(byPath.entries()).map(([path, notes]) => (

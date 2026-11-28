@@ -79,7 +79,7 @@ export function AccountingPreview({ date }: { date: string }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-[var(--fg-4)]">
-        Lecture seule — Proposed (Loyverse) vs Saisie manuelle (Google Sheets via <code>daily_entries</code>). Écart = proposé − existant.
+        Read-only — Proposed (Loyverse) vs manual entry (Google Sheets via <code>daily_entries</code>). Gap = proposed − existing.
       </p>
       {rows.map((row) => (
         <Card key={`${row.account_key}-${row.store_id}`}>
@@ -87,11 +87,11 @@ export function AccountingPreview({ date }: { date: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="text-[14px]">{row.location_name ?? row.store_id}</CardTitle>
               <span className="text-xs text-[var(--fg-4)]">
-                {row.account_key} · {row.location_id ? row.location_id.slice(0, 8) : "non mappé"} · {row.meta.receipt_count} receipts
+                {row.account_key} · {row.location_id ? row.location_id.slice(0, 8) : "unmapped"} · {row.meta.receipt_count} receipts
               </span>
               {(row.meta.unmapped_line_items > 0 || row.meta.unmapped_payments > 0) && (
                 <Pill tone="warn" size="sm">
-                  {row.meta.unmapped_line_items} lignes / {row.meta.unmapped_payments} paiements non mappés
+                  {row.meta.unmapped_line_items} lines / {row.meta.unmapped_payments} payments unmapped
                 </Pill>
               )}
             </div>
@@ -102,9 +102,9 @@ export function AccountingPreview({ date }: { date: string }) {
                 <thead>
                   <tr className="border-b border-[var(--line)] text-left text-xs text-[var(--fg-4)]">
                     <th className="pb-2 pr-3 font-medium">Champ</th>
-                    <th className="pb-2 pr-3 text-right font-medium">Proposé (Loyverse)</th>
+                    <th className="pb-2 pr-3 text-right font-medium">Proposed (Loyverse)</th>
                     <th className="pb-2 pr-3 text-right font-medium">Existant (Sheets)</th>
-                    <th className="pb-2 text-right font-medium">Écart</th>
+                    <th className="pb-2 text-right font-medium">Gap</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -136,7 +136,7 @@ export function AccountingPreview({ date }: { date: string }) {
                 </tbody>
               </table>
             </div>
-            {!row.location_id && <p className="mt-3 text-xs text-[var(--warn)]">Store non mappé → pas de daily_entries à comparer. Renseigne LOYVERSE_STORE_TO_LOCATION.</p>}
+            {!row.location_id && <p className="mt-3 text-xs text-[var(--warn)]">Unmapped store → no daily_entries to compare. Fill in LOYVERSE_STORE_TO_LOCATION.</p>}
           </CardContent>
         </Card>
       ))}

@@ -5,5 +5,5 @@ import { useDirectionPeriod } from "@/modules/direction/lib/useDirectionPeriod";
 
 export function DirectionDaily() {
   const { from, to, setFrom, setTo } = useDirectionPeriod();
-  return <DailyProfitView from={from} to={to} onFromChange={setFrom} onToChange={setTo} />;
+  return <DailyProfitView from={from} to={to} onFromChange={setFrom} onToChange={setTo} locale="fr" />;
 }

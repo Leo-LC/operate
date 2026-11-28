@@ -31,7 +31,7 @@ function catKey(category_name: string | null): string {
   return category_name ?? "__none__";
 }
 function catLabel(category_name: string | null): string {
-  return category_name ?? "Sans catégorie";
+  return category_name ?? "Uncategorized";
 }
 
 // ── Format helpers ────────────────────────────────────────────────────────────
@@ -307,7 +307,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
       {/* Période */}
       <Card>
         <CardHeader>
-          <CardTitle>Période</CardTitle>
+          <CardTitle>Period</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2">
           {months.map((m) => (
@@ -329,23 +329,23 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
             onClick={() => setPresetDays(7)}
             className="rounded-[var(--r-pill)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--fg-3)] hover:text-[var(--fg-2)]"
           >
-            7j
+            7d
           </button>
           <button
             type="button"
             onClick={() => setPresetDays(30)}
             className="rounded-[var(--r-pill)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--fg-3)] hover:text-[var(--fg-2)]"
           >
-            30j
+            30d
           </button>
           <span className="mx-1 h-5 w-px bg-[var(--line)]" />
-          <DateInput value={from} onChange={(e) => setFrom((e.target as HTMLInputElement).value)} placeholder="Début" className="w-[130px]" />
+          <DateInput value={from} onChange={(e) => setFrom((e.target as HTMLInputElement).value)} placeholder="Start" className="w-[130px]" />
           <span className="text-xs text-[var(--fg-4)]">→</span>
-          <DateInput value={to} onChange={(e) => setTo((e.target as HTMLInputElement).value)} placeholder="Fin" className="w-[130px]" />
+          <DateInput value={to} onChange={(e) => setTo((e.target as HTMLInputElement).value)} placeholder="End" className="w-[130px]" />
           {missingDays.length > 0 && (
             <span className="ml-auto flex items-center gap-2">
               <Pill tone="warn" size="sm">
-                {missingDays.length} jour{missingDays.length > 1 ? "s" : ""} sans données
+                {missingDays.length} day{missingDays.length > 1 ? "s" : ""} without data
               </Pill>
               {canSync && (
                 <button
@@ -355,7 +355,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                   className="inline-flex items-center gap-1 rounded-[var(--r-pill)] border border-[var(--line)] px-2.5 py-1 text-xs text-[var(--fg-2)] hover:text-[var(--fg)] disabled:opacity-50"
                 >
                   {syncing ? <Loader2Icon style={{ width: 12, height: 12 }} className="animate-spin" /> : null}
-                  Synchroniser
+                  Sync
                 </button>
               )}
             </span>
@@ -369,7 +369,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
           <CardTitle className="flex items-center justify-between">
             <span>Articles</span>
             <span className="text-xs font-normal text-[var(--fg-4)]">
-              {selected.size > 0 ? `${selected.size} sélectionné${selected.size > 1 ? "s" : ""} · ฿${fmtMoney(totals.money)} · ${fmtQty(totals.qty)} u.` : "Aucune sélection"}
+              {selected.size > 0 ? `${selected.size} selected · ฿${fmtMoney(totals.money)} · ${fmtQty(totals.qty)} u.` : "No selection"}
             </span>
           </CardTitle>
         </CardHeader>
@@ -403,7 +403,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                   onClick={() => setSavingGroup(true)}
                   className="inline-flex items-center gap-1 rounded-[var(--r-pill)] border border-dashed border-[var(--line-strong)] px-2.5 py-1 text-xs text-[var(--fg-3)] hover:text-[var(--fg-2)]"
                 >
-                  <SaveIcon style={{ width: 12, height: 12 }} /> Sauvegarder la sélection
+                  <SaveIcon style={{ width: 12, height: 12 }} /> Save selection
                 </button>
               )}
               {savingGroup && (
@@ -479,7 +479,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                 {/* Filtre catégories */}
                 {categories.length > 1 && (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">Catégorie</span>
+                    <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">Category</span>
                     <button
                       type="button"
                       onClick={() => setSelectedCats(new Set())}
@@ -516,8 +516,8 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                 ) : filteredItems.length === 0 ? (
                   <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">
                     {items.length === 0
-                      ? "Aucune donnée d\u2019articles pour cette période."
-                      : "Aucun article ne correspond à la recherche/filtre."}
+                      ? "No item data for this period."
+                      : "No item matches the search/filter."}
                   </p>
                 ) : (
                   <div className="max-h-[320px] overflow-y-auto rounded border border-[var(--line)] bg-[var(--bg-2)] p-1">
@@ -548,7 +548,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
             {/* Récap de la sélection quand la liste est repliée */}
             {!listShown && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">Sélection</span>
+                <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">Selection</span>
                 {selectedItems.slice(0, 8).map((it) => (
                   <button
                     key={it.item_name}
@@ -572,7 +572,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Ventes — sélection</span>
+              <span>Sales — selection</span>
               <span className="flex gap-1">
                 <button
                   type="button"
@@ -595,7 +595,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
             {/* KPIs */}
             <div className="mb-5 flex gap-8 overflow-x-auto">
               <Stat label="CA total" value={`฿${fmtMoney(totals.money)}`} />
-              <Stat label="Quantité" value={fmtQty(totals.qty)} />
+              <Stat label="Quantity" value={fmtQty(totals.qty)} />
               <Stat label="Moy. / jour" value={`฿${fmtMoney(data && data.dates.length > 0 ? totals.money / data.dates.length : 0)}`} />
               <Stat label="Articles" value={selectedItems.length} />
             </div>
@@ -624,8 +624,8 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                   <thead>
                     <tr className="border-b border-[var(--line)] text-xs text-[var(--fg-4)]">
                       <th className="py-1.5 pr-3 text-left">Article</th>
-                      <th className="py-1.5 pr-3 text-left">Catégorie</th>
-                      <th className="py-1.5 pr-3 text-right">Qté</th>
+                      <th className="py-1.5 pr-3 text-left">Category</th>
+                      <th className="py-1.5 pr-3 text-right">Qty</th>
                       <th className="py-1.5 pr-3 text-right">CA (THB)</th>
                       <th className="py-1.5 pr-3 text-right">Part</th>
                       <th className="py-1.5 text-left">Shops (CA)</th>
@@ -671,7 +671,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                                           ? "inline-flex items-center gap-0.5 rounded-[var(--r-pill)] bg-[var(--accent-soft)] px-1.5 text-[11px] font-medium text-[var(--accent)]"
                                           : "inline-flex items-center gap-0.5 rounded-[var(--r-pill)] border border-[var(--line)] px-1.5 text-[11px] text-[var(--fg-3)] hover:text-[var(--fg-2)]"
                                       }
-                                      title="Détail par prix tapé en caisse"
+                                      title="Detail by typed till price"
                                     >
                                       {priceBuckets.length > 1 ? `${priceBuckets.length} prix` : "1 prix"}{" "}
                                       <ChevronDownIcon style={{ width: 10, height: 10, transform: expanded ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
@@ -687,9 +687,9 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                                     <table className="w-full text-xs">
                                       <thead>
                                         <tr className="text-[10px] uppercase tracking-[0.07em] text-[var(--fg-4)]">
-                                          <th className="py-1 pr-3 text-left">Prix tapé</th>
+                                          <th className="py-1 pr-3 text-left">Typed price</th>
                                           <th className="py-1 pr-3 text-right">Lignes</th>
-                                          <th className="py-1 pr-3 text-right">Unités</th>
+                                          <th className="py-1 pr-3 text-right">Units</th>
                                           <th className="py-1 text-right">Total (THB)</th>
                                         </tr>
                                       </thead>
@@ -705,7 +705,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                                       </tbody>
                                     </table>
                                   ) : (
-                                    <p className="text-[11px] text-[var(--fg-4)]">Pas encore de détail par prix pour cet article (backfill 30j en cours ou article ancien).</p>
+                                    <p className="text-[11px] text-[var(--fg-4)]">No price detail yet for this item (30-day backfill in progress, or an old item).</p>
                                   )}
                                 </td>
                               </tr>
@@ -722,7 +722,7 @@ export function AnalysisPanel({ canSync = false }: { canSync?: boolean }) {
                   <thead>
                     <tr className="border-b border-[var(--line)] text-xs text-[var(--fg-4)]">
                       <th className="py-1.5 pr-3 text-left">Date</th>
-                      <th className="py-1.5 pr-3 text-right">Qté</th>
+                      <th className="py-1.5 pr-3 text-right">Qty</th>
                       <th className="py-1.5 text-right">CA (THB)</th>
                     </tr>
                   </thead>

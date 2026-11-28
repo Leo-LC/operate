@@ -218,7 +218,7 @@ export function RevenueComparisonView() {
       <div className="ui-toolbar">
         <div className="ui-filter-rows">
           <div className="ui-filter-row">
-            <span className="ui-filter-label" id="rep-revenue-period-label">Période</span>
+            <span className="ui-filter-label" id="rep-revenue-period-label">Period</span>
             <div className="ui-filter-control" role="group" aria-labelledby="rep-revenue-period-label">
               <div style={selectorStyle}>
                 <button type="button" onClick={() => setYear((v) => v - 1)} disabled={editing} aria-label="Previous year" style={{ ...iconBtnStyle, opacity: editing ? 0.4 : 1 }}>
@@ -288,26 +288,26 @@ export function RevenueComparisonView() {
               }
               hint={
                 focusFuture
-                  ? "Mois à venir — aucune donnée"
+                  ? "Upcoming month — no data"
                   : focusCurrent
-                    ? `${data.prevYear} complet : ${money(data.totals.currentMonth.prev)} · mois en cours`
-                    : `Même mois ${data.prevYear} : ${money(data.totals.currentMonth.prev)}`
+                    ? `${data.prevYear} full: ${money(data.totals.currentMonth.prev)} · month in progress`
+                    : `Same month ${data.prevYear}: ${money(data.totals.currentMonth.prev)}`
               }
             />
             <KpiStat
-              label={`Cumul à date · ${year}`}
+              label={`Year to date · ${year}`}
               value={money(data.totals.ytd.current)}
               comparison={
                 <span className="ui-kpi-delta" data-dir={deltaParts(data.totals.ytd.current, data.totals.ytd.prev).dir}>
                   {deltaParts(data.totals.ytd.current, data.totals.ytd.prev).text}
                 </span>
               }
-              hint={`Cumul ${rangeShort} ${data.prevYear} : ${money(data.totals.ytd.prev)}${totalShops ? ` · ${coveredShops}/${totalShops} boutiques` : ""}${focusFuture ? " · mois à venir à 0" : focusCurrent ? " · mois en cours partiel" : ""}`}
+              hint={`Cumulative ${rangeShort} ${data.prevYear}: ${money(data.totals.ytd.prev)}${totalShops ? ` · ${coveredShops}/${totalShops} shops` : ""}${focusFuture ? " · upcoming months at 0" : focusCurrent ? " · partial running month" : ""}`}
             />
             <KpiStat
-              label={`Année complète · ${data.prevYear}`}
+              label={`Full year · ${data.prevYear}`}
               value={money(data.totals.prevYearTotal)}
-              hint={`Année en cours ${year} : ${money(data.totals.currentYearTotal)}`}
+              hint={`Current year ${year}: ${money(data.totals.currentYearTotal)}`}
             />
           </div>
 
@@ -342,7 +342,7 @@ export function RevenueComparisonView() {
               <Card flush>
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                   <strong>Ensemble · {MONTHS[focusMonth - 1]} en surbrillance</strong>
-                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Mois à venir affichés « — »</span>
+                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Upcoming months shown as “—”</span>
                 </div>
                 <div className="ui-table-scroll">
                   <table style={tableStyle}>
@@ -351,8 +351,8 @@ export function RevenueComparisonView() {
                         <th style={thLeft}>Mois</th>
                         <th style={thStyle}>{year}</th>
                         <th style={thStyle}>{data.prevYear}</th>
-                        <th style={thStyle}>Écart</th>
-                        <th style={thStyle}>Évol.</th>
+                        <th style={thStyle}>Gap</th>
+                        <th style={thStyle}>Change</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -365,8 +365,8 @@ export function RevenueComparisonView() {
                           <tr key={row.month} className={isFocus ? "ui-row-active" : undefined} style={{ borderTop: "1px solid var(--line)" }}>
                             <td style={{ ...tdLeft, fontWeight: isFocus ? 650 : 400 }}>
                               {MONTHS[row.month - 1]}
-                              {future && <Pill size="sm" style={{ marginLeft: 8 }}>à venir</Pill>}
-                              {state === "current" && <Pill size="sm" tone="warn" style={{ marginLeft: 8 }}>en cours</Pill>}
+                              {future && <Pill size="sm" style={{ marginLeft: 8 }}>upcoming</Pill>}
+                              {state === "current" && <Pill size="sm" tone="warn" style={{ marginLeft: 8 }}>in progress</Pill>}
                             </td>
                             <td style={{ ...tdNumber, color: future ? "var(--fg-4)" : undefined }}>{future ? "—" : money(row.current)}</td>
                             <td style={{ ...tdNumber, color: row.prev > 0 ? "var(--fg)" : "var(--fg-4)" }}>{row.prev > 0 ? money(row.prev) : "—"}</td>
@@ -384,8 +384,8 @@ export function RevenueComparisonView() {
               <Card flush>
                 <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                   <strong>Par boutique · {MONTH_LONG[focusMonth - 1]} {year}</strong>
-                  {focusFuture && <Pill size="sm">à venir</Pill>}
-                  {focusCurrent && <Pill size="sm" tone="warn">en cours</Pill>}
+                  {focusFuture && <Pill size="sm">upcoming</Pill>}
+                  {focusCurrent && <Pill size="sm" tone="warn">in progress</Pill>}
                 </div>
                 <div className="ui-table-scroll">
                   <table style={tableStyle}>
@@ -394,8 +394,8 @@ export function RevenueComparisonView() {
                         <th style={thLeft}>Boutique</th>
                         <th style={thStyle}>{year}</th>
                         <th style={thStyle}>{data.prevYear}</th>
-                        <th style={thStyle}>Écart</th>
-                        <th style={thStyle}>Évol.</th>
+                        <th style={thStyle}>Gap</th>
+                        <th style={thStyle}>Change</th>
                       </tr>
                     </thead>
                     <tbody>

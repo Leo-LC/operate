@@ -146,10 +146,10 @@ function HourlyBarChart({ data, avgMode = false }: { data: { hour: number; reven
                 <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
                   <div className="text-xs font-medium text-[var(--fg)]">{p.hour}</div>
                   <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">
-                    {fmtTHB(p.revenue)}{avgMode ? " / jour" : ""}
+                    {fmtTHB(p.revenue)}{avgMode ? " / day" : ""}
                   </div>
                   <div className="text-[11px] text-[var(--fg-4)]">
-                    {avgMode ? `${p.count.toFixed(1)} tickets / jour` : `${p.count} receipts`}
+                    {avgMode ? `${p.count.toFixed(1)} tickets / day` : `${p.count} receipts`}
                   </div>
                 </div>
               );
@@ -221,7 +221,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const [hourlyData, setHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
   const [hourlyLoading, setHourlyLoading] = React.useState(false);
-  // Multi-jours : switch Par jour / Par heure + mode Moyenne (journée type) / Total (cumulé)
+  // Multi-day: By day / By hour switch + Daily average (typical day) / Period total (cumulative) mode
   const [chartView, setChartView] = React.useState<"day" | "hour">("day");
   const [hourlyMode, setHourlyMode] = React.useState<"avg" | "total">("avg");
   const [rangeHourlyData, setRangeHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
@@ -316,8 +316,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       .finally(() => setHourlyLoading(false));
   }, [effectiveEnd, rangeDays, selectedStores, data, mappedStores]);
 
-  // Multi-jours, vue Par heure : 1 appel / shop sur toute la période (from/to),
-  // cumulé côté API. La moyenne = cumulé / nb jours (journée type).
+  // Multi-day, By hour view: one call per shop over the whole period (from/to),
+  // accumulated by the API. Average = cumulative / days (typical day).
   React.useEffect(() => {
     if (rangeDays <= 1 || chartView !== "hour" || !data?.per_store.length) {
       setRangeHourlyData(null);
@@ -573,7 +573,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
         </div>
         {hiddenSnapCount > 0 && (
           <p className="text-xs text-[var(--warn)]">
-            {hiddenSnapCount} ligne(s) Loyverse sans shop rattaché sur la période — masquées ici. Rattachez-les dans Admin › Locations (Loyverse : account key + store ID).
+            {hiddenSnapCount} Loyverse row(s) without an attached shop in this period — hidden here. Attach them in Admin › Locations (Loyverse: account key + store ID).
           </p>
         )}
       </div>
@@ -663,25 +663,25 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               </CardTitle>
               <div className="ml-auto flex items-center gap-1 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-1">
                 <PillButton active={chartView === "day"} onClick={() => setChartView("day")} className="!py-1">
-                  Par jour
+                  By day
                 </PillButton>
                 <PillButton active={chartView === "hour"} onClick={() => setChartView("hour")} className="!py-1">
-                  Par heure
+                  By hour
                 </PillButton>
               </div>
             </div>
             {chartView === "hour" && (
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 <PillButton active={hourlyMode === "avg"} onClick={() => setHourlyMode("avg")} className="!py-1">
-                  Moyenne / jour
+                  Daily average
                 </PillButton>
                 <PillButton active={hourlyMode === "total"} onClick={() => setHourlyMode("total")} className="!py-1">
-                  Total période
+                  Period total
                 </PillButton>
                 <span className="text-[11px] text-[var(--fg-4)]">
                   {hourlyMode === "avg"
-                    ? "Journée type : cumulé ÷ nb jours — idéal pour staffing / horaires."
-                    : "Cumulé sur toute la période — grandit avec la durée sélectionnée."}
+                    ? "Typical day: cumulative ÷ days — ideal for staffing decisions."
+                    : "Cumulative over the whole period — grows with the selected duration."}
                 </span>
               </div>
             )}
@@ -808,7 +808,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
                     {store.store_ids.length > 1 && (
-                      <p className="mt-1 text-[11px] text-[var(--fg-4)]">{store.store_ids.length} caisses unifiées</p>
+                      <p className="mt-1 text-[11px] text-[var(--fg-4)]">{store.store_ids.length} merged registers</p>
                     )}
                   </div>
                   {isDegraded && (

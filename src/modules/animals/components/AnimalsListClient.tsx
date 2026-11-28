@@ -162,11 +162,11 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
     try {
       const res = await fetch(`/api/animals/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      toast.success(`${deleteTarget.name} supprimé`);
+      toast.success(`${deleteTarget.name} deleted`);
       removeAnimal(deleteTarget.id);
       setDeleteTarget(null);
     } catch {
-      toast.error("Suppression échouée");
+      toast.error("Delete failed");
     } finally {
       setDeleting(false);
     }
@@ -220,7 +220,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
               Boutique
             </span>
             <div className="ui-filter-control" role="group" aria-labelledby="animals-shop-label">
-              <ShopSingleSelect options={locations} value={shopFilter} onChange={setShopFilter} allowAll allLabel="Toutes les boutiques" />
+              <ShopSingleSelect options={locations} value={shopFilter} onChange={setShopFilter} allowAll allLabel="All shops" />
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             <KpiStat
               label="Animals"
               value={String(displayedAnimals.length)}
-              hint={shopFilter ? "Boutique sélectionnée" : "Toutes les boutiques"}
+              hint={shopFilter ? "Selected shop" : "All shops"}
             />
             {speciesCards.map((sp) => (
               <KpiStat
@@ -254,7 +254,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                 value={String(speciesCounts.get(sp.key) ?? 0)}
               />
             ))}
-            {speciesCards.length === 0 && <KpiStat label="Espèces" value="—" />}
+            {speciesCards.length === 0 && <KpiStat label="Species" value="—" />}
           </div>
 
           {/* Animal list */}
@@ -358,7 +358,7 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
                             e.stopPropagation();
                             setDeleteTarget(animal);
                           }}
-                          title="Supprimer"
+                          title="Delete"
                           style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "var(--r-sm)", border: "1px solid transparent", background: "transparent", color: "var(--fg-4)", cursor: "pointer" }}
                           onMouseEnter={(e) => {
                             (e.currentTarget as HTMLElement).style.background = "var(--bad-soft)";
@@ -417,14 +417,14 @@ export function AnimalsListClient({ initialAnimals, locations }: AnimalsListClie
             background: "var(--surface)", padding: 24,
             boxShadow: "var(--shadow-2)",
           }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Supprimer {deleteTarget.name} ?</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>Delete {deleteTarget.name}?</h2>
             <p style={{ fontSize: 13, color: "var(--fg-3)", marginBottom: 20 }}>
-              Êtes-vous sûr de vouloir supprimer cette fiche ? Cette action est irréversible. L’animal et son historique vaccinal seront définitivement supprimés.
+              Are you sure you want to delete this record? This action cannot be undone. The animal and its vaccination history will be permanently removed.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleting}>Annuler</Button>
+              <Button variant="secondary" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
               <Button variant="danger" size="sm" onClick={() => void handleDeleteConfirm()} disabled={deleting}>
-                {deleting ? "Suppression…" : "Supprimer"}
+                {deleting ? "Deleting…" : "Delete"}
               </Button>
             </div>
           </div>

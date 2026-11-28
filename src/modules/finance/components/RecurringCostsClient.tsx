@@ -311,7 +311,7 @@ export function RecurringCostsClient() {
         <Button type="button" size="sm" variant="secondary" onClick={() => { setEditing(null); setEditCustomCategory(""); setConfirmDeleteId(null); }}>Cancel</Button>
         {confirmDeleteId === editing.id ? (
           <span style={{ display: "inline-flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
-            <span style={{ fontSize: 12, color: "var(--fg-3)" }}>Êtes-vous sûr ?</span>
+            <span style={{ fontSize: 12, color: "var(--fg-3)" }}>Are you sure?</span>
             <Button type="button" size="sm" variant="destructive" disabled={deleting} onClick={() => void deleteCost(editing.id)}>{deleting ? "Deleting…" : "Confirm delete"}</Button>
             <Button type="button" size="sm" variant="secondary" disabled={deleting} onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
           </span>

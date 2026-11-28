@@ -120,7 +120,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
   // Live values (current salary + service charge on revenue-to-date, same
   // formula as Generate period). Powers preview rows for employees without a
-  // record and the "Total temps réel" line — records stay frozen by design.
+  // record and the live total line — records stay frozen by design.
   const defaultPct = initialLocations.find((l) => l.id === locationId)?.default_service_charge_pct ?? 1;
   const liveById = useMemo(() => {
     const map = new Map<string, { base: number; serviceCharge: number }>();
@@ -680,7 +680,7 @@ export function PaymentsClient({ initialLocations }: Props) {
             {showLiveTotal && liveTotals && (
               <div className="pay-grid pay-live-totals">
                 <div />
-                <div style={{ color: "var(--accent)", fontWeight: 600 }}>Total temps réel</div>
+                <div style={{ color: "var(--accent)", fontWeight: 600 }}>Live total</div>
                 <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
                   {liveTotals.base > 0 ? fmtThb(liveTotals.base) : "—"}
                 </div>

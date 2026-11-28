@@ -56,7 +56,7 @@ export function DirectionOperations() {
         )}
       </div>
       {loading && <div className="dir-loading" role="status" aria-live="polite">Chargement…</div>}
-      {!loading && data && <OperationsView data={data} />}
+      {!loading && data && <OperationsView data={data} locale="fr" />}
       {!loading && !data && <div className="dir-empty">Pas de données</div>}
     </div>
   );
