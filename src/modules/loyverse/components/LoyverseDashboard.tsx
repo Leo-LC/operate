@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { Stat } from "@/components/ui/stat";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, CoffeeIcon } from "lucide-react";
+import { RefreshCwIcon, ClockIcon } from "lucide-react";
 import { DateRangePicker, ShopMultiSelect } from "@/components/ui/filters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -16,11 +16,6 @@ function fmtTHB(n: number) {
 }
 function fmtInt(n: number) {
   return new Intl.NumberFormat("en-US").format(Math.round(n));
-}
-function fmtDelta(pct: number | null) {
-  if (pct === null || !Number.isFinite(pct)) return null;
-  const sign = pct > 0 ? "+" : "";
-  return `${sign}${pct.toFixed(1)}%`;
 }
 import { bangkokToday, parseDay, capitalizeShop } from "@/lib/loyverse/dates";
 import { groupStoresByLocation, type GroupedStore } from "@/modules/loyverse/lib/group-stores";
@@ -603,62 +598,30 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           </div>
         </div>
       ) : kpi ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Revenue"
-                value={fmtTHB(kpi.revenue_total)}
-                icon={<TrendingUpIcon className="size-4" />}
-                iconColor="var(--bronze)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Customers"
-                value={fmtInt(kpi.ticket_count)}
-                icon={<UsersIcon className="size-4" />}
-                iconColor="var(--info)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Drinks"
-                value={fmtInt(kpi.drinks_sold)}
-                icon={<CoffeeIcon className="size-4" />}
-                iconColor="var(--purple)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Animal Food"
-                value={fmtTHB(snackAmount)}
-                icon={<ShoppingBagIcon className="size-4" />}
-                iconColor="var(--good)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Merch"
-                value={fmtTHB(merchAmount)}
-                icon={<ShoppingBagIcon className="size-4" />}
-                iconColor="var(--warn)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
+        <div className="ui-kpi-grid">
+          <KpiStat
+            label="Revenue"
+            value={fmtTHB(kpi.revenue_total)}
+            hint={`${fmtInt(kpi.ticket_count)} customers`}
+          />
+          <KpiStat
+            label="Customers"
+            value={fmtInt(kpi.ticket_count)}
+          />
+          <KpiStat
+            label="Drinks"
+            value={fmtInt(kpi.drinks_sold)}
+          />
+          <KpiStat
+            label="Animal Food"
+            value={fmtTHB(snackAmount)}
+            hint={`${fmtInt(kpi.snacks_sold)} snacks`}
+          />
+          <KpiStat
+            label="Merch"
+            value={fmtTHB(merchAmount)}
+            hint={`${((merchAmount / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% of revenue`}
+          />
         </div>
       ) : (
         <Card>

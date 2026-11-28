@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
+import { CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { Modal } from "@/components/ui/modal";
-import { Pill } from "@/components/ui/pill";
 import { DateRangePicker, ShopMultiSelect, bangkokToday } from "@/components/ui/filters";
 import { toast } from "sonner";
 import type { DailyProfitResponse, DailyProfitRow } from "@/modules/reports/daily-profit/types";

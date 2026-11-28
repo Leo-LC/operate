@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2Icon, CalculatorIcon,
-  PrinterIcon, XIcon, EyeIcon, ListIcon, PlusIcon, Trash2Icon,
+  PrinterIcon, EyeIcon, ListIcon, PlusIcon, Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { ControlledTabs } from "@/components/ui/module-tabs";
@@ -831,92 +832,37 @@ export function PaymentsClient({ initialLocations }: Props) {
 
       {/* Employee edit modal */}
       {employeeModal && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 50,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
-            padding: "var(--s-4)",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setEmployeeModal(null); }}
+        <Modal
+          open
+          onClose={() => setEmployeeModal(null)}
+          title={`Edit employee — ${employeeModal.first_name} ${employeeModal.last_name}`}
+          width={680}
         >
-          <div
-            style={{
-              width: "100%", maxWidth: 680,
-              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-              background: "var(--surface)", boxShadow: "var(--shadow-2)",
-              overflowY: "auto", maxHeight: "90vh",
-            }}
-          >
-            <div
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)",
-              }}
-            >
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                Edit employee — {employeeModal.first_name} {employeeModal.last_name}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setEmployeeModal(null)}
-                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
-              >
-                <XIcon style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-            <div style={{ padding: "var(--s-5)" }}>
-              <EmployeeForm
-                form={employeeForm}
-                locIds={employeeLocIds}
-                primaryLoc={employeePrimaryLoc}
-                locations={initialLocations}
-                submitting={employeeSubmitting}
-                onChange={(key, val) => setEmployeeForm((f) => ({ ...f, [key]: val }))}
-                onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
-                onSetPrimary={(id) => setEmployeePrimaryLoc(id)}
-                onSubmit={(e) => { e.preventDefault(); void handleEmployeeSave(); }}
-                onCancel={() => setEmployeeModal(null)}
-                submitLabel="Save changes"
-              />
-            </div>
-          </div>
-        </div>
+          <EmployeeForm
+            form={employeeForm}
+            locIds={employeeLocIds}
+            primaryLoc={employeePrimaryLoc}
+            locations={initialLocations}
+            submitting={employeeSubmitting}
+            onChange={(key, val) => setEmployeeForm((f) => ({ ...f, [key]: val }))}
+            onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
+            onSetPrimary={(id) => setEmployeePrimaryLoc(id)}
+            onSubmit={(e) => { e.preventDefault(); void handleEmployeeSave(); }}
+            onCancel={() => setEmployeeModal(null)}
+            submitLabel="Save changes"
+          />
+        </Modal>
       )}
 
       {/* Payment record modal — base salary, service charge and adjustments in one place */}
       {paymentModal && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 50,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
-            padding: "var(--s-4)",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setPaymentModal(null); }}
+        <Modal
+          open
+          onClose={() => setPaymentModal(null)}
+          title={`Edit payment — ${paymentModal.emp.first_name} ${paymentModal.emp.last_name}`}
+          width={460}
         >
-          <div
-            style={{
-              width: "100%", maxWidth: 460,
-              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-              background: "var(--surface)", boxShadow: "var(--shadow-2)",
-              padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-4)",
-              maxHeight: "90vh", overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                Edit payment — {paymentModal.emp.first_name} {paymentModal.emp.last_name}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setPaymentModal(null)}
-                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
-              >
-                <XIcon style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
             <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
               Base salary is {fmtThb(paymentModal.emp.base_salary_monthly ?? 0)}/mo · service charge share is {paymentModal.emp.service_charge_pct ?? "location default"}%
               {revenue != null && <> of {fmtThb(revenue)} revenue this period</>}. Overriding either value here only affects this period&apos;s record.
@@ -1043,7 +989,7 @@ export function PaymentsClient({ initialLocations }: Props) {
               </span>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

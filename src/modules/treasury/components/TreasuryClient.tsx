@@ -279,11 +279,63 @@ function AddReserveForm({ onAdd }: { onAdd: (r: Partial<Reserve>) => Promise<voi
   );
 }
 
+// ── Bank Account Form ─────────────────────────────────────────────────────────
+
+function AddBankAccountForm({ onAdd }: { onAdd: (a: { account_name: string; declared_balance: number | null }) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [balance, setBalance] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onAdd({ account_name: name.trim(), declared_balance: balance !== "" ? Number(balance) : null });
+      setName(""); setBalance("");
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) return (
+    <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>+ Add account</Button>
+  );
+
+  return (
+    <div className="trs-reserve-form">
+      <div className="trs-reserve-grid">
+        <div>
+          <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Account name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Bangkok Bank main"
+            style={{ width: "100%", height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--bg-2)", color: "var(--fg)", outline: "none" }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Declared balance (฿)</label>
+          <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0"
+            style={{ width: "100%", height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--bg-2)", color: "var(--fg)", outline: "none" }} />
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="sm" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button size="sm" onClick={() => void handleSave()} disabled={saving || !name.trim()}>
+            {saving ? "…" : "Add"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function TreasuryClient() {
   const [data, setData] = useState<TreasuryData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Inline delete confirmations (replaces window.confirm): the id of the row
+  // whose delete button was pressed; a second click confirms.
+  const [confirmBankId, setConfirmBankId] = useState<string | null>(null);
+  const [confirmReserveId, setConfirmReserveId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -335,6 +387,28 @@ export function TreasuryClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
+    await load();
+  }
+
+  async function addBankAccount(account: { account_name: string; declared_balance: number | null }) {
+    const res = await fetch("/api/treasury/bank-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(account),
+    });
+    if (!res.ok) { toast.error("Save failed"); return; }
+    toast.success("Bank account added");
+    await load();
+  }
+
+  async function deleteBankAccount(id: string) {
+    const res = await fetch("/api/treasury/bank-accounts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) { toast.error("Delete failed"); return; }
+    toast.success("Bank account deleted");
     await load();
   }
 
@@ -443,19 +517,7 @@ export function TreasuryClient() {
 
       {/* Bank accounts */}
       <Section title="Bank accounts" action={
-        <Button size="sm" variant="secondary" onClick={() => {
-          const name = window.prompt("Account name:");
-          if (!name) return;
-          const balance = window.prompt("Declared balance (฿):");
-          if (balance == null) return;
-          void fetch("/api/treasury/bank-accounts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ account_name: name, declared_balance: Number(balance) || null }),
-          }).then(() => load());
-        }}>
-          + Add account
-        </Button>
+        <AddBankAccountForm onAdd={addBankAccount} />
       }>
         {(data?.bankAccounts ?? []).length === 0 ? (
           <div className="trs-list-empty">
@@ -472,16 +534,19 @@ export function TreasuryClient() {
                   {" · Reliability: "}<ReliabilityBadge r={acc.reliability} />
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => {
-                if (!window.confirm(`Delete "${acc.account_name}"?`)) return;
-                void fetch("/api/treasury/bank-accounts", {
-                  method: "DELETE",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: acc.id }),
-                }).then(() => load());
-              }}>
-                Delete
-              </Button>
+              {confirmBankId === acc.id ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, color: "var(--bad)" }}>Delete this account?</span>
+                  <Button size="sm" variant="secondary" onClick={() => setConfirmBankId(null)}>Cancel</Button>
+                  <Button size="sm" onClick={() => { setConfirmBankId(null); void deleteBankAccount(acc.id); }}>
+                    Delete
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setConfirmBankId(acc.id)}>
+                  Delete
+                </Button>
+              )}
             </div>
           ))
         )}
@@ -531,9 +596,16 @@ export function TreasuryClient() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
                     <span className="mono tabular-nums" style={{ fontSize: 12, fontWeight: 600, color: barColor }}>{pct(completePct)}</span>
-                    <Button size="sm" variant="ghost" onClick={() => {
-                      if (window.confirm(`Delete "${r.label}"?`)) void deleteReserve(r.id);
-                    }}>×</Button>
+                    {confirmReserveId === r.id ? (
+                      <>
+                        <Button size="sm" variant="secondary" onClick={() => setConfirmReserveId(null)}>Cancel</Button>
+                        <Button size="sm" onClick={() => { setConfirmReserveId(null); void deleteReserve(r.id); }}>
+                          Delete
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="ghost" onClick={() => setConfirmReserveId(r.id)}>×</Button>
+                    )}
                   </div>
                 </div>
               );

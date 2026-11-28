@@ -3,11 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
-  ChevronRightIcon,
   UsersIcon,
-  LockIcon,
-  AlertTriangleIcon,
-  LightbulbIcon,
   BarChart3Icon,
   ActivityIcon,
   CreditCardIcon,
@@ -187,29 +183,6 @@ function Controls({
   );
 }
 
-// ── Sparkline ────────────────────────────────────────────────────────────────
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  if (data.length < 2) return null;
-  const w = 64;
-  const h = 28;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * w;
-      const y = h - ((v - min) / range) * h;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible", flexShrink: 0 }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 // ── KPI Card ─────────────────────────────────────────────────────────────────
 
 function KpiCard({
@@ -237,16 +210,16 @@ function KpiCard({
 
 // ── Section card + header — neutral, no colored bg, muted icon ─────
 
-function SectionHeader({ label, icon }: { label: string; bg?: string; color?: string; icon?: React.ReactNode }) {
+function SectionHeader({ label, icon }: { label: string; icon?: React.ReactNode }) {
   return (
     <div
       style={{
-        padding: "10px 16px", borderBottom: "1px solid var(--line)",
-        background: "var(--surface-2)", display: "flex", alignItems: "center", gap: 8,
+        padding: "11px 16px", borderBottom: "1px solid var(--line)",
+        display: "flex", alignItems: "center", gap: 8,
       }}
     >
       {icon && <span style={{ color: "var(--fg-4)", display: "inline-flex" }}>{icon}</span>}
-      <h3 className="eyebrow" style={{ color: "var(--fg-3)", margin: 0 }}>{label}</h3>
+      <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>{label}</h3>
     </div>
   );
 }
@@ -327,67 +300,6 @@ function BarListHeader() {
   );
 }
 
-// ── Rule-based insights ───────────────────────────────────────────────────────
-
-interface NeedsActionItem { label: string; tone: "bad" | "warn" | "info" }
-
-function computeNeedsAction(
-  o: ShopAgg,
-  monthlyExpenses: MonthlyExpensesData,
-  completeness: AccountingData["completeness"]
-): NeedsActionItem[] {
-  const items: NeedsActionItem[] = [];
-
-  if (o.closingCashSafe < 0) {
-    items.push({ label: `Closing cash safe is negative (${fmtMoney(o.closingCashSafe)})`, tone: "bad" });
-  }
-  if (!monthlyExpenses.entered) {
-    items.push({ label: "Monthly expenses not entered", tone: "warn" });
-  }
-  if (o.cashToBoss > 0) {
-    items.push({ label: `Verify cash sent to boss (฿${fmtN(o.cashToBoss)})`, tone: "info" });
-  }
-  const otherExp = o.expOtherCash + o.expOtherBank;
-  if (o.revenue > 0 && otherExp / o.revenue > 0.05) {
-    items.push({ label: `High "Other" expense (฿${fmtN(otherExp)})`, tone: "warn" });
-  }
-  if (completeness && completeness.percent < 100) {
-    items.push({ label: `Enter missing daily entries (${completeness.percent}% complete)`, tone: "warn" });
-  }
-
-  return items;
-}
-
-function computeManagementNotes(o: ShopAgg): string[] {
-  const notes: string[] = [];
-  if (o.revenue <= 0) return notes;
-
-  const cats = [
-    { label: "Ticket sales", value: o.tickets },
-    { label: "Drink sales", value: o.drinks },
-    { label: "Snack sales", value: o.snacks },
-    { label: "Goodies sales", value: o.goodies },
-  ];
-  const top = [...cats].sort((a, b) => b.value - a.value)[0];
-  if (top.value > 0) {
-    notes.push(`${top.label} drive ${fmtPct((top.value / o.revenue) * 100)} of total revenue.`);
-  }
-
-  const hrPct = (o.hrCosts / o.revenue) * 100;
-  notes.push(
-    hrPct <= 30
-      ? `HR ratio (${fmtPct(hrPct)}) is in a healthy range.`
-      : `HR ratio (${fmtPct(hrPct)}) is above target — review staffing costs.`
-  );
-
-  const secondaryPct = cats.filter((c) => c.label !== top.label).reduce((s, c) => s + c.value, 0) / o.revenue * 100;
-  if (secondaryPct < 25) {
-    notes.push("Secondary categories remain a smaller share of revenue — opportunity to grow.");
-  }
-
-  return notes.slice(0, 3);
-}
-
 // ── Performance Metrics ───────────────────────────────────────────────────────
 
 interface MetricDef {
@@ -442,7 +354,7 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
 
   return (
     <Card>
-      <SectionHeader label="Indicateurs de performance" bg="var(--bronze-soft)" color="var(--bronze-2)" />
+      <SectionHeader label="Indicateurs de performance" />
       <div className="ui-table-scroll">
         <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -608,29 +520,29 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Revenue Mix + Cost Drivers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Répartition du CA" bg="var(--good-soft)" color="var(--good)" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Répartition du CA" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {revenueRows.map((r, i) => (
-              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--good)" />
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--ui-series-primary)" />
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--good)" }}>Total Sales Net</span>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--good)" }}>฿{fmtN(o.revenue)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total Sales Net</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(o.revenue)}</span>
             </div>
           </div>
         </Card>
 
         <Card>
-          <SectionHeader label="Charges d'exploitation" bg="var(--warn-soft)" color="var(--warn)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Charges d'exploitation" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {costRows.map((r, i) => (
-              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--warn)" />
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--ui-series-neutral)" />
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--warn)" }}>Total Operating Expenses</span>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--warn)" }}>฿{fmtN(totalOpex)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total Operating Expenses</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(totalOpex)}</span>
             </div>
           </div>
         </Card>
@@ -638,7 +550,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* HR Breakdown */}
       <Card>
-        <SectionHeader label="Détail RH" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="Détail RH" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div className="ui-bar-head">
             <span />
@@ -647,18 +559,18 @@ export function OperationsView({ data }: { data: AccountingData }) {
             <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of HR</span>
           </div>
           {hrRows.map((r, i) => (
-            <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--purple)" />
+            <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--ui-series-neutral)" />
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--purple)" }}>Total HR Cost</span>
-            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>฿{fmtN(o.hrCosts)}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total HR Cost</span>
+            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(o.hrCosts)}</span>
           </div>
         </div>
       </Card>
 
       {/* Daily Rhythm */}
       <Card>
-        <SectionHeader label="Daily Rhythm" bg="var(--bg-2)" color="var(--fg-3)" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="Daily Rhythm" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Avg / Day</span>
@@ -685,7 +597,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Payment Methods */}
       <Card>
-        <SectionHeader label="Moyens de paiement" bg="var(--info-soft)" color="var(--info)" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="Moyens de paiement" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div className="ui-bar-head">
             <span />
@@ -698,11 +610,11 @@ export function OperationsView({ data }: { data: AccountingData }) {
             { label: "Scan / QR", value: o.scan },
             { label: "Credit Card", value: o.creditCard },
           ].map((row, i) => (
-            <BarListRow key={row.label} index={i + 1} label={row.label} amount={row.value} pctOfTotal={paymentPct(row.value)} color="var(--info)" />
+            <BarListRow key={row.label} index={i + 1} label={row.label} amount={row.value} pctOfTotal={paymentPct(row.value)} color="var(--ui-series-primary)" />
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--info)" }}>Total Payments</span>
-            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--info)" }}>฿{fmtN(totalPayments)}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total Payments</span>
+            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(totalPayments)}</span>
           </div>
         </div>
       </Card>
@@ -710,7 +622,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Monthly Expenses + HR Ratios & Pending */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Charges mensuelles" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Charges mensuelles" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
           <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -736,9 +648,9 @@ export function OperationsView({ data }: { data: AccountingData }) {
                     </tr>
                   );
                 })}
-                <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                  <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total Monthly Expenses</td>
-                  <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>
+                <tr style={{ background: "var(--ui-panel-2)", borderTop: "2px solid var(--line-strong)" }}>
+                  <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--fg-1)" }}>Total Monthly Expenses</td>
+                  <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--fg-1)" }}>
                     {fmtN(Object.values(monthlyExpenses.totals).reduce((s, v) => s + v, 0))}
                   </td>
                   <td style={{ padding: "8px var(--s-5)", textAlign: "right" }} />
@@ -752,7 +664,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
         </Card>
 
         <Card>
-          <SectionHeader label="Ratios RH" bg="var(--bg-2)" color="var(--fg-3)" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label="Ratios RH" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
           <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -784,7 +696,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* VAT & Total Costs */}
       <Card>
-        <SectionHeader label="TVA et coûts" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="TVA et coûts" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
         <div className="ui-table-scroll">
           <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -805,10 +717,10 @@ export function OperationsView({ data }: { data: AccountingData }) {
                 <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{fmtN(grandTotalCosts)}</td>
                 <td style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{o.revenue > 0 ? fmtPct((grandTotalCosts / o.revenue) * 100) : "—"}</td>
               </tr>
-              <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total Sales Net</td>
-                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>{fmtN(o.revenue)}</td>
-                <td style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>100.00%</td>
+              <tr style={{ background: "var(--ui-panel-2)", borderTop: "2px solid var(--line-strong)" }}>
+                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--fg-1)" }}>Total Sales Net</td>
+                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--fg-1)" }}>{fmtN(o.revenue)}</td>
+                <td style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--fg-1)" }}>100.00%</td>
               </tr>
             </tbody>
           </table>
@@ -818,7 +730,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Per-shop comparison (kept from previous layout — not part of reference image but useful) */}
       {sortedShops.length > 1 && (
         <Card>
-          <SectionHeader label="Comparaison par boutique" bg="var(--bg-2)" color="var(--fg-3)" />
+          <SectionHeader label="Comparaison par boutique" />
           <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -858,9 +770,9 @@ export function OperationsView({ data }: { data: AccountingData }) {
                     </td>
                   </tr>
                 ))}
-                <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                  <td style={{ padding: "10px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total</td>
-                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)" }}>฿{fmtN(o.revenue)}</td>
+                <tr style={{ background: "var(--ui-panel-2)", borderTop: "2px solid var(--line-strong)" }}>
+                  <td style={{ padding: "10px var(--s-5)", fontWeight: 600, color: "var(--fg-1)" }}>Total</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--fg-1)" }}>฿{fmtN(o.revenue)}</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.expenses)}</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.hrCosts)}</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontWeight: 700, color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
@@ -1332,9 +1244,6 @@ function TreasuryView({ data }: { data: AccountingData }) {
     return Math.max(...values, 1);
   }, [sortedShops, activeMetrics]);
 
-  const top = sortedShops[0];
-  const bottom = sortedShops[sortedShops.length - 1];
-
   function toggleMetric(key: string) {
     setEnabledMetrics((prev) => {
       const isActive = prev[key] !== false;
@@ -1343,24 +1252,6 @@ function TreasuryView({ data }: { data: AccountingData }) {
       if (!isActive && compareMode === "custom" && activeCount >= MAX_CUSTOM_METRICS) return prev;
       return { ...prev, [key]: !isActive };
     });
-  }
-
-  function calloutDetail(shop: ShopAgg) {
-    const sortVal = sortMetric.getValue(shop);
-    const sortDisplay = sortMetric.format === "percent" ? fmtPct(sortVal) : fmtMoney(sortVal);
-    if (compareMode === "revenue") {
-      return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
-    }
-    if (compareMode === "net-profit") {
-      return `${fmtMoney(shop.netProfit)} profit · ${fmtPct(shop.margin)} margin`;
-    }
-    if (compareMode === "custom") {
-      return `${sortDisplay} ${sortMetric.label.toLowerCase()} · ${fmtPct(shop.margin)} margin`;
-    }
-    if (compareMode === "revenue-mix" || compareMode === "payments") {
-      return `฿${fmtN(config.sortBy(shop))} total · ${fmtPct(shop.margin)} margin`;
-    }
-    return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
   }
 
   const compareHint =

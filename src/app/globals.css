@@ -103,11 +103,10 @@
     justify-content: flex-start;
     gap: var(--ui-kpi-gap);
     min-width: 0;
-    padding: 16px var(--ui-panel-pad-x);
+    padding: 14px 16px;
     background: var(--ui-panel);
     border: var(--ui-line-width) solid var(--ui-line);
-    border-radius: var(--ui-radius);
-    box-shadow: var(--ui-shadow);
+    border-radius: var(--ui-radius-md);
   }
 
   .ui-kpi-body {
@@ -115,23 +114,27 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
+    flex: 1 1 auto;
   }
 
   .ui-kpi-label {
     margin: 0;
-    font-size: var(--ui-text-sm);
+    font-size: var(--ui-text-note);
     font-weight: 500;
+    letter-spacing: 0;
     color: var(--ui-fg-3);
   }
 
   .ui-kpi-value {
     margin: 0;
-    font-size: var(--ui-text-value);
-    line-height: 1.05;
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    line-height: 1.1;
     font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--ui-fg-1);
+    letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
+    color: var(--ui-fg-1);
   }
 
   .ui-kpi-unit {
@@ -196,11 +199,6 @@
   @media (max-width: 479px) {
     .ui-kpi-grid .ui-kpi {
       padding: 12px 11px;
-    }
-
-    .ui-kpi-grid .ui-kpi-value {
-      font-size: 22px;
-      letter-spacing: -0.03em;
     }
   }
 
@@ -409,7 +407,7 @@
   @media (max-width: 767px) {
     .ui-kpi {
       gap: 10px;
-      padding: 13px 14px;
+      padding: 12px 14px;
     }
 
     .ui-kpi-body {
@@ -417,7 +415,7 @@
     }
 
     .ui-kpi-value {
-      font-size: 28px;
+      font-size: 20px;
     }
 
     .ui-kpi-note {
