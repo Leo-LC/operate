@@ -111,6 +111,7 @@ async function upsertSnapshot(
     revenue_total: number;
     snacks_sold: number;
     tickets_sold: number;
+    drinks_sold: number;
     avg_ticket: number;
     unmapped_line_items: number;
     unmapped_payments: number;
@@ -350,6 +351,7 @@ async function syncStoreDate(
       revenue_total,
       snacks_sold: challenges.snacks_sold,
       tickets_sold: challenges.tickets_sold,
+      drinks_sold: challenges.drinks_sold,
       avg_ticket,
       unmapped_line_items: meta.unmapped_line_items,
       unmapped_payments: meta.unmapped_payments,
@@ -400,6 +402,7 @@ async function syncStoreDate(
         revenue_total: row.revenue_total,
         snacks_sold: row.snacks_sold,
         tickets_sold: row.tickets_sold,
+        drinks_sold: row.drinks_sold,
         avg_ticket: row.avg_ticket,
         unmapped_line_items: row.unmapped_line_items,
         unmapped_payments: row.unmapped_payments,

@@ -10,6 +10,7 @@ function entry(over: Partial<StoreEntry> & { store_id: string }): StoreEntry {
     ticket_count: 0,
     receipt_count: 0,
     snacks_sold: 0,
+    drinks_sold: 0,
     avg_ticket: 0,
     buckets: { drinks: 0, ticket: 0, snack: 0, goodies: 0, surcharge: 0 },
     payments: { cash: 0, scan: 0, credit_card: 0 },

@@ -7,7 +7,7 @@ import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
 import { Stat } from "@/components/ui/stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, ReceiptIcon } from "lucide-react";
+import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, CoffeeIcon } from "lucide-react";
 import { DateRangePicker, ShopMultiSelect } from "@/components/ui/filters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -38,6 +38,7 @@ type DashboardKpis = {
   ticket_count: number;
   receipt_count: number;
   snacks_sold: number;
+  drinks_sold: number;
   store_count: number;
   avg_ticket: number;
   delta_vs_week_ago_pct: number | null;
@@ -53,6 +54,7 @@ type PerStore = {
   ticket_count: number;
   receipt_count: number;
   snacks_sold: number;
+  drinks_sold: number;
   avg_ticket: number;
   buckets: { drinks: number; ticket: number; snack: number; goodies: number; surcharge: number };
   payments: { cash: number; scan: number; credit_card: number };
@@ -506,6 +508,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
     });
     const filteredVat = filteredCurrentSnaps.reduce((a, b) => a + Number((b as unknown as { vat_7?: number }).vat_7 ?? 0), 0);
     const filteredSnacks = perStore.reduce((s, r) => s + r.snacks_sold, 0);
+    const filteredDrinks = perStore.reduce((s, r) => s + r.drinks_sold, 0);
     const filteredTickets = perStore.reduce((s, r) => s + r.ticket_count, 0);
     const filteredReceipts = perStore.reduce((s, r) => s + r.receipt_count, 0);
     const prevStart = data?.date_range.prev_start;
@@ -529,6 +532,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       ticket_count: filteredTickets,
       receipt_count: filteredReceipts,
       snacks_sold: filteredSnacks,
+      drinks_sold: filteredDrinks,
       store_count: perStore.length,
       avg_ticket: filteredTickets > 0 ? rev / filteredTickets : 0,
       delta_vs_week_ago_pct: deltaFiltered,
@@ -554,7 +558,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const lastRun = status?.last_run;
   const kpi = filteredKpis;
   const snackAmount = perStore.reduce((s, r) => s + r.buckets.snack, 0);
-  const snackPct = kpi && kpi.ticket_count > 0 ? (kpi.snacks_sold / kpi.ticket_count) * 100 : 0;
   const merchAmount = perStore.reduce((s, r) => s + r.buckets.goodies, 0);
 
   const dailyChartData = (() => {
@@ -637,7 +640,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <Stat
                 label="Revenue"
                 value={fmtTHB(kpi.revenue_total)}
-                hint={`${fmtInt(kpi.ticket_count)} customers`}
                 icon={<TrendingUpIcon className="size-4" />}
                 iconColor="var(--bronze)"
               />
@@ -658,7 +660,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <Stat
                 label="Animal Food"
                 value={fmtTHB(snackAmount)}
-                hint={`${fmtInt(kpi.snacks_sold)} snacks · ${snackPct.toFixed(0)}% of customers`}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--good)"
               />
@@ -669,7 +670,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <Stat
                 label="Merch"
                 value={fmtTHB(merchAmount)}
-                hint={`${((merchAmount / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% of revenue`}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--warn)"
               />
@@ -678,11 +678,11 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <Card className="flex flex-col">
             <CardContent className="flex flex-1 flex-col">
               <Stat
-                label="VAT collected"
-                value={fmtTHB(kpi.vat_7)}
-                hint={`${((kpi.vat_7 / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% of revenue`}
-                icon={<ReceiptIcon className="size-4" />}
-                iconColor="var(--purple)"
+                label="Drinks / Customer"
+                value={kpi.ticket_count > 0 ? (kpi.drinks_sold / kpi.ticket_count).toFixed(2) : "—"}
+                hint={`${fmtInt(kpi.drinks_sold)} drinks · ${fmtInt(kpi.ticket_count)} customers`}
+                icon={<CoffeeIcon className="size-4" />}
+                iconColor="var(--info)"
               />
             </CardContent>
           </Card>
@@ -899,7 +899,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--line-2)]">
                           <div className="h-full rounded-full" style={{ width: `${(b.value / bucketMax) * 100}%`, background: b.color }} />
                         </div>
-                        <span className="w-[72px] shrink-0 text-right font-mono text-[11px] tabular-nums text-[var(--fg-2)]">{fmtTHB(b.value)}</span>
+                        <span className="flex shrink-0 items-baseline justify-end gap-1.5 font-mono text-[11px] tabular-nums">
+                          <span className="text-[var(--fg-2)]">{fmtTHB(b.value)}</span>
+                          <span className="w-[44px] text-right text-[var(--fg-4)]">{fmtPct(b.value, store.revenue_total)}</span>
+                        </span>
                       </div>
                     ))}
                   </div>

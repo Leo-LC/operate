@@ -48,6 +48,7 @@ describe("aggregateReceipts", () => {
     ];
     const { proposed, challenges, meta } = aggregateReceipts(receipts, "2026-08-23", "store-1", itemCategoryMap, categoryNames);
     expect(proposed.sales_drinks_net).toBe(100);
+    expect(challenges.drinks_sold).toBe(1);
     expect(proposed.vat_7).toBe(7);
     expect(proposed.sales_card_surcharge).toBe(2);
     expect(proposed.payment_cash).toBe(100);
@@ -113,6 +114,15 @@ describe("aggregateReceipts", () => {
     expect(proposed.sales_snack_net).toBe(30);
     expect(proposed.sales_goodies_net).toBe(40);
     expect(challenges.snacks_sold).toBe(3);
+  });
+
+  it("counts drinks_sold from drink quantity, clamps to 0 after refunds", () => {
+    const receipts: LoyverseReceipt[] = [
+      mkReceipt({ line_items: [{ item_id: "item-drink", total_money: 60, quantity: 4 }] }),
+      mkReceipt({ receipt_type: "REFUND", line_items: [{ item_id: "item-drink", total_money: 60, quantity: 5 }] }),
+    ];
+    const { challenges } = aggregateReceipts(receipts, "2026-08-23", "store-1", itemCategoryMap, categoryNames);
+    expect(challenges.drinks_sold).toBe(0);
   });
 
   it("counts snacks_sold from snack quantity, clamps to 0 after refunds", () => {
