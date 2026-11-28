@@ -96,7 +96,7 @@ export function ActivityClient({ rows }: { rows: ActivityRow[] }) {
           }}
         >
           <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
-            Aujourd&apos;hui — qui est passé ?
+            Today — who stopped by?
           </h3>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>
             {todayRows.length} visite{todayRows.length > 1 ? "s" : ""} · {new Set(todayRows.map((r) => r.user_email)).size} personne(s)
@@ -104,7 +104,7 @@ export function ActivityClient({ rows }: { rows: ActivityRow[] }) {
         </div>
         {todayRows.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
-            Personne n&apos;a encore visité de module aujourd&apos;hui.
+            Nobody has visited a module yet today.
           </div>
         ) : (
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -124,7 +124,7 @@ export function ActivityClient({ rows }: { rows: ActivityRow[] }) {
                 <strong style={{ color: "var(--fg)", fontWeight: 600 }}>
                   {shortName(r.user_email)}
                 </strong>
-                <span>a visité le module</span>
+                <span>visited the module</span>
                 <span
                   className="mono"
                   style={{
@@ -139,7 +139,7 @@ export function ActivityClient({ rows }: { rows: ActivityRow[] }) {
                   {r.module_key}
                 </span>
                 <span>
-                  aujourd&apos;hui à <span className="mono">{bangkokTime(r.last_seen_at)}</span>
+                  today at <span className="mono">{bangkokTime(r.last_seen_at)}</span>
                   {r.visit_count > 1 && (
                     <span style={{ color: "var(--fg-4)" }}> ({r.visit_count} passages)</span>
                   )}
@@ -170,16 +170,16 @@ export function ActivityClient({ rows }: { rows: ActivityRow[] }) {
           }}
         >
           <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
-            Activité — 30 derniers jours
+            Activity — last 30 days
           </h3>
           <span style={{ fontSize: 11, color: "var(--fg-4)" }}>
-            1 carré = 1 jour · intensité = nb de modules visités
+            1 square = 1 day · intensity = number of modules visited
           </span>
         </div>
         {users.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
-            Aucune visite enregistrée sur la période. La grille se remplit dès que
-            quelqu&apos;un navigue sur le site.
+            No visits recorded in this period. The grid fills up as soon as
+            someone browses the site.
           </div>
         ) : (
           <div style={{ overflowX: "auto", padding: 16 }}>

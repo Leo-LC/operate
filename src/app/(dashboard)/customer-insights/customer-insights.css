@@ -1,0 +1,814 @@
+/* ============================================================================
+   Customer Insights — route-local layout on the Operate foundation
+   ----------------------------------------------------------------------------
+   Layout and module-specific pieces for Customer Insights. Colors, typography,
+   radii, borders and interaction states come from the global Operate
+   foundation in src/app/globals.css.
+   ========================================================================== */
+
+.ci {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  color: var(--ui-fg-1);
+}
+
+/* The page-level flex gap owns the rhythm; the shared header must not add its
+   own bottom margin here. */
+.ci .ui-module-header {
+  margin-bottom: 0;
+}
+
+.ci-header .ui-module-header-row {
+  justify-content: space-between;
+}
+
+.ci-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ── Banners ─────────────────────────────────────────────────────────────── */
+
+.ci-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-left-width: 3px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel);
+  color: var(--ui-fg-2);
+  font-size: var(--ui-text-body);
+  line-height: 1.5;
+}
+
+.ci-banner svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.ci-banner p {
+  margin: 0;
+  min-width: 0;
+}
+
+.ci-banner[data-tone="warn"] {
+  border-left-color: var(--ui-warn);
+  background: var(--ui-warn-soft);
+}
+
+.ci-banner[data-tone="warn"] svg {
+  color: var(--ui-warn);
+}
+
+.ci-banner[data-tone="negative"] {
+  border-left-color: var(--ui-negative);
+  background: var(--ui-negative-soft);
+}
+
+.ci-banner[data-tone="negative"] svg {
+  color: var(--ui-negative);
+}
+
+/* ── Filter toolbar ──────────────────────────────────────────────────────── */
+
+.ci-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ci-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  min-width: 0;
+}
+
+.ci-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ci-filter-shops {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.ci-filter-label {
+  font-size: var(--ui-text-caption);
+  font-weight: 500;
+  color: var(--ui-fg-3);
+}
+
+.ci-select {
+  width: 150px;
+  height: var(--ui-control-h);
+  padding: 0 8px;
+  border: var(--ui-line-width) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel);
+  color: var(--ui-fg-1);
+  font-size: var(--ui-text-body);
+  cursor: pointer;
+}
+
+.ci-select:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+/* Shop pills use the shared ShopSingleSelect. Restyle its PillButtons inside
+   this module only so the active pill carries the accent instead of a grey
+   legacy fill. */
+.ci-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ci-pill-row button {
+  height: 28px;
+  padding: 0 10px;
+  border: var(--ui-line-width) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel);
+  color: var(--ui-fg-2);
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.ci-pill-row button:hover {
+  border-color: var(--ui-fg-3);
+  background: var(--ui-panel-2);
+  color: var(--ui-fg-1);
+}
+
+.ci-pill-row button[aria-pressed="true"] {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-text);
+  font-weight: 600;
+}
+
+.ci-pill-row button:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+/* ── Shop scope: pills on desktop, one disclosure on phones ─────────────── */
+
+.ci-shop-scope {
+  min-width: 0;
+}
+
+.ci-shop-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ci-shop-compact {
+  position: relative;
+  display: none;
+  min-width: 0;
+}
+
+.ci-shop-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: var(--ui-line-width) solid var(--ui-control-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel);
+  color: var(--ui-fg-2);
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.ci-shop-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-shop-trigger:hover {
+  border-color: var(--ui-fg-3);
+  background: var(--ui-panel-2);
+  color: var(--ui-fg-1);
+}
+
+.ci-shop-trigger[aria-expanded="true"] {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-text);
+  font-weight: 600;
+}
+
+.ci-shop-trigger:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+}
+
+.ci-shop-chevron {
+  flex: 0 0 auto;
+  transition: transform 140ms var(--ease);
+}
+
+.ci-shop-trigger[aria-expanded="true"] .ci-shop-chevron {
+  transform: rotate(180deg);
+}
+
+.ci-shop-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 24px));
+  padding: 10px;
+  border: var(--ui-line-width) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow-raised);
+}
+
+.ci-shop-panel .ci-pill-row {
+  gap: 6px;
+}
+
+.ci-shop-done {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 0;
+  border: 0;
+  border-top: var(--ui-line-width) solid var(--ui-line);
+  background: none;
+  color: var(--ui-accent-text);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ci-shop-done:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 1px;
+  border-radius: var(--ui-radius-sm);
+}
+
+@media (max-width: 767px) {
+  .ci-shop-pills {
+    display: none;
+  }
+
+  .ci-shop-compact {
+    display: block;
+  }
+}
+
+/* The date picker is portalled to <body>, so its popover carries this class
+   instead of inheriting the `.ci` bridge. */
+.ci-dp {
+  --accent: var(--ui-accent);
+  --accent-soft: var(--ui-accent-soft);
+  --fg-3: var(--ui-fg-3);
+  --fg-4: var(--ui-fg-4);
+  --line: var(--ui-line);
+  --surface: var(--ui-panel);
+  --row-hover: var(--ui-row-hover);
+  --r-lg: var(--ui-radius);
+  --shadow-2: var(--ui-shadow-raised);
+  --s-3: 12px;
+}
+
+/* ── Region and layout ───────────────────────────────────────────────────── */
+
+.ci-region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  min-width: 0;
+  transition: opacity 140ms var(--ease);
+}
+
+/* A refresh keeps the last response on screen so the numbers never blank out,
+   but dims it until the new response replaces it. */
+.ci-region[data-refreshing="true"] {
+  opacity: 0.55;
+}
+
+.ci-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-section-gap);
+  min-width: 0;
+}
+
+.ci-secondary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-section-gap);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .ci-top {
+    grid-template-columns: minmax(200px, 1fr) minmax(0, 2.5fr);
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ci-top {
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr);
+    align-items: stretch;
+  }
+
+  .ci-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ci-secondary[data-single="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── KPI scope line ──────────────────────────────────────────────────────── */
+
+.ci-kpi {
+  height: 100%;
+}
+
+/* The card matches the chart's height; the source range sits at the bottom so
+   the column reads as one block instead of a short card over empty space. */
+.ci-kpi .ui-kpi-body {
+  flex: 1 1 auto;
+}
+
+.ci-kpi .ui-kpi-note:last-child {
+  margin-top: auto;
+}
+
+.ci-kpi-scope {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
+  color: var(--ui-fg-2);
+}
+
+/* ── Horizontal bar lists (shops, countries) ─────────────────────────────── */
+
+.ci-bars {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ci-bar-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 140px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px var(--ui-panel-pad-x);
+  border: 0;
+  background: none;
+  color: var(--ui-fg-2);
+  font: inherit;
+  text-align: left;
+}
+
+button.ci-bar-row {
+  cursor: pointer;
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+button.ci-bar-row:hover {
+  background: var(--ui-row-hover);
+  color: var(--ui-fg-1);
+}
+
+button.ci-bar-row:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: -2px;
+}
+
+.ci-bar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ui-text-body);
+}
+
+.ci-bar-track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ui-series-track);
+}
+
+.ci-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ui-series-primary);
+  transition: width 240ms var(--ease);
+}
+
+.ci-bar-count {
+  min-width: 36px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--ui-text-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-fg-1);
+}
+
+/* ── Discovery channels ──────────────────────────────────────────────────── */
+
+.ci-channel-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 32px;
+}
+
+@media (min-width: 1024px) {
+  .ci-channel-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ci-channel-col {
+  min-width: 0;
+}
+
+.ci-channel-head,
+.ci-channel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, 1.1fr) 40px 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--ui-panel-pad-x);
+}
+
+.ci-channel-head {
+  padding-bottom: 6px;
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+  font-size: var(--ui-text-caption);
+  font-weight: 500;
+  color: var(--ui-fg-4);
+}
+
+.ci-channel-head span:nth-child(3),
+.ci-channel-head span:nth-child(4) {
+  text-align: right;
+}
+
+.ci-channel-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ci-channel-row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+}
+
+.ci-channel-row:last-child {
+  border-bottom: 0;
+}
+
+.ci-channel-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ui-text-body);
+  color: var(--ui-fg-2);
+}
+
+.ci-channel-track {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ui-series-track);
+}
+
+.ci-channel-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ui-series-primary);
+  transition: width 240ms var(--ease);
+}
+
+.ci-channel-count,
+.ci-channel-pct {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.ci-channel-count {
+  font-size: var(--ui-text-body);
+  color: var(--ui-fg-1);
+}
+
+.ci-channel-pct {
+  font-size: var(--ui-text-caption);
+  color: var(--ui-fg-3);
+}
+
+/* Below the two-column breakpoint the second list continues the first one, so
+   only the first column keeps the header. */
+@media (max-width: 1023px) {
+  .ci-channel-col + .ci-channel-col .ci-channel-head {
+    display: none;
+  }
+}
+
+/* Phones: put the bar on its own line so channel names never truncate. */
+@media (max-width: 767px) {
+  .ci-channel-head {
+    display: none;
+  }
+
+  .ci-channel-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "name count pct"
+      "track track track";
+    row-gap: 5px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .ci-channel-name {
+    grid-area: name;
+  }
+
+  .ci-channel-track {
+    grid-area: track;
+  }
+
+  .ci-channel-count {
+    grid-area: count;
+  }
+
+  .ci-channel-pct {
+    grid-area: pct;
+  }
+}
+
+/* ── Weekly chart ────────────────────────────────────────────────────────── */
+
+.ci-chart-frame {
+  width: 100%;
+  min-width: 0;
+}
+
+.ci-tooltip {
+  min-width: 130px;
+  padding: 8px 10px;
+  border: var(--ui-line-width) solid var(--ui-line-strong);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow-raised);
+  color: var(--ui-fg-1);
+  font-size: var(--ui-text-note);
+}
+
+.ci-tooltip-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.ci-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+  color: var(--ui-fg-3);
+}
+
+.ci-tooltip-row b {
+  color: var(--ui-fg-1);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Empty and loading states ────────────────────────────────────────────── */
+
+.ci-empty {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.ci-empty-title {
+  margin: 0;
+  font-size: var(--ui-text-title);
+  font-weight: 600;
+  color: var(--ui-fg-1);
+}
+
+.ci-empty-copy {
+  margin: 6px 0 0;
+  font-size: var(--ui-text-body);
+  color: var(--ui-fg-3);
+}
+
+.ci-empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 168px;
+  padding: 16px;
+  text-align: center;
+  font-size: var(--ui-text-body);
+  color: var(--ui-fg-3);
+}
+
+.ci-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px var(--ui-panel-pad-x) 10px;
+}
+
+.ci-skeleton-row {
+  height: 22px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-skeleton);
+}
+
+.ci-skeleton-chart {
+  height: 220px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-skeleton);
+}
+
+/* ── Unmatched disclosure ────────────────────────────────────────────────── */
+
+.ci-unmatched {
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow);
+}
+
+.ci-unmatched-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px var(--ui-panel-pad-x);
+  cursor: pointer;
+  list-style: none;
+  color: var(--ui-fg-2);
+}
+
+.ci-unmatched-summary::-webkit-details-marker {
+  display: none;
+}
+
+.ci-unmatched-summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-right: 1.5px solid var(--ui-fg-3);
+  border-bottom: 1.5px solid var(--ui-fg-3);
+  transform: rotate(-45deg);
+  transition: transform 140ms var(--ease);
+}
+
+.ci-unmatched[open] .ci-unmatched-summary::before {
+  transform: rotate(45deg);
+}
+
+.ci-unmatched-summary:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: -2px;
+  border-radius: var(--ui-radius);
+}
+
+.ci-unmatched-heading {
+  min-width: 0;
+  font-size: var(--ui-text-body);
+  font-weight: 500;
+}
+
+.ci-unmatched-badge {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ui-warn-soft);
+  color: var(--ui-warn);
+  font-size: var(--ui-text-caption);
+  font-weight: 600;
+}
+
+.ci-unmatched-body {
+  padding: 0 var(--ui-panel-pad-x) 16px;
+}
+
+.ci-unmatched-copy {
+  margin: 0 0 16px;
+  font-size: var(--ui-text-note);
+  color: var(--ui-fg-3);
+  line-height: 1.5;
+}
+
+.ci-unmatched-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px 32px;
+}
+
+@media (min-width: 768px) {
+  .ci-unmatched-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ci-unmatched-title {
+  margin: 0 0 4px;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-fg-2);
+}
+
+.ci-unmatched-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ci-unmatched-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+  font-size: var(--ui-text-body);
+  color: var(--ui-fg-2);
+}
+
+.ci-unmatched-list li:last-child {
+  border-bottom: 0;
+}
+
+.ci-unmatched-raw {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-unmatched-count {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-fg-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ci-pill-row button,
+  .ci-bar-row,
+  .ci-bar-fill,
+  .ci-channel-fill,
+  .ci-unmatched-summary::before {
+    transition: none;
+  }
+}

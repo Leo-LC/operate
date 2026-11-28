@@ -4,7 +4,6 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
 import {
-  DashboardFilters,
   getDefaultFilters,
   type DashboardFiltersState,
   type LocationOption,
@@ -27,6 +26,7 @@ import { formatReviewsForCopy } from "@/modules/reviews/lib/review-copy";
 import { useBulkSend } from "@/modules/reviews/hooks/useBulkSend";
 import { BulkReplyPanel } from "@/modules/reviews/components/BulkReplyPanel";
 import { ReviewsControlsBar } from "@/modules/reviews/components/ReviewsControlsBar";
+import { ReviewsFilterPanel } from "@/modules/reviews/components/ReviewsFilterPanel";
 
 function partitionReviews(reviews: ReviewWithLocation[]) {
   const five: ReviewWithLocation[] = [];
@@ -344,92 +344,79 @@ export function DashboardClient({ user }: DashboardClientProps) {
     0;
 
 
-  const moodEmoji =
-    total === 0 ? "🥳" : total <= 25 ? "🙂" : total <= 150 ? "😅" : "😬";
-
   return (
         <>
-          {total > 0 && (
-            <div className="reviews-grid">
-              {/* Row 1: stats spans full width */}
-              <div className="dashboard-stats-wrapper reviews-grid-full" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: "12px 16px" }}>
-                <div className="dashboard-stats">
-                  <span className="dashboard-stat-item">
-                    <span aria-hidden className="text-lg">
-                      {moodEmoji}
+          <div className="revs-inbox">
+            {total > 0 ? (
+              <>
+                <div className="revs-summary">
+                  <div
+                    className="revs-summary-counts"
+                    role="group"
+                    aria-label="Unreplied reviews by rating"
+                  >
+                    <span className="revs-summary-total">
+                      <strong>{animatedTotal.toLocaleString()}</strong> unreplied
                     </span>
-                    <strong>{animatedTotal.toLocaleString()}</strong> unreplied
-                  </span>
-                  <span className="dashboard-stat-sep" aria-hidden />
-                  <span className="dashboard-stat-item" data-variant="success">
-                    5★ <strong>{five.length.toLocaleString()}</strong>
-                  </span>
-                  <span className="dashboard-stat-sep" aria-hidden />
-                  <span className="dashboard-stat-item" data-variant="amber">
-                    4★ <strong>{four.length.toLocaleString()}</strong>
-                  </span>
-                  <span className="dashboard-stat-sep" aria-hidden />
-                  <span className="dashboard-stat-item" data-variant="attention">
-                    3★ <strong>{three.length.toLocaleString()}</strong>
-                  </span>
-                  <span className="dashboard-stat-sep" aria-hidden />
-                  <span className="dashboard-stat-item" data-variant="attention">
-                    2★ <strong>{two.length.toLocaleString()}</strong>
-                  </span>
-                  <span className="dashboard-stat-sep" aria-hidden />
-                  <span className="dashboard-stat-item" data-variant="attention">
-                    1★ <strong>{one.length.toLocaleString()}</strong>
-                  </span>
+                    <span className="revs-summary-star" data-tone="positive">
+                      5★ <strong>{five.length.toLocaleString()}</strong>
+                    </span>
+                    <span className="revs-summary-star" data-tone="positive">
+                      4★ <strong>{four.length.toLocaleString()}</strong>
+                    </span>
+                    <span className="revs-summary-star" data-tone="warn">
+                      3★ <strong>{three.length.toLocaleString()}</strong>
+                    </span>
+                    <span className="revs-summary-star" data-tone="negative">
+                      2★ <strong>{two.length.toLocaleString()}</strong>
+                    </span>
+                    <span className="revs-summary-star" data-tone="negative">
+                      1★ <strong>{one.length.toLocaleString()}</strong>
+                    </span>
+                  </div>
+                  <div className="revs-summary-action">
+                    <SyncButton
+                      onSynced={handleSynced}
+                      syncing={syncing}
+                      setSyncing={setSyncing}
+                      size="sm"
+                      userEmail={user?.email}
+                    />
+                  </div>
                 </div>
-                <SyncButton
-                  onSynced={handleSynced}
-                  syncing={syncing}
-                  setSyncing={setSyncing}
-                  size="sm"
-                  userEmail={user?.email}
-                />
-              </div>
 
-              {/* Row 2: labels/controls headers aligned */}
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <h2 className="eyebrow" style={{ color: "var(--fg-4)" }}>Filters</h2>
-              </div>
-              <ReviewsControlsBar
-                displayCount={
-                  allRatingsMode
-                    ? displayedChronological.length
-                    : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length
-                }
-                sortOrder={sortOrder}
-                onSortToggle={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-                displayLimit={displayLimit}
-                onLimitChange={setDisplayLimit}
-                allRatingsMode={allRatingsMode}
-                singleRatingMode={singleRatingMode}
-                bulkSending={bulkSending}
-                fiveAllowBulk={!!ratingRules[5]?.allowBulk}
-                fourAllowBulk={!!ratingRules[4]?.allowBulk}
-                activeRatings={filters.ratings}
-                fiveInDisplay={fiveInDisplay}
-                fourInDisplay={fourInDisplay}
-                attentionWithRepliesInDisplay={attentionWithRepliesInDisplay}
-                fiveDisplayed={fiveDisplayed}
-                fourDisplayed={fourDisplayed}
-                onBulkConfirm={openBulkConfirm}
-                onShuffleAll={shuffleAllTemplates}
-              />
-
-              {/* Row 3: actual filter panel + reviews content */}
-              <aside>
-                <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 12 }}>
-                  <DashboardFilters
+                <div className="revs-grid">
+                  <ReviewsFilterPanel
                     filters={filters}
                     onChange={setFilters}
                     locations={filterLocationOptions}
                   />
-                </div>
-              </aside>
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+                  <div className="revs-list">
+                    <ReviewsControlsBar
+                      displayCount={
+                        allRatingsMode
+                          ? displayedChronological.length
+                          : fiveDisplayed.length + fourDisplayed.length + attentionDisplayed.length
+                      }
+                      sortOrder={sortOrder}
+                      onSortToggle={() => setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+                      displayLimit={displayLimit}
+                      onLimitChange={setDisplayLimit}
+                      allRatingsMode={allRatingsMode}
+                      singleRatingMode={singleRatingMode}
+                      bulkSending={bulkSending}
+                      fiveAllowBulk={!!ratingRules[5]?.allowBulk}
+                      fourAllowBulk={!!ratingRules[4]?.allowBulk}
+                      activeRatings={filters.ratings}
+                      fiveInDisplay={fiveInDisplay}
+                      fourInDisplay={fourInDisplay}
+                      attentionWithRepliesInDisplay={attentionWithRepliesInDisplay}
+                      fiveDisplayed={fiveDisplayed}
+                      fourDisplayed={fourDisplayed}
+                      onBulkConfirm={openBulkConfirm}
+                      onShuffleAll={shuffleAllTemplates}
+                    />
                 {hasAnyFiltered ? (
                   <>
                     {allRatingsMode ? (
@@ -463,7 +450,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                     ) : (
                       <>
                         {fiveFiltered.length > 0 && filters.ratings.has("five") && (
-                          <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="5 star reviews">
+                          <section className="revs-group" aria-label="5 star reviews">
                             <ReviewListVirtual
                               reviews={fiveDisplayed}
                               getComment={(id) => {
@@ -492,7 +479,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           </section>
                         )}
                         {fourFiltered.length > 0 && filters.ratings.has("four") && (
-                          <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="4 star reviews">
+                          <section className="revs-group" aria-label="4 star reviews">
                             <ReviewListVirtual
                               reviews={fourDisplayed}
                               getComment={(id) => {
@@ -524,29 +511,20 @@ export function DashboardClient({ user }: DashboardClientProps) {
                           (filters.ratings.has("one") ||
                             filters.ratings.has("two") ||
                             filters.ratings.has("three")) && (
-                            <section style={{ display: "flex", flexDirection: "column", gap: 16 }} aria-label="1-3 star reviews">
-                              {attentionSorted.length > 0 && (
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: "var(--r-sm)", background: "var(--bad-soft)", border: "1px solid var(--bad)" }}>
-                                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--bad)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Negative / Urgent</span>
-                                  <span style={{ fontSize: 11, color: "var(--bad)" }}>— reply manually and escalate if needed. Contact: contact@capybaracoffeethailand.com</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleCopyAllAttention()}
-                                    style={{
-                                      marginLeft: "auto",
-                                      flexShrink: 0,
-                                      fontSize: 11,
-                                      fontWeight: 500,
-                                      color: "var(--bad)",
-                                      background: "transparent",
-                                      border: "none",
-                                      cursor: "pointer",
-                                      textDecoration: "underline",
-                                      textUnderlineOffset: 2,
-                                    }}
-                                  >
-                                    Copy all
-                                  </button>
+                            <section className="revs-group" aria-label="1-3 star reviews">
+                              {(oneFiltered.length + twoFiltered.length) > 0 && (
+                                <div className="revs-urgent">
+                                  <span className="revs-urgent-label">Negative / Urgent</span>
+                                  <span className="revs-urgent-copy">— reply manually and escalate if needed. Contact: contact@capybaracoffeethailand.com</span>
+                                  {attentionSorted.length > 0 && (
+                                    <button
+                                      type="button"
+                                      className="revs-urgent-copy-btn"
+                                      onClick={() => void handleCopyAllAttention()}
+                                    >
+                                      Copy all
+                                    </button>
+                                  )}
                                 </div>
                               )}
                               <ReviewListVirtual
@@ -562,44 +540,39 @@ export function DashboardClient({ user }: DashboardClientProps) {
                     )}
                   </>
                 ) : (
-                  <p style={{ padding: "32px 0", textAlign: "center", fontSize: 13, color: "var(--fg-4)" }}>
+                  <p className="revs-inline-empty">
                     No reviews match the current filters.
                   </p>
                 )}
-              </div>
-            </div>
-          )}
-
-          {total === 0 && (
-            <div style={{ borderRadius: "var(--r-lg)", border: "1px dashed var(--line-strong)", background: "var(--surface)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "48px 24px", textAlign: "center", marginTop: 16 }}>
-              <p style={{ fontSize: 13, color: "var(--fg-4)" }}>
-                {syncing ? "Fetching reviews…" : "No reviews loaded."}
-              </p>
-              {!syncing && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13, color: "var(--fg-4)" }}>
-                  <p>
-                    Using Google account{" "}
-                    <span style={{ fontWeight: 500, color: "var(--fg)" }}>
-                      {user?.email ?? "unknown"}
-                    </span>
-                    .
-                  </p>
-                  <p>
-                    Click &quot;Sync reviews&quot; to fetch unreplied reviews from all locations this
-                    account manages.
-                  </p>
+                  </div>
                 </div>
-              )}
-              <SyncButton
-                onSynced={handleSynced}
-                syncing={syncing}
-                setSyncing={setSyncing}
-                userEmail={user?.email}
-              />
-            </div>
-          )}
-
-      {total > 0 && <div className="dashboard-list-fade" aria-hidden />}
+              </>
+            ) : (
+              <div className="revs-empty">
+                <p className="revs-empty-title">
+                  {syncing ? "Fetching reviews…" : "No reviews loaded."}
+                </p>
+                {!syncing && (
+                  <div className="revs-empty-copy">
+                    <p>
+                      Using Google account{" "}
+                      <strong>{user?.email ?? "unknown"}</strong>.
+                    </p>
+                    <p>
+                      Click &quot;Sync reviews&quot; to fetch unreplied reviews from all locations this
+                      account manages.
+                    </p>
+                  </div>
+                )}
+                <SyncButton
+                  onSynced={handleSynced}
+                  syncing={syncing}
+                  setSyncing={setSyncing}
+                  userEmail={user?.email}
+                />
+              </div>
+            )}
+          </div>
 
       {showScrollTop && (
         <Button

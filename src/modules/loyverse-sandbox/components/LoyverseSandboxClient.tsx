@@ -184,7 +184,19 @@ function ApiExplorerTab({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="lov flex flex-col gap-4">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Loyverse Sandbox</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Loyverse Sandbox</h1>
+        </div>
+      </header>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-3">
           <label className="text-xs font-medium text-[var(--fg-mute)]">Endpoint</label>

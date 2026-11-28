@@ -14,7 +14,7 @@ const numberFormatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 
 
 function money(value: number) {
   const rounded = Math.round(Math.abs(value));
-  return value < 0 ? `(฿${numberFormatter.format(rounded)})` : `฿${numberFormatter.format(rounded)}`;
+  return `${value < 0 ? "−" : ""}฿${numberFormatter.format(rounded)}`;
 }
 
 function dateLabel(value: string, withYear = true) {
@@ -50,7 +50,7 @@ function diffDays(from: string, to: string) {
 function PeriodValue({ value, missing = false, large = false }: { value: number; missing?: boolean; large?: boolean }) {
   if (missing) return <span className="text-xl font-semibold text-[var(--fg-3)]">Non renseigné</span>;
   return (
-    <span className={`font-mono font-semibold tabular-nums tracking-[-0.035em] ${large ? "text-[clamp(2.1rem,4vw,3.8rem)]" : "text-[clamp(1.7rem,3vw,2.7rem)]"}`}>
+    <span className="dir-equation-value" data-large={large || undefined}>
       {money(value)}
     </span>
   );
@@ -146,20 +146,37 @@ export function DirectionExecutiveDashboard() {
   const uncoveredAfterSheets = !!data && !!latestSheetDate && data.daily.some((row) => row.date > (latestSheetDate as string) && row.sourceStatus === "missing");
 
   return (
-    <section className="mx-auto flex w-full max-w-[1480px] flex-col gap-4" aria-labelledby="boss-dashboard-title">
-      <header className="flex flex-col gap-3">
-        <h1 id="boss-dashboard-title" className="text-2xl font-semibold tracking-[-0.025em] text-[var(--fg)]">Résultats estimés</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(-1)} disabled={loading} aria-label="Jour précédent">
-              <ChevronLeftIcon />
-            </Button>
-            <DateRangePicker value={period} onChange={setPeriod} today={today} align="start" language="fr" />
-            <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(1)} disabled={loading || period.to >= today} aria-label="Jour suivant">
-              <ChevronRightIcon />
-            </Button>
+    <section className="dir-dashboard" aria-label="Tableau de bord Direction">
+      <header className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="dir-dash-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="dir-dash-period-label">
+              <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(-1)} disabled={loading} aria-label="Jour précédent">
+                <ChevronLeftIcon />
+              </Button>
+              <DateRangePicker value={period} onChange={setPeriod} today={today} align="start" language="fr" />
+              <Button variant="ghost" size="icon-sm" onClick={() => shiftPeriod(1)} disabled={loading || period.to >= today} aria-label="Jour suivant">
+                <ChevronRightIcon />
+              </Button>
+            </div>
           </div>
-          <div className="flex-1" />
+          {shopOptions.length > 0 && (
+            <div className="ui-filter-row">
+              <span className="ui-filter-label" id="dir-dash-shops-label">Boutiques</span>
+              <div className="ui-filter-control" role="group" aria-labelledby="dir-dash-shops-label">
+                <ShopMultiSelect
+                  options={shopOptions}
+                  selected={selectedLocationIds}
+                  onChange={setSelectedLocationIds}
+                  allLabel="Toutes les boutiques"
+                  getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="ui-toolbar-actions">
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCwIcon className={loading ? "animate-spin" : ""} />
             Actualiser
@@ -167,23 +184,13 @@ export function DirectionExecutiveDashboard() {
         </div>
       </header>
 
-      <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-3">
-        <ShopMultiSelect
-          options={shopOptions}
-          selected={selectedLocationIds}
-          onChange={setSelectedLocationIds}
-          allLabel="Toutes les boutiques"
-          getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
-        />
-      </div>
-
-      <div className="flex items-start gap-2 rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[12px] leading-relaxed text-[var(--fg-3)]">
-        <InfoIcon className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
+      <p className="dir-note">
+        <InfoIcon size={15} aria-hidden />
         <span>
           Estimation : les ventes viennent de Loyverse et les charges mensuelles sont réparties par jour.
           Les dépenses et mouvements de coffre non saisis peuvent faire varier le résultat.
         </span>
-      </div>
+      </p>
 
       {loading && !data && <LoadingDashboard />}
 
@@ -214,24 +221,24 @@ export function DirectionExecutiveDashboard() {
 
           <Card className="relative p-0">
             <div className="absolute inset-y-0 left-0 w-1 bg-[var(--accent)]" aria-hidden="true" />
-            <CardContent className="grid items-stretch md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1.25fr)]">
-              <div className="flex min-h-32 flex-col justify-center gap-2 p-5 sm:p-6">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-3)]">Ventes</span>
+            <div className="dir-equation">
+              <div className="dir-equation-cell">
+                <span className="dir-equation-label">Ventes</span>
                 <PeriodValue value={data.summary.revenue} missing={sourceMissing} />
               </div>
-              <div className="flex items-center justify-center border-y border-[var(--line)] py-1 text-2xl text-[var(--fg-4)] md:border-x md:border-y-0 md:px-4">−</div>
-              <div className="flex min-h-32 flex-col justify-center gap-2 p-5 sm:p-6">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-3)]">Dépenses estimées</span>
+              <div className="dir-equation-operator" aria-hidden="true">−</div>
+              <div className="dir-equation-cell">
+                <span className="dir-equation-label">Dépenses estimées</span>
                 <PeriodValue value={data.summary.totalCosts} />
               </div>
-              <div className="flex items-center justify-center border-y border-[var(--line)] py-1 text-2xl text-[var(--fg-4)] md:border-x md:border-y-0 md:px-4">=</div>
-              <div className="flex min-h-36 flex-col justify-center gap-2 bg-[var(--surface-2)] p-5 sm:p-6">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fg-3)]">Résultat estimé</span>
+              <div className="dir-equation-operator" aria-hidden="true">=</div>
+              <div className="dir-equation-cell" data-result="true">
+                <span className="dir-equation-label">Résultat estimé</span>
                 <div style={{ color: data.summary.economicProfit >= 0 ? "var(--good)" : "var(--bad)" }}>
                   <PeriodValue value={data.summary.economicProfit} missing={sourceMissing} large />
                 </div>
               </div>
-            </CardContent>
+            </div>
           </Card>
 
           <Card flush>
@@ -239,7 +246,7 @@ export function DirectionExecutiveDashboard() {
               <CardTitle className="text-[15px]">Détail quotidien</CardTitle>
               <CardDescription>Ventes, charges et résultat estimé — même lecture que l’onglet Résultat quotidien</CardDescription>
             </div>
-            <div style={{ overflowX: "auto" }}>
+            <div className="ui-table-scroll">
               <table style={tableStyle}>
                 <thead>
                   <tr>

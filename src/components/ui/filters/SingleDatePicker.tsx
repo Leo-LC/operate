@@ -12,12 +12,15 @@ export function SingleDatePicker({
   placeholder = "Select date",
   disabled,
   className,
+  popoverClassName,
 }: {
   value: string; // YYYY-MM-DD or ""
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Extra class for the portalled calendar so a route can scope its tokens. */
+  popoverClassName?: string;
 }) {
   return (
     <DateInput
@@ -26,6 +29,7 @@ export function SingleDatePicker({
       placeholder={placeholder}
       disabled={disabled}
       className={className}
+      popoverClassName={popoverClassName}
     />
   );
 }

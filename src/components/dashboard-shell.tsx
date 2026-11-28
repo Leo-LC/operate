@@ -18,6 +18,7 @@ import { UiVisibilityProvider, useUiVisibilityValue, VisibilityEye } from "@/com
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay";
 import { ModuleVisitTracker } from "@/components/module-visit-tracker";
+import { AccentPreferenceControl } from "@/components/accent-preference";
 import { PageNotes } from "@/components/page-notes";
 import { BulkReplyIndicator } from "@/modules/reviews/components/bulk-reply-indicator";
 import { Modal } from "@/components/ui/modal";
@@ -136,6 +137,7 @@ export function DashboardShell({ email, permissions, initialVisibility, children
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pwdOpen, setPwdOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [pwd, setPwd] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
   const isOwner = permissions.global_role === "owner";
@@ -241,22 +243,23 @@ export function DashboardShell({ email, permissions, initialVisibility, children
   const displayName = email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   async function handleSavePwd() {
-    if (!pwd || pwd.length < 6) { toast.error("6 caractères minimum"); return; }
+    if (!pwd || pwd.length < 6) { toast.error("Minimum 6 characters"); return; }
     setPwdSaving(true);
     try {
       const res = await fetch("/api/me/password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pwd }) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((j as { error?: string }).error || "Erreur");
-      toast.success("Mot de passe mis à jour");
+      if (!res.ok) throw new Error((j as { error?: string }).error || "Error");
+      toast.success("Password updated");
       setPwdOpen(false);
       setPwd("");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Error"); }
     finally { setPwdSaving(false); }
   }
 
   return (
     <UiVisibilityProvider value={visibility}>
     <div
+      className="app-shell"
       style={{
         display: "flex",
         minHeight: "100vh",
@@ -503,21 +506,28 @@ export function DashboardShell({ email, permissions, initialVisibility, children
             flexShrink: 0,
           }}
         >
-          {/* Avatar + profile (direction: click to change password) */}
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <div
-            onClick={() => { if (isDirection) setPwdOpen(true); }}
-            title={isDirection ? "Changer mon mot de passe" : undefined}
+          {/* Avatar + profile: personal preferences (direction also has a password) */}
+          <button
+            type="button"
+            onClick={() => setPrefsOpen(true)}
+            title="Preferences"
+            aria-label={`Preferences for ${displayName}`}
+            aria-haspopup="dialog"
+            aria-expanded={prefsOpen}
             style={{
               display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0,
-              cursor: isDirection ? "pointer" : "default",
+              cursor: "pointer",
               borderRadius: "var(--r-sm)",
-              padding: isDirection ? "2px 4px" : 0,
-              margin: isDirection ? "-2px -4px" : 0,
+              padding: "2px 4px",
+              margin: "-2px -4px",
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              textAlign: "left",
             }}
-            className={isDirection ? "hover:!bg-[var(--row-hover)]" : undefined}
+            className="hover:!bg-[var(--row-hover)]"
           >
-            <div
+            <span
               style={{
                 width: 28,
                 height: 28,
@@ -535,9 +545,9 @@ export function DashboardShell({ email, permissions, initialVisibility, children
               }}
             >
               {initials(displayName || email)}
-            </div>
+            </span>
 
-            <div className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+            <span className="app-sidebar-user-meta" style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
               <span
                 style={{
                   fontSize: 13,
@@ -553,8 +563,8 @@ export function DashboardShell({ email, permissions, initialVisibility, children
               <span style={{ fontSize: 11, color: "var(--fg-4)", textTransform: "capitalize" }}>
                 {permissions.global_role === "owner" ? "Owner" : permissions.global_role === "admin" ? "Admin" : permissions.global_role === "reviewer" ? "Reviewer" : permissions.global_role === "direction" ? "Direction" : "Staff"}
               </span>
-            </div>
-          </div>
+            </span>
+          </button>
 
           {/* Sign out */}
           <button
@@ -692,10 +702,11 @@ export function DashboardShell({ email, permissions, initialVisibility, children
             </kbd>
           </button>
 
-          {/* Theme toggle */}
+          {/* Theme toggle — the title stays server/client-stable until mounted
+              (next-themes resolves the theme after hydration) */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode (T)`}
+            title={mounted ? `Switch to ${theme === "dark" ? "light" : "dark"} mode (T)` : "Toggle theme (T)"}
             style={{
               width: 34,
               height: 34,
@@ -744,22 +755,47 @@ export function DashboardShell({ email, permissions, initialVisibility, children
       <ModuleVisitTracker />
       <BulkReplyIndicator />
       {(isOwner || permissions.global_role === "admin") && <PageNotes />}
+      <Modal
+        open={prefsOpen}
+        onClose={() => setPrefsOpen(false)}
+        title="Preferences"
+        description="Personal settings for this browser."
+        compact
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <AccentPreferenceControl />
+          {isDirection && (
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setPrefsOpen(false);
+                  setPwdOpen(true);
+                }}
+              >
+                Change password
+              </Button>
+            </div>
+          )}
+        </div>
+      </Modal>
       {isDirection && (
-        <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="Mon mot de passe" description="Définir ou changer votre mot de passe.">
+        <Modal open={pwdOpen} onClose={() => setPwdOpen(false)} title="My password" description="Set or change your password.">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-3)" }}>Nouveau mot de passe</label>
+            <label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-3)" }}>New password</label>
             <input
               type="password"
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
-              placeholder="6 caractères minimum"
+              placeholder="Minimum 6 characters"
               autoFocus
               style={{ height: 36, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 10px", fontSize: 13, outline: "none" }}
               onKeyDown={(e) => { if (e.key === "Enter") void handleSavePwd(); }}
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
-              <Button variant="secondary" size="sm" onClick={() => setPwdOpen(false)} disabled={pwdSaving}>Annuler</Button>
-              <Button size="sm" onClick={() => void handleSavePwd()} disabled={pwdSaving || pwd.length < 6}>{pwdSaving ? "Enregistrement…" : "Enregistrer"}</Button>
+              <Button variant="secondary" size="sm" onClick={() => setPwdOpen(false)} disabled={pwdSaving}>Cancel</Button>
+              <Button size="sm" onClick={() => void handleSavePwd()} disabled={pwdSaving || pwd.length < 6}>{pwdSaving ? "Saving…" : "Save"}</Button>
             </div>
           </div>
         </Modal>

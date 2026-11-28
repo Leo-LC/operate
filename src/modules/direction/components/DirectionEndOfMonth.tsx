@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangleIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ReceiptTextIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Stat } from "@/components/ui/stat";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import {
   MONTH_LONG,
   formatMoney,
@@ -25,6 +25,13 @@ const amountStyle: React.CSSProperties = {
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
 };
+// formatMoney() renders an absolute amount (the summary adds its own "−" for
+// the planned outflows). A negative remainder must keep its sign, otherwise a
+// shortfall reads as cash left in the safe.
+function signedMoney(n: number): string {
+  return `${n < 0 ? "−" : ""}${formatMoney(n)}`;
+}
+
 function MissingBadge({ label }: { label: string }) {
   return (
     <span
@@ -121,33 +128,35 @@ export function DirectionEndOfMonth() {
   const totals = data?.totals;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      {/* Header — title + month navigation (same pattern as Comparaison) */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Fin de mois</h2>
-        <span style={{ fontSize: 13, color: "var(--fg-3)" }}>{formatMonthLabel(year, focusMonth)}</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Année</span>
-        <div style={selectorStyle}>
-          <button type="button" onClick={() => setYear((v) => v - 1)} aria-label="Année précédente" style={iconBtnStyle}>
-            <ChevronLeftIcon size={14} />
-          </button>
-          <strong className="mono" style={{ minWidth: 52, textAlign: "center" }}>{year}</strong>
-          <button type="button" onClick={() => setYear((v) => v + 1)} aria-label="Année suivante" style={iconBtnStyle}>
-            <ChevronRightIcon size={14} />
-          </button>
+    <div className="dir-stack">
+      {/* Month navigation — same pattern as Comparaison */}
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="dir-eom-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="dir-eom-period-label">
+              <div style={selectorStyle}>
+                <button type="button" onClick={() => setYear((v) => v - 1)} aria-label="Année précédente" style={iconBtnStyle}>
+                  <ChevronLeftIcon size={14} />
+                </button>
+                <strong className="mono" style={{ minWidth: 52, textAlign: "center" }}>{year}</strong>
+                <button type="button" onClick={() => setYear((v) => v + 1)} aria-label="Année suivante" style={iconBtnStyle}>
+                  <ChevronRightIcon size={14} />
+                </button>
+              </div>
+              <select
+                value={focusMonth}
+                aria-label="Mois"
+                onChange={(e) => setFocusMonth(Number(e.target.value))}
+                style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", padding: "0 8px" }}
+              >
+                {MONTH_LONG.map((name, i) => (
+                  <option key={name} value={i + 1}>{name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-        <span style={{ fontSize: 11, color: "var(--fg-4)", marginLeft: 6 }}>Mois</span>
-        <select
-          value={focusMonth}
-          onChange={(e) => setFocusMonth(Number(e.target.value))}
-          style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", background: "var(--bg)", fontSize: 13, color: "var(--fg)", padding: "0 8px" }}
-        >
-          {MONTH_LONG.map((name, i) => (
-            <option key={name} value={i + 1}>{name}</option>
-          ))}
-        </select>
       </div>
 
       {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Chargement…</Card>}
@@ -160,29 +169,25 @@ export function DirectionEndOfMonth() {
 
       {!loading && !error && data && totals && (
         <>
-          {/* 3 summary cards — stack vertically on mobile via auto-fit */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--s-3)" }}>
-            <Card style={{ gap: 6 }}>
-              <Stat
-                label="Espèces en coffre"
-                value={formatMoney(totals.cash)}
-                hint={totals.missingSafeShops.length > 0 ? `${totals.missingSafeShops.length} coffre(s) manquant(s)` : "Tous les magasins"}
-              />
-            </Card>
-            <Card style={{ gap: 6 }}>
-              <Stat
-                label="Sorties prévues"
-                value={formatMoney(totals.takeOut)}
-                hint={totals.unfinalizedCategories.length > 0 ? `Non finalisé : ${totals.unfinalizedCategories.join(", ")}` : "Salaires, loyers, marketing et autres paiements"}
-              />
-            </Card>
-            <Card style={{ gap: 6, border: "1.5px solid var(--accent)", background: "var(--accent-soft)" }}>
-              <Stat
-                label="Reste en coffre"
-                value={totals.remaining != null ? formatMoney(totals.remaining) : "—"}
-                hint={totals.complete ? "Après les sorties prévues" : "Calcul impossible — données manquantes"}
-              />
-            </Card>
+          {/* 3 summary cards — the outcome card carries the emphasis */}
+          <div className="ui-kpi-grid">
+            <KpiStat
+              label="Espèces en coffre"
+              value={formatMoney(totals.cash)}
+              hint={totals.missingSafeShops.length > 0 ? `${totals.missingSafeShops.length} coffre(s) manquant(s)` : "Tous les magasins"}
+            />
+            <KpiStat
+              label="Sorties prévues"
+              value={formatMoney(totals.takeOut)}
+              hint={totals.unfinalizedCategories.length > 0 ? `Non finalisé : ${totals.unfinalizedCategories.join(", ")}` : "Salaires, loyers, marketing et autres paiements"}
+            />
+            <KpiStat
+              className="dir-kpi-outcome"
+              label="Reste en coffre"
+              value={totals.remaining != null ? signedMoney(totals.remaining) : "—"}
+              tone={totals.remaining != null ? (totals.remaining >= 0 ? "positive" : "negative") : undefined}
+              hint={totals.complete ? "Après les sorties prévues" : "Calcul impossible — données manquantes"}
+            />
           </div>
 
           {!totals.complete && (
@@ -292,7 +297,7 @@ export function DirectionEndOfMonth() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 12 }}>
               <strong style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>Reste en coffre</strong>
               {totals.remaining != null ? (
-                <strong className="mono tabular-nums" style={{ fontSize: 22, letterSpacing: "-0.02em" }}>{formatMoney(totals.remaining)}</strong>
+                <strong className="mono tabular-nums" style={{ fontSize: 22, letterSpacing: "-0.02em", color: totals.remaining < 0 ? "var(--bad)" : "var(--fg)" }}>{signedMoney(totals.remaining)}</strong>
               ) : (
                 <MissingBadge label="Calcul impossible" />
               )}

@@ -29,9 +29,11 @@ export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onChange?: (e: any) => void
   placeholder?: string
+  /** Extra class for the portalled calendar so a route can scope its tokens. */
+  popoverClassName?: string
 }
 
-export function DateInput({ value = "", onChange, placeholder = "Select date", className, disabled, ...rest }: DateInputProps) {
+export function DateInput({ value = "", onChange, placeholder = "Select date", className, popoverClassName, disabled, ...rest }: DateInputProps) {
   const [open, setOpen] = React.useState(false)
   const triggerRef = React.useRef<HTMLButtonElement>(null)
   const [viewMonth, setViewMonth] = React.useState<Date>(() => startOfMonth(parseDay(value) ?? new Date()))
@@ -75,7 +77,7 @@ export function DateInput({ value = "", onChange, placeholder = "Select date", c
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 70 }} onClick={() => setOpen(false)} />
           <div
-            className="nexus-dp"
+            className={`nexus-dp${popoverClassName ? ` ${popoverClassName}` : ""}`}
             style={{
               position: "fixed",
               zIndex: 71,

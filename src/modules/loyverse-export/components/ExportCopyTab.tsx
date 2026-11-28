@@ -107,19 +107,19 @@ export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, sna
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
         <Button size="sm" onClick={handleCopyAll} disabled={dataRows.length === 0}>
           {copiedAll ? <CheckIcon size={13} /> : <CopyIcon size={13} />}
-          {copiedAll ? "copié" : `copier ${dataRows.length} ligne${dataRows.length > 1 ? "s" : ""}`}
+          {copiedAll ? "copied" : `copy ${dataRows.length} row${dataRows.length > 1 ? "s" : ""}`}
         </Button>
       </div>
 
       {warnedRows.length > 0 && selectedStore && !loading && (
         <div style={{ borderRadius: "var(--r-sm)", border: "1px solid var(--warn)", background: "var(--warn-soft)", padding: "8px 12px", fontSize: 12, color: "var(--warn)" }}>
-          ⚠️ Shift incohérent détecté ({warnedRows.map((r) => formatDateDDMMYYYY(r.date)).join(", ")}) — paiements affichés depuis les reçus, pas depuis le shift. Vérifiez la fermeture en caisse avant de copier.
+          ⚠️ Inconsistent shift detected ({warnedRows.map((r) => formatDateDDMMYYYY(r.date)).join(", ")}) — payments shown from receipts, not from the shift. Check the till closing before copying.
         </div>
       )}
 
       {!selectedStore ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)", textAlign: "center", padding: "24px 0" }}>
-          Sélectionne un shop ci-dessus.
+          Select a shop above.
         </p>
       ) : loading ? (        <div className="animate-pulse" style={{ height: 120, borderRadius: "var(--r-md)", background: "var(--line-2)" }} />
       ) : rows.length === 0 ? (
@@ -147,7 +147,7 @@ export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, sna
                   <td className="mono tabular-nums" style={{ whiteSpace: "nowrap", padding: "8px 10px", fontWeight: 500 }}>
                     {formatDateDDMMYYYY(date)}
                     {warning ? (
-                      <span title={`${warning}${paymentsFromSnapshot ? " (paiements depuis les reçus)" : ""}`} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="shift incohérent">
+                      <span title={`${warning}${paymentsFromSnapshot ? " (payments from receipts)" : ""}`} style={{ marginLeft: 6, fontSize: 11 }} role="img" aria-label="inconsistent shift">
                         ⚠️
                       </span>
                     ) : null}
@@ -177,7 +177,7 @@ export function ExportCopyTab({ days, selectedStore, storeFilter, shiftRows, sna
                         {copiedDay === date ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
                       </Button>
                     ) : (
-                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>à synchroniser</span>
+                      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>to sync</span>
                     )}
                   </td>
                 </tr>

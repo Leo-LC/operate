@@ -438,7 +438,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", flex: 1 }}>
-        <SectionTitle first>Général</SectionTitle>
+        <SectionTitle first>General</SectionTitle>
         <FormField
           label="Name"
           name="name"
@@ -489,7 +489,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           placeholder="https://maps.google.com/…"
         />
 
-        <SectionTitle>Comptabilité</SectionTitle>
+        <SectionTitle>Accounting</SectionTitle>
         <FormField
           label="Default service charge %"
           name="default_service_charge_pct"
@@ -517,21 +517,21 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
         <SectionTitle>Loyverse — rattachement de ce shop</SectionTitle>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
           <FormField
-            label="Compte API (token global du compte)"
+            label="API account (global account token)"
             name="loyverse_account_key"
             value={form.loyverse_account_key}
             onChange={(v) => setField("loyverse_account_key", v)}
             placeholder="pattaya"
             listOptions={accountKeys}
-            hint="Le token se gère dans « Comptes API Loyverse » en bas de page."
+            hint="The token is managed in “Loyverse API accounts” at the bottom of the page."
           />
           <FormField
-            label="Store ID (la caisse de ce shop)"
+            label="Store ID (this shop's till)"
             name="loyverse_store_id"
             value={form.loyverse_store_id}
             onChange={(v) => setField("loyverse_store_id", v)}
-            placeholder="17b18698-229b-4436-9c04-... (visible après ajout du token)"
-            hint="Un compte = une ou plusieurs caisses ; ici, celle de ce shop."
+            placeholder="17b18698-229b-4436-9c04-... (visible once the token is added)"
+            hint="One account = one or more tills; here, this shop's."
           />
         </div>
 
@@ -634,7 +634,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           </div>
         )}
 
-        <SectionTitle>Comptabilité</SectionTitle>
+        <SectionTitle>Accounting</SectionTitle>
         <InfoRow icon={ReceiptIcon} label="VAT number" value={selected.vat_number} />
         <InfoRow icon={ReceiptIcon} label="Default service charge" value={selected.default_service_charge_pct != null ? `${selected.default_service_charge_pct}%` : null} />
         <InfoRow icon={FileTextIcon} label="Accounting Sheet ID" value={selected.google_sheet_id} />
@@ -648,8 +648,8 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
           const attached = Boolean(selected.loyverse_store_id && acc);
           const accountValue = selected.loyverse_account_key
             ? acc
-              ? `${selected.loyverse_account_key} (${acc.label}) · token ${acc.masked ?? "configuré"} · ${acc.source === "db" ? "DB" : "env"}${acc.is_active ? "" : " · désactivé"}`
-              : `${selected.loyverse_account_key} · compte inconnu — créez-le dans « Comptes API Loyverse » ci-dessous`
+              ? `${selected.loyverse_account_key} (${acc.label}) · token ${acc.masked ?? "configured"} · ${acc.source === "db" ? "DB" : "env"}${acc.is_active ? "" : " · disabled"}`
+              : `${selected.loyverse_account_key} · unknown account — create it in “Loyverse API accounts” below`
             : null;
           return (
             <>
@@ -658,7 +658,7 @@ export function LocationsClient({ initialLocations, employees }: LocationsClient
               <InfoRow
                 icon={attached ? CheckIcon : XIcon}
                 label="Rattachement"
-                value={attached ? "Rattaché — ce shop reçoit les ventes de cette caisse" : "Non rattaché — aucun chiffre Loyverse pour ce shop"}
+                value={attached ? "Attached — this shop receives this till's sales" : "Not attached — no Loyverse numbers for this shop"}
               />
             </>
           );

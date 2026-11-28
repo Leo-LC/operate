@@ -23,7 +23,7 @@ import type { AdminLocation } from "@/modules/admin/types";
 import { toast } from "sonner";
 
 function thb(n: number): string {
-  if (n === 0) return "—";
+  if (n === 0) return "฿0"; // recorded zero ≠ no data ("—" is reserved for no entry)
   return (n < 0 ? "−" : "") + "฿" + Math.round(Math.abs(n)).toLocaleString("en");
 }
 
@@ -320,7 +320,7 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
                 flexShrink: 0,
                 padding: "10px 12px",
                 background: active ? "var(--bronze)" : "var(--surface)",
-                color: active ? "#fff8ee" : hasEntry ? "var(--fg)" : "var(--fg-4)",
+                color: active ? "var(--accent-fg)" : hasEntry ? "var(--fg)" : "var(--fg-4)",
                 border: `1px solid ${active ? "var(--bronze)" : "var(--line)"}`,
                 borderRadius: "var(--r-md)",
                 cursor: "pointer",
@@ -379,11 +379,15 @@ export function AccountingFocusDay({ year, month, entries, locationId, locations
           }}>
             {entry ? thb(net) : "—"}
           </div>
-          {entry && (
+          {entry && typeof net === "number" && (
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-              <Pill tone={net >= 0 ? "good" : "bad"}>
-                {net >= 0 ? "Positive" : "Negative"}
+              <Pill tone={net > 0 ? "good" : net < 0 ? "bad" : "neutral"}>
+                {net > 0 ? "Positive" : net < 0 ? "Negative" : "Zero"}
               </Pill>
+            </div>
+          )}
+          {entry && (
+            <div style={{ marginTop: typeof net === "number" ? 0 : 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Pill tone="neutral">Entry recorded</Pill>
             </div>
           )}

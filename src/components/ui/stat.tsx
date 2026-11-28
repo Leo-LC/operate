@@ -8,8 +8,6 @@ interface StatProps extends React.ComponentProps<"div"> {
   deltaDir?: "up" | "down" | "neutral"
   hint?: string
   sparkline?: React.ReactNode
-  icon?: React.ReactNode
-  iconColor?: string
   /**
    * "top" (default): value right under the label.
    * "bottom": label stays top-left, value pinned to the bottom-left of the
@@ -25,8 +23,6 @@ export function Stat({
   deltaDir = "neutral",
   hint,
   sparkline,
-  icon,
-  iconColor = "var(--accent)",
   valueLayout = "top",
   className,
   ...props
@@ -41,36 +37,19 @@ export function Stat({
 
   return (
     <div className={cn("flex flex-col flex-1", className)} {...props} style={{ minHeight: 72, ...props.style }}>
-      <div className="flex items-center gap-1.5">
-        {icon && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 14,
-              height: 14,
-              color: "var(--fg-4)",
-              flexShrink: 0,
-            }}
-          >
-            {icon}
-          </span>
-        )}
-        <span
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.07em",
-            textTransform: "uppercase",
-            fontWeight: 500,
-            color: "var(--fg-4)",
-            fontFamily: "var(--font-sans)",
-            lineHeight: 1,
-          }}
-        >
-          {label}
-        </span>
-      </div>
+      <span
+        style={{
+          fontSize: 10,
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+          fontWeight: 500,
+          color: "var(--fg-4)",
+          fontFamily: "var(--font-sans)",
+          lineHeight: 1,
+        }}
+      >
+        {label}
+      </span>
       <span
         className="mono tabular-nums"
         style={{

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { getOrgTheme } from "@/lib/theme";
+import { ACCENT_INIT_SCRIPT } from "@/lib/accent";
 
 const sans = Inter({
   subsets: ["latin"],
@@ -50,6 +51,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="antialiased">
+        <script dangerouslySetInnerHTML={{ __html: ACCENT_INIT_SCRIPT }} />
         <Providers>
           {children}
           <Toaster />

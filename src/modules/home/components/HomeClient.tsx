@@ -147,7 +147,8 @@ export function HomeClient({ name, permissions, docsAlert, animalsAlert, snippet
   const showPulse = (permissions.global_role === "owner" || permissions.global_role === "admin") && pulseStats.length > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
+    <div className="home"
+ style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
       {/* Greeting hero — compact OS */}
       <div
         style={{

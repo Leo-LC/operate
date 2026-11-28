@@ -6,6 +6,7 @@ import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { isAccessibleForSession } from "@/lib/module-visibility";
 import { ShopSettingsClient } from "@/modules/finance/components/ShopSettingsClient";
 
+
 export default async function ShopSettingsPage() {
   const session = await getServerSession(authOptions);
   const permissions = await getUserPermissionsFromDb(session?.user?.userId, session?.user?.role);

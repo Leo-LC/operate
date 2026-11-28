@@ -1,0 +1,85 @@
+/* ============================================================================
+   Directory (contacts) — Wave 4 migration onto the shared UI foundation
+   ----------------------------------------------------------------------------
+   `.directory` is a scoped token bridge, the same pattern as `.revs`, `.ci`,
+   `.rep` and `.dir`. Shared controls (Button, Card, Pill, inputs) keep their
+   legacy token names; they are remapped to the opt-in --ui-* scale inside this
+   module only. Nothing here changes a global default or another route.
+   ========================================================================== */
+
+.directory {
+
+
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  color: var(--ui-fg-1);
+}
+
+.directory .ui-module-header {
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .directory {
+    gap: 16px;
+  }
+
+  .directory-form-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .directory-form-grid > * {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────────
+   Pin the row label (shop, contact) while the details scroll; show a real
+   scrollbar and a caption only when the table actually overflows. */
+
+@media (max-width: 767px) {
+  .directory .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .directory .ui-table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .directory .ui-table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .directory .ui-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .directory .ui-table-scroll > table > thead > tr > :first-child,
+  .directory .ui-table-scroll > table > tbody > tr > :first-child:not([colspan]) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ui-panel);
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .directory .ui-table-scroll > table > thead > tr > :first-child {
+    z-index: 3;
+  }
+
+  .directory .ui-table-scroll[data-scrollable]::before {
+    content: "↔ Scroll horizontally";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}

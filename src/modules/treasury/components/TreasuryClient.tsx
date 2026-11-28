@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { toast } from "sonner";
 import { CashCounter } from "@/modules/treasury/components/CashCounter";
 
@@ -150,7 +150,7 @@ function CashPositionRow({
   }
 
   return (
-    <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)" }}>
+    <div className="trs-cashpos-row">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div>
           <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{shortName}</p>
@@ -166,7 +166,7 @@ function CashPositionRow({
         )}
       </div>
       {editing && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 8, marginTop: 10, alignItems: "end" }}>
+        <div className="trs-cashpos-grid">
           <div>
             <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Cash on hand</label>
             <input
@@ -237,8 +237,8 @@ function AddReserveForm({ onAdd }: { onAdd: (r: Partial<Reserve>) => Promise<voi
   );
 
   return (
-    <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", background: "transparent" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
+    <div className="trs-reserve-form">
+      <div className="trs-reserve-grid">
         <div>
           <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Label</label>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. June salaries"
@@ -279,11 +279,63 @@ function AddReserveForm({ onAdd }: { onAdd: (r: Partial<Reserve>) => Promise<voi
   );
 }
 
+// ── Bank Account Form ─────────────────────────────────────────────────────────
+
+function AddBankAccountForm({ onAdd }: { onAdd: (a: { account_name: string; declared_balance: number | null }) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [balance, setBalance] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onAdd({ account_name: name.trim(), declared_balance: balance !== "" ? Number(balance) : null });
+      setName(""); setBalance("");
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) return (
+    <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>+ Add account</Button>
+  );
+
+  return (
+    <div className="trs-reserve-form">
+      <div className="trs-reserve-grid">
+        <div>
+          <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Account name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Bangkok Bank main"
+            style={{ width: "100%", height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--bg-2)", color: "var(--fg)", outline: "none" }} />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "var(--fg-4)", display: "block", marginBottom: 2 }}>Declared balance (฿)</label>
+          <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0"
+            style={{ width: "100%", height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line)", padding: "0 8px", fontSize: 13, background: "var(--bg-2)", color: "var(--fg)", outline: "none" }} />
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="sm" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button size="sm" onClick={() => void handleSave()} disabled={saving || !name.trim()}>
+            {saving ? "…" : "Add"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function TreasuryClient() {
   const [data, setData] = useState<TreasuryData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Inline delete confirmations (replaces window.confirm): the id of the row
+  // whose delete button was pressed; a second click confirms.
+  const [confirmBankId, setConfirmBankId] = useState<string | null>(null);
+  const [confirmReserveId, setConfirmReserveId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -338,6 +390,28 @@ export function TreasuryClient() {
     await load();
   }
 
+  async function addBankAccount(account: { account_name: string; declared_balance: number | null }) {
+    const res = await fetch("/api/treasury/bank-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(account),
+    });
+    if (!res.ok) { toast.error("Save failed"); return; }
+    toast.success("Bank account added");
+    await load();
+  }
+
+  async function deleteBankAccount(id: string) {
+    const res = await fetch("/api/treasury/bank-accounts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) { toast.error("Delete failed"); return; }
+    toast.success("Bank account deleted");
+    await load();
+  }
+
   // ── Computed totals ─────────────────────────────────────────────────────────
 
   const totalCash = (data?.cashPositions ?? []).reduce((s, p) => s + (p.cash_on_hand ?? 0), 0);
@@ -351,54 +425,74 @@ export function TreasuryClient() {
   const statusColor = freeCash < 0 ? "var(--bad)" : freeCash < totalReserved * 0.2 ? "var(--warn)" : "var(--good)";
   const statusLabel = freeCash < 0 ? "Critical" : freeCash < totalReserved * 0.2 ? "Watch" : "OK";
 
+  // Nothing recorded yet (no cash position, no declared bank balance, no
+  // reserve): "OK" would assert a healthy position the data does not
+  // support — presentation-only honest label from existing fields.
+  const anySourceRecorded =
+    (data?.cashPositions ?? []).some((p) => p.cash_on_hand != null || p.expected_transfer != null) ||
+    (data?.bankAccounts ?? []).some((a) => a.declared_balance != null) ||
+    (data?.reserves ?? []).length > 0;
+  const hasData = !!data && anySourceRecorded;
+
   if (loading) return (
-    <div style={{ display: "flex", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>Loading…</div>
+    <div className="trs" style={{ display: "flex", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>Loading…</div>
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
-      <PageHeader
-        title="Treasury"
-      />
+    <div className="trs trs-shell">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Treasury</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Treasury</h1>
+        </div>
+      </header>
 
-      {/* Top summary — compact tiles 16/8 as ref */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Cash in shops",        value: totalCash,             color: "var(--fg)" },
-          { label: "Bank balance declared", value: totalBank,             color: "var(--fg)" },
-          { label: "Reserved obligations",  value: totalReserved,         color: "var(--fg-3)" },
-          { label: "Free cash",             value: freeCash,              color: statusColor },
-        ].map(({ label, value, color }) => (
-          <div key={label} style={{
-            borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "transparent",
-            padding: "14px 16px",
-          }}>
-            <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--fg-4)" }}>{label}</p>
-            <p className="mono tabular-nums" style={{ margin: 0, fontSize: 18, fontWeight: 600, color, letterSpacing: "-0.015em" }}>{thb(value)}</p>
-          </div>
-        ))}
+      {/* Top summary — shared KPI cards on the responsive grid */}
+      <div className="ui-kpi-grid">
+        <KpiStat
+          label="Cash in shops"
+          value={hasData ? thb(totalCash) : "—"}
+          hint={!hasData ? "No data recorded" : undefined}
+        />
+        <KpiStat
+          label="Bank balance declared"
+          value={hasData ? thb(totalBank) : "—"}
+          hint={!hasData ? "No data recorded" : undefined}
+        />
+        <KpiStat
+          label="Reserved obligations"
+          value={hasData ? thb(totalReserved) : "—"}
+          hint={!hasData ? "No data recorded" : undefined}
+        />
+        <KpiStat
+          label="Free cash"
+          value={hasData ? thb(freeCash) : "—"}
+          tone={!hasData ? undefined : freeCash < 0 ? "negative" : freeCash < totalReserved * 0.2 ? undefined : "positive"}
+          data-alert={hasData && freeCash >= 0 && freeCash < totalReserved * 0.2 ? "warn" : undefined}
+          hint={hasData ? statusLabel : "No data recorded"}
+        />
       </div>
 
-      {/* Free cash formula */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
-        borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "transparent",
-        fontSize: 13, color: "var(--fg-3)", flexWrap: "wrap",
-      }}>
-        <span className="mono tabular-nums">{thb(totalCash)} cash</span>
+      {/* Free cash formula — figures are shown only when at least one source
+          is recorded; otherwise nothing here reads as a known amount. */}
+      <div className="trs-formula">
+        <span className="mono tabular-nums">{hasData ? thb(totalCash) : "—"} cash</span>
         <span>+</span>
-        <span className="mono tabular-nums">{thb(totalBank)} bank</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalBank) : "—"} bank</span>
         <span>+</span>
-        <span className="mono tabular-nums">{thb(totalExpectedTransfer)} transfers</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalExpectedTransfer) : "—"} transfers</span>
         <span>−</span>
-        <span className="mono tabular-nums">{thb(totalReserved)} reserves</span>
+        <span className="mono tabular-nums">{hasData ? thb(totalReserved) : "—"} reserves</span>
         <span>=</span>
-        <span className="mono tabular-nums" style={{ fontWeight: 700, color: statusColor }}>{thb(freeCash)} free cash</span>
-        <span style={{
-          marginLeft: "auto", fontSize: 11, fontWeight: 600, padding: "2px 8px",
-          borderRadius: "var(--r-pill)", background: statusColor, color: "#fff",
-        }}>
-          {statusLabel}
+        <span className="mono tabular-nums" style={hasData ? { fontWeight: 700, color: statusColor } : undefined}>{hasData ? thb(freeCash) : "—"} free cash</span>
+        <span className="trs-formula-pill" style={hasData ? { background: statusColor } : { background: "var(--ui-panel-2)", color: "var(--ui-fg-3)", border: "1px solid var(--ui-line)" }}>
+          {hasData ? statusLabel : "No data"}
         </span>
       </div>
 
@@ -423,27 +517,15 @@ export function TreasuryClient() {
 
       {/* Bank accounts */}
       <Section title="Bank accounts" action={
-        <Button size="sm" variant="secondary" onClick={() => {
-          const name = window.prompt("Account name:");
-          if (!name) return;
-          const balance = window.prompt("Declared balance (฿):");
-          if (balance == null) return;
-          void fetch("/api/treasury/bank-accounts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ account_name: name, declared_balance: Number(balance) || null }),
-          }).then(() => load());
-        }}>
-          + Add account
-        </Button>
+        <AddBankAccountForm onAdd={addBankAccount} />
       }>
         {(data?.bankAccounts ?? []).length === 0 ? (
-          <div style={{ padding: "24px 20px", fontSize: 13, color: "var(--fg-4)" }}>
+          <div className="trs-list-empty">
             No bank accounts added yet. Add your first account above.
           </div>
         ) : (
           data?.bankAccounts.map((acc) => (
-            <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1px solid var(--line)" }}>
+            <div key={acc.id} className="trs-bank-row">
               <div>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{acc.account_name}</p>
                 <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--fg-4)" }}>
@@ -452,16 +534,19 @@ export function TreasuryClient() {
                   {" · Reliability: "}<ReliabilityBadge r={acc.reliability} />
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => {
-                if (!window.confirm(`Delete "${acc.account_name}"?`)) return;
-                void fetch("/api/treasury/bank-accounts", {
-                  method: "DELETE",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: acc.id }),
-                }).then(() => load());
-              }}>
-                Delete
-              </Button>
+              {confirmBankId === acc.id ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, color: "var(--bad)" }}>Delete this account?</span>
+                  <Button size="sm" variant="secondary" onClick={() => setConfirmBankId(null)}>Cancel</Button>
+                  <Button size="sm" onClick={() => { setConfirmBankId(null); void deleteBankAccount(acc.id); }}>
+                    Delete
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setConfirmBankId(acc.id)}>
+                  Delete
+                </Button>
+              )}
             </div>
           ))
         )}
@@ -470,17 +555,13 @@ export function TreasuryClient() {
       {/* Reserves tracker */}
       <Section title="Reserve tracker">
         {(data?.reserves ?? []).length === 0 ? (
-          <div style={{ padding: "24px 20px", fontSize: 13, color: "var(--fg-4)" }}>
+          <div className="trs-list-empty">
             No reserves added yet.
           </div>
         ) : (
           <>
             {/* Summary row */}
-            <div style={{
-              display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto",
-              padding: "8px 20px", background: "transparent",
-              fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--fg-4)",
-            }}>
+            <div className="trs-reserve-head">
               <span>Obligation</span>
               <span style={{ textAlign: "right" }}>Required</span>
               <span style={{ textAlign: "right" }}>Reserved</span>
@@ -490,7 +571,7 @@ export function TreasuryClient() {
               const completePct = r.amount_required > 0 ? (r.amount_reserved / r.amount_required) * 100 : 100;
               const barColor = completePct >= 80 ? "var(--good)" : completePct >= 50 ? "var(--warn)" : "var(--bad)";
               return (
-                <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", alignItems: "center", padding: "10px 20px", borderTop: "1px solid var(--line)", gap: 12 }}>
+                <div key={r.id} className="trs-reserve-row">
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <PriorityBadge p={r.priority} />
@@ -515,19 +596,22 @@ export function TreasuryClient() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
                     <span className="mono tabular-nums" style={{ fontSize: 12, fontWeight: 600, color: barColor }}>{pct(completePct)}</span>
-                    <Button size="sm" variant="ghost" onClick={() => {
-                      if (window.confirm(`Delete "${r.label}"?`)) void deleteReserve(r.id);
-                    }}>×</Button>
+                    {confirmReserveId === r.id ? (
+                      <>
+                        <Button size="sm" variant="secondary" onClick={() => setConfirmReserveId(null)}>Cancel</Button>
+                        <Button size="sm" onClick={() => { setConfirmReserveId(null); void deleteReserve(r.id); }}>
+                          Delete
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="ghost" onClick={() => setConfirmReserveId(r.id)}>×</Button>
+                    )}
                   </div>
                 </div>
               );
             })}
             {/* Totals */}
-            <div style={{
-              display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto",
-              padding: "10px 20px", borderTop: "2px solid var(--line)",
-              background: "transparent", alignItems: "center", gap: 12,
-            }}>
+            <div className="trs-reserve-totals">
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>Total</span>
               <span className="mono tabular-nums" style={{ textAlign: "right", fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>{thb(totalReserved)}</span>
               <span className="mono tabular-nums" style={{ textAlign: "right", fontSize: 13, fontWeight: 600, color: "var(--good)" }}>{thb(totalReservedSoFar)}</span>

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TreasuryClient } from "@/modules/treasury/components/TreasuryClient";
+import "./treasury.css";
 
 export default async function TreasuryPage() {
   const session = await getServerSession(authOptions);

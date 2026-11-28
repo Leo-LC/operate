@@ -1,0 +1,119 @@
+/* ============================================================================
+   Animals — Wave 4 migration onto the shared UI foundation
+   ----------------------------------------------------------------------------
+   `.animals` is a scoped token bridge, the same pattern as `.revs`, `.ci`,
+   `.rep`, `.dir` and `.directory`. It is also applied to the portalled
+   AnimalModal so the dialog stays on the module accent.
+   ========================================================================== */
+
+.animals {
+
+
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  color: var(--ui-fg-1);
+}
+
+.animals .ui-module-header {
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .animals {
+    gap: 16px;
+  }
+
+  .animals-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .animals-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Species counts are short labels: pack them rather than leaving a lonely
+   two-card row on tablets/desktop. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .animals .ui-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .animals .ui-kpi-grid > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .animals .ui-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  .animals-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Panels ────────────────────────────────────────────────────────────────
+   Vaccine urgency groups share one quiet surface. */
+
+.animals-panel {
+  padding: 16px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow);
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────────
+   Pin the animal name while the status columns scroll; expose the horizontal
+   scrollbar and a caption only when the table overflows. */
+
+@media (max-width: 767px) {
+  .animals .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .animals .ui-table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .animals .ui-table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .animals .ui-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .animals .ui-table-scroll > table > thead > tr > :first-child,
+  .animals .ui-table-scroll > table > tbody > tr > :first-child:not([colspan]) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ui-panel);
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .animals .ui-table-scroll > table > thead > tr > :first-child {
+    z-index: 3;
+  }
+
+  .animals .ui-table-scroll[data-scrollable]::before {
+    content: "↔ Scroll horizontally";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}

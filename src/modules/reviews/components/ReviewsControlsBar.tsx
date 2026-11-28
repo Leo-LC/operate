@@ -48,9 +48,9 @@ export function ReviewsControlsBar({
   onShuffleAll,
 }: ReviewsControlsBarProps) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 13, color: "var(--fg-3)" }}>
+    <div className="revs-controls">
+      <div className="revs-controls-group">
+        <span className="revs-controls-count">
           Reply to {displayCount} reviews
         </span>
         <Button
@@ -75,27 +75,29 @@ export function ReviewsControlsBar({
           <ShuffleIcon className="size-4" />
           <span style={{ fontSize: 12 }}>Shuffle all</span>
         </Button>
-        <span style={{ fontSize: 13, color: "var(--fg-3)" }}>Limit:</span>
-        <select
-          style={{ height: 32, borderRadius: "var(--r-sm)", border: "1px solid var(--line-strong)", background: "var(--bg)", color: "var(--fg)", padding: "0 8px", fontSize: 12 }}
-          value={displayLimit == null ? "all" : String(displayLimit)}
-          onChange={(e) => {
-            const value = e.target.value;
-            onLimitChange(value === "all" ? null : Number(value));
-          }}
-          aria-label="Select review display limit"
-        >
-          {LIMIT_OPTIONS.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-          <option value="all">All</option>
-        </select>
+        <span className="revs-controls-limit">
+          <span className="revs-controls-label">Limit:</span>
+          <select
+            className="revs-limit"
+            value={displayLimit == null ? "all" : String(displayLimit)}
+            onChange={(e) => {
+              const value = e.target.value;
+              onLimitChange(value === "all" ? null : Number(value));
+            }}
+            aria-label="Select review display limit"
+          >
+            {LIMIT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+            <option value="all">All</option>
+          </select>
+        </span>
       </div>
 
       {allRatingsMode && (
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <div className="revs-controls-group">
           {fiveInDisplay.length > 0 && fiveAllowBulk && (
             <Button
               onClick={() => onBulkConfirm(fiveInDisplay, "5★")}

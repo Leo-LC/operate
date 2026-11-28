@@ -1,15 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
-  ChevronRightIcon,
-  WalletIcon,
-  FileTextIcon,
   UsersIcon,
-  PercentIcon,
-  LockIcon,
-  AlertTriangleIcon,
-  LightbulbIcon,
   BarChart3Icon,
   ActivityIcon,
   CreditCardIcon,
@@ -17,11 +11,11 @@ import {
   ClipboardListIcon,
   PercentCircleIcon,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { ControlledTabs } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { Pill } from "@/components/ui/pill";
 import { DateRangePicker, ShopMultiSelect, bangkokToday, monthStartToday, shopMultiParam } from "@/components/ui/filters";
-import { Stat } from "@/components/ui/stat";
 import { DailyProfitView } from "@/modules/reports/components/DailyProfitView";
 import { RevenueComparisonView } from "@/modules/reports/components/RevenueComparisonView";
 
@@ -93,7 +87,7 @@ function fmtN(n: number) {
 }
 
 function fmtMoney(n: number) {
-  return n < 0 ? `(฿${fmtN(Math.abs(n))})` : `฿${fmtN(n)}`;
+  return `${n < 0 ? "−" : ""}฿${fmtN(Math.abs(n))}`;
 }
 
 function fmtPct(n: number) {
@@ -155,39 +149,37 @@ function Controls({
   onShopsChange: (ids: string[]) => void;
 }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
-      <DateRangePicker
-        value={{ from, to }}
-        onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
-        today={bangkokToday()}
-      />
-      {locations.length > 0 && (
-        <ShopMultiSelect options={locations} selected={selectedShops} onChange={onShopsChange} />
-      )}
+    <div className="ui-toolbar">
+      <div className="ui-filter-rows">
+        <div className="ui-filter-row">
+          <span className="ui-filter-label" id="rep-period-label">
+            Period
+          </span>
+          <div className="ui-filter-control" role="group" aria-labelledby="rep-period-label">
+            <DateRangePicker
+              value={{ from, to }}
+              onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+              today={bangkokToday()}
+            />
+          </div>
+        </div>
+        {locations.length > 0 && (
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="rep-shops-label">
+              Shops
+            </span>
+            <div className="ui-filter-control" role="group" aria-labelledby="rep-shops-label">
+              <ShopMultiSelect
+                options={locations}
+                selected={selectedShops}
+                onChange={onShopsChange}
+                allLabel="All shops"
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  );
-}
-
-// ── Sparkline ────────────────────────────────────────────────────────────────
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  if (data.length < 2) return null;
-  const w = 64;
-  const h = 28;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * w;
-      const y = h - ((v - min) / range) * h;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: "visible", flexShrink: 0 }}>
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 
@@ -199,45 +191,35 @@ function KpiCard({
   delta,
   deltaDir = "neutral",
   hint,
-  icon,
-  iconColor = "var(--bronze)",
-  footer,
 }: {
   label: string;
   value: string;
   delta?: string;
   deltaDir?: "up" | "down" | "neutral";
   hint?: string;
-  icon?: React.ReactNode;
-  iconColor?: string;
-  footer?: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-        background: "transparent", padding: 16,
-        display: "flex", flexDirection: "column", gap: 6, height: "100%",
-      }}
-    >
-      <Stat label={label} value={value} delta={delta} deltaDir={deltaDir} hint={hint} icon={icon} iconColor={iconColor} />
-      {footer && <div style={{ marginTop: 8 }}>{footer}</div>}
-    </div>
+    <KpiStat
+      label={label}
+      value={value}
+      comparison={delta ? <span className="ui-kpi-delta" data-dir={deltaDir}>{delta}</span> : null}
+      hint={hint}
+    />
   );
 }
 
 // ── Section card + header — neutral, no colored bg, muted icon ─────
 
-function SectionHeader({ label, icon }: { label: string; bg?: string; color?: string; icon?: React.ReactNode }) {
+function SectionHeader({ label, icon }: { label: string; icon?: React.ReactNode }) {
   return (
     <div
       style={{
-        padding: "10px 16px", borderBottom: "1px solid var(--line)",
-        background: "var(--surface-2)", display: "flex", alignItems: "center", gap: 8,
+        padding: "11px 16px", borderBottom: "1px solid var(--line)",
+        display: "flex", alignItems: "center", gap: 8,
       }}
     >
       {icon && <span style={{ color: "var(--fg-4)", display: "inline-flex" }}>{icon}</span>}
-      <h3 className="eyebrow" style={{ color: "var(--fg-3)", margin: 0 }}>{label}</h3>
+      <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>{label}</h3>
     </div>
   );
 }
@@ -295,7 +277,7 @@ function BarListRow({
   color: string;
 }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", alignItems: "center", gap: 10, padding: "8px 0" }}>
+    <div className="ui-bar-row">
       <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)" }}>{index}</span>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <span style={{ fontSize: 13, color: "var(--fg-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
@@ -309,74 +291,13 @@ function BarListRow({
 
 function BarListHeader() {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+    <div className="ui-bar-head">
       <span />
       <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Category</span>
       <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
       <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of sales</span>
     </div>
   );
-}
-
-// ── Rule-based insights ───────────────────────────────────────────────────────
-
-interface NeedsActionItem { label: string; tone: "bad" | "warn" | "info" }
-
-function computeNeedsAction(
-  o: ShopAgg,
-  monthlyExpenses: MonthlyExpensesData,
-  completeness: AccountingData["completeness"]
-): NeedsActionItem[] {
-  const items: NeedsActionItem[] = [];
-
-  if (o.closingCashSafe < 0) {
-    items.push({ label: `Closing cash safe is negative (${fmtMoney(o.closingCashSafe)})`, tone: "bad" });
-  }
-  if (!monthlyExpenses.entered) {
-    items.push({ label: "Monthly expenses not entered", tone: "warn" });
-  }
-  if (o.cashToBoss > 0) {
-    items.push({ label: `Verify cash sent to boss (฿${fmtN(o.cashToBoss)})`, tone: "info" });
-  }
-  const otherExp = o.expOtherCash + o.expOtherBank;
-  if (o.revenue > 0 && otherExp / o.revenue > 0.05) {
-    items.push({ label: `High "Other" expense (฿${fmtN(otherExp)})`, tone: "warn" });
-  }
-  if (completeness && completeness.percent < 100) {
-    items.push({ label: `Enter missing daily entries (${completeness.percent}% complete)`, tone: "warn" });
-  }
-
-  return items;
-}
-
-function computeManagementNotes(o: ShopAgg): string[] {
-  const notes: string[] = [];
-  if (o.revenue <= 0) return notes;
-
-  const cats = [
-    { label: "Ticket sales", value: o.tickets },
-    { label: "Drink sales", value: o.drinks },
-    { label: "Snack sales", value: o.snacks },
-    { label: "Goodies sales", value: o.goodies },
-  ];
-  const top = [...cats].sort((a, b) => b.value - a.value)[0];
-  if (top.value > 0) {
-    notes.push(`${top.label} drive ${fmtPct((top.value / o.revenue) * 100)} of total revenue.`);
-  }
-
-  const hrPct = (o.hrCosts / o.revenue) * 100;
-  notes.push(
-    hrPct <= 30
-      ? `HR ratio (${fmtPct(hrPct)}) is in a healthy range.`
-      : `HR ratio (${fmtPct(hrPct)}) is above target — review staffing costs.`
-  );
-
-  const secondaryPct = cats.filter((c) => c.label !== top.label).reduce((s, c) => s + c.value, 0) / o.revenue * 100;
-  if (secondaryPct < 25) {
-    notes.push("Secondary categories remain a smaller share of revenue — opportunity to grow.");
-  }
-
-  return notes.slice(0, 3);
 }
 
 // ── Performance Metrics ───────────────────────────────────────────────────────
@@ -427,14 +348,14 @@ const PERF_METRICS: MetricDef[] = [
   },
 ];
 
-function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
+function PerformanceMetrics({ shops, sectionLabel }: { shops: ShopAgg[]; sectionLabel: string }) {
   const activeShops = shops.filter((s) => s.revenue > 0);
   if (activeShops.length === 0) return null;
 
   return (
     <Card>
-      <SectionHeader label="Indicateurs de performance" bg="var(--bronze-soft)" color="var(--bronze-2)" />
-      <div style={{ overflowX: "auto" }}>
+      <SectionHeader label={sectionLabel} />
+      <div className="ui-table-scroll">
         <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "var(--bg-2)" }}>
@@ -493,7 +414,51 @@ function PerformanceMetrics({ shops }: { shops: ShopAgg[] }) {
 
 // ── Operations Tab ────────────────────────────────────────────────────────────
 
-export function OperationsView({ data }: { data: AccountingData }) {
+/**
+ * Shared between /reports (English) and Direction › Détails (French).
+ * `locale` defaults to English; only Direction passes "fr".
+ */
+export type OperationsLocale = "en" | "fr";
+
+const OPERATIONS_LABELS: Record<OperationsLocale, Record<string, string>> = {
+  en: {
+    revenue: "Revenue",
+    afterOpex: "After operating costs",
+    afterHr: "Net profit (after HR)",
+    hrShare: "HR / Sales",
+    vat: "VAT collected",
+    vs: "vs",
+    perf: "Performance indicators",
+    revenueMix: "Revenue breakdown",
+    opex: "Operating expenses",
+    hr: "HR breakdown",
+    payments: "Payment methods",
+    monthly: "Monthly fixed expenses",
+    hrRatios: "HR & cash ratios",
+    vatCosts: "VAT & total costs",
+    shopCompare: "Shop comparison",
+  },
+  fr: {
+    revenue: "Chiffre d'affaires",
+    afterOpex: "Après charges",
+    afterHr: "Après RH",
+    hrShare: "Part RH / Ventes",
+    vat: "TVA encaissée",
+    vs: "vs",
+    perf: "Indicateurs de performance",
+    revenueMix: "Répartition du CA",
+    opex: "Charges d'exploitation",
+    hr: "Détail RH",
+    payments: "Moyens de paiement",
+    monthly: "Charges mensuelles",
+    hrRatios: "Ratios RH",
+    vatCosts: "TVA et coûts",
+    shopCompare: "Comparaison par boutique",
+  },
+};
+
+export function OperationsView({ data, locale = "en" }: { data: AccountingData; locale?: OperationsLocale }) {
+  const L = OPERATIONS_LABELS[locale];
   const { overview: o, byShop, previousPeriod, dailyTotals, monthlyExpenses } = data;
   const p = previousPeriod.overview;
   const prevMonthName = monthShortLabel(previousPeriod.period.to);
@@ -558,80 +523,70 @@ export function OperationsView({ data }: { data: AccountingData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="ui-kpi-grid">
         <KpiCard
-          label="Chiffre d'affaires"
+          label={L.revenue}
           value={`฿${fmtN(o.revenue)}`}
           delta={revenueDelta.delta}
           deltaDir={revenueDelta.dir}
-          hint={`vs ${prevMonthName}`}
-          icon={<WalletIcon style={{ width: 17, height: 17 }} />}
-          iconColor="var(--good)"
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="Après charges"
-          value={`฿${fmtN(netAfterExpenses)}`}
+          label={L.afterOpex}
+          value={fmtMoney(netAfterExpenses)}
           delta={netAfterExpDelta.delta}
           deltaDir={netAfterExpDelta.dir}
-          hint={`vs ${prevMonthName}`}
-          icon={<FileTextIcon style={{ width: 17, height: 17 }} />}
-          iconColor="var(--info)"
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="Après RH"
-          value={`฿${fmtN(o.netProfit)}`}
+          label={L.afterHr}
+          value={fmtMoney(o.netProfit)}
           delta={netAfterHrDelta.delta}
           deltaDir={netAfterHrDelta.dir}
-          hint={`vs ${prevMonthName}`}
-          icon={<UsersIcon style={{ width: 17, height: 17 }} />}
-          iconColor="var(--purple)"
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="Part RH / Ventes"
+          label={L.hrShare}
           value={fmtPct(hrPctOfSales)}
           delta={hrPctDelta.delta}
           deltaDir={hrPctDelta.dir}
-          hint={`vs ${prevMonthName}`}
-          icon={<PercentIcon style={{ width: 17, height: 17 }} />}
-          iconColor="var(--warn)"
+          hint={`${L.vs} ${prevMonthName}`}
         />
         <KpiCard
-          label="TVA encaissée"
+          label={L.vat}
           value={`฿${fmtN(o.vat)}`}
           delta={vatDelta.delta}
           deltaDir={vatDelta.dir}
-          hint={`vs ${prevMonthName}`}
-          icon={<ReceiptIcon style={{ width: 17, height: 17 }} />}
-          iconColor="var(--bronze)"
+          hint={`${L.vs} ${prevMonthName}`}
         />
       </div>
 
       {/* Revenue Mix + Cost Drivers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Répartition du CA" bg="var(--good-soft)" color="var(--good)" icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label={L.revenueMix} icon={<BarChart3Icon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {revenueRows.map((r, i) => (
-              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--good)" />
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--ui-series-primary)" />
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--good)" }}>Total Sales Net</span>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--good)" }}>฿{fmtN(o.revenue)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total Sales Net</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(o.revenue)}</span>
             </div>
           </div>
         </Card>
 
         <Card>
-          <SectionHeader label="Charges d'exploitation" bg="var(--warn-soft)" color="var(--warn)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+          <SectionHeader label={L.opex} icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
           <div style={{ padding: "var(--s-4) var(--s-5)" }}>
             <BarListHeader />
             {costRows.map((r, i) => (
-              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--warn)" />
+              <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.revenue > 0 ? (r.value / o.revenue) * 100 : 0} color="var(--ui-series-neutral)" />
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--warn)" }}>Total Operating Expenses</span>
-              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--warn)" }}>฿{fmtN(totalOpex)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total Operating Expenses</span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(totalOpex)}</span>
             </div>
           </div>
         </Card>
@@ -639,27 +594,27 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* HR Breakdown */}
       <Card>
-        <SectionHeader label="Détail RH" bg="var(--purple-soft)" color="var(--purple)" icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label={L.hr} icon={<UsersIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+          <div className="ui-bar-head">
             <span />
             <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Item</span>
             <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
             <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>% of HR</span>
           </div>
           {hrRows.map((r, i) => (
-            <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--purple)" />
+            <BarListRow key={r.label} index={i + 1} label={r.label} amount={r.value} pctOfTotal={o.hrCosts > 0 ? (r.value / o.hrCosts) * 100 : 0} color="var(--ui-series-neutral)" />
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--purple)" }}>Total HR Cost</span>
-            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)" }}>฿{fmtN(o.hrCosts)}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total HR Cost</span>
+            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(o.hrCosts)}</span>
           </div>
         </div>
       </Card>
 
       {/* Daily Rhythm */}
       <Card>
-        <SectionHeader label="Daily Rhythm" bg="var(--bg-2)" color="var(--fg-3)" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label="Daily Rhythm" icon={<ActivityIcon style={{ width: 14, height: 14 }} />} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ padding: "var(--s-4) var(--s-5)" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ fontSize: 11, color: "var(--fg-4)" }}>Avg / Day</span>
@@ -686,9 +641,9 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Payment Methods */}
       <Card>
-        <SectionHeader label="Moyens de paiement" bg="var(--info-soft)" color="var(--info)" icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
+        <SectionHeader label={L.payments} icon={<CreditCardIcon style={{ width: 14, height: 14 }} />} />
         <div style={{ padding: "var(--s-4) var(--s-5)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "18px 1fr 96px 56px", gap: 10, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+          <div className="ui-bar-head">
             <span />
             <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)" }}>Type</span>
             <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--fg-4)", textAlign: "right" }}>Amount</span>
@@ -699,11 +654,11 @@ export function OperationsView({ data }: { data: AccountingData }) {
             { label: "Scan / QR", value: o.scan },
             { label: "Credit Card", value: o.creditCard },
           ].map((row, i) => (
-            <BarListRow key={row.label} index={i + 1} label={row.label} amount={row.value} pctOfTotal={paymentPct(row.value)} color="var(--info)" />
+            <BarListRow key={row.label} index={i + 1} label={row.label} amount={row.value} pctOfTotal={paymentPct(row.value)} color="var(--ui-series-primary)" />
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line)" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--info)" }}>Total Payments</span>
-            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--info)" }}>฿{fmtN(totalPayments)}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, borderTop: "1px solid var(--line-strong)" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>Total Payments</span>
+            <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--fg-1)" }}>฿{fmtN(totalPayments)}</span>
           </div>
         </div>
       </Card>
@@ -711,8 +666,8 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Monthly Expenses + HR Ratios & Pending */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card>
-          <SectionHeader label="Charges mensuelles" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
-          <div style={{ overflowX: "auto" }}>
+          <SectionHeader label={L.monthly} icon={<ClipboardListIcon style={{ width: 14, height: 14 }} />} />
+          <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "var(--bg-2)" }}>
@@ -737,9 +692,9 @@ export function OperationsView({ data }: { data: AccountingData }) {
                     </tr>
                   );
                 })}
-                <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                  <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total Monthly Expenses</td>
-                  <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>
+                <tr style={{ background: "var(--ui-panel-2)", borderTop: "2px solid var(--line-strong)" }}>
+                  <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--fg-1)" }}>Total Monthly Expenses</td>
+                  <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--fg-1)" }}>
                     {fmtN(Object.values(monthlyExpenses.totals).reduce((s, v) => s + v, 0))}
                   </td>
                   <td style={{ padding: "8px var(--s-5)", textAlign: "right" }} />
@@ -753,8 +708,8 @@ export function OperationsView({ data }: { data: AccountingData }) {
         </Card>
 
         <Card>
-          <SectionHeader label="Ratios RH" bg="var(--bg-2)" color="var(--fg-3)" icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
-          <div style={{ overflowX: "auto" }}>
+          <SectionHeader label={L.hrRatios} icon={<PercentCircleIcon style={{ width: 14, height: 14 }} />} />
+          <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "var(--bg-2)" }}>
@@ -766,8 +721,8 @@ export function OperationsView({ data }: { data: AccountingData }) {
               <tbody>
                 {[
                   { label: "% HR / Sales", value: fmtPct(hrPctOfSales), context: hrPctOfSales <= 30 ? "Healthy range" : "Above target" },
-                  { label: "Net After Expenses", value: `฿${fmtN(netAfterExpenses)}`, context: "Before HR deduction" },
-                  { label: "Net After Exp. + HR", value: `฿${fmtN(o.netProfit)}`, context: "Post payroll result" },
+                  { label: "Net After Expenses", value: fmtMoney(netAfterExpenses), context: "Before HR deduction" },
+                  { label: "Net After Exp. + HR", value: fmtMoney(o.netProfit), context: "Post payroll result" },
                   { label: "Cash to Boss", value: `฿${fmtN(o.cashToBoss)}`, context: "Cash sent to boss this period" },
                   { label: "Closing Cash Safe", value: fmtMoney(o.closingCashSafe), context: o.closingCashSafe < 0 ? "Negative balance" : "Positive balance" },
                 ].map((row) => (
@@ -785,8 +740,8 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* VAT & Total Costs */}
       <Card>
-        <SectionHeader label="TVA et coûts" bg="var(--bronze-soft)" color="var(--bronze-2)" icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
-        <div style={{ overflowX: "auto" }}>
+        <SectionHeader label={L.vatCosts} icon={<ReceiptIcon style={{ width: 14, height: 14 }} />} />
+        <div className="ui-table-scroll">
           <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "var(--bg-2)" }}>
@@ -806,10 +761,10 @@ export function OperationsView({ data }: { data: AccountingData }) {
                 <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{fmtN(grandTotalCosts)}</td>
                 <td style={{ padding: "8px var(--s-5)", textAlign: "right" }}>{o.revenue > 0 ? fmtPct((grandTotalCosts / o.revenue) * 100) : "—"}</td>
               </tr>
-              <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total Sales Net</td>
-                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>{fmtN(o.revenue)}</td>
-                <td style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--bronze)" }}>100.00%</td>
+              <tr style={{ background: "var(--ui-panel-2)", borderTop: "2px solid var(--line-strong)" }}>
+                <td style={{ padding: "8px var(--s-5)", fontWeight: 600, color: "var(--fg-1)" }}>Total Sales Net</td>
+                <td className="mono" style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--fg-1)" }}>{fmtN(o.revenue)}</td>
+                <td style={{ padding: "8px var(--s-5)", textAlign: "right", fontWeight: 700, color: "var(--fg-1)" }}>100.00%</td>
               </tr>
             </tbody>
           </table>
@@ -819,8 +774,8 @@ export function OperationsView({ data }: { data: AccountingData }) {
       {/* Per-shop comparison (kept from previous layout — not part of reference image but useful) */}
       {sortedShops.length > 1 && (
         <Card>
-          <SectionHeader label="Comparaison par boutique" bg="var(--bg-2)" color="var(--fg-3)" />
-          <div style={{ overflowX: "auto" }}>
+          <SectionHeader label={L.shopCompare} />
+          <div className="ui-table-scroll">
             <table style={{ fontSize: 13, width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "var(--bg-2)" }}>
@@ -859,9 +814,9 @@ export function OperationsView({ data }: { data: AccountingData }) {
                     </td>
                   </tr>
                 ))}
-                <tr style={{ background: "var(--bronze-soft)", borderTop: "2px solid var(--line)" }}>
-                  <td style={{ padding: "10px var(--s-5)", fontWeight: 600, color: "var(--bronze)" }}>Total</td>
-                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--bronze)" }}>฿{fmtN(o.revenue)}</td>
+                <tr style={{ background: "var(--ui-panel-2)", borderTop: "2px solid var(--line-strong)" }}>
+                  <td style={{ padding: "10px var(--s-5)", fontWeight: 600, color: "var(--fg-1)" }}>Total</td>
+                  <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--fg-1)" }}>฿{fmtN(o.revenue)}</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.expenses)}</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.hrCosts)}</td>
                   <td className="mono" style={{ padding: "10px var(--s-5)", textAlign: "right", fontWeight: 700, color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
@@ -881,7 +836,7 @@ export function OperationsView({ data }: { data: AccountingData }) {
 
       {/* Performance metrics */}
       {sortedShops.some((s) => s.revenue > 0) && (
-        <PerformanceMetrics shops={sortedShops} />
+        <PerformanceMetrics shops={sortedShops} sectionLabel={L.perf} />
       )}
     </div>
   );
@@ -1091,7 +1046,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of revenue` : "—"),
     badge: (s) => ({
-      text: `${s.netProfit >= 0 ? "+" : ""}฿${fmtN(s.netProfit)}`,
+      text: `${s.netProfit > 0 ? "+" : ""}${fmtMoney(s.netProfit)}`,
       color: s.netProfit >= 0 ? "var(--good)" : "var(--bad)",
     }),
     metrics: [
@@ -1107,7 +1062,7 @@ const SHOP_COMPARE_MODES: ShopCompareConfig[] = [
     sortBy: (s) => s.revenue,
     shareLabel: (s, o) => (o.revenue > 0 ? `${fmtPct((s.revenue / o.revenue) * 100)} of revenue` : "—"),
     badge: (s) => ({
-      text: `${s.revenue - s.expenses >= 0 ? "+" : ""}฿${fmtN(s.revenue - s.expenses)}`,
+      text: `${s.revenue - s.expenses > 0 ? "+" : ""}${fmtMoney(s.revenue - s.expenses)}`,
       color: s.revenue - s.expenses >= 0 ? "var(--good)" : "var(--bad)",
     }),
     metrics: [
@@ -1238,7 +1193,7 @@ function ShopComparisonBar({
   label: string;
   format?: "currency" | "percent";
 }) {
-  const display = format === "percent" ? fmtPct(amount) : `฿${fmtN(amount)}`;
+  const display = format === "percent" ? fmtPct(amount) : fmtMoney(amount);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span className="mono" style={{ fontSize: 11, color: "var(--fg-4)", width: 64, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
@@ -1333,9 +1288,6 @@ function TreasuryView({ data }: { data: AccountingData }) {
     return Math.max(...values, 1);
   }, [sortedShops, activeMetrics]);
 
-  const top = sortedShops[0];
-  const bottom = sortedShops[sortedShops.length - 1];
-
   function toggleMetric(key: string) {
     setEnabledMetrics((prev) => {
       const isActive = prev[key] !== false;
@@ -1344,24 +1296,6 @@ function TreasuryView({ data }: { data: AccountingData }) {
       if (!isActive && compareMode === "custom" && activeCount >= MAX_CUSTOM_METRICS) return prev;
       return { ...prev, [key]: !isActive };
     });
-  }
-
-  function calloutDetail(shop: ShopAgg) {
-    const sortVal = sortMetric.getValue(shop);
-    const sortDisplay = sortMetric.format === "percent" ? fmtPct(sortVal) : `฿${fmtN(sortVal)}`;
-    if (compareMode === "revenue") {
-      return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
-    }
-    if (compareMode === "net-profit") {
-      return `฿${fmtN(shop.netProfit)} profit · ${fmtPct(shop.margin)} margin`;
-    }
-    if (compareMode === "custom") {
-      return `${sortDisplay} ${sortMetric.label.toLowerCase()} · ${fmtPct(shop.margin)} margin`;
-    }
-    if (compareMode === "revenue-mix" || compareMode === "payments") {
-      return `฿${fmtN(config.sortBy(shop))} total · ${fmtPct(shop.margin)} margin`;
-    }
-    return `฿${fmtN(shop.revenue)} revenue · ${fmtPct(shop.margin)} margin`;
   }
 
   const compareHint =
@@ -1373,43 +1307,19 @@ function TreasuryView({ data }: { data: AccountingData }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
-      {/* 3 large KPI tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div
-          style={{
-            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "var(--surface)", padding: "var(--s-6)",
-            display: "flex", flexDirection: "column", gap: 8,
-          }}
-        >
-          <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Revenue</p>
-          <p className="mono" style={{ fontSize: 36, fontWeight: 800, margin: 0, fontVariantNumeric: "tabular-nums" }}>฿{fmtN(o.revenue)}</p>
-        </div>
-        <div
-          style={{
-            borderRadius: "var(--r-lg)",
-            border: `1px solid ${o.netProfit >= 0 ? "var(--good)" : "var(--bad)"}`,
-            background: o.netProfit >= 0 ? "var(--good-soft)" : "var(--bad-soft)",
-            padding: "var(--s-6)", display: "flex", flexDirection: "column", gap: 8,
-          }}
-        >
-          <p className="eyebrow" style={{ color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", margin: 0 }}>Net Profit</p>
-          <p className="mono" style={{ fontSize: 36, fontWeight: 800, margin: 0, color: o.netProfit >= 0 ? "var(--good)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
-            ฿{fmtN(o.netProfit)}
-          </p>
-        </div>
-        <div
-          style={{
-            borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-            background: "var(--surface)", padding: "var(--s-6)",
-            display: "flex", flexDirection: "column", gap: 8,
-          }}
-        >
-          <p className="eyebrow" style={{ color: "var(--fg-4)", margin: 0 }}>Margin</p>
-          <p className="mono" style={{ fontSize: 36, fontWeight: 800, margin: 0, color: o.margin >= 20 ? "var(--good)" : o.margin >= 0 ? "var(--fg)" : "var(--bad)", fontVariantNumeric: "tabular-nums" }}>
-            {fmtPct(o.margin)}
-          </p>
-        </div>
+      {/* 3 KPI tiles */}
+      <div className="ui-kpi-grid">
+        <KpiStat label="Revenue" value={`฿${fmtN(o.revenue)}`} />
+        <KpiStat
+          label="Net Profit"
+          value={`฿${fmtN(o.netProfit)}`}
+          tone={o.netProfit >= 0 ? "positive" : "negative"}
+        />
+        <KpiStat
+          label="Margin"
+          value={fmtPct(o.margin)}
+          tone={o.margin < 0 ? "negative" : o.margin >= 20 ? "positive" : undefined}
+        />
       </div>
 
       {/* Shop comparison chart */}
@@ -1575,14 +1485,33 @@ export function ReportsClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to, selectedShops]);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
-      <PageHeader
-        title="Reports"
-      />
+  const activeTabLabel = TABS.find((tab) => tab.value === activeTab)?.label ?? "Reports";
 
-      {/* Tab bar */}
-      <ControlledTabs tabs={TABS} value={activeTab} onChange={(v) => setActiveTab(v as typeof activeTab)} ariaLabel="Reports" />
+  return (
+    <div className="rep">
+      <TableScrollAffordance />
+      <div className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <Link href="/reports">Reports</Link>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{activeTabLabel}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Reports</h1>
+        </div>
+        <ControlledTabs
+          tabs={TABS}
+          value={activeTab}
+          onChange={(v) => setActiveTab(v as typeof activeTab)}
+          ariaLabel="Reports"
+        />
+      </div>
 
       {activeTab === "daily-profit" ? (
         <DailyProfitView from={dailyFrom} to={dailyTo} onFromChange={setDailyFrom} onToChange={setDailyTo} />
@@ -1603,12 +1532,12 @@ export function ReportsClient() {
 
           {/* Content */}
           {loading && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
+            <div className="rep-loading" role="status" aria-live="polite">
               Loading…
             </div>
           )}
           {!loading && !data && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "var(--fg-4)", fontSize: 14 }}>
+            <div className="rep-empty">
               No data
             </div>
           )}

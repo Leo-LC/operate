@@ -179,7 +179,7 @@ export function ShopTable({
   }
 
   return (
-    <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+    <div className="ui-table-scroll" style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
       <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
         <thead style={{ background: "transparent" }}>
           <tr>
@@ -243,7 +243,7 @@ export function ShopTable({
                                     <textarea value={form.address_th ?? ""} rows={2} onChange={(e) => setForm((p) => ({ ...p, address_th: e.target.value }))} style={{ ...inputStyle, height: "auto", padding: "var(--s-2) var(--s-3)", resize: "none", fontFamily: "var(--font-sans)" }} />
                                   </div>
                                   <ShopField label="Company name (TH) — tax invoice" value={form.company_name_th ?? ""} placeholder="บริษัท … จำกัด" onChange={setField("company_name_th")} />
-                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+                                  <div className="directory-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
                                     <ShopField label="Tax ID" value={form.tax_id ?? ""} placeholder="0000000000000" onChange={setField("tax_id")} />
                                     <ShopField label="Branch" value={form.branch ?? ""} placeholder="Head Office" onChange={setField("branch")} />
                                   </div>

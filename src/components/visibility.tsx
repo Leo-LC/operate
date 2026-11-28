@@ -66,11 +66,11 @@ export function useUiVisibilityValue(
       })
         .then((r) => {
           if (!r.ok) throw new Error(String(r.status));
-          toast.success(next ? "Visible pour tout le monde" : "Masqué — visible de toi et des admins seulement");
+          toast.success(next ? "Visible to everyone" : "Masked — visible to owner & admins only");
         })
         .catch(() => {
           setMap((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
-          toast.error("Impossible de changer la visibilité");
+          toast.error("Could not update visibility");
         });
     },
     [canToggle, map]
@@ -113,8 +113,8 @@ export function VisibilityEye({
     <button
       type="button"
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-      title={visible ? `Masquer "${label}" pour tout le monde (sauf toi + admins)` : `Réafficher "${label}" pour tout le monde`}
-      aria-label={visible ? `Masquer ${label}` : `Réafficher ${label}`}
+      title={visible ? `Mask "${label}" for everyone (except you + admins)` : `Show "${label}" for everyone again`}
+      aria-label={visible ? `Mask ${label}` : `Unmask ${label}`}
       style={{
         display: "inline-flex",
         alignItems: "center",

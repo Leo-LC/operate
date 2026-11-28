@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { PaymentsClient } from "@/modules/payments/components/PaymentsClient";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import "./payments.css";
 
 export default async function PaymentsPage() {
   const session = await getServerSession(authOptions);
@@ -32,8 +33,10 @@ export default async function PaymentsPage() {
   if (locationIds !== null) {
     if (locationIds.length === 0) {
       return (
-        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          You don&apos;t have access to any location yet. Ask your admin.
+        <div className="pay">
+          <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", background: "var(--surface)", padding: 24, fontSize: 13, color: "var(--fg-4)" }}>
+            You don&apos;t have access to any location yet. Ask your admin.
+          </div>
         </div>
       );
     }
@@ -52,7 +55,7 @@ export default async function PaymentsPage() {
   }));
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
+    <div className="pay">
       <PaymentsClient initialLocations={locations} />
     </div>
   );

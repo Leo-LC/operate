@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const isOwner = session.user.role === "owner";
   return (
-    <div className="flex flex-col gap-6">
+    <div className="adm flex flex-col gap-6">
       <AdminTabNav isOwner={isOwner} />
       {children}
     </div>

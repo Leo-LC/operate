@@ -7,6 +7,7 @@ import { getAllowedLocationIds } from "@/core/permissions/server";
 import type { Animal } from "@/modules/animals/types";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
+import "./animals.css";
 
 export default async function AnimalsPage() {
   const session = await getServerSession(authOptions);

@@ -62,7 +62,7 @@ export function UnmappedPanel({ date }: { date: string }) {
       <Card>
         <CardContent className="py-8 text-center">
           <p className="text-sm text-[var(--fg-3)]">Aucun unmapped pour {date} — mapping propre.</p>
-          <p className="mt-1 text-xs text-[var(--fg-4)]">Tous les line_items et paiements sont bucketisés. Tu peux raffiner <code>mapping-config.ts</code> si besoin.</p>
+          <p className="mt-1 text-xs text-[var(--fg-4)]">All line items and payments are bucketed. Refine <code>mapping-config.ts</code> if needed.</p>
         </CardContent>
       </Card>
     );
@@ -71,15 +71,15 @@ export function UnmappedPanel({ date }: { date: string }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-[var(--fg-4)]">
-        Triés par fréquence décroissante — corrige <code>CATEGORY_NAME_TO_BUCKET</code> / <code>PAYMENT_TYPE_KEYWORDS</code> dans{" "}
+        Sorted by decreasing frequency — fix <code>CATEGORY_NAME_TO_BUCKET</code> / <code>PAYMENT_TYPE_KEYWORDS</code> in{" "}
         <code>mapping-config.ts</code> puis resync.
       </p>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Line items non mappés</CardTitle>
-            <p className="text-xs text-[var(--fg-4)]">Top par catégorie + nom</p>
+            <CardTitle>Unmapped line items</CardTitle>
+            <p className="text-xs text-[var(--fg-4)]">Top by category + name</p>
           </CardHeader>
           <CardContent>
             {topItems.length === 0 ? (
@@ -105,7 +105,7 @@ export function UnmappedPanel({ date }: { date: string }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Paiements non mappés</CardTitle>
+            <CardTitle>Unmapped payments</CardTitle>
             <p className="text-xs text-[var(--fg-4)]">Top par type + nom</p>
           </CardHeader>
           <CardContent>
@@ -134,7 +134,7 @@ export function UnmappedPanel({ date }: { date: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Détail par boutique</CardTitle>
+          <CardTitle>Detail by shop</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -143,7 +143,7 @@ export function UnmappedPanel({ date }: { date: string }) {
                 <tr className="border-b border-[var(--line)] text-left text-xs text-[var(--fg-4)]">
                   <th className="pb-2 pr-3 font-medium">Store</th>
                   <th className="pb-2 pr-3 text-right font-medium">Receipts</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Lignes / paiements non mappés</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Unmapped lines / payments</th>
                   <th className="pb-2 font-medium">Top exemples</th>
                 </tr>
               </thead>

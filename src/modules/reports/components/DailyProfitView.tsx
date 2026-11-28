@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BookOpenIcon, CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
+import { CalculatorIcon, CalendarDaysIcon, CheckCircle2Icon, RefreshCwIcon, Settings2Icon, TrendingDownIcon, TrendingUpIcon, WalletCardsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { Modal } from "@/components/ui/modal";
-import { Pill } from "@/components/ui/pill";
 import { DateRangePicker, ShopMultiSelect, bangkokToday } from "@/components/ui/filters";
 import { toast } from "sonner";
 import type { DailyProfitResponse, DailyProfitRow } from "@/modules/reports/daily-profit/types";
@@ -17,11 +17,80 @@ interface Props {
   to: string;
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
+  /** Shared view: English on /reports, French inside Direction. */
+  locale?: "en" | "fr";
 }
+
+const DP_LABELS: Record<"en" | "fr", Record<string, string>> = {
+  en: {
+    period: "Period",
+    shops: "Shops",
+    allShops: "All shops",
+    refreshSheets: "Refresh Sheets",
+    manage: "Manage P&L",
+    loading: "Computing the daily result…",
+    unavailable: "Daily P&L unavailable",
+    revenue: "Revenue",
+    daysUnit: "days",
+    hr: "HR costs",
+    hrHint: "Weighted salaries",
+    fixed: "Fixed costs",
+    fixedHint: "Fixed costs + service",
+    opex: "Operating costs",
+    opexHint: "Accounting data",
+    result: "Result",
+    margin: "margin",
+    dailyTrend: "Daily trend",
+    noDays: "No financial day in this period.",
+    dailyDetail: "Daily detail",
+    colRevenue: "Revenue",
+    colOpex: "Operating costs",
+    colPayroll: "Salaries",
+    colFixed: "Fixed costs",
+    colService: "Service",
+    colBonus: "Bonus",
+    costSplit: "Cost split",
+    shopContribution: "Shop contribution",
+    estimated: "estimated",
+    actual: "actual",
+  },
+  fr: {
+    period: "Période",
+    shops: "Boutiques",
+    allShops: "Toutes les boutiques",
+    refreshSheets: "Actualiser Sheets",
+    manage: "Gérer le P&L",
+    loading: "Calcul du résultat quotidien…",
+    unavailable: "Résultat quotidien non disponible",
+    revenue: "Chiffre d'affaires",
+    daysUnit: "jours",
+    hr: "Charges RH",
+    hrHint: "Salaires pondérés",
+    fixed: "Charges fixes",
+    fixedHint: "Frais fixes + service",
+    opex: "Charges d'exploitation",
+    opexHint: "Données comptables",
+    result: "Résultat",
+    margin: "marge",
+    dailyTrend: "Évolution quotidienne",
+    noDays: "Aucun jour financier sur cette période.",
+    dailyDetail: "Détail quotidien",
+    colRevenue: "Chiffre d'affaires",
+    colOpex: "Charges d'exploitation",
+    colPayroll: "Salaires",
+    colFixed: "Charges fixes",
+    colService: "Service",
+    colBonus: "Prime",
+    costSplit: "Répartition des coûts",
+    shopContribution: "Contribution par boutique",
+    estimated: "estimé",
+    actual: "réel",
+  },
+};
 
 function money(value: number) {
   const absolute = Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
-  return value < 0 ? `(฿${absolute})` : `฿${absolute}`;
+  return `${value < 0 ? "−" : ""}฿${absolute}`;
 }
 
 function pct(value: number) { return `${value.toFixed(1)}%`; }
@@ -74,17 +143,18 @@ function ProfitRibbon({ rows, onSelect }: { rows: DailyProfitRow[]; onSelect: (r
 }
 
 function Metric({ label, value, hint, tone = "neutral" }: { label: string; value: string; hint: string; tone?: "good" | "bad" | "neutral" }) {
-  const color = tone === "good" ? "var(--good)" : tone === "bad" ? "var(--bad)" : "var(--fg)";
   return (
-    <Card style={{ gap: 8 }}>
-      <span className="eyebrow" style={{ color: "var(--fg-4)" }}>{label}</span>
-      <strong className="mono tabular-nums" style={{ fontSize: 26, color, letterSpacing: "-.04em" }}>{value}</strong>
-      <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{hint}</span>
-    </Card>
+    <KpiStat
+      label={label}
+      value={value}
+      hint={hint}
+      tone={tone === "good" ? "positive" : tone === "bad" ? "negative" : undefined}
+    />
   );
 }
 
-export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
+export function DailyProfitView({ from, to, onFromChange, onToChange, locale = "en" }: Props) {
+  const L = DP_LABELS[locale];
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [data, setData] = useState<DailyProfitResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,55 +213,68 @@ export function DailyProfitView({ from, to, onFromChange, onToChange }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <DateRangePicker
-            value={{ from, to }}
-            onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
-            today={bangkokToday()}
-          />
-          <div style={{ flex: 1 }} />
-          {data?.canManage && <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />Actualiser Sheets</Button>}
-          {data?.canManage && <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />Gérer le P&L</Button>}
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="daily-period-label">{L.period}</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="daily-period-label">
+              <DateRangePicker
+                value={{ from, to }}
+                onChange={(range) => { onFromChange(range.from); onToChange(range.to); }}
+                today={bangkokToday()}
+              />
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="daily-shops-label">{L.shops}</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="daily-shops-label">
+              <ShopMultiSelect
+                options={scopeOptions}
+                selected={selectedLocationIds}
+                onChange={setSelectedLocationIds}
+                allLabel={L.allShops}
+                getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
+              />
+            </div>
+          </div>
         </div>
-        <ShopMultiSelect
-          options={scopeOptions}
-          selected={selectedLocationIds}
-          onChange={setSelectedLocationIds}
-          allLabel="Toutes les boutiques"
-          getLabel={(option) => option.name.replace(/^Capybara Coffee\s*/i, "").trim() || option.name}
-        />
+        {data?.canManage && (
+          <div className="ui-toolbar-actions">
+            <Button size="sm" variant="outline" onClick={() => void refreshMirror()} disabled={syncing}><RefreshCwIcon size={13} className={syncing ? "animate-spin" : ""} />{L.refreshSheets}</Button>
+            <Button size="sm" onClick={() => setManageOpen(true)}><Settings2Icon size={13} />{L.manage}</Button>
+          </div>
+        )}
       </div>
 
-      {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>Calcul du résultat quotidien…</Card>}
-      {!loading && error && <Card style={{ borderColor: "var(--bad)", background: "var(--bad-soft)", gap: 8 }}><strong>Résultat quotidien non disponible</strong><span style={{ color: "var(--fg-3)" }}>{error}</span></Card>}
+      {loading && <Card style={{ alignItems: "center", padding: 64, color: "var(--fg-4)" }}>{L.loading}</Card>}
+      {!loading && error && <Card style={{ borderColor: "var(--bad)", background: "var(--bad-soft)", gap: 8 }}><strong>{L.unavailable}</strong><span style={{ color: "var(--fg-3)" }}>{error}</span></Card>}
 
       {!loading && data && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "var(--s-3)" }}>
-            <Metric label="Chiffre d'affaires" value={money(data.summary.revenue)} hint={`${data.daily.length} jours`} />
-            <Metric label="Charges RH" value={money(data.summary.payroll)} hint="Salaires pondérés" tone="bad" />
-            <Metric label="Charges fixes" value={money(data.summary.recurringCosts + data.summary.serviceCharge)} hint="Frais fixes + service" tone="bad" />
-            <Metric label="Charges d'exploitation" value={money(data.summary.directExpenses)} hint="Données comptables" tone="bad" />
-            <Metric label="Résultat" value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} marge · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
+          <div className="ui-kpi-grid">
+            <Metric label={L.revenue} value={money(data.summary.revenue)} hint={`${data.daily.length} ${L.daysUnit}`} />
+            <Metric label={L.hr} value={money(data.summary.payroll)} hint={L.hrHint} tone="bad" />
+            <Metric label={L.fixed} value={money(data.summary.recurringCosts + data.summary.serviceCharge)} hint={L.fixedHint} tone="bad" />
+            <Metric label={L.opex} value={money(data.summary.directExpenses)} hint={L.opexHint} tone="bad" />
+            <Metric label={L.result} value={money(data.summary.economicProfit)} hint={`${pct(data.summary.margin)} ${L.margin} · ${data.scope.label}`} tone={data.summary.economicProfit >= 0 ? "good" : "bad"} />
           </div>
 
           <Card style={{ gap: 8 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Évolution quotidienne</h2></div>
+              <div><h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{L.dailyTrend}</h2></div>
             </div>
-            {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>Aucun jour financier sur cette période.</p>}
+            {data.daily.length > 0 ? <ProfitRibbon rows={data.daily} onSelect={setSelectedDay} /> : <p style={{ color: "var(--fg-4)", padding: 32, textAlign: "center" }}>{L.noDays}</p>}
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(260px,.8fr)]" style={{ gap: "var(--s-4)", alignItems: "start" }}>
             <Card flush>
-              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Détail quotidien</strong></div>
-              <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Date", "Chiffre d'affaires", "Charges d'exploitation", "Salaires", "Charges fixes", "Service", "Prime"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
+              <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>{L.dailyDetail}</strong></div>
+              <div className="ui-table-scroll"><table style={tableStyle}><thead><tr>{["Date", L.colRevenue, L.colOpex, L.colPayroll, L.colFixed, L.colService, L.colBonus].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.daily.map((row) => <tr key={row.date} onClick={() => setSelectedDay(row)} style={{ cursor: "pointer", borderTop: "1px solid var(--line)" }}><td style={tdLeft}>{shortDate(row.date)}</td><td style={tdNumber}>{money(row.revenue)}</td><td style={tdNumber}>{money(row.directExpenses)}</td><td style={tdNumber}>{money(row.payroll)}</td><td style={tdNumber}>{money(row.recurringCosts)}</td><td style={tdNumber}>{money(row.serviceCharge)}</td><td style={tdNumber}>{money(row.bonus ?? 0)}</td></tr>)}</tbody></table></div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-              <Card style={{ gap: 10 }}><strong>Répartition des coûts</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
-              <Card style={{ gap: 10 }}><strong>Contribution par boutique</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 4, fontSize: 12 }}><span>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span className="mono">{money(row.revenue)}</span><span style={{ color: "var(--fg-4)", textAlign: "right" }}>{row.estimatedAmount > 0 ? "estimé" : "réel"}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>{L.costSplit}</strong>{data.categories.slice(0, 8).map((category) => <div key={category.key} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}><span style={{ color: "var(--fg-3)" }}>{category.label}</span><span className="mono">{money(category.amount)}</span></div>)}</Card>
+              <Card style={{ gap: 10 }}><strong>{L.shopContribution}</strong>{data.byScope.map((row) => <div key={row.id} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, fontSize: 12 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.name.replace(/^Capybara Coffee\s*/i, "").trim() || row.name}</span><span style={{ flexShrink: 0, padding: "0 6px", border: "1px solid var(--line)", borderRadius: "var(--r-pill)", fontSize: 10, lineHeight: "16px", color: "var(--fg-4)" }}>{row.estimatedAmount > 0 ? L.estimated : L.actual}</span></span><span className="mono" style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{money(row.revenue)}</span></div>)}</Card>
             </div>
           </div>
         </>
@@ -228,7 +311,7 @@ function MethodologyPanel({ data }: { data: DailyProfitResponse }) {
     </div>
     <Card flush>
       <div style={{ padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)" }}><strong>Settings actually applied · {data.scope.label}</strong></div>
-      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div style={{ overflowX: "auto" }}><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees", "Bonus"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td><td style={tdNumber}>{money(row.bonus)}</td></tr>)}</tbody></table></div>}
+      {data.methodology.shopSettings.length === 0 ? <p style={{ padding: 20, color: "var(--warn)", margin: 0 }}>No monthly settings saved for this period: manual values are counted as zero.</p> : <div className="ui-table-scroll"><table style={tableStyle}><thead><tr>{["Shop / month", "Salaries", "Rent", "Electricity", "Water", "Other fixed", "SC rate", "Employees", "Bonus"].map((label) => <th key={label} style={thStyle}>{label}</th>)}</tr></thead><tbody>{data.methodology.shopSettings.map((row) => <tr key={`${row.locationId}:${row.period}`} style={{ borderTop: "1px solid var(--line)" }}><td style={tdLeft}><strong>{row.locationName}</strong><span style={{ color: "var(--fg-4)", marginLeft: 7 }}>{row.period}</span></td><td style={tdNumber}>{money(row.salaries)}</td><td style={tdNumber}>{money(row.rent)}</td><td style={tdNumber}>{money(row.electricity)}</td><td style={tdNumber}>{money(row.water)}</td><td style={tdNumber}>{money(row.otherFixed)}</td><td style={tdNumber}>{row.serviceChargeRatePct}%</td><td style={tdNumber}>{row.employeeCount}</td><td style={tdNumber}>{money(row.bonus)}</td></tr>)}</tbody></table></div>}
     </Card>
   </div>;
 }
@@ -241,5 +324,3 @@ const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collap
 const thStyle: React.CSSProperties = { padding: "8px 12px", color: "var(--fg-4)", fontWeight: 500, textAlign: "right", background: "var(--bg-2)", whiteSpace: "nowrap" };
 const tdLeft: React.CSSProperties = { padding: "8px 12px", whiteSpace: "nowrap" };
 const tdNumber: React.CSSProperties = { padding: "8px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", fontFamily: "var(--font-mono)" };
-const operatorStyle: React.CSSProperties = { fontSize: 20, opacity: .55 };
-const tabStyle = (active: boolean): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 13px", border: 0, borderBottom: active ? "2px solid var(--bronze)" : "2px solid transparent", background: "transparent", color: active ? "var(--fg)" : "var(--fg-4)", fontSize: 12, fontWeight: active ? 650 : 500, cursor: "pointer" });

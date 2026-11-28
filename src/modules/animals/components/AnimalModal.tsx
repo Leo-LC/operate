@@ -393,6 +393,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
       title={title}
       description={description}
       width={620}
+      className="animals"
       footer={
         editing ? (
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -414,7 +415,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
           {/* Basic information */}
           <div>
             <p className="eyebrow" style={{ color: "var(--fg-4)", paddingBottom: "var(--s-2)", borderBottom: "1px solid var(--line)", marginBottom: "var(--s-3)" }}>Basic information</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+            <div className="animals-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Name <span style={{ color: "var(--bad)" }}>*</span></label>
                 <input required value={form.name} onChange={(e) => setForm((f) => (f ? { ...f, name: e.target.value } : f))} style={inputStyle} placeholder="e.g. Coco" />
@@ -533,7 +534,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
               </Button>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+            <div className="animals-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Last vaccine</label>
                 <input value={fmtDate(lastDate) ?? ""} readOnly style={{ ...inputStyle, color: lastDate ? "var(--fg)" : "var(--fg-4)" }} placeholder="Auto from history" />
@@ -581,7 +582,7 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
           </div>
 
           {/* Summary */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+          <div className="animals-detail-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {[
               { label: "Species", value: detail?.species, capitalize: true },
               { label: "Location", value: detail?.location_name },
@@ -600,12 +601,12 @@ export function AnimalModal({ animal, locations, speciesList, onSpeciesCreated, 
           </div>
 
           {/* Vaccines */}
-          <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "transparent", padding: 16 }}>
+          <div style={{ borderRadius: "var(--r-md)", border: "1px solid var(--line)", background: "var(--bg-2)", padding: 16 }}>
             <h2 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <ShieldCheckIcon className="size-4" style={{ color: "var(--fg-3)" }} />
               Vaccines
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+            <div className="animals-detail-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
               <div>
                 <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 2 }}>Last vaccine</p>
                 <p style={{ fontSize: 13, color: "var(--fg)" }}>

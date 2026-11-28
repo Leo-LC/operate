@@ -40,9 +40,11 @@ export function DirectionOperations() {
   }, [from, to, selectedShops.join(",")]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="dir-stack">
       <div className="flex flex-col gap-3">
-        <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
+        <div className="ui-toolbar">
+          <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
+        </div>
         {locations.length > 0 && (
           <ShopMultiSelect
             options={locations}
@@ -53,9 +55,9 @@ export function DirectionOperations() {
           />
         )}
       </div>
-      {loading && <div className="py-10 text-center text-sm text-[var(--fg-4)]">Chargement…</div>}
-      {!loading && data && <OperationsView data={data} />}
-      {!loading && !data && <div className="py-10 text-center text-sm text-[var(--fg-4)]">Pas de données</div>}
+      {loading && <div className="dir-loading" role="status" aria-live="polite">Chargement…</div>}
+      {!loading && data && <OperationsView data={data} locale="fr" />}
+      {!loading && !data && <div className="dir-empty">Pas de données</div>}
     </div>
   );
 }

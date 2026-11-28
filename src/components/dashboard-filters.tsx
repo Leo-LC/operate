@@ -60,11 +60,11 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
+    <div className={cn("revs-filter-groups flex flex-col gap-6", className)}>
       {locations.length > 0 && (
-      <div>
+      <div className="revs-filter-group">
         <div className="mb-1">
-          <span className="block text-sm font-medium">Location</span>
+          <span className="revs-filter-label">Location</span>
           <AllNoneToggle
             className="mt-1"
             allSelected={filters.locations.size === locations.length}
@@ -73,7 +73,7 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
             onSelectNone={clearAllLocations}
           />
         </div>
-        <div className="flex flex-col gap-1.5 mt-1">
+        <div className="revs-filter-options">
           {locations.map((loc) => (
             <button
               key={loc.id}
@@ -94,9 +94,9 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
         </div>
       </div>
       )}
-      <div>
+      <div className="revs-filter-group">
         <div className="mb-1">
-          <span className="block text-sm font-medium">Rating</span>
+          <span className="revs-filter-label">Rating</span>
           <AllNoneToggle
             className="mt-1"
             allSelected={filters.ratings.size === RATING_OPTIONS.length}
@@ -105,7 +105,7 @@ export function DashboardFilters({ filters, onChange, locations, className }: Da
             onSelectNone={clearAllRatings}
           />
         </div>
-        <div className="flex flex-col gap-1.5 mt-1">
+        <div className="revs-filter-options">
           {RATING_OPTIONS.map(({ id, label, value }) => (
             <button
               key={id}

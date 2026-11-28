@@ -5,6 +5,7 @@ import { hasModuleAccess, isOperationalAdmin } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { isAccessibleForSession } from "@/lib/module-visibility";
 import { SchedulingTabNav } from "@/modules/scheduling/components/SchedulingTabNav";
+import "./scheduling.css";
 
 export default async function SchedulingLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -16,7 +17,7 @@ export default async function SchedulingLayout({ children }: { children: React.R
   ]);
   if (!visible || !hasModuleAccess(permissions, "schedules")) redirect("/home");
   return (
-    <div className="flex flex-col">
+    <div className="sch">
       <SchedulingTabNav isOwner={isOperationalAdmin(session.user.role)} />
       {children}
     </div>

@@ -240,8 +240,8 @@ export function CashCounter({
   ].join(" ");
 
   return (
-    <div ref={rootRef} className="scroll-mt-4">
-      <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)]" style={{ boxShadow: "var(--shadow-1)" }}>
+    <div ref={rootRef} className="scroll-mt-4 trs-counter-layout">
+      <div className="trs-counter-surface overflow-hidden rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)]" style={{ boxShadow: "var(--shadow-1)" }}>
         {/* Header: title + context controls */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
           <div className="min-w-0">
@@ -364,8 +364,8 @@ export function CashCounter({
         </div>
       </div>
 
-      {/* History — plain block, visually separate from the counting surface */}
-      <div className="mx-auto w-full max-w-[520px] pt-4">
+      {/* History — consultation panel beside the counter on desktop */}
+      <div className="trs-counter-history">
         <p className="eyebrow px-4 pb-1">History</p>
         {loadingHistory ? (
           <p className="m-0 px-4 py-2 text-[12px] text-[var(--fg-4)]">Loading…</p>

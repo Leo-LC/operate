@@ -1,0 +1,123 @@
+/* ============================================================================
+   Documents — route-local layout on the Operate foundation
+   ----------------------------------------------------------------------------
+   Layout and module-specific pieces for Documents. Colors, typography, radii,
+   borders and interaction states come from the global Operate foundation in
+   src/app/globals.css — the portalled add/edit Modal inherits them too.
+   ========================================================================== */
+
+/* Page rhythm: one column with section gaps. The portalled add/edit dialog
+   carries the same global tokens, so it needs no wrapper of its own. */
+.doc-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+}
+
+@media (max-width: 767px) {
+  .doc-shell {
+    gap: 16px;
+  }
+}
+
+/* ── Status counts ─────────────────────────────────────────────────────────
+   KpiStat carries only positive/negative tones; expiring-soon is a genuine
+   warning, so the value is tinted through a data attribute here. The cards
+   themselves stay quiet — no tinted borders or backgrounds. */
+
+.doc .ui-kpi[data-alert="warn"] .ui-kpi-value {
+  color: var(--ui-warn);
+}
+
+/* ── Result count ──────────────────────────────────────────────────────────
+   "N documents shown" sits at the end of the filter block. */
+
+.doc-count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--ui-fg-4);
+}
+
+/* ── Table rows ────────────────────────────────────────────────────────────
+   Hover moves to CSS so the urgent (missing/expired) tint survives it;
+   not-relevant rows stay visibly muted. */
+
+.doc .doc-row {
+  cursor: pointer;
+}
+
+.doc .doc-row:hover {
+  background: var(--ui-row-hover);
+}
+
+.doc .doc-row-urgent,
+.doc .doc-row-urgent:hover {
+  background: var(--ui-negative-soft);
+}
+
+.doc .doc-row-muted {
+  opacity: 0.5;
+}
+
+/* ── Form grids ────────────────────────────────────────────────────────────
+   The add/edit dialog grids stack on phones so labels never truncate. */
+
+@media (max-width: 767px) {
+  .doc-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────────
+   Pin the document name while the status columns scroll; expose the
+   horizontal scrollbar and a caption only when the table overflows. */
+
+@media (max-width: 767px) {
+  .doc .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .doc .ui-table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .doc .ui-table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .doc .ui-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .doc .ui-table-scroll > table > thead > tr > :first-child,
+  .doc .ui-table-scroll > table > tbody > tr > :first-child:not([colspan]) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ui-panel);
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .doc .ui-table-scroll > table > thead > tr > :first-child {
+    z-index: 3;
+  }
+
+  /* The pinned cell must match the row tint (urgent rows stay tinted). */
+  .doc .ui-table-scroll > table > tbody > tr.doc-row-urgent > :first-child {
+    background: var(--ui-negative-soft);
+  }
+
+  .doc .ui-table-scroll[data-scrollable]::before {
+    content: "↔ Scroll horizontally";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}

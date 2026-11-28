@@ -283,12 +283,12 @@ function SalesCategoryBlock({ rows }: { rows: SalesRow[] }) {
     }
     return Array.from(m.values()).sort((a, b) => b.total_money - a.total_money);
   }, [rows]);
-  if (agg.length === 0) return <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Aucune vente par catégorie.</p>;
+  if (agg.length === 0) return <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">No sales by category.</p>;
   return (
     <div className="overflow-hidden rounded border border-[var(--line)]">
       <table className="w-full text-xs">
         <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
-          <tr><th className="px-2 py-1.5 text-left">Catégorie</th><th className="px-2 py-1.5 text-right">Qté</th><th className="px-2 py-1.5 text-right">Total</th></tr>
+          <tr><th className="px-2 py-1.5 text-left">Category</th><th className="px-2 py-1.5 text-right">Qty</th><th className="px-2 py-1.5 text-right">Total</th></tr>
         </thead>
         <tbody>
           {agg.map((c) => (
@@ -318,7 +318,7 @@ function SalesItemBlock({ rows }: { rows: SalesRow[] }) {
     <div className="overflow-hidden rounded border border-[var(--line)]">
       <table className="w-full text-xs">
         <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
-          <tr><th className="px-2 py-1.5 text-left">Article</th><th className="px-2 py-1.5 text-left">Cat.</th><th className="px-2 py-1.5 text-right">Qté</th><th className="px-2 py-1.5 text-right">Total</th></tr>
+          <tr><th className="px-2 py-1.5 text-left">Item</th><th className="px-2 py-1.5 text-left">Cat.</th><th className="px-2 py-1.5 text-right">Qty</th><th className="px-2 py-1.5 text-right">Total</th></tr>
         </thead>
         <tbody>
           {agg.map((it) => (
@@ -584,7 +584,7 @@ function AccountingCopySection({
   if (!hasAnyData) {
     return (
       <div className="rounded border border-dashed border-[var(--line)] bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">
-        Pas de shift/snapshot pour générer la ligne comptable. Synchronise le jour d&apos;abord.
+        No shift/snapshot to build the accounting line. Sync the day first.
       </div>
     );
   }
@@ -614,7 +614,7 @@ function AccountingCopySection({
                 </th>
               ))}
             </tr>
-            <tr className="bg-[var(--bg-2)] text-[9px] text-[var(--fg-4)]">
+            <tr className="bg-[var(--bg-2)] text-[10px] text-[var(--fg-4)]">
               {(VISIBLE_COLUMNS as unknown as string[]).map((c) => (
                 <th key={`${c}-key`} className="whitespace-nowrap px-2 pb-1 pt-0 text-left font-mono font-normal normal-case tracking-normal">
                   {c}
@@ -786,7 +786,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
               {syncing ? "Synchronisation…" : isArchived ? "Synchroniser" : "Synchroniser Loyverse"}
             </Button>
             <span className="ml-auto flex items-center gap-2 text-xs">
-              {isArchived ? <Pill tone="good" size="sm" dot>Archivé</Pill> : date === todayStr ? <Pill tone="neutral" size="sm" dot>Ouvert</Pill> : <Pill tone="warn" size="sm" dot>À synchroniser</Pill>}
+              {isArchived ? <Pill tone="good" size="sm" dot>Archived</Pill> : date === todayStr ? <Pill tone="neutral" size="sm" dot>Open</Pill> : <Pill tone="warn" size="sm" dot>To sync</Pill>}
               <span className="text-[var(--fg-4)]">{selectedShop ? selectedShop.name : "—"} · {date}</span>
             </span>
           </div>
@@ -811,14 +811,14 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
       {error && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
 
       {!selectedStore ? (
-        <Card><CardContent className="py-10 text-center text-sm text-[var(--fg-4)]">Sélectionne un shop ci-dessus.</CardContent></Card>
+        <Card><CardContent className="py-10 text-center text-sm text-[var(--fg-4)]">Select a shop above.</CardContent></Card>
       ) : loading ? (
         <Card className="animate-pulse"><CardContent className="py-6"><div className="h-4 w-32 rounded bg-[var(--line-2)]" /><div className="mt-3 h-20 rounded bg-[var(--line)]" /></CardContent></Card>
       ) : !hasShift && !hasSales ? (
         <Card>
           <CardContent className="py-10 text-center">
-            <p className="text-sm font-medium text-[var(--fg-3)]">Aucune donnée archivée pour {selectedShop ? selectedShop.name : selectedStore} le {date}</p>
-            <p className="mt-1 text-xs text-[var(--fg-4)]">Ce jour est sauvegardé dès la première synchro (shift + ventes) et reste accessible même à J+60.</p>
+            <p className="text-sm font-medium text-[var(--fg-3)]">No archived data for {selectedShop ? selectedShop.name : selectedStore} on {date}</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">The day is saved on the first sync (shift + sales) and stays accessible even at D+60.</p>
             <Button size="sm" className="mt-3" onClick={handleSync} disabled={syncing}>{syncing ? "…" : `Synchroniser ${date}`}</Button>
           </CardContent>
         </Card>
@@ -834,7 +834,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <CollapsibleSection title="Comptabilité — ligne à copier" icon={<TableIcon className="size-3.5" />} defaultOpen>
+            <CollapsibleSection title="Accounting — line to copy" icon={<TableIcon className="size-3.5" />} defaultOpen>
               <AccountingCopySection
                 shiftRows={shiftForStore}
                 snapshotRows={snapshotForStore}
@@ -864,7 +864,7 @@ export function ShiftsPreview({ initialDate }: { initialDate?: string }) {
                 </>
               )}
             </CollapsibleSection>
-            <CollapsibleSection title="Shift — détail brut" icon={<ClockIcon className="size-3.5" />} defaultOpen={false}>
+            <CollapsibleSection title="Shift — raw detail" icon={<ClockIcon className="size-3.5" />} defaultOpen={false}>
               {shiftForStore.length === 0 ? (
                 <p className="rounded bg-[var(--bg-2)] px-3 py-3 text-center text-xs text-[var(--fg-4)]">Pas de shift Loyverse pour ce jour.</p>
               ) : (
@@ -933,7 +933,7 @@ function ChallengesPreviewCard({ month }: { month: string }) {
       const res = await fetch("/api/loyverse/challenges-write", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ month, dryRun: false, force }) });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "Write failed");
-      setResult(`${j.location_upserted} périodes remplies, ${j.location_skipped} déjà OK, ${j.location_exists_overwritten ?? 0} existantes ignorées (force=false)`);
+      setResult(`${j.location_upserted} period(s) filled, ${j.location_skipped} already OK, ${j.location_exists_overwritten ?? 0} existing skipped (force=false)`);
       await new Promise((r) => setTimeout(r, 300));
       refresh();
     } catch (e) {
@@ -947,8 +947,8 @@ function ChallengesPreviewCard({ month }: { month: string }) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <TagIcon className="size-4 text-[var(--bronze)]" /> Challenges — pré-remplissage {month}
-          <span className="ml-auto text-xs font-normal text-[var(--fg-4)]">entrées = TICKETS · snacks = SNACKS / Animal food (Samui A ENTRY inclus)</span>
+          <TagIcon className="size-4 text-[var(--bronze)]" /> Challenges — prefill {month}
+          <span className="ml-auto text-xs font-normal text-[var(--fg-4)]">entries = TICKETS · snacks = SNACKS / Animal food (Samui A ENTRY included)</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
@@ -957,24 +957,24 @@ function ChallengesPreviewCard({ month }: { month: string }) {
             {syncing ? "Remplissage…" : "Remplir Challenges"}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => handleFill(true)} disabled={syncing || loading}>
-            Forcer (écrase)
+            Force (overwrite)
           </Button>
-          <span className="text-xs text-[var(--fg-4)]">source 100% Loyverse — le CRON quotidien écrase (force=true), override owner via Challenges</span>
+          <span className="text-xs text-[var(--fg-4)]">100% Loyverse source — the daily CRON overwrites (force=true), owner override via Challenges</span>
           {result && <span className="ml-auto text-xs font-medium text-[var(--good)]">{result}</span>}
         </div>
-        <p className="text-xs text-[var(--fg-4)]">Compare ce que donne Loyverse (tickets/snacks du mois) vs <code>challenge_counters</code> consolidés.</p>
+        <p className="text-xs text-[var(--fg-4)]">Compare Loyverse (month tickets/snacks) vs consolidated <code>challenge_counters</code>.</p>
         {loading ? (
           <div className="h-20 animate-pulse rounded bg-[var(--line-2)]" />
         ) : error ? (
           <div className="rounded bg-[var(--bad-soft)] px-3 py-2 text-xs text-[var(--bad)]">{error}</div>
         ) : rows.length === 0 ? (
-          <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">Aucune donnée Loyverse pour {month}.</p>
+          <p className="rounded bg-[var(--bg-2)] px-3 py-6 text-center text-xs text-[var(--fg-4)]">No Loyverse data for {month}.</p>
         ) : (
           <>
             <div className="overflow-auto rounded border border-[var(--line)]">
               <table className="w-full text-xs">
                 <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
-                  <tr><th className="px-2 py-1.5 text-left">Shop / Période</th><th className="px-2 py-1.5 text-right">Entrées (Loyverse)</th><th className="px-2 py-1.5 text-right">Entrées (actuel)</th><th className="px-2 py-1.5 text-right">Snacks (Loyverse)</th><th className="px-2 py-1.5 text-right">Snacks (actuel)</th></tr>
+                  <tr><th className="px-2 py-1.5 text-left">Shop / Period</th><th className="px-2 py-1.5 text-right">Entries (Loyverse)</th><th className="px-2 py-1.5 text-right">Entries (current)</th><th className="px-2 py-1.5 text-right">Snacks (Loyverse)</th><th className="px-2 py-1.5 text-right">Snacks (current)</th></tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => {
@@ -995,11 +995,11 @@ function ChallengesPreviewCard({ month }: { month: string }) {
             </div>
             {unmapped.length > 0 && (
               <div className="rounded border border-[var(--warn)] bg-[var(--warn-soft)] px-3 py-2">
-                <p className="text-xs font-semibold text-[var(--warn)]">Shops non mappés détectés — Silom probablement ici :</p>
+                <p className="text-xs font-semibold text-[var(--warn)]">Unmapped shops detected — likely Silom here:</p>
                 <div className="mt-1 overflow-auto rounded border border-[var(--line)] bg-white">
                   <table className="w-full text-xs">
                     <thead className="bg-[var(--bg-2)] text-[11px] uppercase tracking-wide text-[var(--fg-4)]">
-                      <tr><th className="px-2 py-1 text-left">Store Loyverse</th><th className="px-2 py-1 text-right">P</th><th className="px-2 py-1 text-right">Entrées</th><th className="px-2 py-1 text-right">Snacks</th></tr>
+                      <tr><th className="px-2 py-1 text-left">Loyverse store</th><th className="px-2 py-1 text-right">P</th><th className="px-2 py-1 text-right">Entries</th><th className="px-2 py-1 text-right">Snacks</th></tr>
                     </thead>
                     <tbody>
                       {unmapped.map((r) => (
@@ -1018,7 +1018,7 @@ function ChallengesPreviewCard({ month }: { month: string }) {
             )}
           </>
         )}
-        <p className="text-[11px] text-[var(--fg-4)]">Jaune = écart avec la saisie actuelle. Pour l&apos;instant on n&apos;écrit rien — dis-moi si les chiffres te semblent bons et je branche le remplissage auto.</p>
+        <p className="text-[11px] text-[var(--fg-4)]">Yellow = gap with the current entry. Nothing is written for now — tell me if the numbers look right and I will wire the auto-fill.</p>
       </CardContent>
     </Card>
   );

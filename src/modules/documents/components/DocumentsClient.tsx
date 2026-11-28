@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ShopSingleSelect } from "@/components/ui/filters";
-import { PageHeader } from "@/components/ui/page-header";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { Pill } from "@/components/ui/pill";
 import type { PillTone } from "@/components/ui/pill";
 import { Modal } from "@/components/ui/modal";
@@ -313,78 +313,92 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
 
   // ── render ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-      <PageHeader
-        title="Documents"
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
-            <a href="/api/documents/export" download style={{ textDecoration: "none" }}>
-              <Button size="sm" variant="secondary">
-                <DownloadIcon style={{ width: 13, height: 13 }} /> Export CSV
-              </Button>
-            </a>
-            <Button size="sm" variant="primary" onClick={openAdd}>
-              <PlusIcon style={{ width: 13, height: 13 }} /> Add document
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Search + filters (top of page) */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--s-2)" }}>
-        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-          <SearchIcon style={{ position: "absolute", left: 8, width: 13, height: 13, color: "var(--fg-4)", pointerEvents: "none" }} />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search documents…"
-            style={{ ...inputStyle, width: 220, paddingLeft: 28 }}
-          />
+    <div className="doc-shell">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Documents</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Documents</h1>
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)} style={{ ...inputStyle, width: "auto" }}>
-          {STATUS_FILTERS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <ShopSingleSelect options={locations} value={locationFilter} onChange={setLocationFilter} allowAll />
-        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
-          <option value="">All categories</option>
-          {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--fg-4)" }}>
-          {displayed.length} document{displayed.length !== 1 ? "s" : ""}
-        </span>
+      </header>
+
+      {/* Search + filters (labelled rows), actions right */}
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <label className="ui-filter-label" htmlFor="doc-search">Search</label>
+            <div className="ui-filter-control">
+              <div style={{ position: "relative", display: "inline-flex", alignItems: "center", width: "100%", maxWidth: 280 }}>
+                <SearchIcon style={{ position: "absolute", left: 8, width: 13, height: 13, color: "var(--fg-4)", pointerEvents: "none" }} />
+                <input
+                  id="doc-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search documents…"
+                  style={{ ...inputStyle, paddingLeft: 28 }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <label className="ui-filter-label" htmlFor="doc-status">Status</label>
+            <div className="ui-filter-control">
+              <select id="doc-status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "" | DocumentStatus)} style={{ ...inputStyle, width: "auto" }}>
+                {STATUS_FILTERS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="doc-shop-label">Shop</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="doc-shop-label">
+              <ShopSingleSelect options={locations} value={locationFilter} compactMobile onChange={setLocationFilter} allowAll />
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <label className="ui-filter-label" htmlFor="doc-category">Category</label>
+            <div className="ui-filter-control">
+              <select id="doc-category" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
+                <option value="">All categories</option>
+                {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
+          <a href="/api/documents/export" download style={{ textDecoration: "none" }}>
+            <Button size="sm" variant="secondary">
+              <DownloadIcon style={{ width: 13, height: 13 }} /> Export CSV
+            </Button>
+          </a>
+          <Button size="sm" variant="primary" onClick={openAdd}>
+            <PlusIcon style={{ width: 13, height: 13 }} /> Add document
+          </Button>
+        </div>
       </div>
 
       {/* Summary stat cards */}
       {documents.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-          {[
-            { label: "Total tracked", value: stats.total, tone: "neutral" as const },
-            { label: "Missing", value: stats.missing, tone: stats.missing > 0 ? "bad" as const : "neutral" as const },
-            { label: "Expiring soon", value: stats.expiring, tone: stats.expiring > 0 ? "warn" as const : "neutral" as const },
-            { label: "Expired", value: stats.expired, tone: stats.expired > 0 ? "bad" as const : "neutral" as const },
-            { label: "Valid", value: stats.valid, tone: stats.valid > 0 ? "good" as const : "neutral" as const },
-            { label: "Not relevant", value: stats.notRelevant, tone: "neutral" as const },
-          ].map(({ label, value, tone }) => (
-            <div
-              key={label}
-              style={{
-                borderRadius: "var(--r-lg)",
-                border: `1px solid ${tone === "bad" && value > 0 ? "var(--bad)" : tone === "warn" && value > 0 ? "var(--warn)" : "var(--line)"}`,
-                background: tone === "bad" && value > 0 ? "var(--bad-soft)" : tone === "warn" && value > 0 ? "var(--warn-soft)" : "transparent",
-                padding: "var(--s-3) var(--s-4)",
-              }}
-            >
-              <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: 4 }}>{label}</p>
-              <p className="mono" style={{
-                fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                color: tone === "bad" && value > 0 ? "var(--bad)" : tone === "warn" && value > 0 ? "var(--warn)" : tone === "good" && value > 0 ? "var(--good)" : "var(--fg)",
-              }}>
-                {value}
-              </p>
-            </div>
-          ))}
+        <div className="ui-kpi-grid">
+          <KpiStat label="Total tracked" value={String(stats.total)} />
+          <KpiStat label="Missing" value={String(stats.missing)} tone={stats.missing > 0 ? "negative" : undefined} />
+          <KpiStat label="Expiring soon" value={String(stats.expiring)} data-alert={stats.expiring > 0 ? "warn" : undefined} />
+          <KpiStat label="Expired" value={String(stats.expired)} tone={stats.expired > 0 ? "negative" : undefined} />
+          <KpiStat label="Valid" value={String(stats.valid)} tone={stats.valid > 0 ? "positive" : undefined} />
+          <KpiStat label="Not relevant" value={String(stats.notRelevant)} />
         </div>
+      )}
+
+      {/* Result count */}
+      {documents.length > 0 && displayed.length !== documents.length && (
+        <span className="doc-count">
+          {displayed.length} of {documents.length} document{documents.length !== 1 ? "s" : ""} shown
+        </span>
       )}
 
       {/* Single table */}
@@ -408,51 +422,45 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           No documents match these filters.
         </div>
       ) : (
-        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 760 }}>
-              <thead>
-                <tr style={{ background: "transparent", borderBottom: "1px solid var(--line)" }}>
-                  {[
-                    { label: "Document", sort: "title" as SortKey },
-                    { label: "Category", sort: "category" as SortKey },
-                    { label: "Location", sort: "location" as SortKey },
-                    { label: "Has doc", sort: null },
-                    { label: "Status", sort: "status" as SortKey },
-                    { label: "Expiry / due", sort: "expires_at" as SortKey },
-                    { label: "", sort: null },
-                  ].map((h, i) => (
-                    <th
-                      key={i}
-                      style={{
-                        padding: "8px var(--s-4)", textAlign: "left",
-                        color: "var(--fg-3)", fontWeight: 500, fontSize: 11,
-                        width: i === 6 ? 76 : undefined, whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h.sort ? <SortHeader label={h.label} sortKey={h.sort} /> : h.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayed.map((doc, docIdx) => {
-                  const effectiveStatus = computeStatus(doc);
-                  const notRelevant = !doc.is_relevant;
-                  const urgent = !notRelevant && (effectiveStatus === "missing" || effectiveStatus === "expired");
-                  return (
-                    <tr
-                      key={doc.id}
-                      style={{
-                        borderTop: docIdx > 0 ? "1px solid var(--line)" : undefined,
-                        cursor: "pointer",
-                        background: urgent ? "var(--bad-soft)" : "",
-                        opacity: notRelevant ? 0.5 : 1,
-                      }}
-                      onClick={() => openEdit(doc)}
-                      onMouseEnter={(e) => { if (!urgent) (e.currentTarget as HTMLElement).style.background = "var(--row-hover)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = urgent ? "var(--bad-soft)" : ""; }}
-                    >
+        <div className="ui-table-scroll" style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 760 }}>
+            <thead>
+              <tr style={{ background: "transparent", borderBottom: "1px solid var(--line)" }}>
+                {[
+                  { label: "Document", sort: "title" as SortKey },
+                  { label: "Category", sort: "category" as SortKey },
+                  { label: "Location", sort: "location" as SortKey },
+                  { label: "Has doc", sort: null },
+                  { label: "Status", sort: "status" as SortKey },
+                  { label: "Expiry / due", sort: "expires_at" as SortKey },
+                  { label: "", sort: null },
+                ].map((h, i) => (
+                  <th
+                    key={i}
+                    aria-sort={h.sort ? (sortKey === h.sort ? (sortDir === "asc" ? "ascending" : "descending") : "none") : undefined}
+                    style={{
+                      padding: "8px var(--s-4)", textAlign: "left",
+                      color: "var(--fg-3)", fontWeight: 500, fontSize: 11,
+                      width: i === 6 ? 76 : undefined, whiteSpace: "nowrap",
+                    }}
+                  >
+                    {h.sort ? <SortHeader label={h.label} sortKey={h.sort} /> : h.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((doc, docIdx) => {
+                const effectiveStatus = computeStatus(doc);
+                const notRelevant = !doc.is_relevant;
+                const urgent = !notRelevant && (effectiveStatus === "missing" || effectiveStatus === "expired");
+                return (
+                  <tr
+                    key={doc.id}
+                    className={"doc-row" + (urgent ? " doc-row-urgent" : "") + (notRelevant ? " doc-row-muted" : "")}
+                    style={{ borderTop: docIdx > 0 ? "1px solid var(--line)" : undefined }}
+                    onClick={() => openEdit(doc)}
+                  >
                       <td style={{ padding: "10px var(--s-4)" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 180 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 500, lineHeight: 1.2 }}>
@@ -526,7 +534,6 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
                 })}
               </tbody>
             </table>
-          </div>
         </div>
       )}
 
@@ -537,6 +544,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
         title={drawerMode === "add" ? "Add document" : "Edit document"}
         description={drawerMode === "edit" ? form.title : undefined}
         footer={drawerFooter}
+        className="doc"
       >
         <form id="document-form" onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
           {/* Relevance + has-doc toggles */}
@@ -569,7 +577,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           {/* Document info */}
           <div>
             <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Document info</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+            <div className="doc-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
               <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Document name <span style={{ color: "var(--bad)" }}>*</span></label>
                 <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} style={inputStyle} placeholder="e.g. Restaurant License" />
@@ -609,7 +617,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           {/* Shop tracking */}
           <div>
             <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Shop tracking</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+            <div className="doc-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Location</label>
                 <select value={form.location_id} onChange={(e) => setForm((f) => ({ ...f, location_id: e.target.value }))} style={inputStyle}>
@@ -627,7 +635,7 @@ export function DocumentsClient({ initialDocuments, locations }: DocumentsClient
           {/* Dates */}
           <div>
             <p className="eyebrow" style={{ color: "var(--fg-4)", marginBottom: "var(--s-3)" }}>Dates</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
+            <div className="doc-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--s-3)" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Issue date</label>
                 <DateInput value={form.issued_at} onChange={(e) => setForm((f) => ({ ...f, issued_at: e.target.value }))} className="w-full" />

@@ -1280,9 +1280,9 @@ export function ChallengesOverview({
         .filter(([, s]) => !s.ok && !s.skipped)
         .map(([k, s]) => `${k}: ${s.error ?? "failed"}`);
       if (failed.length > 0) {
-        toast.warning(`Refresh terminé avec erreurs — ${failed.join(" · ")}`);
+        toast.warning(`Refresh finished with errors — ${failed.join(" · ")}`);
       } else {
-        toast.success("Refresh terminé — reviews, sheets, Loyverse, compteurs");
+        toast.success("Refresh finished — reviews, sheets, Loyverse, counters");
       }
       await fetchData(month, { silent: true });
     } catch (e) {

@@ -12,9 +12,9 @@ const BACKDROP: React.CSSProperties = {
 
 const PANEL: React.CSSProperties = {
   width: "100%", maxWidth: 400,
-  borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-  background: "transparent", padding: 20,
-  boxShadow: "var(--shadow-2)",
+  borderRadius: "var(--ui-radius)", border: "var(--ui-line-width) solid var(--ui-line)",
+  background: "var(--ui-panel)", padding: 20,
+  boxShadow: "var(--ui-shadow-raised)",
 };
 
 interface BulkReplyPanelProps {

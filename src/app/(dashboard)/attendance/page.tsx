@@ -51,9 +51,5 @@ export default async function AttendancePage() {
     created_at: l.created_at,
   }));
 
-  return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <AttendanceClient initialLocations={locations} isOwner={isOwner} />
-    </div>
-  );
+  return <AttendanceClient initialLocations={locations} isOwner={isOwner} />;
 }

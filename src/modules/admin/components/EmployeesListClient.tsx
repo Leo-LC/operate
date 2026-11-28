@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
-import { PillButton } from "@/components/ui/pill-button";
+import { ControlledTabs } from "@/components/ui/module-tabs";
 import { ShopSingleSelect } from "@/components/ui/filters";
 import { PlusIcon, PencilIcon, ArchiveIcon, Trash2Icon, ArchiveRestoreIcon, Loader2Icon, ArrowUpDownIcon, ArrowUpIcon, ArrowDownIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon, DownloadIcon } from "lucide-react";
 import type { Employee, AdminLocation } from "@/modules/admin/types";
@@ -783,9 +783,75 @@ export function EmployeesListClient({ locations }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <div style={{ display: "flex", gap: 8 }}>
+    <div className="adm" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Employees</span>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{view === "list" ? "List" : "Documents"}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Employees</h1>
+          <ControlledTabs
+            value={view}
+            onChange={(next) => setView(next as typeof view)}
+            tabs={[
+              { value: "list", label: "List" },
+              { value: "matrix", label: "Documents" },
+            ]}
+            ariaLabel="Employees view"
+            variant="segmented"
+          />
+        </div>
+      </header>
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <label className="ui-filter-label" htmlFor="emp-search">Search</label>
+            <div className="ui-filter-control">
+              <div style={{ position: "relative", display: "inline-flex", alignItems: "center", width: "100%", maxWidth: 240 }}>
+                <SearchIcon size={14} style={{ position: "absolute", left: 9, color: "var(--fg-4)", pointerEvents: "none" }} />
+                <input
+                  id="emp-search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search employee…"
+                  style={{
+                    height: 32, paddingLeft: 28, paddingRight: searchQuery ? 28 : 10,
+                    borderRadius: "var(--r-md)", border: "1px solid var(--line)",
+                    background: "transparent", color: "var(--fg)", fontSize: 13,
+                    width: "100%", outline: "none",
+                  }}
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex", padding: 2 }} aria-label="Clear search">
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="emp-shop-label">Shop</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="emp-shop-label">
+              <ShopSingleSelect
+                options={locations}
+                value={shopFilter ?? ""}
+                onChange={(id) => setShopFilter(id === "" ? null : id)}
+                allowAll
+                compactMobile
+              />
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
           <Button size="sm" variant="secondary" onClick={handleExportDocsCsv} title="Export the visible list as CSV (opens in Google Sheets)">
             <DownloadIcon className="size-4" />
             Export docs CSV
@@ -803,38 +869,6 @@ export function EmployeesListClient({ locations }: Props) {
             Add employee
           </Button>
         </div>
-      </div>
-
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <PillButton active={view === "list"} onClick={() => setView("list")}>List</PillButton>
-        <PillButton active={view === "matrix"} onClick={() => setView("matrix")}>Documents</PillButton>
-        <span style={{ width: 8 }} />
-        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-          <SearchIcon size={14} style={{ position: "absolute", left: 9, color: "var(--fg-4)", pointerEvents: "none" }} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search employee…"
-            style={{
-              height: 32, paddingLeft: 28, paddingRight: searchQuery ? 28 : 10,
-              borderRadius: "var(--r-md)", border: "1px solid var(--line)",
-              background: "transparent", color: "var(--fg)", fontSize: 13,
-              width: 220, outline: "none",
-            }}
-          />
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 6, background: "transparent", border: "none", cursor: "pointer", color: "var(--fg-4)", display: "flex", padding: 2 }}>
-              <XIcon size={14} />
-            </button>
-          )}
-        </div>
-        <ShopSingleSelect
-          options={locations}
-          value={shopFilter ?? ""}
-          onChange={(id) => setShopFilter(id === "" ? null : id)}
-          allowAll
-        />
       </div>
 
       {showAdd && (
@@ -868,7 +902,7 @@ export function EmployeesListClient({ locations }: Props) {
           onEligibleChange={(id, val) => setFormEligible((prev) => ({ ...prev, [id]: val }))}
           onSubmit={(e) => void handleAdd(e)}
           onCancel={resetAddForm}
-          submitLabel="Add employee"
+          submitLabel="Create employee"
         />
       )}
 

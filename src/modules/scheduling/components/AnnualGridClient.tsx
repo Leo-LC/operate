@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, ClipboardPasteIcon, TriangleAlertIcon } from "lucide-react";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { ShopSingleSelect } from "@/components/ui/filters/ShopSingleSelect";
 import { MonthPicker } from "@/components/ui/filters/MonthPicker";
 import { Drawer } from "@/components/ui/drawer";
@@ -21,7 +23,7 @@ import { addDaysStr, computeShiftHours, formatTotalHours, mondayOf } from "@/mod
 import { autoColon, isValidTimeLoose, normTime } from "@/modules/scheduling/lib/time-input";
 import { validateCell, validateStaffing } from "@/modules/scheduling/lib/validation";
 import { classifyShift, paletteToStyles, type ShiftPalette } from "@/modules/scheduling/lib/colors";
-
+import { ShiftKindLegend } from "@/modules/scheduling/components/ShiftKindLegend";
 interface Props {
   locations: Array<{ id: string; name: string }>;
   initialLocationId: string;
@@ -72,7 +74,10 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
   const [grid, setGrid] = useState<Record<string, EditorCell>>({});
   const [settings, setSettings] = useState<BranchSettings | null>(null);
   const [palette, setPalette] = useState<ShiftPalette | null>(null);
-  const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
+  // Grid colors adapt to the rendered theme (dark needs lightened text tones).
+  const { resolvedTheme } = useTheme();
+  const [dark, setDark] = useState(false);
+  useEffect(() => setDark(resolvedTheme === "dark"), [resolvedTheme]);  const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [focus, setFocus] = useState<FocusPos | null>(null);
@@ -527,7 +532,7 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
     return { min: "2024-01", max: addMonthsStr(cur, 18) };
   }, []);
 
-  const styles = useMemo(() => paletteToStyles(palette ?? {}), [palette]);
+  const styles = useMemo(() => paletteToStyles(palette ?? {}, dark), [palette, dark]);
 
   // ── One half-cell (IN or OUT). OFF days render a single merged cell, centered. ──
   function renderSub(
@@ -644,8 +649,9 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
 
   return (
     <div className="flex flex-col gap-5">
+      <TableScrollAffordance />
       {/* Branch pills */}
-      <ShopSingleSelect options={locations} value={locationId} onChange={changeLocation} />
+      <ShopSingleSelect options={locations} value={locationId} onChange={changeLocation} compactMobile />
 
       {/* Month + status + advisor */}
       <div className="flex flex-wrap items-center gap-3">
@@ -676,8 +682,11 @@ export function AnnualGridClient({ locations, initialLocationId, initialMonth, c
         </button>
       </div>
 
+      {/* Legend — cell colours stay readable without hover/recall */}
+      <ShiftKindLegend palette={palette} />
+
       {/* Grid — page scrolls vertically, table scrolls horizontally */}
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="ui-table-scroll sch-scroll rounded-lg border border-border bg-card">
         {loading ? (
           <div className="p-8 text-sm text-muted-foreground">Loading {formatMonthLabel(month)}…</div>
         ) : employees.length === 0 ? (

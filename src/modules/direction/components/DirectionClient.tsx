@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { LayoutDashboardIcon, LayersIcon, CalculatorIcon, BarChart3Icon, PlugIcon, CalendarClockIcon } from "lucide-react";
 import { ControlledTabs, type ControlledTab } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { useUiVisibility } from "@/components/visibility";
 import { LoyverseDashboard } from "@/modules/loyverse/components/LoyverseDashboard";
 import { DirectionOverview } from "./DirectionOverview";
@@ -54,21 +56,55 @@ export function DirectionClient({ canSync = true, userRole = "" }: { canSync?: b
     visibilityKey: `tab:direction.${tab.value}`,
   }));
 
-  return (
-    <div className="flex flex-col gap-4">
-      {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
-      {/* Tab bar with eye toggle per tab (owner) via the shared visibility context */}
-      <ControlledTabs tabs={controlledTabs} value={active} onChange={(v) => setActive(v as TabKey)} ariaLabel="Direction" />
+  const activeTabLabel = ALL_TABS.find((tab) => tab.value === active)?.label ?? "Direction";
 
-      <div className="pt-2">
-        {active === "dashboard" && <DirectionExecutiveDashboard />}
-        {active === "loyverse" && <LoyverseDashboard canSync={canSync} />}
-        {active === "overview" && <DirectionOverview />}
-        {active === "comparaison" && <DirectionComparaison />}
-        {active === "daily" && <DirectionDaily />}
-        {active === "details" && <DirectionDetails />}
-        {active === "end_of_month" && <DirectionEndOfMonth />}
+  return (
+    <div className="dir-shell">
+      <TableScrollAffordance />
+      <div className="dir dir-head">
+        <div className="ui-module-header">
+          <nav aria-label="Breadcrumb">
+            <ol className="ui-breadcrumb">
+              <li>
+                <Link href="/direction">Direction</Link>
+                <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+              </li>
+              <li>
+                <span aria-current="page">{activeTabLabel}</span>
+              </li>
+            </ol>
+          </nav>
+          <div className="ui-module-header-row">
+            <h1 className="ui-module-title">Direction</h1>
+          </div>
+          {/* Tab bar with eye toggle per tab for privileged users */}
+          <ControlledTabs
+            tabs={controlledTabs}
+            value={active}
+            onChange={(v) => setActive(v as TabKey)}
+            ariaLabel="Direction"
+          />
+          {/* Seven tabs do not fit a phone: say that the strip scrolls. */}
+          <p className="ui-scroll-note">↔ Faites défiler les onglets</p>
+        </div>
       </div>
+
+      {/* The Loyverse tab keeps its own page rhythm (module header + KPIs),
+          so it renders as a sibling of the Direction panel stack. */}
+      {active === "loyverse" ? (
+        <LoyverseDashboard canSync={canSync} />
+      ) : (
+        <div className="dir dir-body">
+          {active === "dashboard" && <DirectionExecutiveDashboard />}
+          {active === "overview" && <DirectionOverview />}
+          {active === "comparaison" && <DirectionComparaison />}
+          {active === "daily" && <DirectionDaily />}
+          {active === "details" && <DirectionDetails />}
+          {active === "end_of_month" && <DirectionEndOfMonth />}
+          {/* Diagnostic, not a driving metric: kept at the end of the panel. */}
+          {userRole === "owner" && <DirectionSourceBanner userRole={userRole} />}
+        </div>
+      )}
     </div>
   );
 }

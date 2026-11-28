@@ -69,7 +69,7 @@ function NumInput({
           {label}{" "}
           {locked && (
             <span
-              title="Vérité Loyverse — consolidé par le sync quotidien, non saisissable"
+              title="Loyverse truth — consolidated by the daily sync, not editable"
               style={{
                 fontSize: 9, fontWeight: 600, color: "var(--info)",
                 background: "var(--info-soft)", borderRadius: 4, padding: "1px 5px",
@@ -103,7 +103,7 @@ function NumInput({
         value={form[field] === "0" ? "" : form[field] as string}
         placeholder="0"
         disabled={locked}
-        title={locked ? "Champ auto Loyverse — voir shift-sales / réconciliation" : undefined}
+        title={locked ? "Loyverse auto field — see shift-sales / reconciliation" : undefined}
         onChange={(e) => onChange(field, e.target.value)}
         className="mono tabular-nums"
         style={{

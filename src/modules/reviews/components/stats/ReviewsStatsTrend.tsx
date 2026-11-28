@@ -1,118 +1,233 @@
 "use client";
 
+import { useMemo, type ElementType } from "react";
 import {
+  Bar,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
-  Bar,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { useMemo } from "react";
-import type { StatsPoint } from "../../lib/stats";
+import { Panel, PanelBody, PanelFoot, PanelHead, PanelTitle } from "@/components/ui/panel";
+import type { Granularity, StatsPoint } from "../../lib/stats";
+import { formatCount, formatRating, granularityNoun } from "../../lib/stats-view";
+
+interface ChartDatum {
+  label: string;
+  reviews: number;
+  rating: number | null;
+}
 
 interface Props {
   points: StatsPoint[];
-  total: number;
-  loading: boolean;
-  bucket: "day" | "week" | "month";
+  granularity: Granularity;
+  loading?: boolean;
   height?: number;
+  /** Inside an expanded table row: no panel chrome, smaller heading. */
+  compact?: boolean;
+  /** The request failed and there is nothing to show. */
+  unavailable?: boolean;
+  /** Real window label from the stats response, e.g. "26 Sep – 25 Oct 2026". */
+  rangeLabel?: string;
+  /** Optional scope label ("All branches", "Karan + 2 more"). */
+  scopeLabel?: string;
 }
 
-function toChartData(points: StatsPoint[]) {
+interface TrendTooltipProps {
+  active?: boolean;
+  label?: string | number;
+  payload?: ReadonlyArray<{ payload?: ChartDatum }>;
+}
+
+function TrendTooltip({ active, label, payload }: TrendTooltipProps) {
+  const datum = payload?.[0]?.payload;
+  if (!active || !datum) return null;
+  return (
+    <div className="rs-tooltip">
+      <p className="rs-tooltip-title">{label}</p>
+      <p className="rs-tooltip-row">
+        Reviews <b>{formatCount(datum.reviews)}</b>
+      </p>
+      <p className="rs-tooltip-row">
+        Avg rating <b>{formatRating(datum.rating)} / 5</b>
+      </p>
+    </div>
+  );
+}
+
+function toChartData(points: StatsPoint[]): ChartDatum[] {
   return points.map((p) => ({
-    bucket: p.label,
-    Reviews: p.count,
-    "Avg rating": p.count > 0 ? Math.round((p.ratingSum / p.count) * 10) / 10 : null,
+    label: p.label,
+    reviews: p.count,
+    rating: p.count > 0 ? Math.round((p.ratingSum / p.count) * 100) / 100 : null,
   }));
 }
 
-export function ReviewsStatsTrend({ points, total, loading, bucket, height = 200 }: Props) {
+export function ReviewsStatsTrend({
+  points,
+  granularity,
+  loading = false,
+  height = 250,
+  compact = false,
+  unavailable = false,
+  rangeLabel,
+  scopeLabel,
+}: Props) {
   const data = useMemo(() => toChartData(points), [points]);
+  const noun = granularityNoun(granularity);
+  const totalReviews = useMemo(() => points.reduce((sum, p) => sum + p.count, 0), [points]);
+  const totalRatingSum = useMemo(() => points.reduce((sum, p) => sum + p.ratingSum, 0), [points]);
+  const overallRating = totalReviews > 0 ? totalRatingSum / totalReviews : null;
+  const isEmpty = totalReviews === 0;
 
-  if (loading) {
+  const heading = compact ? `Reviews per ${noun}` : "Review volume and average rating";
+
+  if (loading && points.length === 0) {
+    const LoadingOuter: ElementType = compact ? "div" : Panel;
     return (
-      <div className="flex items-center justify-center rounded-[var(--r-md)] border border-[var(--line)]" style={{ height }}>
-        <div className="h-24 w-full animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)] mx-6" />
-      </div>
+      <LoadingOuter>
+        <PanelBody>
+          <div className="rs-skeleton" style={{ height }} aria-hidden />
+        </PanelBody>
+      </LoadingOuter>
     );
   }
 
-  if (total === 0) {
-    return (
-      <div
-        className="flex items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] text-[var(--fg-4)]"
-        style={{ height, fontSize: 13 }}
-      >
-        No reviews in this period.
-      </div>
-    );
-  }
+  const Outer: ElementType = compact ? "div" : Panel;
+  const Head: ElementType = compact ? "div" : PanelHead;
+  const Body: ElementType = compact ? "div" : PanelBody;
 
   return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] p-4">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--fg-3)]">
-        Reviews per {bucket}
-      </p>
-      <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={data} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-          <XAxis
-            dataKey="bucket"
-            tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            yAxisId="count"
-            orientation="left"
-            tick={{ fontSize: 11, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-            axisLine={false}
-            tickLine={false}
-            allowDecimals={false}
-          />
-          <YAxis
-            yAxisId="rating"
-            orientation="right"
-            domain={[1, 5]}
-            ticks={[1, 2, 3, 4, 5]}
-            tick={{ fontSize: 11, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              borderRadius: "var(--r-sm)",
-              fontSize: 12,
-              fontFamily: "var(--font-mono)",
-              color: "var(--fg)",
-            }}
-            cursor={{ fill: "var(--row-hover)" }}
-          />
-          <Legend wrapperStyle={{ fontSize: 11, color: "var(--fg-3)" }} />
-          <Bar
-            yAxisId="count"
-            dataKey="Reviews"
-            fill="var(--bronze)"
-            radius={[3, 3, 0, 0]}
-            maxBarSize={40}
-          />
-          <Line
-            yAxisId="rating"
-            dataKey="Avg rating"
-            stroke="var(--good)"
-            strokeWidth={2}
-            dot={{ fill: "var(--good)", r: 3 }}
-            activeDot={{ r: 4 }}
-            connectNulls
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+    <Outer>
+      <Head>
+        <div>
+          {compact ? (
+            <h2 className="rs-expanded-title">{heading}</h2>
+          ) : (
+            <PanelTitle>{heading}</PanelTitle>
+          )}
+        </div>
+        <div className="rs-legend" aria-label="Chart legend">
+          <span className="rs-legend-item">
+            <span className="rs-legend-bar" aria-hidden />
+            Reviews
+          </span>
+          <span className="rs-legend-item">
+            <span className="rs-legend-line" aria-hidden />
+            Avg rating /5
+          </span>
+        </div>
+      </Head>
+
+      <Body>
+        {isEmpty ? (
+          <div className="rs-empty-chart" style={{ height }}>
+            <p>{unavailable ? "Stats unavailable. Retry above." : "No reviews in this period."}</p>
+          </div>
+        ) : (
+          <div
+            className="rs-chart-frame"
+            role="img"
+            aria-label={`Reviews per ${noun} (bars, left axis) and average rating out of 5 (line, right axis). ${
+              scopeLabel ? `${scopeLabel}. ` : ""
+            }${rangeLabel ? `${rangeLabel}. ` : ""}${formatCount(totalReviews)} reviews${
+              overallRating == null ? "" : `, average ${formatRating(overallRating)} out of 5`
+            }. A data table follows.`}
+          >
+            <ResponsiveContainer width="100%" height={height}>
+              <ComposedChart data={data} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--ui-line)" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "var(--ui-fg-3)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                  minTickGap={8}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  yAxisId="count"
+                  orientation="left"
+                  width={38}
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "var(--ui-fg-3)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  yAxisId="rating"
+                  orientation="right"
+                  width={30}
+                  domain={[1, 5]}
+                  ticks={[1, 2, 3, 4, 5]}
+                  tick={{ fontSize: 11, fill: "var(--ui-fg-3)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  content={(props) => (
+                    <TrendTooltip {...(props as unknown as TrendTooltipProps)} />
+                  )}
+                  cursor={{ fill: "var(--ui-row-hover)" }}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="reviews"
+                  name="Reviews"
+                  fill="var(--ui-series-primary)"
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={36}
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="rating"
+                  dataKey="rating"
+                  name="Avg rating /5"
+                  type="monotone"
+                  stroke="var(--ui-series-neutral)"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "var(--ui-panel)", stroke: "var(--ui-series-neutral)", strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: "var(--ui-series-neutral)", stroke: "var(--ui-panel)", strokeWidth: 2 }}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        <table className="sr-only">
+          <caption>
+            {`Reviews and average rating per ${noun}${rangeLabel ? `, ${rangeLabel}` : ""}`}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">{noun}</th>
+              <th scope="col">Reviews</th>
+              <th scope="col">Average rating /5</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.label}>
+                <th scope="row">{row.label}</th>
+                <td>{row.reviews}</td>
+                <td>{row.rating == null ? "No reviews" : formatRating(row.rating)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Body>
+
+      {!compact && (
+        <PanelFoot>
+          Bars: reviews per {noun} (left). Line: average rating /5 (right); a gap means no reviews.
+        </PanelFoot>
+      )}
+    </Outer>
   );
 }

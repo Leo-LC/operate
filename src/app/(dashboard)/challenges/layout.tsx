@@ -18,11 +18,9 @@ export default async function ChallengesLayout({ children }: { children: React.R
   if (!visible || !hasModuleAccess(permissions, "challenges")) redirect("/home");
   const isOwner = session.user.role === "owner";
   return (
-    <div className="flex flex-col gap-0">
-      <div className="px-8 pt-2">
-        <ChallengesNav isOwner={isOwner} />
-      </div>
-      <div className="px-8 py-6">{children}</div>
+    <div className="challenges">
+      <ChallengesNav isOwner={isOwner} />
+      {children}
     </div>
   );
 }

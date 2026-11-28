@@ -4,13 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2Icon, CalculatorIcon,
-  PrinterIcon, XIcon, EyeIcon, ListIcon, PlusIcon, Trash2Icon,
+  PrinterIcon, EyeIcon, ListIcon, PlusIcon, Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { MonthPicker, ShopSingleSelect, currentMonth } from "@/components/ui/filters";
-import { PageHeader } from "@/components/ui/page-header";
-import { ViewToggle } from "@/components/ui/view-toggle";
-import { Stat } from "@/components/ui/stat";
+import { KpiStat } from "@/components/ui/kpi-stat";
+import { ControlledTabs } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   type PaymentRecord,
@@ -69,8 +70,15 @@ export function PaymentsClient({ initialLocations }: Props) {
   const monthName = new Date(year, month - 1, 1).toLocaleDateString("en", { month: "long", year: "numeric" });
   const monthDays = new Date(year, month, 0).getDate();
 
+  // Guards against stale responses: when the shop/month filter changes faster
+  // than the network answers, only the response for the CURRENT filter may
+  // hydrate the screen. Presentation-level concurrency fix — fetches, params
+  // and contracts are unchanged.
+  const loadSeq = useRef(0);
+
   const loadData = useCallback(async () => {
     if (!locationId) return;
+    const seq = ++loadSeq.current;
     setLoading(true);
     try {
       const [recRes, empRes, revRes] = await Promise.all([
@@ -78,6 +86,7 @@ export function PaymentsClient({ initialLocations }: Props) {
         fetch("/api/admin/employees"),
         fetch(`/api/payments/revenue?year=${year}&month=${month}&location_id=${encodeURIComponent(locationId)}`),
       ]);
+      if (seq !== loadSeq.current) return; // a newer filter change superseded this response
       const recData = await recRes.json();
       const empData = await empRes.json();
       const revData = await revRes.json().catch(() => ({}));
@@ -85,7 +94,7 @@ export function PaymentsClient({ initialLocations }: Props) {
       setEmployees(Array.isArray(empData) ? empData as Employee[] : []);
       setRevenue(revRes.ok && typeof (revData as { revenue?: number }).revenue === "number" ? (revData as { revenue: number }).revenue : null);
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [locationId, year, month]);
 
@@ -111,7 +120,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
   // Live values (current salary + service charge on revenue-to-date, same
   // formula as Generate period). Powers preview rows for employees without a
-  // record and the "Total temps réel" line — records stay frozen by design.
+  // record and the live total line — records stay frozen by design.
   const defaultPct = initialLocations.find((l) => l.id === locationId)?.default_service_charge_pct ?? 1;
   const liveById = useMemo(() => {
     const map = new Map<string, { base: number; serviceCharge: number }>();
@@ -394,85 +403,97 @@ export function PaymentsClient({ initialLocations }: Props) {
   }, [liveById, revenue, totals.adj]);
   const showLiveTotal = liveTotals != null && (previewCount > 0 || Math.round(liveTotals.total) !== Math.round(totals.total));
 
-  const COL_GRID = "28px 1.5fr 110px 110px 130px 130px 90px 90px";
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
-      <PageHeader
-        title="Payments"
-        actions={
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <Button
-              size="sm" variant="secondary" style={{ gap: 6 }}
-              onClick={() => void handleCalculate()} disabled={calculating || !locationId}
-            >
-              {calculating ? <Loader2Icon size={13} className="animate-spin" /> : <CalculatorIcon size={13} />}
-              Generate period
-            </Button>
-
-            <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
-              <PrinterIcon size={13} />
-              PDF
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Selectors row — date selector on top */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
-        <ShopSingleSelect options={initialLocations} value={locationId} onChange={setLocationId} />
-
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-          {/* Month nav */}
-          <MonthPicker
-            value={`${year}-${String(month).padStart(2, "0")}`}
-            onChange={(m) => { const [y, mo] = m.split("-").map(Number); setYear(y); setMonth(mo); }}
-            minMonth="2000-01"
-            maxMonth={currentMonth()}
-          />
-
-          {/* View toggle */}
-          <ViewToggle
+    <div className="pay-shell">
+      <TableScrollAffordance />
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Payments</span>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{view === "table" ? "Table" : "Detail"}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Payments</h1>
+          <ControlledTabs
             value={view}
-            onChange={setView}
-            options={[
-              { value: "table" as View, label: "Table", icon: ListIcon },
-              { value: "detail" as View, label: "Detail", icon: EyeIcon },
+            onChange={(next) => setView(next as View)}
+            tabs={[
+              { value: "table", label: "Table", icon: ListIcon },
+              { value: "detail", label: "Detail", icon: EyeIcon },
             ]}
             ariaLabel="Payments view"
+            variant="segmented"
           />
+        </div>
+      </header>
+
+      {/* Selectors row — labelled rows, actions right */}
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="pay-shop-label">Shop</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="pay-shop-label">
+              <ShopSingleSelect options={initialLocations} value={locationId} compactMobile onChange={setLocationId} />
+            </div>
+          </div>
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="pay-month-label">Month</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="pay-month-label">
+              <MonthPicker
+                value={`${year}-${String(month).padStart(2, "0")}`}
+                onChange={(m) => { const [y, mo] = m.split("-").map(Number); setYear(y); setMonth(mo); }}
+                minMonth="2000-01"
+                maxMonth={currentMonth()}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
+          <Button
+            size="sm" variant="secondary" style={{ gap: 6 }}
+            onClick={() => void handleCalculate()} disabled={calculating || !locationId}
+          >
+            {calculating ? <Loader2Icon size={13} className="animate-spin" /> : <CalculatorIcon size={13} />}
+            Generate period
+          </Button>
+          <Button size="sm" variant="secondary" style={{ gap: 6 }} onClick={() => exportPaymentsPdf()}>
+            <PrinterIcon size={13} />
+            PDF
+          </Button>
         </div>
       </div>
 
       {/* Stats band */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--s-3)" }}>
-        {[
-          {
-            label: "Location revenue",
-            value: revenue != null ? fmtThb(revenue) : "—",
-            hint: `${monthName} · net, for service charge control`,
-          },
-          {
-            label: "Total payroll",
-            value: stats.total > 0 ? fmtThb(stats.total) : "—",
-            hint: previewCount > 0 ? `${monthName} · ${previewCount} poste(s) en temps réel` : monthName,
-          },
-          {
-            label: "Employees",
-            value: String(stats.headcount),
-            hint: `${stats.headcount === 1 ? "person" : "people"} with records`,
-          },
-        ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              background: "transparent", border: "1px solid var(--line)",
-              borderRadius: "var(--r-lg)", padding: "var(--s-4)",
-            }}
-          >
-            <Stat {...s} />
-          </div>
-        ))}
+      <div className="ui-kpi-grid">
+        <KpiStat
+          label="Location revenue"
+          value={revenue != null ? fmtThb(revenue) : "—"}
+          hint={`${monthName} · net, for service charge control`}
+        />
+        <KpiStat
+          label="Total payroll"
+          value={stats.total > 0 ? fmtThb(stats.total) : "—"}
+          hint={
+            stats.total > 0
+              ? previewCount > 0
+                ? `${monthName} · generated records + ${previewCount} live row${previewCount === 1 ? "" : "s"} not generated`
+                : monthName
+              : previewCount > 0
+                ? `${monthName} · live rows only — no generated payments`
+                : `${monthName} · no generated payments`
+          }
+        />
+        <KpiStat
+          label="Employees"
+          value={String(stats.headcount)}
+          hint={`${stats.headcount === 1 ? "person" : "people"} with generated payments`}
+        />
       </div>
 
       {loading ? (
@@ -490,15 +511,9 @@ export function PaymentsClient({ initialLocations }: Props) {
           </div>
 
           {/* Table */}
-          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
+          <div className="ui-table-scroll pay-scroll" style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
             {/* Column headers */}
-            <div
-              style={{
-                display: "grid", gridTemplateColumns: COL_GRID,
-                padding: "10px var(--s-4)", background: "transparent",
-                borderBottom: "1px solid var(--line)", gap: 12, alignItems: "center",
-              }}
-            >
+            <div className="pay-grid pay-grid-head">
               {["", "Employee", "Base", "Svc chg", "Adjustments", "Total"].map((h, i) => (
                 <div
                   key={i}
@@ -532,21 +547,15 @@ export function PaymentsClient({ initialLocations }: Props) {
                 <div
                   key={emp.id}
                   onClick={() => { if (record) openPaymentModal(record, emp); }}
-                  style={{
-                    display: "grid", gridTemplateColumns: COL_GRID,
-                    padding: "12px var(--s-4)", alignItems: "center", gap: 12,
-                    borderBottom: "1px solid var(--line)",
-                    fontSize: 13, transition: "background var(--dur) var(--ease)",
-                    cursor: record ? "pointer" : "default",
-                  }}
-                  className="group/row hover:bg-[var(--row-hover)]"
+                  className="pay-grid pay-row group/row"
+                  style={{ alignItems: "center", cursor: record ? "pointer" : "default" }}
                 >
                   {/* Checkbox placeholder */}
                   <div />
 
                   {/* Employee */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <UserAvatar name={fullName} size={28} />
+                    <UserAvatar name={fullName} size={28} neutral />
                     <div>
                       <button
                         type="button"
@@ -567,13 +576,13 @@ export function PaymentsClient({ initialLocations }: Props) {
                       {preview && (
                         <div
                           style={{
-                            display: "inline-flex", fontSize: 10, fontWeight: 600,
+                            display: "inline-flex", fontSize: 11, fontWeight: 600,
                             color: "var(--accent)", background: "var(--accent-soft)",
                             border: "1px solid var(--accent)", borderRadius: "var(--r-pill)",
                             padding: "1px 7px", marginTop: 2,
                           }}
                         >
-                          Temps réel · non généré
+                          Live · not generated
                         </div>
                       )}
                       {!emp.base_salary_monthly && !preview && (
@@ -648,14 +657,7 @@ export function PaymentsClient({ initialLocations }: Props) {
 
             {/* Totals row */}
             {rows.some((r) => r.record) && (
-              <div
-                style={{
-                  display: "grid", gridTemplateColumns: COL_GRID,
-                  padding: "12px var(--s-4)", alignItems: "center", gap: 12,
-                  borderTop: "2px solid var(--line)", background: "transparent",
-                  fontWeight: 600, fontSize: 13,
-                }}
-              >
+              <div className="pay-grid pay-totals">
                 <div />
                 <div style={{ color: "var(--fg-3)", fontWeight: 600 }}>Total</div>
                 <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
@@ -676,17 +678,9 @@ export function PaymentsClient({ initialLocations }: Props) {
             )}
             {/* Live total — current values for everyone + manual adjustments */}
             {showLiveTotal && liveTotals && (
-              <div
-                style={{
-                  display: "grid", gridTemplateColumns: COL_GRID,
-                  padding: "12px var(--s-4)", alignItems: "center", gap: 12,
-                  borderTop: rows.some((r) => r.record) ? "1px solid var(--line)" : "2px solid var(--line)",
-                  background: "var(--accent-soft)",
-                  fontWeight: 600, fontSize: 13,
-                }}
-              >
+              <div className="pay-grid pay-live-totals">
                 <div />
-                <div style={{ color: "var(--accent)", fontWeight: 600 }}>Total temps réel</div>
+                <div style={{ color: "var(--accent)", fontWeight: 600 }}>Live total</div>
                 <div className="mono tabular-nums" style={{ textAlign: "right", color: "var(--fg)" }}>
                   {liveTotals.base > 0 ? fmtThb(liveTotals.base) : "—"}
                 </div>
@@ -707,13 +701,13 @@ export function PaymentsClient({ initialLocations }: Props) {
 
           <p style={{ fontSize: 11, color: "var(--fg-4)" }}>
             Click <strong>Generate period</strong> to snapshot base salary and service charge for every employee — records stay frozen afterwards so overrides keep their meaning.
-            Rows marked <strong>Temps réel</strong> are live previews (current salary and service charge to date) for employees without a record yet.
+            Rows marked <strong>Live · not generated</strong> are live previews (current salary and service charge to date) for employees without a record yet.
             Click a generated row to edit base salary, service charge and adjustments — every override needs a reason.
           </p>
         </div>
       ) : (
         /* Detail view — two-pane */
-        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--s-4)", minHeight: 480 }}>
+        <div className="pay-detail">
           {/* Left: employee list */}
           <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-lg)", overflow: "hidden" }}>
             <div style={{ padding: "10px var(--s-4)", background: "transparent", borderBottom: "1px solid var(--line)", fontSize: 11, color: "var(--fg-4)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -736,7 +730,7 @@ export function PaymentsClient({ initialLocations }: Props) {
                     transition: "background var(--dur) var(--ease)",
                   }}
                 >
-                  <UserAvatar name={fullName} size={32} />
+                  <UserAvatar name={fullName} size={32} neutral />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{fullName}</div>
                     <div className="mono tabular-nums" style={{ fontSize: 12, color: "var(--fg-4)" }}>
@@ -763,7 +757,7 @@ export function PaymentsClient({ initialLocations }: Props) {
             >
               {/* Header */}
               <div style={{ padding: "var(--s-5)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "var(--s-4)" }}>
-                <UserAvatar name={`${selectedEmployee.first_name} ${selectedEmployee.last_name ?? ""}`.trim()} size={40} />
+                <UserAvatar name={`${selectedEmployee.first_name} ${selectedEmployee.last_name ?? ""}`.trim()} size={40} neutral />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 500, color: "var(--fg)" }}>
                     {selectedEmployee.first_name} {selectedEmployee.last_name}
@@ -838,92 +832,37 @@ export function PaymentsClient({ initialLocations }: Props) {
 
       {/* Employee edit modal */}
       {employeeModal && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 50,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
-            padding: "var(--s-4)",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setEmployeeModal(null); }}
+        <Modal
+          open
+          onClose={() => setEmployeeModal(null)}
+          title={`Edit employee — ${employeeModal.first_name} ${employeeModal.last_name}`}
+          width={680}
         >
-          <div
-            style={{
-              width: "100%", maxWidth: 680,
-              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-              background: "var(--surface)", boxShadow: "var(--shadow-2)",
-              overflowY: "auto", maxHeight: "90vh",
-            }}
-          >
-            <div
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--line)",
-              }}
-            >
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                Edit employee — {employeeModal.first_name} {employeeModal.last_name}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setEmployeeModal(null)}
-                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
-              >
-                <XIcon style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-            <div style={{ padding: "var(--s-5)" }}>
-              <EmployeeForm
-                form={employeeForm}
-                locIds={employeeLocIds}
-                primaryLoc={employeePrimaryLoc}
-                locations={initialLocations}
-                submitting={employeeSubmitting}
-                onChange={(key, val) => setEmployeeForm((f) => ({ ...f, [key]: val }))}
-                onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
-                onSetPrimary={(id) => setEmployeePrimaryLoc(id)}
-                onSubmit={(e) => { e.preventDefault(); void handleEmployeeSave(); }}
-                onCancel={() => setEmployeeModal(null)}
-                submitLabel="Save changes"
-              />
-            </div>
-          </div>
-        </div>
+          <EmployeeForm
+            form={employeeForm}
+            locIds={employeeLocIds}
+            primaryLoc={employeePrimaryLoc}
+            locations={initialLocations}
+            submitting={employeeSubmitting}
+            onChange={(key, val) => setEmployeeForm((f) => ({ ...f, [key]: val }))}
+            onToggleLoc={(id) => setEmployeeLocIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
+            onSetPrimary={(id) => setEmployeePrimaryLoc(id)}
+            onSubmit={(e) => { e.preventDefault(); void handleEmployeeSave(); }}
+            onCancel={() => setEmployeeModal(null)}
+            submitLabel="Save changes"
+          />
+        </Modal>
       )}
 
       {/* Payment record modal — base salary, service charge and adjustments in one place */}
       {paymentModal && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 50,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "var(--overlay-strong)", backdropFilter: "blur(2px)",
-            padding: "var(--s-4)",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setPaymentModal(null); }}
+        <Modal
+          open
+          onClose={() => setPaymentModal(null)}
+          title={`Edit payment — ${paymentModal.emp.first_name} ${paymentModal.emp.last_name}`}
+          width={460}
         >
-          <div
-            style={{
-              width: "100%", maxWidth: 460,
-              borderRadius: "var(--r-lg)", border: "1px solid var(--line)",
-              background: "var(--surface)", boxShadow: "var(--shadow-2)",
-              padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-4)",
-              maxHeight: "90vh", overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>
-                Edit payment — {paymentModal.emp.first_name} {paymentModal.emp.last_name}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setPaymentModal(null)}
-                style={{ color: "var(--fg-4)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}
-              >
-                <XIcon style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
             <p style={{ fontSize: 12, color: "var(--fg-4)" }}>
               Base salary is {fmtThb(paymentModal.emp.base_salary_monthly ?? 0)}/mo · service charge share is {paymentModal.emp.service_charge_pct ?? "location default"}%
               {revenue != null && <> of {fmtThb(revenue)} revenue this period</>}. Overriding either value here only affects this period&apos;s record.
@@ -1050,7 +989,7 @@ export function PaymentsClient({ initialLocations }: Props) {
               </span>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

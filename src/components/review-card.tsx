@@ -27,12 +27,14 @@ const STAR_RATING: Record<string, number> = {
 
 function Stars({ rating }: { rating: string }) {
   const n = STAR_RATING[rating] ?? 0;
+  const tone = n >= 4 ? "positive" : n === 3 ? "warn" : "negative";
   return (
-    <div className="flex gap-0.5" aria-label={`${n} stars`}>
+    <div className="revs-stars" data-tone={tone} aria-label={`${n} stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
         <StarIcon
           key={i}
-          className={`size-4 ${i <= n ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`}
+          className="size-4"
+          data-on={i <= n ? "true" : undefined}
           aria-hidden
         />
       ))}
@@ -175,7 +177,7 @@ export function ReviewCard({
     (variant === "success" || variant === "amber") && availableCategories.length > 0;
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="revs-review">
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
         <div className="flex flex-wrap items-center gap-2">
           {position != null && (

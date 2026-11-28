@@ -2,122 +2,103 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
-import type { ShopStats } from "../../lib/stats";
+import { Panel, PanelBody, PanelFoot, PanelHead, PanelSub, PanelTitle } from "@/components/ui/panel";
+import type { Granularity, ShopStats } from "../../lib/stats";
+import {
+  countComparison,
+  formatCount,
+  formatPercent,
+  formatRating,
+  lowStarShare,
+  ratingComparison,
+  sharePointComparison,
+  type Comparison,
+} from "../../lib/stats-view";
 import { ReviewsStatsTrend } from "./ReviewsStatsTrend";
 
-const STAR_COLORS = ["var(--bad)", "var(--bad-muted)", "var(--warn)", "var(--good-muted)", "var(--good)"];
+const MIX_COLORS = [
+  "var(--ui-negative)",
+  "var(--ui-negative)",
+  "var(--ui-warn)",
+  "var(--ui-series-primary)",
+  "var(--ui-series-primary)",
+];
 
-type SortKey = "count" | "avg" | "replyRate" | "photoRate";
+type SortKey = "count" | "avg" | "replyRate" | "photoRate" | "lowShare";
 
-const BAR_GRANULARITY: Record<string, "day" | "week" | "month"> = {
-  "7d": "day",
-  "30d": "week",
-  "90d": "week",
-  "12m": "month",
-};
-
-function fmt1(n: number | null): string {
-  return n == null ? "—" : (Math.round(n * 10) / 10).toFixed(1);
+function detailId(key: string): string {
+  return `branch-detail-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }
 
-function fmtPct(n: number | null): string {
-  return n == null ? "—" : `${Math.round(n * 100)}%`;
+function sortValue(shop: ShopStats, key: SortKey): number | null {
+  if (key === "count") return shop.count;
+  if (key === "avg") return shop.avg;
+  if (key === "replyRate") return shop.replyRate;
+  if (key === "photoRate") return shop.photoRate;
+  return lowStarShare(shop.distribution, shop.count);
 }
 
-/** Signed pct change vs the prior window; ↑ is "more". */
-function DeltaPill({ current, prior, betterWhenUp = true }: { current: number | null; prior: number | null; betterWhenUp?: boolean }) {
-  if (current == null || prior == null) return null;
-  const diff = current - prior;
-  if (Math.abs(diff) < 0.001) {
-    return <span style={{ fontSize: 11, color: "var(--fg-4)" }}>· no change</span>;
-  }
-  const up = diff > 0;
-  const good = up === betterWhenUp;
-  const sign = up ? "+" : "";
+function DeltaLine({ comparison }: { comparison: Comparison | null }) {
+  if (!comparison) return <span className="rs-cell-sub" data-tone="neutral">—</span>;
+  const arrow =
+    comparison.direction === "up" ? "▲" : comparison.direction === "down" ? "▼" : null;
+  const srDirection =
+    comparison.direction === "up" ? "Up " : comparison.direction === "down" ? "Down " : "";
+  const detail = `${srDirection}${comparison.detail}`;
+  const fullDetail = comparison.note ? `${detail} · ${comparison.note}` : detail;
   return (
-    <span
-      className="tabular-nums"
-      style={{ fontSize: 11, fontWeight: 500, color: good ? "var(--good)" : "var(--bad)" }}
-    >
-      {sign}
-      {Math.abs(diff) < 1 ? Math.round(diff * 10) / 10 : Math.round(diff)}
+    <span className="rs-cell-sub" data-tone={comparison.tone} title={fullDetail}>
+      {arrow && (
+        <span className="rs-cell-arrow" aria-hidden>
+          {arrow}{" "}
+        </span>
+      )}
+      <span aria-hidden>{comparison.text}</span>
+      <span className="sr-only">{fullDetail}</span>
     </span>
   );
 }
 
-function PctDelta({ current, prior }: { current: number; prior: number }) {
-  if (prior === 0) {
-    return current > 0 ? (
-      <span style={{ fontSize: 11, color: "var(--good)" }}>+{current} new</span>
-    ) : <span style={{ fontSize: 11, color: "var(--fg-4)" }}>·</span>;
+function RatingMix({ distribution, count }: { distribution: ShopStats["distribution"]; count: number }) {
+  if (count === 0) {
+    return <span className="rs-cell-sub" data-tone="neutral">—</span>;
   }
-  const pct = Math.round(((current - prior) / prior) * 100);
-  if (pct === 0) return <span style={{ fontSize: 11, color: "var(--fg-4)" }}>· no change</span>;
+  const label = [1, 2, 3, 4, 5]
+    .map((star) => `${star} star: ${distribution[star - 1]}`)
+    .join(", ");
   return (
-    <span
-      style={{ fontSize: 11, fontWeight: 500, color: pct > 0 ? "var(--good)" : "var(--bad)" }}
-    >
-      {pct > 0 ? "▲" : "▼"} {Math.abs(pct)}%
-    </span>
-  );
-}
-
-function DistributionBar({ distribution, count }: { distribution: ShopStats["distribution"]; count: number }) {
-  if (count === 0) return <span style={{ color: "var(--fg-4)", fontSize: 12 }}>—</span>;
-  return (
-    <div style={{ display: "flex", gap: 2, minWidth: 96, maxWidth: 140 }} title={[1, 2, 3, 4, 5].map((s, i) => `${s}★: ${distribution[i]}`).join(" · ")}>
-      {distribution.map((n, i) => (
-        <div
-          key={i}
-          style={{
-            height: 8,
-            flexGrow: n,
-            flexBasis: 0,
-            minWidth: n > 0 ? 3 : 0,
-            background: STAR_COLORS[i],
-            borderRadius: 2,
-            opacity: n > 0 ? 1 : 0.25,
-          }}
-        />
-      ))}
+    <div className="rs-mix" role="img" aria-label={label}>
+      {distribution.map((n, i) =>
+        n > 0 ? (
+          <span
+            key={i}
+            className="rs-mix-seg"
+            data-empty="false"
+            style={{ flexGrow: n, flexBasis: 0, background: MIX_COLORS[i] }}
+          />
+        ) : null,
+      )}
     </div>
   );
 }
 
 interface Props {
   shops: ShopStats[];
-  preset: "7d" | "30d" | "90d" | "12m";
+  granularity: Granularity;
+  periodLabel: string;
   loading: boolean;
+  unavailable?: boolean;
 }
 
-const thStyle = {
-  textAlign: "left" as const,
-  fontSize: 10,
-  letterSpacing: "0.07em",
-  textTransform: "uppercase" as const,
-  fontWeight: 500,
-  color: "var(--fg-4)",
-  padding: "6px 10px",
-  userSelect: "none" as const,
-};
-
-const tdStyle = {
-  fontSize: 13,
-  padding: "9px 10px",
-  borderTop: "1px solid var(--line)",
-  whiteSpace: "nowrap" as const,
-};
-
-export function ReviewsStatsTable({ shops, preset, loading }: Props) {
+export function ReviewsStatsTable({ shops, granularity, periodLabel, loading, unavailable = false }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("count");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const sorted = useMemo(() => {
-    const val = (s: ShopStats): number | null =>
-      sortKey === "count" ? s.count : sortKey === "avg" ? s.avg : (sortKey === "photoRate" ? s.photoRate : s.replyRate);
     return [...shops].sort((a, b) => {
-      const va = val(a), vb = val(b);
+      const va = sortValue(a, sortKey);
+      const vb = sortValue(b, sortKey);
       if (va == null && vb == null) return a.title.localeCompare(b.title);
       if (va == null) return 1;
       if (vb == null) return -1;
@@ -142,123 +123,233 @@ export function ReviewsStatsTable({ shops, preset, loading }: Props) {
     });
   }
 
-  if (loading) {
+  const sortState = (key: SortKey): "ascending" | "descending" | "none" =>
+    sortKey === key ? (sortDir === 1 ? "ascending" : "descending") : "none";
+
+  const headerCell = (key: SortKey, label: string) => (
+    <th scope="col" className="rs-th rs-th-num" aria-sort={sortState(key)}>
+      <button type="button" className="rs-sort" data-active={sortKey === key} onClick={() => toggleSort(key)}>
+        {label}
+        {sortKey === key && (
+          <span className="rs-sort-arrow" aria-hidden>
+            {sortDir === 1 ? "▲" : "▼"}
+          </span>
+        )}
+      </button>
+    </th>
+  );
+
+  if (loading && shops.length === 0) {
     return (
-      <div className="rounded-[var(--r-md)] border border-[var(--line)] p-4">
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-9 animate-pulse rounded-[var(--r-sm)] bg-[var(--bg-2)]" />
-          ))}
-        </div>
-      </div>
+      <Panel aria-label="Branch comparison">
+        <PanelHead>
+          <div>
+            <PanelTitle>Branch comparison</PanelTitle>
+            <PanelSub>Loading branch stats…</PanelSub>
+          </div>
+        </PanelHead>
+        <PanelBody>
+          <div className="flex flex-col gap-2" aria-hidden>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="rs-skeleton" style={{ height: 36 }} />
+            ))}
+          </div>
+        </PanelBody>
+      </Panel>
     );
   }
 
   if (shops.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center rounded-[var(--r-md)] border border-[var(--line)] p-6 text-[var(--fg-4)]"
-        style={{ fontSize: 13 }}
-      >
-        No shop data synced yet.
-      </div>
+      <Panel aria-label="Branch comparison">
+        <PanelHead>
+          <div>
+            <PanelTitle>Branch comparison</PanelTitle>
+            <PanelSub>
+              {unavailable ? "Stats unavailable." : "No branch data synced yet."}
+            </PanelSub>
+          </div>
+        </PanelHead>
+        <PanelBody>
+          <p className="ui-kpi-note" style={{ paddingBottom: 8 }}>
+            {unavailable
+              ? "Use Retry above to load the cached stats again."
+              : "Use Sync now to import Google reviews, then these stats will appear."}
+          </p>
+        </PanelBody>
+      </Panel>
     );
   }
 
-  const sortIcon = (key: SortKey) => (sortKey === key ? (sortDir === 1 ? " ↑" : " ↓") : "");
-
   return (
-    <div className="rounded-[var(--r-md)] border border-[var(--line)] overflow-x-auto">
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
-        <thead>
-          <tr style={{ borderBottom: "1px solid var(--line)" }}>
-            <th style={{ ...thStyle, cursor: "default" }}>Shop</th>
-            <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("count")}>Reviews{sortIcon("count")}</th>
-            <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("avg")}>Avg rating{sortIcon("avg")}</th>
-            <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("replyRate")}>Replied{sortIcon("replyRate")}</th>
-            <th style={{ ...thStyle, cursor: "pointer" }} onClick={() => toggleSort("photoRate")}>Photos{sortIcon("photoRate")}</th>
-            <th style={{ ...thStyle, cursor: "default" }}>Ratings 1★–5★</th>
-            <th style={{ ...thStyle, cursor: "default", width: 34 }} aria-label="Expand" />
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((s) => {
-            const isOpen = expanded.has(s.key);
-            return (
-              <FragmentRow
-                key={s.key}
-                shop={s}
-                isOpen={isOpen}
-                onToggle={() => toggleExpand(s.key)}
-                granularity={BAR_GRANULARITY[preset]}
-              />
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Panel aria-label="Branch comparison">
+      <PanelHead>
+        <div>
+          <PanelTitle>Branch comparison</PanelTitle>
+          <PanelSub>
+            {shops.length} {shops.length === 1 ? "branch" : "branches"} · deltas vs previous{" "}
+            {periodLabel}
+          </PanelSub>
+          <p className="rs-scroll-hint">Swipe for more columns →</p>
+        </div>
+      </PanelHead>
+
+      <PanelBody flush>
+        <div
+          className="rs-table-wrap"
+          role="region"
+          aria-label="Branch comparison table, scrollable horizontally"
+          tabIndex={0}
+        >
+          <table className="rs-table">
+            <caption className="sr-only">
+              Reviews, average rating, public reply rate, photo share, 1–3 star share and rating mix
+              per branch, with the comparison against the prior {periodLabel}. Ratings show two
+              decimals; rating comparisons use unrounded averages.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" className="rs-th rs-th-branch">Branch</th>
+                {headerCell("count", "Reviews")}
+                {headerCell("avg", "Avg rating /5")}
+                {headerCell("replyRate", "Reply rate")}
+                {headerCell("photoRate", "Photos")}
+                {headerCell("lowShare", "1–3★ share")}
+                <th scope="col" className="rs-th" title="1★ on the left, 5★ on the right">
+                  Rating mix
+                </th>
+                <th scope="col" className="rs-th rs-th-num">
+                  <span className="sr-only">Trend</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((shop) => {
+                const isOpen = expanded.has(shop.key);
+                const lowShare = lowStarShare(shop.distribution, shop.count);
+                const priorLowShare = shop.priorDistribution
+                  ? lowStarShare(shop.priorDistribution, shop.priorCount)
+                  : null;
+                return (
+                  <RowGroup
+                    key={shop.key}
+                    shop={shop}
+                    isOpen={isOpen}
+                    onToggle={() => toggleExpand(shop.key)}
+                    granularity={granularity}
+                    periodLabel={periodLabel}
+                    lowShare={lowShare}
+                    priorLowShare={priorLowShare}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </PanelBody>
+
+      <PanelFoot>
+        Rating mix reads 1★ → 5★ · sort any column · expand a row for the branch trend.
+      </PanelFoot>
+    </Panel>
   );
 }
 
-function FragmentRow({ shop, isOpen, onToggle, granularity }: {
+function RowGroup({
+  shop,
+  isOpen,
+  onToggle,
+  granularity,
+  periodLabel,
+  lowShare,
+  priorLowShare,
+}: {
   shop: ShopStats;
   isOpen: boolean;
   onToggle: () => void;
-  granularity: "day" | "week" | "month";
+  granularity: Granularity;
+  periodLabel: string;
+  lowShare: number | null;
+  priorLowShare: number | null;
 }) {
   return (
     <>
       <tr
+        className="rs-row"
+        data-open={isOpen}
         onClick={onToggle}
-        style={{ cursor: "pointer", background: isOpen ? "var(--row-hover)" : "transparent" }}
-        onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = "var(--row-hover)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = isOpen ? "var(--row-hover)" : "transparent"; }}
+        style={{ cursor: "pointer" }}
       >
-        <td style={tdStyle}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
-            {isOpen ? <ChevronDownIcon size={13} color="var(--fg-3)" /> : <ChevronRightIcon size={13} color="var(--fg-4)" />}
+        <th scope="row" className="rs-row-th">
+          <span className="rs-branch-name" title={shop.title}>
             {shop.title}
           </span>
-        </td>
-        <td style={tdStyle} className="mono tabular-nums">
-          <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-            <span style={{ fontWeight: 600 }}>{shop.count}</span>
-            <PctDelta current={shop.count} prior={shop.priorCount} />
+        </th>
+        <td className="rs-num">
+          <span className="rs-cell-stack">
+            <span className="rs-cell-main">{formatCount(shop.count)}</span>
+            <DeltaLine comparison={countComparison(shop.count, shop.priorCount, periodLabel)} />
           </span>
         </td>
-        <td style={tdStyle} className="mono tabular-nums">
-          <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-            <span style={{ fontWeight: 600 }}>{fmt1(shop.avg)}</span>
-            <DeltaPill current={shop.avg} prior={shop.priorAvg} />
+        <td className="rs-num">
+          <span className="rs-cell-stack">
+            <span className="rs-cell-main">{formatRating(shop.avg)}</span>
+            <DeltaLine comparison={ratingComparison(shop.avg, shop.priorAvg, periodLabel)} />
           </span>
         </td>
-        <td style={tdStyle} className="tabular-nums">
-          <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-            <span>{fmtPct(shop.replyRate)}</span>
+        <td className="rs-num">
+          <span className="rs-cell-stack">
+            <span className="rs-cell-main">{formatPercent(shop.replyRate)}</span>
           </span>
         </td>
-        <td style={tdStyle} className="tabular-nums">
-          <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-            <span>{fmtPct(shop.photoRate)}</span>
-            <span style={{ fontSize: 11, color: "var(--fg-4)" }}>with photos</span>
+        <td className="rs-num">
+          <span className="rs-cell-stack">
+            <span className="rs-cell-main">{formatPercent(shop.photoRate)}</span>
+            <span className="rs-cell-sub" data-tone="neutral">with photos</span>
           </span>
         </td>
-        <td style={tdStyle}>
-          <DistributionBar distribution={shop.distribution} count={shop.count} />
+        <td className="rs-num">
+          <span className="rs-cell-stack">
+            <span className="rs-cell-main">{formatPercent(lowShare)}</span>
+            <DeltaLine comparison={sharePointComparison(lowShare, priorLowShare, periodLabel)} />
+          </span>
         </td>
-        <td style={{ ...tdStyle, color: "var(--fg-4)", fontSize: 11 }}>
-          {isOpen ? "Hide" : "Chart"}
+        <td>
+          <RatingMix distribution={shop.distribution} count={shop.count} />
+        </td>
+        <td className="rs-num">
+          <button
+            type="button"
+            className="rs-sort"
+            aria-expanded={isOpen}
+            aria-controls={detailId(shop.key)}
+            aria-label={`${isOpen ? "Hide" : "Show"} trend for ${shop.title}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+          >
+            {isOpen ? <ChevronDownIcon size={13} aria-hidden /> : <ChevronRightIcon size={13} aria-hidden />}
+            <span aria-hidden>{isOpen ? "Hide" : "Chart"}</span>
+          </button>
         </td>
       </tr>
       {isOpen && (
-        <tr>
-          <td colSpan={7} style={{ borderBottom: "1px solid var(--line)", padding: "8px 12px 12px", background: "var(--surface)" }}>
+        <tr id={detailId(shop.key)}>
+          <td colSpan={8} className="rs-expanded">
+            <p className="rs-expanded-sub">
+              {shop.priorCount > 0
+                ? `Previous ${periodLabel}: ${formatCount(shop.priorCount)} reviews · ${formatRating(
+                    shop.priorAvg,
+                  )} avg · ${formatPercent(priorLowShare, 1)} 1–3★`
+                : `No reviews in the previous ${periodLabel}.`}
+            </p>
             <ReviewsStatsTrend
+              compact
               points={shop.points}
-              total={shop.count}
-              loading={false}
-              bucket={granularity}
-              height={160}
+              granularity={granularity}
+              height={180}
+              scopeLabel={shop.title}
             />
           </td>
         </tr>

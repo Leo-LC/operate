@@ -112,31 +112,31 @@ export function ReconciliationPanel({ days = 7 }: { days?: number }) {
       <Card>
         <CardHeader>
           <CardTitle>
-            Probation write-back — {data.cleanDaysStreak} jour{data.cleanDaysStreak > 1 ? "s" : ""} sans écart
+            Probation write-back — {data.cleanDaysStreak} day{data.cleanDaysStreak > 1 ? "s" : ""} without a gap
             {data.probationComplete ? " ✓ (7/7 — bascule full-auto OK)" : ` (objectif ${data.probationTargetDays}/7)`}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2 text-sm">
           <Pill tone={data.mismatches === 0 ? "good" : "bad"}>
-            {data.mismatches === 0 ? "aucun écart" : `${data.mismatches} écart${data.mismatches > 1 ? "s" : ""}`}
+            {data.mismatches === 0 ? "no gap" : `${data.mismatches} gap${data.mismatches > 1 ? "s" : ""}`}
           </Pill>
-          <Pill tone="neutral">{data.totalRows} lignes comparées</Pill>
+          <Pill tone="neutral">{data.totalRows} rows compared</Pill>
           <button
             type="button"
             onClick={load}
             className="rounded-[var(--r-sm)] border border-[var(--line)] px-2 py-1 text-xs text-[var(--fg-3)]"
           >
-            Re-vérifier
+            Re-check
           </button>
           <span className="text-xs text-[var(--fg-4)]">
-            Tolérance ฿1 (arrondis). Chaque vérification est loggée en base (loyverse_reconciliation_logs). Onglet temporaire : à retirer après 7 jours propres.
+            ฿1 tolerance (rounding). Every check is logged in the database (loyverse_reconciliation_logs). Temporary tab: remove after 7 clean days.
           </span>
         </CardContent>
       </Card>
 
       {mismatches.length > 0 && (
         <Card>
-          <CardHeader><CardTitle>Écarts à investiguer</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Gaps to investigate</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -145,7 +145,7 @@ export function ReconciliationPanel({ days = 7 }: { days?: number }) {
                   <SortTh label="Shop" sortKey="shop" activeKey={sortKey} dir={sortDir} onSort={onSort} />
                   <SortTh label="Loyverse" sortKey="loyverse" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
                   <SortTh label="Accounting" sortKey="accounting" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
-                  <SortTh label="Écart" sortKey="diff" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
+                  <SortTh label="Gap" sortKey="diff" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
                   <SortTh label="%" sortKey="diff_pct" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
                   <SortTh label="Statut" sortKey="status" activeKey={sortKey} dir={sortDir} onSort={onSort} />
                 </tr>
@@ -180,7 +180,7 @@ export function ReconciliationPanel({ days = 7 }: { days?: number }) {
                 <SortTh label="Shop" sortKey="shop" activeKey={sortKey} dir={sortDir} onSort={onSort} />
                 <SortTh label="Loyverse" sortKey="loyverse" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
                 <SortTh label="Accounting" sortKey="accounting" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
-                <SortTh label="Écart" sortKey="diff" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
+                <SortTh label="Gap" sortKey="diff" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
                 <SortTh label="Statut" sortKey="status" activeKey={sortKey} dir={sortDir} onSort={onSort} />
               </tr>
             </thead>

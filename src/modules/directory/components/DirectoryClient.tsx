@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { SearchIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
 import { ControlledTabs } from "@/components/ui/module-tabs";
+import { TableScrollAffordance } from "@/components/ui/table-scroll-affordance";
 import { ContactsClient } from "@/modules/contacts/components/ContactsClient";
 import type { Contact } from "@/modules/contacts/types";
 import { ShopTable } from "@/modules/directory/components/ShopTable";
@@ -112,72 +114,101 @@ export function DirectoryClient({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-      {/* Search only — filters contacts, never shops */}
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-          <SearchIcon style={{ position: "absolute", left: 10, width: 14, height: 14, color: "var(--fg-4)", pointerEvents: "none" }} />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
-            placeholder="Search contacts…"
-            autoFocus={query.length > 0}
-            style={{
-              height: 36,
-              paddingLeft: 32,
-              paddingRight: query ? 32 : "var(--s-3)",
-              borderRadius: "var(--r-sm)",
-              border: "1px solid var(--line)",
-              background: "var(--surface)",
-              color: "var(--fg)",
-              fontSize: 13,
-              width: 280,
-              outline: "none",
-            }}
+    <div className="directory">
+      <TableScrollAffordance />
+      <div className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <Link href="/directory">Directory</Link>
+              <span className="ui-breadcrumb-sep" aria-hidden> / </span>
+            </li>
+            <li>
+              <span aria-current="page">{tab === "shops" ? "Shops" : "Contacts"}</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Directory</h1>
+          <ControlledTabs
+            variant="segmented"
+            tabs={TABS.map((t) => ({
+              value: t.value,
+              label: `${t.label} (${t.value === "shops" ? sortedShops.length : contacts.length})`,
+              icon: t.icon,
+              visibilityKey: `tab:directory.${t.value}`,
+            }))}
+            value={tab}
+            onChange={(v) => switchTab(v as DirectoryTab)}
+            ariaLabel="Directory"
           />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              title="Clear search"
-              aria-label="Clear search"
-              style={{
-                position: "absolute",
-                right: 6,
-                width: 24,
-                height: 24,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "var(--r-sm)",
-                border: "none",
-                background: "transparent",
-                color: "var(--fg-4)",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
-            >
-              <XIcon size={14} />
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Underline tabs — same styling as the Direction module */}
-      <ControlledTabs
-        tabs={TABS.map((t) => ({
-          value: t.value,
-          label: `${t.label} (${t.value === "shops" ? sortedShops.length : contacts.length})`,
-          icon: t.icon,
-          visibilityKey: `tab:directory.${t.value}`,
-        }))}
-        value={tab}
-        onChange={(v) => switchTab(v as DirectoryTab)}
-        ariaLabel="Directory"
-      />
+      {/* Search only filters contacts — never shops, so it only exists on that tab. */}
+      {tab === "contacts" && (
+        <div className="ui-toolbar">
+          <div className="ui-filter-rows">
+            <div className="ui-filter-row">
+              <span className="ui-filter-label" id="directory-search-label">
+                Recherche
+              </span>
+              <div className="ui-filter-control" role="group" aria-labelledby="directory-search-label">
+                <div style={{ position: "relative", display: "inline-flex", alignItems: "center", width: "min(320px, 100%)" }}>
+                  <SearchIcon style={{ position: "absolute", left: 10, width: 14, height: 14, color: "var(--fg-4)", pointerEvents: "none" }} />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
+                    placeholder="Search contacts…"
+                    aria-label="Search contacts"
+                    autoFocus={query.length > 0}
+                    style={{
+                      height: "var(--ui-control-h)",
+                      paddingLeft: 32,
+                      paddingRight: query ? 32 : "var(--s-3)",
+                      borderRadius: "var(--r-sm)",
+                      border: "1px solid var(--line)",
+                      background: "var(--surface)",
+                      color: "var(--fg)",
+                      fontSize: 13,
+                      width: "100%",
+                      outline: "none",
+                    }}
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      title="Clear search"
+                      aria-label="Clear search"
+                      style={{
+                        position: "absolute",
+                        right: 6,
+                        width: 24,
+                        height: 24,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "var(--r-sm)",
+                        border: "none",
+                        background: "transparent",
+                        color: "var(--fg-4)",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-4)")}
+                    >
+                      <XIcon size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {tab === "shops" ? (
         <ShopTable

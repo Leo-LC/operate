@@ -1,0 +1,162 @@
+/* ============================================================================
+   Payments — route-local layout on the Operate foundation
+   ----------------------------------------------------------------------------
+   Layout and module-specific pieces for Payments. Colors, typography, radii,
+   borders and interaction states come from the global Operate foundation in
+   src/app/globals.css. Nothing here changes an amount, a calculation, a status
+   transition or an API contract: `fmtThb()` keeps the sign of negative
+   adjustments (rendered `−฿…`), salary/service-charge formulas and
+   generated-record freezing are untouched — this file is presentation only.
+   ========================================================================== */
+
+/* Page rhythm */
+.pay-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+}
+
+@media (max-width: 767px) {
+  .pay-shell {
+    gap: 16px;
+  }
+}
+
+/* ── Payment table (CSS grid, not a <table>) ────────────────────────────────
+   The 8-column grid scrolls horizontally inside .ui-table-scroll on narrow
+   screens with the Employee column pinned; the column header and rows share
+   the same grid template so cells stay aligned. */
+
+.pay-grid {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1.5fr) 110px 110px 130px 130px 90px 90px;
+  align-items: center;
+  gap: 12px;
+}
+
+.pay-grid-head {
+  padding: 10px var(--s-4);
+  background: transparent;
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+}
+
+.pay-row {
+  padding: 12px var(--s-4);
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+  font-size: 13px;
+  transition: background var(--dur) var(--ease);
+}
+
+.pay-row:hover {
+  background: var(--ui-row-hover);
+}
+
+.pay-totals {
+  padding: 12px var(--s-4);
+  border-top: 2px solid var(--ui-line);
+  background: transparent;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.pay-live-totals {
+  padding: 12px var(--s-4);
+  background: var(--ui-accent-soft);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+@media (max-width: 1023px) {
+  /* fr would collapse the Employee column inside the narrow scroll
+     container — give it a fixed width so the pinned column holds. Cells
+     touch (no gap) so scrolled content cannot show through the seams. The
+     pinned band stays narrow (checkbox + 180px name column) on phones. */
+  .pay-scroll .pay-grid {
+    grid-template-columns: 28px 180px 110px 110px 130px 130px 90px 90px;
+    min-width: 880px;
+    gap: 0;
+  }
+
+  /* Pin the leading band (checkbox + Employee) while the figures scroll:
+     both cells get an opaque background so scrolled content cannot show
+     through seams or the row's leading padding. The grid centers its cells
+     (align-items: center), which collapses empty cells to height 0 — the
+     pinned cells stretch to the full row height instead. */
+  .pay-scroll .pay-grid > :nth-child(1),
+  .pay-scroll .pay-grid > :nth-child(2) {
+    position: sticky;
+    z-index: 2;
+    background: var(--ui-panel);
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+
+  .pay-scroll .pay-grid > :nth-child(1) {
+    left: 0;
+  }
+
+  .pay-scroll .pay-grid > :nth-child(2) {
+    left: 28px;
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .pay-scroll .pay-grid > :nth-child(2) > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pay-scroll .pay-row:hover > :nth-child(1),
+  .pay-scroll .pay-row:hover > :nth-child(2) {
+    background: var(--ui-panel);
+  }
+
+  .pay-scroll .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .pay-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .pay-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .pay-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .pay-scroll[data-scrollable]::before {
+    content: "↔ Scroll horizontally";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}
+
+/* ── Detail view (two panes) ───────────────────────────────────────────────
+   Employee list and detail panel stack on phones. */
+
+.pay-detail {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--s-4);
+  min-height: 480px;
+}
+
+@media (max-width: 767px) {
+  .pay-detail {
+    grid-template-columns: 1fr !important;
+    min-height: 0;
+  }
+}
+
+/* Employee modal reuses EmployeeForm (flex-wrap, responsive by construction). */

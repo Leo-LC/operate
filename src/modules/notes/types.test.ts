@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PageNote, NoteKind } from "./types";
-import { NOTE_KIND_LABELS, groupNotesByPath, isNoteKind, moduleDisplayName, timeAgoFr } from "./types";
+import { NOTE_KIND_LABELS, groupNotesByPath, isNoteKind, moduleDisplayName, timeAgo } from "./types";
 
 const SHORT_MS = 60_000;
 
@@ -47,12 +47,12 @@ describe("groupNotesByPath", () => {
   });
 });
 
-describe("timeAgoFr", () => {
+describe("timeAgo", () => {
   it("formats relative times", () => {
-    expect(timeAgoFr(iso(0, 0), Date.now())).toBe("à l'instant");
-    expect(timeAgoFr(iso(0, 5), Date.now())).toBe("il y a 5 min");
-    expect(timeAgoFr(iso(0, 120), Date.now())).toBe("il y a 2 h");
-    expect(timeAgoFr(iso(3), Date.now())).toBe("il y a 3 j");
+    expect(timeAgo(iso(0, 0), Date.now())).toBe("just now");
+    expect(timeAgo(iso(0, 5), Date.now())).toBe("5 min ago");
+    expect(timeAgo(iso(0, 120), Date.now())).toBe("2 h ago");
+    expect(timeAgo(iso(3), Date.now())).toBe("3 d ago");
   });
 });
 

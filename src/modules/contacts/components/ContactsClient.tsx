@@ -279,28 +279,39 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
       {/* Toolbar (no page header — lives inside the Directory tab) */}
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "var(--fg-4)", marginRight: "auto" }}>
-          {filtered.length} of {contacts.length} contacts
-        </span>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          style={{
-            height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
-            background: "var(--surface)", color: "var(--fg)",
-            padding: "0 var(--s-3)", fontSize: 13, outline: "none",
-          }}
-        >
-          <option value="">All types</option>
-          {CONTACT_TYPES.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
-          {customTypes.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
-        </select>
-        {canWrite && (
-          <Button size="sm" onClick={openAdd} style={{ gap: 6 }}>
-            <PlusIcon size={13} />Add contact
-          </Button>
-        )}
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="contacts-type-label">
+              Type
+            </span>
+            <div className="ui-filter-control" role="group" aria-labelledby="contacts-type-label">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                style={{
+                  height: 34, borderRadius: "var(--r-sm)", border: "1px solid var(--line)",
+                  background: "var(--surface)", color: "var(--fg)",
+                  padding: "0 var(--s-3)", fontSize: 13, outline: "none",
+                }}
+              >
+                <option value="">All types</option>
+                {CONTACT_TYPES.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
+                {customTypes.map((t) => <option key={t} value={t}>{contactTypeLabel(t)}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="ui-toolbar-actions">
+          <span style={{ fontSize: 12, color: "var(--fg-4)" }}>
+            {filtered.length} of {contacts.length} contacts
+          </span>
+          {canWrite && (
+            <Button size="sm" onClick={openAdd} style={{ gap: 6 }}>
+              <PlusIcon size={13} />Add contact
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Inline add form (same system as employees) */}
@@ -327,7 +338,7 @@ export function ContactsClient({ initialContacts, locations, canWrite, initialEx
       {filtered.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--fg-4)" }}>No contacts found.</p>
       ) : (
-        <div style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden" }}>
+        <div className="ui-table-scroll" style={{ borderRadius: "var(--r-lg)", border: "1px solid var(--line)" }}>
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead style={{ background: "transparent" }}>
               <tr>
@@ -589,7 +600,7 @@ function ContactForm({
       {/* Identity */}
       <div>
         <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Identity</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+        <div className="directory-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <ContactField label="Name" value={form.name} placeholder="Full name" required onChange={set("name")} />
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label className="eyebrow" style={{ color: "var(--fg-4)" }}>Type <span style={{ color: "var(--bad)" }}>*</span></label>
@@ -610,7 +621,7 @@ function ContactForm({
       {/* Contact details */}
       <div>
         <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Contact details</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+        <div className="directory-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <ContactField label="Email" value={form.email} type="email" placeholder="contact@example.com" onChange={set("email")} />
           <ContactField label="Phone" value={form.phone} placeholder="+66 xx xxx xxxx" onChange={set("phone")} />
           {cfg.directChannel && (
@@ -629,7 +640,7 @@ function ContactForm({
       {cfg.business && (
       <div>
         <p className="eyebrow" style={{ color: "var(--fg-3)", fontWeight: 600, marginBottom: "var(--s-3)" }}>Business info</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
+        <div className="directory-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
           <div style={{ gridColumn: "span 2" }}>
             <ContactField label="Company name (TH)" value={form.company_name_th} placeholder="บริษัท … จำกัด" onChange={set("company_name_th")} />
           </div>

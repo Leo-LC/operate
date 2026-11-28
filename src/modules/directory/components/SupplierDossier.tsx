@@ -212,7 +212,7 @@ export function SupplierDossier({
         ) : orders.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--fg-4)", margin: 0 }}>No orders logged yet.</p>
         ) : (
-          <div style={{ border: "1px solid var(--line)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
+          <div className="ui-table-scroll" style={{ border: "1px solid var(--line)", borderRadius: "var(--r-md)" }}>
             <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--line)" }}>

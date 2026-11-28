@@ -1,0 +1,57 @@
+/* ============================================================================
+   Scheduling — route-local layout on the Operate foundation
+   ----------------------------------------------------------------------------
+   Layout and module-specific pieces for Scheduling. Colors, typography, radii,
+   borders and interaction states come from the global Operate foundation in
+   src/app/globals.css. Presentation only — shift grids, imports and per-person
+   plans are untouched.
+   ========================================================================== */
+
+.sch-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  color: var(--ui-fg-1);
+}
+
+.sch .ui-module-header {
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .sch-shell {
+    gap: 16px;
+  }
+}
+
+.sch-nav .sch-section {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ui-fg-4);
+}
+
+@media (max-width: 767px) {
+  .sch-nav .sch-section {
+    display: none;
+  }
+}
+
+/* Conditional horizontal-scroll hint on the planning grids (only when the
+   grid actually overflows — TableScrollAffordance sets data-scrollable). */
+@media (max-width: 1023px) {
+  .sch-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+  }
+
+  .sch-scroll[data-scrollable]::before {
+    content: "↔ Scroll horizontally";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 4px 10px 6px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}

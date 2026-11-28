@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, RefreshCwIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { DateRangePicker, ShopMultiSelect, bangkokToday, reconcileShopMulti } from "@/components/ui/filters";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { PillButton } from "@/components/ui/pill-button";
 import { useDirectionPeriod, useDirectionShops } from "@/modules/direction/lib/useDirectionPeriod";
 
@@ -11,7 +13,7 @@ function fmtN(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 function fmtMoney(n: number) {
-  return `฿${fmtN(Math.abs(n))}`;
+  return `${n < 0 ? "−" : ""}฿${fmtN(Math.abs(n))}`;
 }
 
 // ── Types mirroring /api/reports/accounting ───────────────────────────
@@ -135,14 +137,14 @@ export function DirectionOverview() {
 
   if (loading && !data) {
     return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="ui-kpi-grid">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-24 animate-pulse rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--line-2)]" />
         ))}
       </div>
     );
   }
-  if (!data) return <div className="py-10 text-center text-sm text-[var(--fg-4)]">Pas de données</div>;
+  if (!data) return <div className="dir-empty">Pas de données</div>;
 
   const o = data.overview;
 
@@ -219,27 +221,37 @@ export function DirectionOverview() {
         : Math.max(...sortedShops.map((s) => s._exp), 1);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="dir-stack">
       {/* Période + Boutiques */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
-          <button
-            onClick={() => void fetchData(from, to, selectedShops)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--bg-2)]"
-          >
-            ↻ Actualiser
-          </button>
+      <div className="ui-toolbar">
+        <div className="ui-filter-rows">
+          <div className="ui-filter-row">
+            <span className="ui-filter-label" id="dir-overview-period-label">Période</span>
+            <div className="ui-filter-control" role="group" aria-labelledby="dir-overview-period-label">
+              <DateRangePicker value={{ from, to }} onChange={({ from: f, to: t }) => setRange(f, t)} today={bangkokToday()} />
+            </div>
+          </div>
+          {locations.length > 0 && (
+            <div className="ui-filter-row">
+              <span className="ui-filter-label" id="dir-overview-shops-label">Boutiques</span>
+              <div className="ui-filter-control" role="group" aria-labelledby="dir-overview-shops-label">
+                <ShopMultiSelect
+                  options={locations}
+                  selected={selectedShops}
+                  onChange={setSelectedShops}
+                  allLabel="Toutes les boutiques"
+                  getLabel={(loc) => shortShopName(loc.name)}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        {locations.length > 0 && (
-          <ShopMultiSelect
-            options={locations}
-            selected={selectedShops}
-            onChange={setSelectedShops}
-            allLabel="Toutes les boutiques"
-            getLabel={(loc) => shortShopName(loc.name)}
-          />
-        )}
+        <div className="ui-toolbar-actions">
+          <Button size="sm" variant="outline" onClick={() => void fetchData(from, to, selectedShops)}>
+            <RefreshCwIcon size={13} />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Hiérarchie subtile */}
@@ -249,23 +261,23 @@ export function DirectionOverview() {
       </p>
 
       {/* KPI — exactement 5, sans variations */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard label="Chiffre d'affaires" value={`฿${fmtN(o.revenue)}`} />
-        <KpiCard label="Charges fixes / opérationnelles" value={`฿${fmtN(chargesFixes)}`} />
-        <KpiCard label="Charges RH" value={`฿${fmtN(chargesRH)}`} />
-        <KpiCard
+      <div className="ui-kpi-grid">
+        <KpiStat label="Chiffre d'affaires" value={`฿${fmtN(o.revenue)}`} />
+        <KpiStat label="Charges fixes / opérationnelles" value={`฿${fmtN(chargesFixes)}`} />
+        <KpiStat label="Charges RH" value={`฿${fmtN(chargesRH)}`} />
+        <KpiStat
           label="Résultat"
-          value={`฿${fmtN(resultat)}`}
-          accent
-          tooltip="Chiffre d’affaires moins charges opérationnelles et RH enregistrées. TVA à reverser et impôt sur les sociétés non inclus."
+          value={fmtMoney(resultat)}
+          tone={resultat >= 0 ? "positive" : "negative"}
+          hint="CA − charges opérationnelles − RH, hors TVA et impôt"
         />
-        <KpiCard label="TVA encaissée" value={`฿${fmtN(o.vat)}`} />
+        <KpiStat label="TVA encaissée" value={`฿${fmtN(o.vat)}`} hint="Informatif" />
       </div>
 
       {/* Money in / Money out — inchangé */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Entrées — Répartition</h3>
+        <div className="dir-panel">
+          <h3 className="dir-panel-title">Entrées — Répartition</h3>
           <div className="flex flex-col gap-3">
             {moneyInRows.length === 0 ? (
               <p className="py-4 text-center text-sm text-[var(--fg-4)]">Pas de chiffre d’affaires</p>
@@ -285,8 +297,8 @@ export function DirectionOverview() {
           </div>
         </div>
 
-        <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Sorties — Dépenses</h3>
+        <div className="dir-panel">
+          <h3 className="dir-panel-title">Sorties — Dépenses</h3>
           <div className="flex flex-col gap-3">
             {moneyOutRows.map((r) => (
               <div key={r.label} className="flex items-center gap-3">
@@ -335,10 +347,10 @@ export function DirectionOverview() {
       </div>
 
       {/* Boutiques — Résultat (défaut) / Ventes / Dépenses */}
-      <div className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="dir-panel">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--fg-3)]">Boutiques</h3>
+            <h3 className="dir-panel-title">Boutiques</h3>
             <span className="group relative inline-flex">
               <InfoIcon size={13} className="text-[var(--fg-4)] cursor-help" />
               <span className="pointer-events-none absolute left-1/2 top-full z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--fg-3)] shadow-lg group-hover:block" style={{ marginTop: 6, maxWidth: 260, whiteSpace: "normal" }}>
@@ -354,7 +366,7 @@ export function DirectionOverview() {
             ))}
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="ui-table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--line)] text-left text-xs text-[var(--fg-4)]">
@@ -384,46 +396,6 @@ export function DirectionOverview() {
           </table>
         </div>
       </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  accent,
-  tooltip,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  tooltip?: string;
-}) {
-  return (
-    <div
-      style={{
-        borderRadius: "var(--r-lg)",
-        border: accent ? "1.5px solid var(--accent)" : "1px solid var(--line)",
-        background: accent ? "var(--accent-soft, var(--surface))" : "var(--surface)",
-        padding: 16,
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        height: "100%",
-      }}
-    >
-      <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-[var(--fg-4)]">
-        {label}
-        {tooltip && (
-          <span className="group relative inline-flex">
-            <InfoIcon size={12} className="cursor-help text-[var(--fg-4)]" />
-            <span className="pointer-events-none absolute left-1/2 top-full z-20 hidden -translate-x-1/2 whitespace-normal rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-normal normal-case tracking-normal text-[var(--fg-3)] shadow-lg group-hover:block" style={{ marginTop: 6, width: 200, lineHeight: "1.4" }}>
-              {tooltip}
-            </span>
-          </span>
-        )}
-      </p>
-      <p className="mt-1 font-mono text-2xl font-bold tabular-nums" style={{ letterSpacing: "-0.02em" }}>{value}</p>
     </div>
   );
 }

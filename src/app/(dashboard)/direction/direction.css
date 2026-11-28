@@ -1,0 +1,399 @@
+/* ============================================================================
+   Direction — route-local layout on the Operate foundation
+   ----------------------------------------------------------------------------
+   Layout and module-specific pieces for Direction. Colors, typography, radii,
+   borders and interaction states come from the global Operate foundation in
+   src/app/globals.css.
+   ========================================================================== */
+
+/* ── Shell ────────────────────────────────────────────────────────────────
+   One vertical rhythm for the whole module: header band, then the panel. */
+
+.dir-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.dir-head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dir-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  min-width: 0;
+}
+
+.dir .ui-module-header {
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .dir-shell {
+    gap: 14px;
+  }
+
+  .dir-head {
+    gap: 12px;
+  }
+
+  .dir-body {
+    gap: 16px;
+  }
+}
+
+/* ── Tab bar ────────────────────────────────────────────────────────────────
+   Seven tabs plus the owner eye toggles do not fit in one phone-width row.
+   On phones the underline strip scrolls horizontally with a thin scrollbar so
+   the overflow is discoverable and the last eye toggle can be reached. */
+
+@media (max-width: 767px) {
+  .dir .ui-tabnav {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+  }
+
+  .dir .ui-tabnav::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .dir .ui-tabnav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dir .ui-tabnav::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+}
+
+/* ── Mobile tables ─────────────────────────────────────────────────────────
+   Pin the row label while the figures scroll, and expose the horizontal
+   scrollbar. */
+
+@media (max-width: 767px) {
+  .dir .ui-table-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ui-line-strong) transparent;
+    padding-bottom: 6px;
+  }
+
+  .dir .ui-table-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .dir .ui-table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dir .ui-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--ui-line-strong);
+    border-radius: 999px;
+  }
+
+  .dir .ui-table-scroll > table > thead > tr > :first-child,
+  .dir .ui-table-scroll > table > tbody > tr > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--ui-panel);
+    box-shadow: 1px 0 0 var(--ui-line);
+  }
+
+  .dir .ui-table-scroll > table > thead > tr > :first-child {
+    z-index: 3;
+  }
+
+  .dir .ui-table-scroll > table > tbody > tr.ui-row-active > :first-child {
+    background: var(--ui-panel-2);
+  }
+
+  .dir .ui-table-scroll[data-scrollable]::before {
+    content: "↔ Défilez horizontalement";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: max-content;
+    padding: 2px 10px 8px;
+    font-size: 11px;
+    color: var(--ui-fg-4);
+  }
+}
+
+/* ── Owner-only source disclosure ─────────────────────────────────────────── */
+
+.dir-source {
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel-2);
+  font-size: var(--ui-text-caption);
+  color: var(--ui-fg-3);
+}
+
+.dir-source > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 10px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--ui-radius-sm);
+}
+
+.dir-source > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dir-source > summary:hover {
+  color: var(--ui-fg-1);
+}
+
+.dir-source > summary:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: -2px;
+}
+
+.dir-source-chevron {
+  flex: 0 0 auto;
+  color: var(--ui-fg-4);
+  transition: transform 160ms var(--ease);
+}
+
+.dir-source[open] .dir-source-chevron {
+  transform: rotate(90deg);
+}
+
+.dir-source-label {
+  font-weight: 600;
+  color: var(--ui-fg-2);
+  white-space: nowrap;
+}
+
+.dir-source-meta {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ui-fg-4);
+}
+
+.dir-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+  padding: 4px 12px 12px 30px;
+  border-top: var(--ui-line-width) solid var(--ui-line);
+}
+
+.dir-source-grid div {
+  min-width: 0;
+}
+
+.dir-source-grid dt {
+  margin: 8px 0 1px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-fg-4);
+}
+
+.dir-source-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ui-fg-2);
+}
+
+.dir-source-grid code {
+  font-family: var(--font-mono);
+  font-size: var(--ui-text-caption);
+  color: var(--ui-fg-2);
+}
+
+@media (max-width: 767px) {
+  .dir-source-meta {
+    display: none;
+  }
+
+  .dir-source-grid {
+    padding-left: 12px;
+  }
+}
+
+/* ── Inline note (estimation caveat) ─────────────────────────────────────── */
+
+.dir-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-panel-2);
+  font-size: var(--ui-text-note);
+  line-height: 1.5;
+  color: var(--ui-fg-3);
+}
+
+.dir-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--ui-accent);
+}
+
+/* ── KPI equation (Ventes − Dépenses = Résultat) ─────────────────────────── */
+
+.dir-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dir-equation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.dir-equation-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.dir-equation-cell[data-result="true"] {
+  background: var(--ui-panel-2);
+}
+
+.dir-equation-label {
+  font-size: 10.5px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-fg-3);
+}
+
+/* Card sets a small inherited line-height; the figures need their own, or the
+   glyphs overflow their box and collide with the label above. */
+.dir-equation-value {
+  font-family: var(--font-mono);
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  line-height: 1.05;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+  /* Inherit so the result cell can colour a profit/loss figure. */
+  color: inherit;
+}
+
+.dir-equation-value[data-large="true"] {
+  font-size: clamp(2.1rem, 4vw, 3.8rem);
+}
+
+.dir-equation-operator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: var(--ui-line-width) solid var(--ui-line);
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+  padding: 2px 0;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ui-fg-4);
+}
+
+@media (min-width: 768px) {
+  .dir-equation {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.2fr);
+    align-items: stretch;
+  }
+
+  .dir-equation-cell {
+    padding: 20px 22px;
+    min-height: 124px;
+  }
+
+  .dir-equation-operator {
+    border-top: 0;
+    border-bottom: 0;
+    border-left: var(--ui-line-width) solid var(--ui-line);
+    border-right: var(--ui-line-width) solid var(--ui-line);
+    padding: 0 16px;
+    font-size: 20px;
+  }
+}
+
+/* ── Panel stack ────────────────────────────────────────────────────────────
+   Root of every tab panel: one vertical rhythm, no inline gap values. */
+
+.dir-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .dir-stack {
+    gap: 16px;
+  }
+}
+
+/* ── Panels ───────────────────────────────────────────────────────────────── */
+
+.dir-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow);
+}
+
+/* The one KPI in a row that carries the outcome keeps a quiet accent edge
+   instead of a full accent fill. */
+.dir-kpi-outcome {
+  border-left: 3px solid var(--ui-accent);
+}
+
+.dir-panel-title {
+  margin: 0;
+  font-size: var(--ui-text-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-fg-3);
+}
+
+/* ── Loading / empty ─────────────────────────────────────────────────────── */
+
+.dir-loading,
+.dir-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 16px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-panel);
+  color: var(--ui-fg-3);
+  font-size: var(--ui-text-body);
+}

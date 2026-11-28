@@ -94,18 +94,18 @@ export function AdminLoyversePanel() {
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Write-back — Loyverse = vérité ventes (ON par défaut)</CardTitle>
+          <CardTitle>Write-back — Loyverse = sales truth (ON by default)</CardTitle>
           <p className="text-sm text-[var(--fg-3)]">
-            Écrit les snapshots dans <code>daily_entries</code> / <code>challenge_counters</code> (cron quotidien J+J-1).
-            Coupé uniquement si <code>LOYVERSE_WRITE_ENABLED=false</code>. Le bouton ci-dessous force l&apos;écriture pour la date choisie (owner uniquement).
+            Writes snapshots into <code>daily_entries</code> / <code>challenge_counters</code> (daily cron D/D-1).
+            Off only when <code>LOYVERSE_WRITE_ENABLED=false</code>. The button below forces the write for the chosen date (owner only).
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-[var(--fg-2)]">Statut flag :</span>
+            <span className="text-sm text-[var(--fg-2)]">Flag status:</span>
             {loadingStatus ? (
               <Pill tone="neutral" size="sm">
-                chargement…
+                loading…
               </Pill>
             ) : enabled ? (
               <Pill tone="good" dot size="sm">
@@ -116,12 +116,12 @@ export function AdminLoyversePanel() {
                 OFF — LOYVERSE_WRITE_ENABLED=false
               </Pill>
             )}
-            <span className="text-xs text-[var(--fg-4)]">Env Vercel • redéploiement requis pour changer le flag global</span>
+            <span className="text-xs text-[var(--fg-4)]">Vercel env • redeploy required to change the global flag</span>
           </div>
 
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-[var(--fg-3)]">Date à écrire</span>
+              <span className="text-xs font-medium text-[var(--fg-3)]">Date to write</span>
               <input
                 type="date"
                 value={date}
@@ -130,16 +130,16 @@ export function AdminLoyversePanel() {
               />
             </label>
             <Button variant="secondary" onClick={handleDryRun} disabled={dryRunning} size="default">
-              {dryRunning ? "Prévisualisation…" : "Prévisualiser (dry-run)"}
+              {dryRunning ? "Previewing…" : "Preview (dry-run)"}
             </Button>
             <Button variant="danger" onClick={() => setStep("confirm1")} disabled={running} size="default" className="bg-[var(--bad)] text-white hover:bg-[var(--bad)]/90">
               <AlertTriangleIcon className="size-4" />
-              Activer l&apos;écriture
+              Enable writing
             </Button>
           </div>
 
           <p className="text-xs text-[var(--fg-4)]">
-            Dry-run = lecture seule, montre ce qui serait écrit sans toucher la DB. « Activer » nécessite 2 confirmations et tape <code>ACTIVER</code>.
+            Dry-run = read-only, shows what would be written without touching the DB. “Enable” requires 2 confirmations and typing <code>ACTIVER</code>.
           </p>
 
           {error && <div className="rounded border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
@@ -147,11 +147,11 @@ export function AdminLoyversePanel() {
           {result && (
             <div className="rounded border border-[var(--line)] bg-[var(--bg-2)] p-3">
               <p className="text-sm font-medium text-[var(--fg)]">
-                Résultat {result.dryRun ? "(dry-run)" : ""} — {result.date} : {result.daily_upserted} daily upserted / {result.daily_skipped} skipped, {result.location_upserted} location upserted / {result.location_skipped} skipped
+                Result {result.dryRun ? "(dry-run)" : ""} — {result.date}: {result.daily_upserted} daily upserted / {result.daily_skipped} skipped, {result.location_upserted} location upserted / {result.location_skipped} skipped
               </p>
               {result.errors.length > 0 && <p className="mt-1 text-xs text-[var(--bad)]">{result.errors.join("; ")}</p>}
               <details className="mt-2">
-                <summary className="cursor-pointer text-xs text-[var(--fg-3)]">Détails par store ({result.details.length})</summary>
+                <summary className="cursor-pointer text-xs text-[var(--fg-3)]">Details per store ({result.details.length})</summary>
                 <ul className="mt-1 max-h-40 overflow-auto text-xs font-mono tabular-nums">
                   {result.details.map((d, i) => (
                     <li key={i} className="flex gap-2">
@@ -173,11 +173,11 @@ export function AdminLoyversePanel() {
         open={step === "confirm1"}
         onClose={() => setStep("idle")}
         title="Are you sure you want to enable Loyverse write-back?"
-        description={`Cette action va écrire les snapshots Loyverse du ${date} dans daily_entries et challenge_counters. Les champs auto (ventes, paiements, TVA) seront écrasés, les champs manuels (dépenses, HR) restent. Aucun retour arrière automatique.`}
+        description={`This will write the Loyverse snapshots of ${date} into daily_entries and challenge_counters. Auto fields (sales, payments, VAT) will be overwritten; manual fields (expenses, HR) are kept. No automatic rollback.`}
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setStep("idle")}>
-              Annuler
+              Cancel
             </Button>
             <Button variant="danger" onClick={() => setStep("confirm2")}>
               Oui, continuer
@@ -187,9 +187,9 @@ export function AdminLoyversePanel() {
       >
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--fg-2)]">
-            Tu t&apos;apprêtes à <strong>activer l&apos;écriture</strong> pour <code>{date}</code>. Vérifie dans l&apos;onglet Accounting que le diff est propre.
+            You are about to <strong>enable writing</strong> for <code>{date}</code>. Check the Accounting tab that the diff is clean.
           </p>
-          <p className="rounded bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn)]">Phase 4 est OFF par défaut. Cette action force l&apos;écriture malgré le flag.</p>
+          <p className="rounded bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn)]">Phase 4 is OFF by default. This action forces the write despite the flag.</p>
         </div>
       </Modal>
 
@@ -200,8 +200,8 @@ export function AdminLoyversePanel() {
           setStep("idle");
           setConfirmText("");
         }}
-        title="Final confirmation — tape ACTIVER"
-        description="Dernière étape : tape exactement ACTIVER pour confirmer. Cette action est irréversible pour la date sélectionnée."
+        title="Final confirmation — type ACTIVER"
+        description="Last step: type ACTIVER exactly to confirm. This action is irreversible for the selected date."
         footer={
           <div className="flex justify-end gap-2">
             <Button
@@ -211,17 +211,17 @@ export function AdminLoyversePanel() {
                 setConfirmText("");
               }}
             >
-              Annuler
+              Cancel
             </Button>
             <Button variant="danger" onClick={handleActivate} disabled={confirmText !== "ACTIVER" || running}>
-              {running ? "Écriture…" : "Confirmer ACTIVER"}
+              {running ? "Writing…" : "Confirm ACTIVATE"}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--fg-2)]">
-            Pour éviter un clic accidentel, tape <code className="rounded bg-[var(--bg-2)] px-1 py-0.5 font-mono text-[var(--fg)]">ACTIVER</code> ci-dessous :
+            To avoid an accidental click, type <code className="rounded bg-[var(--bg-2)] px-1 py-0.5 font-mono text-[var(--fg)]">ACTIVER</code> below:
           </p>
           <input
             value={confirmText}

@@ -1,0 +1,208 @@
+/* ============================================================================
+   Treasury — route-local layout on the Operate foundation
+   ----------------------------------------------------------------------------
+   Layout and module-specific pieces for Treasury. Colors, typography, radii,
+   borders and interaction states come from the global Operate foundation in
+   src/app/globals.css. Nothing here changes a calculation, a rounding rule or
+   an API contract: `thb()` keeps the sign of negative amounts and the
+   free-cash thresholds are untouched — this file is presentation only.
+   ========================================================================== */
+
+/* Page rhythm */
+.trs-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-section-gap);
+}
+
+/* Free cash in the "Watch" band keeps a warn value without a loud card. */
+.trs .ui-kpi[data-alert="warn"] .ui-kpi-value {
+  color: var(--ui-warn);
+}
+
+@media (max-width: 767px) {
+  .trs-shell {
+    gap: 16px;
+  }
+}
+
+/* ── Free-cash formula line ────────────────────────────────────────────────
+   cash + bank + transfers − reserves = free cash. Wraps naturally; on phones
+   it reads as a top-down ledger like the Direction equation. */
+
+.trs-formula {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: transparent;
+  font-size: 13px;
+  color: var(--ui-fg-3);
+  flex-wrap: wrap;
+}
+
+.trs-formula-pill {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-sm);
+  color: #fff;
+}
+
+/* ── Cash positions (Cash by shop) ───────────────────────────────────────── */
+
+.trs-cashpos-row {
+  padding: 10px 16px;
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+}
+
+.trs-cashpos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: end;
+}
+
+@media (max-width: 767px) {
+  .trs-cashpos-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Add-reserve form ────────────────────────────────────────────────────── */
+
+.trs-reserve-form {
+  padding: 12px 20px;
+  border-top: var(--ui-line-width) solid var(--ui-line);
+  background: transparent;
+}
+
+.trs-reserve-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+@media (max-width: 767px) {
+  .trs-reserve-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .trs-reserve-grid > :first-child,
+  .trs-reserve-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ── Reserve tracker rows ──────────────────────────────────────────────────
+   On phones the column header is hidden and each row stacks:
+   obligation, required/reserved with the progress bar, then completion. */
+
+.trs-reserve-head,
+.trs-reserve-row,
+.trs-reserve-totals {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.trs-reserve-head {
+  padding: 8px 20px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ui-fg-4);
+}
+
+.trs-reserve-row {
+  padding: 10px 20px;
+  border-top: var(--ui-line-width) solid var(--ui-line);
+}
+
+.trs-reserve-totals {
+  padding: 10px 20px;
+  border-top: 2px solid var(--ui-line);
+  background: transparent;
+}
+
+@media (max-width: 767px) {
+  .trs-reserve-head {
+    display: none;
+  }
+
+  .trs-reserve-row,
+  .trs-reserve-totals {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .trs-reserve-row > :nth-child(2),
+  .trs-reserve-row > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .trs-reserve-row > :nth-child(2) {
+    text-align: left !important;
+  }
+}
+
+/* Section paddings for the two list-style sections */
+.trs-list-empty {
+  padding: 24px 20px;
+  font-size: 13px;
+  color: var(--ui-fg-4);
+}
+
+.trs-bank-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: var(--ui-line-width) solid var(--ui-line);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Cash counter desktop layout ───────────────────────────────────────────
+   Task-adapted panels: the counting surface (input) beside the history
+   (consultation) so the wide desktop stops floating the counter in empty
+   space. Logic, keyboard model and data flow are untouched. */
+
+.trs-counter-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trs-counter-history {
+  padding-top: 16px;
+}
+
+@media (min-width: 1024px) {
+  .trs-counter-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .trs-counter-surface {
+    max-width: 520px;
+  }
+
+  .trs-counter-history {
+    padding-top: 0;
+    border: var(--ui-line-width) solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    background: var(--ui-panel);
+    box-shadow: var(--ui-shadow);
+    padding: 12px 4px 8px;
+  }
+}

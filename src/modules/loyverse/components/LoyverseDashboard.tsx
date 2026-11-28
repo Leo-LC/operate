@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { PillButton } from "@/components/ui/pill-button";
-import { Stat } from "@/components/ui/stat";
+import { KpiStat } from "@/components/ui/kpi-stat";
 import { cn } from "@/lib/utils";
-import { RefreshCwIcon, TrendingUpIcon, ShoppingBagIcon, UsersIcon, ClockIcon, CoffeeIcon } from "lucide-react";
+import { RefreshCwIcon, ClockIcon } from "lucide-react";
 import { DateRangePicker, ShopMultiSelect } from "@/components/ui/filters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -16,11 +16,6 @@ function fmtTHB(n: number) {
 }
 function fmtInt(n: number) {
   return new Intl.NumberFormat("en-US").format(Math.round(n));
-}
-function fmtDelta(pct: number | null) {
-  if (pct === null || !Number.isFinite(pct)) return null;
-  const sign = pct > 0 ? "+" : "";
-  return `${sign}${pct.toFixed(1)}%`;
 }
 import { bangkokToday, parseDay, capitalizeShop } from "@/lib/loyverse/dates";
 import { groupStoresByLocation, type GroupedStore } from "@/modules/loyverse/lib/group-stores";
@@ -91,90 +86,42 @@ function fmtPct(part: number, total: number) {
   return `${((part / total) * 100).toFixed(1)}%`;
 }
 
-function Donut({ data, colors }: { data: { label: string; value: number; sublabel?: string }[]; colors: string[] }) {
-  const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
+/**
+ * Ranked horizontal bars on the shared `.ui-bar-row` classes and the single
+ * accent series — replaces the decorative multi-colour donuts (labels,
+ * values and shares are unchanged; no new metric). The DONUT was dropped
+ * rather than restyled because its colours were assigned by index and
+ * carried no business meaning.
+ */
+function RankedBars({ data }: { data: { label: string; value: number; sublabel?: string }[] }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <div className="py-6 text-center text-sm text-[var(--fg-4)]">No data</div>;
-  // Attach colors before sorting so each semantic item keeps its color, then sort desc.
-  const sorted = data
-    .map((d, i) => ({ ...d, color: colors[i % colors.length] }))
-    .sort((a, b) => b.value - a.value);
-  let acc = 0;
-  const segments = sorted.map((d, i) => {
-    const start = (acc / total) * 360;
-    acc += d.value;
-    const end = (acc / total) * 360;
-    const large = end - start > 180 ? 1 : 0;
-    const r = 36;
-    const cx = 40, cy = 40;
-    const rad = (deg: number) => (deg - 90) * (Math.PI / 180);
-    const x1 = cx + r * Math.cos(rad(start));
-    const y1 = cy + r * Math.sin(rad(start));
-    const x2 = cx + r * Math.cos(rad(end));
-    const y2 = cy + r * Math.sin(rad(end));
-    const pct = fmtPct(d.value, total);
-    // Full circle (single segment): render as circle instead of degenerate pie path
-    if (start === 0 && end >= 359.999) {
-      return (
-        <g key={d.label}>
-          <title>{`${d.label}: ${fmtTHB(d.value)} (${pct})`}</title>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill={d.color}
-            style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
-            onMouseEnter={() => setHoverIdx(i)}
-            onMouseLeave={() => setHoverIdx(null)}
-          />
-        </g>
-      );
-    }
-    const dAttr = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
-    return (
-      <g key={d.label}>
-        <title>{`${d.label}: ${fmtTHB(d.value)} (${pct})`}</title>
-        <path
-          d={dAttr}
-          fill={d.color}
-          style={{ opacity: hoverIdx === null || hoverIdx === i ? 1 : 0.45, transition: "opacity 150ms ease", cursor: "pointer" }}
-          onMouseEnter={() => setHoverIdx(i)}
-          onMouseLeave={() => setHoverIdx(null)}
-        />
-      </g>
-    );
-  });
+  const sorted = [...data].filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
+  const max = Math.max(...sorted.map((d) => d.value));
   return (
-    <div className="flex items-center gap-4">
-      <svg width={80} height={80} viewBox="0 0 80 80" className="shrink-0" role="img" aria-label={`Total ${fmtTHB(total)}`}>
-        <circle cx={40} cy={40} r={36} fill="var(--line-2)" />
-        {segments}
-        <circle cx={40} cy={40} r={18} fill="var(--surface)" />
-      </svg>
-      <div className="flex flex-1 flex-col gap-1.5 text-xs">
-        {sorted.map((d, i) => (
-          <div
-            key={d.label}
-            className="flex flex-col gap-0 rounded px-1 py-0.5 transition-colors"
-            style={{ background: hoverIdx === i ? "var(--line-2)" : "transparent" }}
-            onMouseEnter={() => setHoverIdx(i)}
-            onMouseLeave={() => setHoverIdx(null)}
-            title={`${d.label}: ${fmtTHB(d.value)} (${fmtPct(d.value, total)})`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: d.color }} />
-              <span className="text-[var(--fg-3)]">{d.label}</span>
-              <span className="ml-auto flex items-center gap-1.5">
-                <span className="font-mono tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
-                <span className="min-w-[48px] rounded-full bg-[var(--line-2)] px-1.5 py-0.5 text-center font-mono text-[10px] font-semibold tabular-nums text-[var(--fg-2)]">
-                  {fmtPct(d.value, total)}
-                </span>
-              </span>
-            </div>
-            {d.sublabel && <span className="ml-[18px] text-[10px] leading-none text-[var(--fg-4)]">{d.sublabel}</span>}
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col gap-2 py-1">
+      {sorted.map((d) => (
+        <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
+          <span className="text-xs text-[var(--fg-3)]" style={{ flex: "0 0 34%", minWidth: 0, whiteSpace: "normal", lineHeight: 1.25 }}>
+            {d.label}
+          </span>
+          <span style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--ui-series-track)", overflow: "hidden", minWidth: 0 }}>
+            <span style={{ display: "block", height: "100%", width: `${Math.max(3, (d.value / max) * 100)}%`, borderRadius: 999, background: "var(--ui-series-primary)" }} />
+          </span>
+          <span className="flex items-center justify-end gap-1.5" style={{ flex: "0 0 auto" }}>
+            <span className="font-mono text-xs tabular-nums text-[var(--fg-2)]">{fmtTHB(d.value)}</span>
+            <span className="font-mono text-[10px] tabular-nums text-[var(--fg-4)]" style={{ width: 40, textAlign: "right" }}>{fmtPct(d.value, total)}</span>
+          </span>
+        </div>
+      ))}
+      {/* sublabels (e.g. surcharge inside card payments) render once, stacked below */}
+      {sorted.map((d) =>
+        d.sublabel ? (
+          <p key={`${d.label}-sub`} className="m-0 text-[10px] leading-none text-[var(--fg-4)]">
+            {d.label}: {d.sublabel}
+          </p>
+        ) : null,
+      )}
     </div>
   );
 }
@@ -199,10 +146,10 @@ function HourlyBarChart({ data, avgMode = false }: { data: { hour: number; reven
                 <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
                   <div className="text-xs font-medium text-[var(--fg)]">{p.hour}</div>
                   <div className="font-mono text-xs tabular-nums text-[var(--bronze)]">
-                    {fmtTHB(p.revenue)}{avgMode ? " / jour" : ""}
+                    {fmtTHB(p.revenue)}{avgMode ? " / day" : ""}
                   </div>
                   <div className="text-[11px] text-[var(--fg-4)]">
-                    {avgMode ? `${p.count.toFixed(1)} tickets / jour` : `${p.count} receipts`}
+                    {avgMode ? `${p.count.toFixed(1)} tickets / day` : `${p.count} receipts`}
                   </div>
                 </div>
               );
@@ -274,7 +221,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const [hourlyData, setHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
   const [hourlyLoading, setHourlyLoading] = React.useState(false);
-  // Multi-jours : switch Par jour / Par heure + mode Moyenne (journée type) / Total (cumulé)
+  // Multi-day: By day / By hour switch + Daily average (typical day) / Period total (cumulative) mode
   const [chartView, setChartView] = React.useState<"day" | "hour">("day");
   const [hourlyMode, setHourlyMode] = React.useState<"avg" | "total">("avg");
   const [rangeHourlyData, setRangeHourlyData] = React.useState<{ hour: number; revenue: number; count: number }[] | null>(null);
@@ -369,8 +316,8 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       .finally(() => setHourlyLoading(false));
   }, [effectiveEnd, rangeDays, selectedStores, data, mappedStores]);
 
-  // Multi-jours, vue Par heure : 1 appel / shop sur toute la période (from/to),
-  // cumulé côté API. La moyenne = cumulé / nb jours (journée type).
+  // Multi-day, By hour view: one call per shop over the whole period (from/to),
+  // accumulated by the API. Average = cumulative / days (typical day).
   React.useEffect(() => {
     if (rangeDays <= 1 || chartView !== "hour" || !data?.per_store.length) {
       setRangeHourlyData(null);
@@ -586,7 +533,19 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="lov flex flex-col gap-6">
+      <header className="ui-module-header">
+        <nav aria-label="Breadcrumb">
+          <ol className="ui-breadcrumb">
+            <li>
+              <span aria-current="page">Loyverse</span>
+            </li>
+          </ol>
+        </nav>
+        <div className="ui-module-header-row">
+          <h1 className="ui-module-title">Loyverse</h1>
+        </div>
+      </header>
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker value={dateRange} onChange={(range) => setDateRange(range)} today={bangkokToday()} />
@@ -614,7 +573,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
         </div>
         {hiddenSnapCount > 0 && (
           <p className="text-xs text-[var(--warn)]">
-            {hiddenSnapCount} ligne(s) Loyverse sans shop rattaché sur la période — masquées ici. Rattachez-les dans Admin › Locations (Loyverse : account key + store ID).
+            {hiddenSnapCount} Loyverse row(s) without an attached shop in this period — hidden here. Attach them in Admin › Locations (Loyverse: account key + store ID).
           </p>
         )}
       </div>
@@ -623,75 +582,57 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
       {error && <div className="rounded-[var(--r-sm)] border border-[var(--bad-soft)] bg-[var(--bad-soft)] px-3 py-2 text-sm text-[var(--bad)]">{error}</div>}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="py-6">
-                <div className="h-4 w-20 rounded bg-[var(--line-2)]" />
-                <div className="mt-3 h-6 w-24 rounded bg-[var(--line)]" />
-              </CardContent>
-            </Card>
-          ))}
+        <div aria-busy="true">
+          <p role="status" className="mb-3 text-sm text-[var(--fg-3)]">
+            Loading Loyverse data…
+          </p>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="py-6">
+                  <div className="h-4 w-20 rounded bg-[var(--line-2)]" />
+                  <div className="mt-3 h-6 w-24 rounded bg-[var(--line)]" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : kpi ? (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Revenue"
-                value={fmtTHB(kpi.revenue_total)}
-                icon={<TrendingUpIcon className="size-4" />}
-                iconColor="var(--bronze)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Customers"
-                value={fmtInt(kpi.ticket_count)}
-                icon={<UsersIcon className="size-4" />}
-                iconColor="var(--info)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Drinks"
-                value={fmtInt(kpi.drinks_sold)}
-                icon={<CoffeeIcon className="size-4" />}
-                iconColor="var(--purple)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Animal Food"
-                value={fmtTHB(snackAmount)}
-                icon={<ShoppingBagIcon className="size-4" />}
-                iconColor="var(--good)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Merch"
-                value={fmtTHB(merchAmount)}
-                icon={<ShoppingBagIcon className="size-4" />}
-                iconColor="var(--warn)"
-                valueLayout="bottom"
-              />
-            </CardContent>
-          </Card>
+        <div className="ui-kpi-grid">
+          <KpiStat
+            label="Revenue"
+            value={fmtTHB(kpi.revenue_total)}
+            hint={`${fmtInt(kpi.ticket_count)} customers`}
+          />
+          <KpiStat
+            label="Customers"
+            value={fmtInt(kpi.ticket_count)}
+          />
+          <KpiStat
+            label="Drinks"
+            value={fmtInt(kpi.drinks_sold)}
+          />
+          <KpiStat
+            label="Animal Food"
+            value={fmtTHB(snackAmount)}
+            hint={`${fmtInt(kpi.snacks_sold)} snacks`}
+          />
+          <KpiStat
+            label="Merch"
+            value={fmtTHB(merchAmount)}
+            hint={`${((merchAmount / Math.max(1, kpi.revenue_total)) * 100).toFixed(1)}% of revenue`}
+          />
         </div>
-      ) : null}
+      ) : (
+        <Card>
+          <CardContent className="py-10 text-center">
+            <p className="text-sm text-[var(--fg-4)]">No Loyverse data for this period.</p>
+            <p className="mt-1 text-xs text-[var(--fg-4)]">
+              Use the Sync button above to fetch the latest numbers.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {!loading && rangeDays === 1 && (
         <Card>
@@ -722,25 +663,25 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               </CardTitle>
               <div className="ml-auto flex items-center gap-1 rounded-[var(--r-sm)] bg-[var(--bg-2)] p-1">
                 <PillButton active={chartView === "day"} onClick={() => setChartView("day")} className="!py-1">
-                  Par jour
+                  By day
                 </PillButton>
                 <PillButton active={chartView === "hour"} onClick={() => setChartView("hour")} className="!py-1">
-                  Par heure
+                  By hour
                 </PillButton>
               </div>
             </div>
             {chartView === "hour" && (
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 <PillButton active={hourlyMode === "avg"} onClick={() => setHourlyMode("avg")} className="!py-1">
-                  Moyenne / jour
+                  Daily average
                 </PillButton>
                 <PillButton active={hourlyMode === "total"} onClick={() => setHourlyMode("total")} className="!py-1">
-                  Total période
+                  Period total
                 </PillButton>
                 <span className="text-[11px] text-[var(--fg-4)]">
                   {hourlyMode === "avg"
-                    ? "Journée type : cumulé ÷ nb jours — idéal pour staffing / horaires."
-                    : "Cumulé sur toute la période — grandit avec la durée sélectionnée."}
+                    ? "Typical day: cumulative ÷ days — ideal for staffing decisions."
+                    : "Cumulative over the whole period — grows with the selected duration."}
                 </span>
               </div>
             )}
@@ -773,15 +714,14 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <CardTitle>Sales buckets</CardTitle>
             </CardHeader>
             <CardContent>
-              <Donut
+              <RankedBars
                 data={[
                   { label: "Drinks", value: perStore.reduce((s, r) => s + r.buckets.drinks, 0) },
                   { label: "Ticket", value: perStore.reduce((s, r) => s + r.buckets.ticket, 0) },
                   { label: "Animal Food", value: perStore.reduce((s, r) => s + r.buckets.snack, 0) },
                   { label: "Goodies", value: perStore.reduce((s, r) => s + r.buckets.goodies, 0) },
                   { label: "Surcharge", value: perStore.reduce((s, r) => s + r.buckets.surcharge, 0) },
-                ].filter((d) => d.value > 0)}
-                colors={["var(--chart-1)", "var(--purple)", "var(--good)", "var(--amber)", "var(--fg-4)"]}
+                ]}
               />
             </CardContent>
           </Card>
@@ -793,7 +733,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               {(() => {
                 const surcharge = perStore.reduce((s, r) => s + r.buckets.surcharge, 0);
                 return (
-                  <Donut
+                  <RankedBars
                     data={[
                       { label: "Cash", value: perStore.reduce((s, r) => s + r.payments.cash, 0) },
                       { label: "Scan/QR", value: perStore.reduce((s, r) => s + r.payments.scan, 0) },
@@ -802,8 +742,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                         value: perStore.reduce((s, r) => s + r.payments.credit_card, 0),
                         sublabel: surcharge > 0 ? `incl. ${fmtTHB(surcharge)} fees` : undefined,
                       },
-                    ].filter((d) => d.value > 0)}
-                    colors={["var(--good)", "var(--amber)", "var(--chart-1)"]}
+                    ]}
                   />
                 );
               })()}
@@ -814,11 +753,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
               <CardTitle>Revenue by shop</CardTitle>
             </CardHeader>
             <CardContent>
-              <Donut
+              <RankedBars
                 data={perStore
-                  .map((s) => ({ label: capitalizeShop(s.account_key), value: s.revenue_total }))
-                  .sort((a, b) => b.value - a.value)}
-                colors={["var(--chart-1)", "var(--purple)", "var(--good)", "var(--amber)", "var(--bad)", "var(--chart-7)", "var(--chart-8)", "var(--fg-4)"]}
+                  .map((s) => ({ label: capitalizeShop(s.account_key), value: s.revenue_total }))}
               />
             </CardContent>
           </Card>
@@ -842,10 +779,10 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
             const failingAccount = lastRun?.per_account?.find((a) => a.account_key === store.account_key && a.error);
             const isDegraded = Boolean(failingAccount || store.unmapped.line_items > 0 || store.unmapped.payments > 0);
             const bucketEntries = [
-              { label: "Drinks", value: store.buckets.drinks, color: "var(--chart-1)" },
-              { label: "Tickets", value: store.buckets.ticket, color: "var(--purple)" },
-              { label: "Animal Food", value: store.buckets.snack, color: "var(--good)" },
-              { label: "Goodies", value: store.buckets.goodies, color: "var(--amber)" },
+              { label: "Drinks", value: store.buckets.drinks },
+              { label: "Tickets", value: store.buckets.ticket },
+              { label: "Animal Food", value: store.buckets.snack },
+              { label: "Goodies", value: store.buckets.goodies },
             ]
               .filter((b) => b.value > 0)
               .sort((a, b) => b.value - a.value);
@@ -871,7 +808,7 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold leading-none text-[var(--fg)]" style={{ textTransform: "capitalize" }}>{store.account_key}</p>
                     {store.store_ids.length > 1 && (
-                      <p className="mt-1 text-[11px] text-[var(--fg-4)]">{store.store_ids.length} caisses unifiées</p>
+                      <p className="mt-1 text-[11px] text-[var(--fg-4)]">{store.store_ids.length} merged registers</p>
                     )}
                   </div>
                   {isDegraded && (
@@ -899,9 +836,9 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                     <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--fg-4)]">Sales breakdown</p>
                     {bucketEntries.map((b) => (
                       <div key={b.label} className="flex items-center gap-2">
-                        <span className="w-[72px] shrink-0 text-[11px] text-[var(--fg-3)]">{b.label}</span>
+                        <span className="min-w-[84px] shrink-0 text-[11px] text-[var(--fg-3)]">{b.label}</span>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--line-2)]">
-                          <div className="h-full rounded-full" style={{ width: `${(b.value / bucketMax) * 100}%`, background: b.color }} />
+                          <div className="h-full rounded-full" style={{ width: `${(b.value / bucketMax) * 100}%`, background: "var(--accent)" }} />
                         </div>
                         <span className="flex shrink-0 items-baseline justify-end gap-1.5 font-mono text-[11px] tabular-nums">
                           <span className="text-[var(--fg-2)]">{fmtTHB(b.value)}</span>

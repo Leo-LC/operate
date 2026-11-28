@@ -14,5 +14,5 @@ export default async function WikiLayout({ children }: { children: React.ReactNo
     isAccessibleForSession(session.user.role, "module:wiki"),
   ]);
   if (!visible || !hasModuleAccess(permissions, "wiki")) redirect("/home");
-  return <>{children}</>;
+  return <div className="wiki">{children}</div>;
 }
