@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { hasModuleAccess } from "@/core/permissions/guards";
 import { getUserPermissionsFromDb } from "@/core/permissions/server";
-import "./wiki.css";
 import { isAccessibleForSession } from "@/lib/module-visibility";
 
 export default async function WikiLayout({ children }: { children: React.ReactNode }) {

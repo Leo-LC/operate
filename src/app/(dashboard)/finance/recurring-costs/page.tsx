@@ -6,7 +6,6 @@ import { getUserPermissionsFromDb } from "@/core/permissions/server";
 import { isAccessibleForSession } from "@/lib/module-visibility";
 import { RecurringCostsClient } from "@/modules/finance/components/RecurringCostsClient";
 
-import "../finance.css";
 
 export default async function RecurringCostsPage() {
   const session = await getServerSession(authOptions);

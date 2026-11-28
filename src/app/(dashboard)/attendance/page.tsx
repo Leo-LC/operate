@@ -5,7 +5,6 @@ import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { AttendanceClient } from "@/modules/attendance/components/AttendanceClient";
 import type { AdminLocation } from "@/modules/admin/types";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-import "./attendance.css";
 
 export default async function AttendancePage() {
   const session = await getServerSession(authOptions);

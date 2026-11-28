@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 import { DEFAULT_ORG_ID } from "@/lib/constants";
-import "../admin/admin.css";
 import { EmployeesListClient } from "@/modules/admin/components/EmployeesListClient";
 import type { AdminLocation } from "@/modules/admin/types";
 import { isOperationalAdmin } from "@/core/permissions/guards";
