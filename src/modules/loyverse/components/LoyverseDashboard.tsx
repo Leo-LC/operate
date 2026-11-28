@@ -658,6 +658,16 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
           <Card className="flex flex-col">
             <CardContent className="flex flex-1 flex-col">
               <Stat
+                label="Drinks"
+                value={fmtInt(kpi.drinks_sold)}
+                icon={<CoffeeIcon className="size-4" />}
+                iconColor="var(--purple)"
+              />
+            </CardContent>
+          </Card>
+          <Card className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col">
+              <Stat
                 label="Animal Food"
                 value={fmtTHB(snackAmount)}
                 icon={<ShoppingBagIcon className="size-4" />}
@@ -672,17 +682,6 @@ export function LoyverseDashboard({ canSync = true }: { canSync?: boolean }) {
                 value={fmtTHB(merchAmount)}
                 icon={<ShoppingBagIcon className="size-4" />}
                 iconColor="var(--warn)"
-              />
-            </CardContent>
-          </Card>
-          <Card className="flex flex-col">
-            <CardContent className="flex flex-1 flex-col">
-              <Stat
-                label="Drinks / Customer"
-                value={kpi.ticket_count > 0 ? (kpi.drinks_sold / kpi.ticket_count).toFixed(2) : "—"}
-                hint={`${fmtInt(kpi.drinks_sold)} drinks · ${fmtInt(kpi.ticket_count)} customers`}
-                icon={<CoffeeIcon className="size-4" />}
-                iconColor="var(--info)"
               />
             </CardContent>
           </Card>
